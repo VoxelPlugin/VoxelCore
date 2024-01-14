@@ -1,0 +1,332 @@
+﻿// Copyright Voxel Plugin, Inc. All Rights Reserved.
+
+#pragma once
+
+#include "Common.ush"
+
+#if INTELLISENSE_PARSER
+static const struct
+{
+	float4x4 TranslatedWorldToClip;
+	float4x4 RelativeWorldToClip;
+	float4x4 ClipToRelativeWorld;
+	float4x4 TranslatedWorldToView;
+	float4x4 ViewToTranslatedWorld;
+	float4x4 TranslatedWorldToCameraView;
+	float4x4 CameraViewToTranslatedWorld;
+	float4x4 ViewToClip;
+	float4x4 ViewToClipNoAA;
+	float4x4 ClipToView;
+	float4x4 ClipToTranslatedWorld;
+	float4x4 SVPositionToTranslatedWorld;
+	float4x4 ScreenToWorld;
+	float4x4 ScreenToTranslatedWorld;
+	float4x4 MobileMultiviewShadowTransform;
+	float3 ViewForward;
+	float3 ViewUp;
+	float3 ViewRight;
+	float3 HMDViewNoRollUp;
+	float3 HMDViewNoRollRight;
+	float4 InvDeviceZToWorldZTransform;
+	float4 ScreenPositionScaleBias;
+	float3 WorldCameraOrigin;
+	float3 TranslatedWorldCameraOrigin;
+	float3 WorldViewOrigin;
+	float3 PreViewTranslation;
+	float4x4 PrevProjection;
+	float4x4 PrevViewProj;
+	float4x4 PrevViewRotationProj;
+	float4x4 PrevViewToClip;
+	float4x4 PrevClipToView;
+	float4x4 PrevTranslatedWorldToClip;
+	float4x4 PrevTranslatedWorldToView;
+	float4x4 PrevViewToTranslatedWorld;
+	float4x4 PrevTranslatedWorldToCameraView;
+	float4x4 PrevCameraViewToTranslatedWorld;
+	float3 PrevWorldCameraOrigin;
+	float3 PrevWorldViewOrigin;
+	float3 PrevPreViewTranslation;
+	float4x4 PrevClipToRelativeWorld;
+	float4x4 PrevScreenToTranslatedWorld;
+	float4x4 ClipToPrevClip;
+	float4 TemporalAAJitter;
+	float4 GlobalClippingPlane;
+	float2 FieldOfViewWideAngles;
+	float2 PrevFieldOfViewWideAngles;
+	float4 ViewRectMin;
+	float4 ViewSizeAndInvSize;
+	float4 LightProbeSizeRatioAndInvSizeRatio;
+	float4 BufferSizeAndInvSize;
+	float4 BufferBilinearUVMinMax;
+	float4 ScreenToViewSpace;
+	int NumSceneColorMSAASamples;
+	float PreExposure;
+	float OneOverPreExposure;
+	float4 DiffuseOverrideParameter;
+	float4 SpecularOverrideParameter;
+	float4 NormalOverrideParameter;
+	float2 RoughnessOverrideParameter;
+	float PrevFrameGameTime;
+	float PrevFrameRealTime;
+	float OutOfBoundsMask;
+	float3 WorldCameraMovementSinceLastFrame;
+	float CullingSign;
+	float NearPlane;
+	float AdaptiveTessellationFactor;
+	float GameTime;
+	float RealTime;
+	float DeltaTime;
+	float MaterialTextureMipBias;
+	float MaterialTextureDerivativeMultiply;
+	uint Random;
+	uint FrameNumber;
+	uint StateFrameIndexMod8;
+	uint StateFrameIndex;
+	uint DebugViewModeMask;
+	float CameraCut;
+	float UnlitViewmodeMask;
+	float4 DirectionalLightColor;
+	float3 DirectionalLightDirection;
+	float4 TranslucencyLightingVolumeMin[2];
+	float4 TranslucencyLightingVolumeInvSize[2];
+	float4 TemporalAAParams;
+	float4 CircleDOFParams;
+	uint ForceDrawAllVelocities;
+	float DepthOfFieldSensorWidth;
+	float DepthOfFieldFocalDistance;
+	float DepthOfFieldScale;
+	float DepthOfFieldFocalLength;
+	float DepthOfFieldFocalRegion;
+	float DepthOfFieldNearTransitionRegion;
+	float DepthOfFieldFarTransitionRegion;
+	float MotionBlurNormalizedToPixel;
+	float bSubsurfacePostprocessEnabled;
+	float GeneralPurposeTweak;
+	float DemosaicVposOffset;
+	float3 IndirectLightingColorScale;
+	float AtmosphericFogSunPower;
+	float AtmosphericFogPower;
+	float AtmosphericFogDensityScale;
+	float AtmosphericFogDensityOffset;
+	float AtmosphericFogGroundOffset;
+	float AtmosphericFogDistanceScale;
+	float AtmosphericFogAltitudeScale;
+	float AtmosphericFogHeightScaleRayleigh;
+	float AtmosphericFogStartDistance;
+	float AtmosphericFogDistanceOffset;
+	float AtmosphericFogSunDiscScale;
+	float4 AtmosphereLightDirection[2];
+	float4 AtmosphereLightColor[2];
+	float4 AtmosphereLightColorGlobalPostTransmittance[2];
+	float4 AtmosphereLightDiscLuminance[2];
+	float4 AtmosphereLightDiscCosHalfApexAngle[2];
+	float4 SkyViewLutSizeAndInvSize;
+	float3 SkyWorldCameraOrigin;
+	float4 SkyPlanetCenterAndViewHeight;
+	float4x4 SkyViewLutReferential;
+	float4 SkyAtmosphereSkyLuminanceFactor;
+	float SkyAtmospherePresentInScene;
+	float SkyAtmosphereHeightFogContribution;
+	float SkyAtmosphereBottomRadiusKm;
+	float SkyAtmosphereTopRadiusKm;
+	float4 SkyAtmosphereCameraAerialPerspectiveVolumeSizeAndInvSize;
+	float SkyAtmosphereAerialPerspectiveStartDepthKm;
+	float SkyAtmosphereCameraAerialPerspectiveVolumeDepthResolution;
+	float SkyAtmosphereCameraAerialPerspectiveVolumeDepthResolutionInv;
+	float SkyAtmosphereCameraAerialPerspectiveVolumeDepthSliceLengthKm;
+	float SkyAtmosphereCameraAerialPerspectiveVolumeDepthSliceLengthKmInv;
+	float SkyAtmosphereApplyCameraAerialPerspectiveVolume;
+	uint AtmosphericFogRenderMask;
+	uint AtmosphericFogInscatterAltitudeSampleNum;
+	float3 NormalCurvatureToRoughnessScaleBias;
+	float RenderingReflectionCaptureMask;
+	float RealTimeReflectionCapture;
+	float RealTimeReflectionCapturePreExposure;
+	float4 AmbientCubemapTint;
+	float AmbientCubemapIntensity;
+	float SkyLightApplyPrecomputedBentNormalShadowingFlag;
+	float SkyLightAffectReflectionFlag;
+	float SkyLightAffectGlobalIlluminationFlag;
+	float4 SkyLightColor;
+	float4 MobileSkyIrradianceEnvironmentMap[7];
+	float MobilePreviewMode;
+	float HMDEyePaddingOffset;
+	float ReflectionCubemapMaxMip;
+	float ShowDecalsMask;
+	uint DistanceFieldAOSpecularOcclusionMode;
+	float IndirectCapsuleSelfShadowingIntensity;
+	float3 ReflectionEnvironmentRoughnessMixingScaleBiasAndLargestWeight;
+	int StereoPassIndex;
+	float4 GlobalVolumeCenterAndExtent[4];
+	float4 GlobalVolumeWorldToUVAddAndMul[4];
+	float GlobalVolumeDimension;
+	float GlobalVolumeTexelSize;
+	float MaxGlobalDistance;
+	int2 CursorPosition;
+	float bCheckerboardSubsurfaceProfileRendering;
+	float3 VolumetricFogInvGridSize;
+	float3 VolumetricFogGridZParams;
+	float2 VolumetricFogSVPosToVolumeUV;
+	float VolumetricFogMaxDistance;
+	float3 VolumetricLightmapWorldToUVScale;
+	float3 VolumetricLightmapWorldToUVAdd;
+	float3 VolumetricLightmapIndirectionTextureSize;
+	float VolumetricLightmapBrickSize;
+	float3 VolumetricLightmapBrickTexelSize;
+	float StereoIPD;
+	float IndirectLightingCacheShowFlag;
+	float EyeToPixelSpreadAngle;
+	float4x4 WorldToVirtualTexture;
+	float4 XRPassthroughCameraUVs[2];
+	uint VirtualTextureFeedbackStride;
+	uint VirtualTextureFeedbackJitterOffset;
+	uint VirtualTextureFeedbackSampleOffset;
+	float4 RuntimeVirtualTextureMipLevel;
+	float2 RuntimeVirtualTexturePackHeight;
+	float4 RuntimeVirtualTextureDebugParams;
+	int FarShadowStaticMeshLODBias;
+	float MinRoughness;
+	float4 HairRenderInfo;
+	uint EnableSkyLight;
+	uint HairRenderInfoBits;
+	uint HairComponents;
+	float3 PhysicsFieldClipmapCenter;
+	float PhysicsFieldClipmapDistance;
+	int PhysicsFieldClipmapResolution;
+	int PhysicsFieldClipmapExponent;
+	int PhysicsFieldClipmapCount;
+	int PhysicsFieldTargetCount;
+	int PhysicsFieldVectorTargets[32];
+	int PhysicsFieldScalarTargets[32];
+	int PhysicsFieldIntegerTargets[32];
+	SamplerState MaterialTextureBilinearWrapedSampler;
+	SamplerState MaterialTextureBilinearClampedSampler;
+	Texture3D<uint4> VolumetricLightmapIndirectionTexture;
+	Texture3D<float> VolumetricLightmapBrickAmbientVector;
+	Texture3D<float> VolumetricLightmapBrickSHCoefficients0;
+	Texture3D<float> VolumetricLightmapBrickSHCoefficients1;
+	Texture3D<float> VolumetricLightmapBrickSHCoefficients2;
+	Texture3D<float> VolumetricLightmapBrickSHCoefficients3;
+	Texture3D<float> VolumetricLightmapBrickSHCoefficients4;
+	Texture3D<float> VolumetricLightmapBrickSHCoefficients5;
+	Texture3D<float> SkyBentNormalBrickTexture;
+	Texture3D<float> DirectionalLightShadowingBrickTexture;
+	SamplerState VolumetricLightmapBrickAmbientVectorSampler;
+	SamplerState VolumetricLightmapTextureSampler0;
+	SamplerState VolumetricLightmapTextureSampler1;
+	SamplerState VolumetricLightmapTextureSampler2;
+	SamplerState VolumetricLightmapTextureSampler3;
+	SamplerState VolumetricLightmapTextureSampler4;
+	SamplerState VolumetricLightmapTextureSampler5;
+	SamplerState SkyBentNormalTextureSampler;
+	SamplerState DirectionalLightShadowingTextureSampler;
+	Texture3D<float> GlobalDistanceFieldTexture0;
+	SamplerState GlobalDistanceFieldSampler0;
+	Texture3D<float> GlobalDistanceFieldTexture1;
+	SamplerState GlobalDistanceFieldSampler1;
+	Texture3D<float> GlobalDistanceFieldTexture2;
+	SamplerState GlobalDistanceFieldSampler2;
+	Texture3D<float> GlobalDistanceFieldTexture3;
+	SamplerState GlobalDistanceFieldSampler3;
+	Texture2D<float> AtmosphereTransmittanceTexture;
+	SamplerState AtmosphereTransmittanceTextureSampler;
+	Texture2D<float> AtmosphereIrradianceTexture;
+	SamplerState AtmosphereIrradianceTextureSampler;
+	Texture3D<float> AtmosphereInscatterTexture;
+	SamplerState AtmosphereInscatterTextureSampler;
+	Texture2D<float> PerlinNoiseGradientTexture;
+	SamplerState PerlinNoiseGradientTextureSampler;
+	Texture3D<float> PerlinNoise3DTexture;
+	SamplerState PerlinNoise3DTextureSampler;
+	Texture2D<uint> SobolSamplingTexture;
+	SamplerState SharedPointWrappedSampler;
+	SamplerState SharedPointClampedSampler;
+	SamplerState SharedBilinearWrappedSampler;
+	SamplerState SharedBilinearClampedSampler;
+	SamplerState SharedBilinearAnisoClampedSampler;
+	SamplerState SharedTrilinearWrappedSampler;
+	SamplerState SharedTrilinearClampedSampler;
+	Texture2D<float> PreIntegratedBRDF;
+	SamplerState PreIntegratedBRDFSampler;
+	PLATFORM_SUPPORTS_SRV_UB_MACRO( StructuredBuffer<float4> PrimitiveSceneData; )
+	Texture2D<float4> PrimitiveSceneDataTexture;
+	PLATFORM_SUPPORTS_SRV_UB_MACRO( StructuredBuffer<float4> LightmapSceneData; )
+	PLATFORM_SUPPORTS_SRV_UB_MACRO( StructuredBuffer<float4> SkyIrradianceEnvironmentMap; )
+	Texture2D<float> TransmittanceLutTexture;
+	SamplerState TransmittanceLutTextureSampler;
+	Texture2D<float> SkyViewLutTexture;
+	SamplerState SkyViewLutTextureSampler;
+	Texture2D<float> DistantSkyLightLutTexture;
+	SamplerState DistantSkyLightLutTextureSampler;
+	Texture3D<float> CameraAerialPerspectiveVolume;
+	SamplerState CameraAerialPerspectiveVolumeSampler;
+	Texture3D<float> HairScatteringLUTTexture;
+	SamplerState HairScatteringLUTSampler;
+	PLATFORM_SUPPORTS_SRV_UB_MACRO( StructuredBuffer<float4> WaterIndirection; )
+	PLATFORM_SUPPORTS_SRV_UB_MACRO( StructuredBuffer<float4> WaterData; )
+	RWBuffer<uint> VTFeedbackBuffer;
+	RWTexture2D<uint> QuadOverdraw;
+	PLATFORM_SUPPORTS_SRV_UB_MACRO( Buffer<float> PhysicsFieldClipmapBuffer; )
+} View;
+#endif
+
+float4x4 GetPrevClipToWorld()
+{
+	return View.PrevClipToRelativeWorld;
+}
+float4x4 GetClipToWorld()
+{
+	return View.ClipToRelativeWorld;
+}
+float4x4 GetWorldToClip()
+{
+	return View.RelativeWorldToClip;
+}
+
+float2 GetSceneBufferUVFromClipSpace(const float2 ClipSpacePosition)
+{
+	return ClipSpacePosition.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
+}
+float2 GetClipSpaceFromSceneBufferUV(const float2 UV)
+{
+	return (UV - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
+}
+
+float3 ClipSpaceToWorldSpace(const float2 UV, float Depth)
+{
+	const float2 ClipSpacePosition = GetClipSpaceFromSceneBufferUV(UV);
+	return TransformPosition(float3(ClipSpacePosition, Depth), GetClipToWorld());
+}
+
+void GetRayParameters(
+	const float2 UV,
+	const float Depth,
+	out float3 Origin,
+	out float3 Direction,
+	const float4x4 ClipToWorld,
+	const float4x4 ClipToTranslatedWorld)
+{
+	const float2 ClipSpacePosition = GetClipSpaceFromSceneBufferUV(UV);
+
+	Origin = TransformPosition(float3(ClipSpacePosition, Depth), ClipToWorld);
+
+	const float4 A = mul(float4(ClipSpacePosition, 1, 1), ClipToTranslatedWorld); // near
+	const float4 B = mul(float4(ClipSpacePosition, 0, 1), ClipToTranslatedWorld); // far
+
+	Direction = normalize(A.w * B.xyz - B.w * A.xyz);
+}
+void GetRayParameters(const float2 UV, const float Depth, out float3 Origin, out float3 Direction)
+{
+	GetRayParameters(UV, Depth, Origin, Direction, GetClipToWorld(), View.ClipToTranslatedWorld);
+}
+
+float2 GetSceneBufferUV(float2 PixelCoord, float ScreenPercentage = 1)
+{
+	float2 SceneBufferUV = (PixelCoord + 0.5) * View.BufferSizeAndInvSize.zw / ScreenPercentage;
+	if (View.StereoPassIndex == 1)
+	{
+		SceneBufferUV.x += 0.5f;
+	}
+	SceneBufferUV = clamp(SceneBufferUV, View.BufferBilinearUVMinMax.xy, View.BufferBilinearUVMinMax.zw);
+	return SceneBufferUV;
+}

@@ -1,0 +1,30 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "Unknown",
+	"FriendlyName": "Voxel Core",
+	"Description": "Open-source plugin with the Core module of Voxel Plugin",
+	"Category": "Math",
+	"CreatedBy": "voxelplugin.com",
+	"CreatedByURL": "https://voxelplugin.com",
+	"DocsURL": "https://docs.voxelplugin.com",
+	"MarketplaceURL": "",
+	"SupportURL": "https://discord.voxelplugin.com",
+	"EnabledByDefault": true,
+	"CanContainContent": false,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "VoxelCore",
+			"Type": "Runtime",
+			"LoadingPhase": "PostConfigInit"
+		},
+		{
+			"Name": "VoxelCoreEditor",
+			"Type": "Editor",
+			"LoadingPhase": "PostEngineInit"
+		}
+	]
+}

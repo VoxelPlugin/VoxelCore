@@ -1,0 +1,5 @@
+﻿// Copyright Voxel Plugin, Inc. All Rights Reserved.
+
+#pragma once
+
+#include "../Common.ush"

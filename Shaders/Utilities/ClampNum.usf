@@ -1,0 +1,13 @@
+﻿// Copyright Voxel Plugin, Inc. All Rights Reserved.
+
+#include "Common.ush"
+
+RWBuffer<int> Num;
+int Min;
+int Max;
+
+[numthreads(1, 1, 1)]
+void Main()
+{
+	Num[0] = clamp(Num[0], Min, Max);
+}

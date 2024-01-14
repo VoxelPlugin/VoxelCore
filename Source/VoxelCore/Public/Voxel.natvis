@@ -1,0 +1,611 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+  <!-- FVoxelGraphNodeRef visualizer -->
+  <Type Name="FVoxelGraphNodeRef">
+    <DisplayString>{EdGraphNodeTitle,sb} - {NodeId}</DisplayString>
+  </Type>
+
+  <!-- FVoxelPinType visualizer -->
+  <Type Name="FVoxelPinType">
+    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 0">null (array)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 1">wildcard (array)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 2">bool (array)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 3">float (array)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 4">double (array)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 5">int32 (array)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 6">int64 (array)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 7">name (array)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 8 &amp;&amp; !PrivateInternalField.DebugPtr">uint8 (array)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 8 &amp;&amp; PrivateInternalField.DebugPtr">{PrivateInternalField.DebugPtr->NamePrivate,sb} (array)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 9">{PrivateInternalField.DebugPtr->NamePrivate,sb} (class array)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 10">{PrivateInternalField.DebugPtr->NamePrivate,sb} (array)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 11">F{PrivateInternalField.DebugPtr->NamePrivate,sb} (array)</DisplayString>
+
+    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 0">null (buffer)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 1">wildcard (buffer)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 2">bool (buffer)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 3">float (buffer)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 4">double (buffer)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 5">int32 (buffer)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 6">int64 (buffer)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 7">name (buffer)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 8 &amp;&amp; !PrivateInternalField.DebugPtr">uint8 (buffer)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 8 &amp;&amp; PrivateInternalField.DebugPtr">{PrivateInternalField.DebugPtr->NamePrivate,sb} (buffer)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 9">{PrivateInternalField.DebugPtr->NamePrivate,sb} (class buffer)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 10">{PrivateInternalField.DebugPtr->NamePrivate,sb} (buffer)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 11">F{PrivateInternalField.DebugPtr->NamePrivate,sb} (buffer)</DisplayString>
+
+    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 0">null</DisplayString>
+    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 1">wildcard</DisplayString>
+    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 2">bool</DisplayString>
+    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 3">float</DisplayString>
+    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 4">double</DisplayString>
+    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 5">int32</DisplayString>
+    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 6">int64</DisplayString>
+    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 7">name</DisplayString>
+    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 8 &amp;&amp; !PrivateInternalField.DebugPtr">uint8</DisplayString>
+    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 8 &amp;&amp; PrivateInternalField.DebugPtr">{PrivateInternalField.DebugPtr->NamePrivate,sb}</DisplayString>
+    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 9">{PrivateInternalField.DebugPtr->NamePrivate,sb} (class)</DisplayString>
+    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 10">{PrivateInternalField.DebugPtr->NamePrivate,sb}</DisplayString>
+    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 11">F{PrivateInternalField.DebugPtr->NamePrivate,sb}</DisplayString>
+  </Type>
+
+  <!-- FVoxelTerminalPinValue visualizer -->
+  <Type Name="FVoxelTerminalPinValue">
+    <DisplayString Condition="Type.InternalType == 2">({Type}) {bBool}</DisplayString>
+    <DisplayString Condition="Type.InternalType == 3">({Type}) {Float}</DisplayString>
+    <DisplayString Condition="Type.InternalType == 4">({Type}) {Double}</DisplayString>
+    <DisplayString Condition="Type.InternalType == 5">({Type}) {Int32}</DisplayString>
+    <DisplayString Condition="Type.InternalType == 6">({Type}) {Int64}</DisplayString>
+    <DisplayString Condition="Type.InternalType == 7">({Type}) {Name} </DisplayString>
+    <DisplayString Condition="Type.InternalType == 8">({Type}) {Byte}</DisplayString>
+    <DisplayString Condition="Type.InternalType == 9">({Type}) {Class.Class}</DisplayString>
+    <DisplayString Condition="Type.InternalType == 10">({Type}) {Object}</DisplayString>
+    <DisplayString Condition="Type.InternalType == 11">({Type}) {*(FVoxelVirtualStruct*)Struct.StructMemory}</DisplayString>
+    <Expand>
+      <Item Name="Type">Type</Item>
+      <Item Name="Class" Condition="Type.InternalType == 9">Class.Class</Item>
+      <Item Name="Object" Condition="Type.InternalType == 10">Object</Item>
+      <Item Name="Value" Condition="Type.InternalType == 11">*(FVoxelVirtualStruct*)Struct.StructMemory</Item>
+      <Item Name="Memory" Condition="Type.InternalType == 11">(void*)Struct.StructMemory</Item>
+    </Expand>
+  </Type>
+
+  <!-- FVoxelPinValue visualizer -->
+  <Type Name="FVoxelPinValue">
+    <DisplayString Condition="Type.bIsBuffer">{Type} {Array}</DisplayString>
+    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 2">({Type}) {bBool}</DisplayString>
+    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 3">({Type}) {Float}</DisplayString>
+    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 4">({Type}) {Double}</DisplayString>
+    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 5">({Type}) {Int32}</DisplayString>
+    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 6">({Type}) {Int64}</DisplayString>
+    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 7">({Type}) {Name} </DisplayString>
+    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 8">({Type}) {Byte}</DisplayString>
+    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 9">({Type}) {Class.Class}</DisplayString>
+    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 10">({Type}) {Object}</DisplayString>
+    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 11">({Type}) {*(FVoxelVirtualStruct*)Struct.StructMemory}</DisplayString>
+    <Expand>
+      <Item Name="Type">Type</Item>
+      <Item Name="Array" Condition="Type.bIsBuffer">Array</Item>
+      <Item Name="Class" Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 9">Class.Class</Item>
+      <Item Name="Object" Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 10">Object</Item>
+      <Item Name="Value" Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 11">*(FVoxelVirtualStruct*)Struct.StructMemory</Item>
+      <Item Name="Memory" Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 11">(void*)Struct.StructMemory</Item>
+    </Expand>
+  </Type>
+
+  <!-- FVoxelRuntimePinValue visualizer -->
+  <Type Name="FVoxelRuntimePinValue">
+    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 2">({Type}) {bBool}</DisplayString>
+    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 3">({Type}) {Float}</DisplayString>
+    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 4">({Type}) {Double}</DisplayString>
+    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 5">({Type}) {Int32}</DisplayString>
+    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 6">({Type}) {Int64}</DisplayString>
+    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 7">({Type}) {Name} </DisplayString>
+    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 8">({Type}) {Byte}</DisplayString>
+    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 9">({Type}) {Class.Class}</DisplayString>
+    <DisplayString Condition="Type.bIsBuffer || Type.InternalType == 11">({Type}) {*(FVoxelVirtualStruct*)SharedStruct.Object}</DisplayString>
+    <Expand>
+      <Item Name="Type">Type</Item>
+      <Item Name="Class" Condition="Type.InternalType == 9">Class.Class</Item>
+      <Item Name="Value" Condition="Type.bIsBuffer || Type.InternalType == 11">*(FVoxelVirtualStruct*)SharedStruct.Object</Item>
+      <Item Name="Memory" Condition="Type.bIsBuffer || Type.InternalType == 11">(void*)SharedStruct.Object</Item>
+    </Expand>
+  </Type>
+
+  <!-- FVoxelParameterPath visualizer -->
+  <Type Name="FVoxelParameterPath">
+    <DisplayString Condition="Guids.ArrayNum == 0">Empty</DisplayString>
+    <DisplayString Condition="Guids.ArrayNum == 1">{Guids.AllocatorInstance.InlineData[0]}</DisplayString>
+    <DisplayString Condition="Guids.ArrayNum == 2">{Guids.AllocatorInstance.InlineData[0]} {Guids.AllocatorInstance.InlineData[1]}</DisplayString>
+    <DisplayString Condition="Guids.ArrayNum == 3">{Guids.AllocatorInstance.InlineData[0]} {Guids.AllocatorInstance.InlineData[1]} {Guids.AllocatorInstance.InlineData[2]}</DisplayString>
+    <DisplayString Condition="Guids.ArrayNum > 0">{Guids}</DisplayString>
+    <Expand>
+      <ExpandedItem>Guids</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <!-- TVoxelBufferStorage visualizer -->
+  <Type Name="TVoxelBufferStorage&lt;*&gt;">
+    <DisplayString>Num={ArrayNum}</DisplayString>
+    <Expand>
+      <IndexListItems>
+        <Size>ArrayNum</Size>
+        <ValueNode Condition="!Chunks.AllocatorInstance.SecondaryData.Data">(($T1**)Chunks.AllocatorInstance.InlineData)[$i / FVoxelBufferDefinitions::NumPerChunk][$i % FVoxelBufferDefinitions::NumPerChunk]</ValueNode>
+        <ValueNode Condition="Chunks.AllocatorInstance.SecondaryData.Data">(($T1**)Chunks.AllocatorInstance.SecondaryData.Data)[$i / FVoxelBufferDefinitions::NumPerChunk][$i % FVoxelBufferDefinitions::NumPerChunk]</ValueNode>
+      </IndexListItems>
+    </Expand>
+  </Type>
+
+  <!-- FVoxelTerminalBuffer visualizer -->
+  <Type Name="FVoxelTerminalBuffer">
+    <DisplayString>Num={PrivateNum}</DisplayString>
+  </Type>
+
+  <!-- FVoxelBoolBuffer visualizer -->
+  <Type Name="FVoxelBoolBuffer">
+    <DisplayString>{*(FVoxelBoolBufferStorage*)PrivateStorage.Object}</DisplayString>
+    <Expand>
+      <ExpandedItem>*(FVoxelBoolBufferStorage*)PrivateStorage.Object</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <!-- FVoxelFloatBuffer visualizer -->
+  <Type Name="FVoxelFloatBuffer">
+    <DisplayString>{*(FVoxelFloatBufferStorage*)PrivateStorage.Object}</DisplayString>
+    <Expand>
+      <ExpandedItem>*(FVoxelFloatBufferStorage*)PrivateStorage.Object</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <!-- FVoxelDoubleBuffer visualizer -->
+  <Type Name="FVoxelDoubleBuffer">
+    <DisplayString>{*(FVoxelDoubleBufferStorage*)PrivateStorage.Object}</DisplayString>
+    <Expand>
+      <ExpandedItem>*(FVoxelDoubleBufferStorage*)PrivateStorage.Object</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <!-- FVoxelByteBuffer visualizer -->
+  <Type Name="FVoxelByteBuffer">
+    <DisplayString>{*(FVoxelByteBufferStorage*)PrivateStorage.Object}</DisplayString>
+    <Expand>
+      <ExpandedItem>*(FVoxelByteBufferStorage*)PrivateStorage.Object</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <!-- FVoxelMaterialBlendingBuffer visualizer -->
+  <Type Name="FVoxelMaterialBlendingBuffer">
+    <DisplayString>{*(FVoxelMaterialBlendingBufferStorage*)PrivateStorage.Object}</DisplayString>
+    <Expand>
+      <ExpandedItem>*(FVoxelMaterialBlendingBufferStorage*)PrivateStorage.Object</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <!-- FVoxelInt32Buffer visualizer -->
+  <Type Name="FVoxelInt32Buffer">
+    <DisplayString>{*(FVoxelInt32BufferStorage*)PrivateStorage.Object}</DisplayString>
+    <Expand>
+      <ExpandedItem>*(FVoxelInt32BufferStorage*)PrivateStorage.Object</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <!-- FVoxelInt64Buffer visualizer -->
+  <Type Name="FVoxelInt64Buffer">
+    <DisplayString>{*(FVoxelInt64BufferStorage*)PrivateStorage.Object}</DisplayString>
+    <Expand>
+      <ExpandedItem>*(FVoxelInt64BufferStorage*)PrivateStorage.Object</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <!-- FVoxelStaticMeshBuffer visualizer -->
+  <Type Name="FVoxelStaticMeshBuffer">
+    <DisplayString>{*(FVoxelStaticMeshBufferStorage*)PrivateStorage.Object}</DisplayString>
+    <Expand>
+      <ExpandedItem>*(FVoxelStaticMeshBufferStorage*)PrivateStorage.Object</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <!-- FVoxelCallstack visualizer -->
+  <Type Name="FVoxelCallstack">
+    <DisplayString>{NodeRef}</DisplayString>
+    <Expand>
+      <CustomListItems>
+        <Variable Name="Self" InitialValue="Parent.Object"/>
+        <Loop>
+          <If Condition="Self == Parent.Object">
+            <Item>NodeRef</Item>
+          </If>
+          <If Condition="Self != nullptr">
+            <Item>Self->NodeRef</Item>
+          </If>
+          <Exec>Self = Self->Parent.Object</Exec>
+        </Loop>
+      </CustomListItems>
+    </Expand>
+  </Type>
+
+  <!-- FVoxelRuntimeInfo visualizer -->
+  <Type Name="FVoxelRuntimeInfo">
+    <DisplayString>Label={WeakRootComponent->OwnerPrivate->ActorLabel,sb} Graph={GraphPath,sb}</DisplayString>
+  </Type>
+
+  <!-- FVoxelTransformRef visualizer -->
+  <Type Name="FVoxelTransformRef">
+    <DisplayString Condition="!Impl.Object">Identity</DisplayString>
+    <DisplayString Condition="Impl.Object">{((UnrealEditor-VoxelGraphCore-Win64-DebugGame.dll!FVoxelTransformRefImpl*)Impl.Object)->Name,sb}</DisplayString>
+    <Expand>
+      <ExpandedItem Condition="Impl.Object">((UnrealEditor-VoxelGraphCore-Win64-DebugGame.dll!FVoxelTransformRefImpl*)Impl.Object)->Transform.M</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <!-- FVoxelFutureValue visualizer -->
+  <Type Name="FVoxelFutureValue">
+    <DisplayString Condition="!State.Object">null</DisplayString>
+    <DisplayString Condition="State.Object &amp;&amp; State.Object->Value.Type.InternalType == 0">Pending Type={State.Object->Type}</DisplayString>
+    <DisplayString Condition="State.Object &amp;&amp; State.Object->Value.Type.InternalType != 0">{State.Object->Value}</DisplayString>
+    <Expand>
+      <ExpandedItem Condition="State.Object &amp;&amp; State.Object->Value.Type.InternalType != 0 &amp;&amp; !State.Object->Value.Type.bIsBuffer &amp;&amp; State.Object->Value.Type.InternalType != 11">State.Object->Value</ExpandedItem>
+      <ExpandedItem Condition="State.Object &amp;&amp; (State.Object->Value.Type.bIsBuffer || State.Object->Value.Type.InternalType == 11)">*(FVoxelVirtualStruct*)State.Object->Value.SharedStruct.Object</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <!-- TVoxelChunkedArray visualizer -->
+  <Type Name="TVoxelChunkedArray&lt;*,*&gt;">
+    <DisplayString>Num={ArrayNum}</DisplayString>
+    <Expand>
+      <IndexListItems>
+        <Size>ArrayNum</Size>
+        <ValueNode Condition="!Chunks.AllocatorInstance.SecondaryData.Data">(($T1**)Chunks.AllocatorInstance.InlineData)[$i / (1 &lt;&lt; __log2($T2 / sizeof($T1)))][$i % (1 &lt;&lt; __log2($T2 / sizeof($T1)))]</ValueNode>
+        <ValueNode Condition="Chunks.AllocatorInstance.SecondaryData.Data">(($T1**)Chunks.AllocatorInstance.SecondaryData.Data)[$i / (1 &lt;&lt; __log2($T2 / sizeof($T1)))][$i % (1 &lt;&lt; __log2($T2 / sizeof($T1)))]</ValueNode>
+      </IndexListItems>
+    </Expand>
+  </Type>
+
+  <!-- TVoxelStaticArray visualizer -->
+  <Type Name="TVoxelStaticArray&lt;*,*,*,*&gt;">
+    <DisplayString>Num={$T2}</DisplayString>
+    <Expand>
+      <ArrayItems>
+        <Size>$T2</Size>
+        <ValuePointer>(TVoxelStaticArray&lt;$T1,$T2,$T3,$T4&gt;::ElementType*)Data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
+  <!-- TVoxelBitArray visualizer -->
+  <Type Name="TVoxelBitArray&lt;*&gt;">
+    <DisplayString>Num={NumBits}, Max={MaxBits}</DisplayString>
+    <Expand>
+      <IndexListItems>
+        <Size>NumBits</Size>
+        <ValueNode>(AllocatorInstance.Data[$i / 32] &gt;&gt; ($i % 32)) &amp; 1,d</ValueNode>
+      </IndexListItems>
+    </Expand>
+  </Type>
+
+  <!-- TVoxelStaticBitArray visualizer -->
+  <Type Name="TVoxelStaticBitArray&lt;*&gt;">
+    <DisplayString>Num={$T1,d}</DisplayString>
+    <Expand>
+      <IndexListItems>
+        <Size>$T1</Size>
+        <ValueNode>(Array.Data[$i / 32] &gt;&gt; ($i % 32)) &amp; 1,d</ValueNode>
+      </IndexListItems>
+    </Expand>
+  </Type>
+
+  <!-- TVoxelPointerOctree::FChildrenPtr visualizer -->
+  <Type Name="TVoxelPointerOctree&lt;*&gt;::FChildrenPtr">
+    <DisplayString Condition="!Ptr">Empty</DisplayString>
+    <DisplayString Condition="Ptr">Num=8</DisplayString>
+    <Expand>
+      <ArrayItems Condition="Ptr">
+        <Size>8</Size>
+        <ValuePointer>Ptr</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
+  <!-- FFloat16 visualizer -->
+  <Type Name="FFloat16">
+    <DisplayString Condition = "Components.Exponent == 0">{(0.00006103515625f * Components.Mantissa/1024.0f)}</DisplayString>
+    <DisplayString Condition = "Components.Exponent == 31 &amp;&amp; Components.Mantissa == 0">{Components.Sign*-2+1}.#INFINITY</DisplayString>
+    <DisplayString Condition = "Components.Exponent == 31">#NaN</DisplayString>
+    <DisplayString Condition = "Components.Exponent &lt; 15">{1.0f / (1 &lt;&lt; (15 - Components.Exponent)) * (Components.Sign*-2+1.0f) * (1.0f + Components.Mantissa/1024.0f)}</DisplayString>
+    <DisplayString Condition = "Components.Exponent &gt; 15">{(1 &lt;&lt; (Components.Exponent-15)) * (Components.Sign*-2+1.0f) * (1.0f + Components.Mantissa/1024.0f)}</DisplayString>
+    <DisplayString>{(Components.Sign*-2+1) * 1.0f + Components.Mantissa/1024.0f}</DisplayString>
+  </Type>
+
+  <!-- FObjectKey visualizer -->
+  <Type Name="FObjectKey">
+    <SmartPointer Usage="Minimal">GObjectArrayForDebugVisualizers->Objects[ObjectIndex / 65536][ObjectIndex % 65536].Object</SmartPointer>
+    <DisplayString Condition="ObjectSerialNumber &lt; 1">nullptr</DisplayString>
+    <DisplayString Condition="GObjectArrayForDebugVisualizers->Objects[ObjectIndex / 65536][ObjectIndex % 65536].SerialNumber != ObjectSerialNumber">STALE</DisplayString>
+    <DisplayString>{GObjectArrayForDebugVisualizers->Objects[ObjectIndex / 65536][ObjectIndex % 65536].Object}</DisplayString>
+    <Expand>
+      <ExpandedItem>GObjectArrayForDebugVisualizers->Objects[ObjectIndex / 65536][ObjectIndex % 65536].Object</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <!-- FVoxelInstancedStruct visualizer -->
+  <Type Name="FVoxelInstancedStruct">
+    <DisplayString Condition = "ScriptStruct == nullptr">Unset</DisplayString>
+    <DisplayString Condition = "ScriptStruct != nullptr">Type=F{ScriptStruct->NamePrivate,sb}</DisplayString>
+    <Expand>
+      <ExpandedItem Condition="ScriptStruct != nullptr">*(FVoxelVirtualStruct*)StructMemory</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <!-- TVoxelInstancedStruct visualizer -->
+  <Type Name="TVoxelInstancedStruct&lt;*&gt;">
+    <DisplayString Condition = "ScriptStruct == nullptr">Unset</DisplayString>
+    <DisplayString Condition = "ScriptStruct != nullptr">Type=F{ScriptStruct->NamePrivate}</DisplayString>
+    <Expand>
+      <ExpandedItem Condition="ScriptStruct != nullptr">*($T1*)StructMemory</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <!-- TVoxelAddOnlySetElement visualizer -->
+  <Type Name="TVoxelAddOnlySetElement&lt;*&gt;">
+    <DisplayString>{Value}</DisplayString>
+    <Expand>
+      <ExpandedItem>Value</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <!-- TVoxelAddOnlySet visualizer -->
+  <Type Name="TVoxelAddOnlySet&lt;*&gt;">
+    <DisplayString Condition="Elements.ArrayNum == 0">Empty</DisplayString>
+    <DisplayString Condition="Elements.ArrayNum &lt; 0">Invalid</DisplayString>
+    <DisplayString Condition="Elements.ArrayMax &lt; Elements.ArrayNum">Invalid</DisplayString>
+    <DisplayString Condition="Elements.ArrayMax &gt;= Elements.ArrayNum">Num={Elements.ArrayNum}</DisplayString>
+    <Expand>
+      <ExpandedItem>Elements</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <!-- TVoxelMapElement visualizer -->
+  <Type Name="TVoxelMapElement&lt;*&gt;">
+    <DisplayString>{Key} -&gt; {Value}</DisplayString>
+    <Expand>
+      <Item Name="Key">Key</Item>
+      <Item Name="Value">Value</Item>
+    </Expand>
+  </Type>
+
+  <!-- TVoxelMap visualizer -->
+  <Type Name="TVoxelMap&lt;*&gt;">
+    <DisplayString Condition="Elements.ArrayNum == 0">Empty</DisplayString>
+    <DisplayString Condition="Elements.ArrayNum &lt; 0">Invalid</DisplayString>
+    <DisplayString Condition="Elements.ArrayMax &lt; Elements.ArrayNum">Invalid</DisplayString>
+    <DisplayString Condition="Elements.ArrayMax &gt;= Elements.ArrayNum">Num={Elements.ArrayNum}</DisplayString>
+    <Expand>
+      <ExpandedItem>Elements</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <!-- TSparseArray visualizer -->
+  <Type Name="TSparseArray&lt;*,FVoxelSparseArrayAllocator&gt;">
+    <DisplayString Condition="(Data.ArrayNum - NumFreeIndices) &lt;= 0">Empty</DisplayString>
+    <DisplayString Condition="Data.ArrayNum &lt;= Data.ArrayMax">Num={Data.ArrayNum - NumFreeIndices}</DisplayString>
+    <Expand>
+      <IndexListItems Condition="Data.ArrayNum &gt; 0 &amp;&amp; Data.ArrayNum &lt;= Data.ArrayMax">
+        <Size>Data.ArrayNum</Size>
+        <ValueNode Condition="(reinterpret_cast&lt;uint32*&gt;(AllocationFlags.AllocatorInstance.Data)[$i/32]&gt;&gt;($i%32) &amp; 1) != 0">*reinterpret_cast&lt;ElementType*&gt;(reinterpret_cast&lt;FElementOrFreeListLink*&gt;(Data.AllocatorInstance.Data) + $i)</ValueNode>
+        <ValueNode Condition="(reinterpret_cast&lt;uint32*&gt;(AllocationFlags.AllocatorInstance.Data)[$i/32]&gt;&gt;($i%32) &amp; 1) == 0">"Invalid",sb</ValueNode>
+      </IndexListItems>
+    </Expand>
+  </Type>
+
+  <!-- TSet visualizer -->
+  <Type Name="TSet&lt;*,*,FVoxelSetAllocator&gt;">
+    <DisplayString Condition="Elements.Data.ArrayNum - Elements.NumFreeIndices &lt;= 0">Empty</DisplayString>
+    <DisplayString Condition="Elements.Data.ArrayNum &lt;= Elements.Data.ArrayMax">Num={Elements.Data.ArrayNum - Elements.NumFreeIndices}</DisplayString>
+    <Expand>
+      <CustomListItems Condition="Elements.Data.ArrayNum - Elements.NumFreeIndices &gt; 0 &amp;&amp; Elements.Data.ArrayNum &lt;= Elements.Data.ArrayMax">
+        <Variable Name="Index" InitialValue="0" />
+        <Size>Elements.Data.ArrayNum - Elements.NumFreeIndices</Size>
+        <Loop>
+          <If Condition="((reinterpret_cast&lt;uint32*&gt;(Elements.AllocationFlags.AllocatorInstance.Data)[Index/32]&gt;&gt;(Index%32)) &amp; 1) != 0">
+            <Item>((TSetElement &lt;$T1&gt; *)Elements.Data.AllocatorInstance.Data)[Index].Value</Item>
+          </If>
+          <Exec>++Index</Exec>
+        </Loop>
+      </CustomListItems>
+    </Expand>
+  </Type>
+
+  <!-- TVoxelArray<*,TFixedAllocator<*> > visualizer -->
+  <Type Name="TVoxelArray&lt;*,TFixedAllocator&lt;*&gt;&gt;">
+    <DisplayString Condition="ArrayNum == 0">Empty</DisplayString>
+    <DisplayString Condition="ArrayNum &lt; 0">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &lt; ArrayNum">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &gt;= ArrayNum">Num={ArrayNum}</DisplayString>
+    <Expand>
+      <ArrayItems Condition="ArrayNum &lt;= ArrayMax">
+        <Size>ArrayNum</Size>
+        <ValuePointer>(TVoxelArray&lt;$T1,TFixedAllocator&lt;$T2&gt; &gt;::ElementType*)AllocatorInstance.InlineData</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
+  <!-- TVoxelArray<*,TSizedInlineAllocator<*,*,*> > visualizer -->
+  <Type Name="TVoxelArray&lt;*,TSizedInlineAllocator&lt;*,*,*&gt;&gt;">
+    <DisplayString Condition="ArrayNum == 0">Empty</DisplayString>
+    <DisplayString Condition="ArrayNum &lt; 0">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &lt; ArrayNum">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &gt;= ArrayNum">Num={ArrayNum}</DisplayString>
+    <Expand>
+      <ArrayItems Condition="ArrayNum &lt;= ArrayMax">
+        <Size>ArrayNum</Size>
+        <ValuePointer Condition="AllocatorInstance.SecondaryData.Data == 0">(TVoxelArray&lt;$T1,TSizedInlineAllocator&lt;$T2,$T3,$T4&gt; &gt;::ElementType*)AllocatorInstance.InlineData</ValuePointer>
+        <ValuePointer Condition="AllocatorInstance.SecondaryData.Data != 0">(TVoxelArray&lt;$T1,TSizedInlineAllocator&lt;$T2,$T3,$T4&gt; &gt;::ElementType*)AllocatorInstance.SecondaryData.Data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
+  <!-- TVoxelArray<*,TMemoryImageAllocator<*>> visualizer -->
+  <Type Name="TVoxelArray&lt;*,TMemoryImageAllocator&lt;*&gt;&gt;">
+    <DisplayString Condition="ArrayNum == 0">Empty</DisplayString>
+    <DisplayString Condition="ArrayNum &lt; 0">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &lt; ArrayNum">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &gt;= ArrayNum">Num={ArrayNum}</DisplayString>
+    <DisplayString>Ptr={AllocatorInstance.Data.UnfrozenPtr}</DisplayString>
+    <Expand>
+      <ArrayItems Condition="ArrayNum &lt;= ArrayMax">
+        <Size>ArrayNum</Size>
+        <ValuePointer Condition="(AllocatorInstance.Data.Frozen.OffsetFromThis &amp; 1) != 0">(TVoxelArray&lt;$T1,TMemoryImageAllocator&lt;$T2&gt; &gt;::ElementType*)( (char*)&amp;AllocatorInstance.Data + (AllocatorInstance.Data.Frozen.OffsetFromThis >> 1))</ValuePointer>
+        <ValuePointer Condition="(AllocatorInstance.Data.Frozen.OffsetFromThis &amp; 1) == 0">(TVoxelArray&lt;$T1,TMemoryImageAllocator&lt;$T2&gt; &gt;::ElementType*)AllocatorInstance.Data.UnfrozenPtr</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
+  <!-- TVoxelArray visualizer -->
+  <Type Name="TVoxelArray&lt;*,*&gt;">
+    <DisplayString Condition="ArrayNum == 0">Empty</DisplayString>
+    <DisplayString Condition="ArrayNum &lt; 0">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &lt; ArrayNum">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &gt;= ArrayNum">Num={ArrayNum}</DisplayString>
+    <Expand>
+      <ArrayItems Condition="ArrayNum &lt;= ArrayMax">
+        <Size>ArrayNum</Size>
+        <ValuePointer>(TVoxelArray&lt;$T1,$T2&gt;::ElementType*)AllocatorInstance.Data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
+  <!-- TVoxelArray<char> visualizers -->
+  <Type Name="TVoxelArray&lt;char,*&gt;">
+    <DisplayString Condition="ArrayNum == 0">Empty</DisplayString>
+    <DisplayString Condition="ArrayNum &lt; 0">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &lt; ArrayNum">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &gt;= ArrayNum">Num={ArrayNum} {(char*)AllocatorInstance.Data,[ArrayNum]s}</DisplayString>
+    <StringView Condition="ArrayMax &gt;= ArrayNum">(char*)AllocatorInstance.Data,[ArrayNum]s</StringView>
+    <Expand>
+      <ArrayItems Condition="ArrayNum &lt;= ArrayMax">
+        <Size>ArrayNum</Size>
+        <ValuePointer>(char*)AllocatorInstance.Data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+  <Type Name="TVoxelArray&lt;char,TFixedAllocator&lt;*&gt;&gt;">
+    <DisplayString Condition="ArrayNum == 0">Empty</DisplayString>
+    <DisplayString Condition="ArrayNum &lt; 0">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &lt; ArrayNum">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &gt;= ArrayNum">Num={ArrayNum} {(char*)AllocatorInstance.InlineData,[ArrayNum]s}</DisplayString>
+    <StringView Condition="ArrayMax &gt;= ArrayNum">(char*)AllocatorInstance.InlineData,[ArrayNum]s</StringView>
+    <Expand>
+      <ArrayItems Condition="ArrayNum &lt;= ArrayMax">
+        <Size>ArrayNum</Size>
+        <ValuePointer>(char*)AllocatorInstance.InlineData</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+  <Type Name="TVoxelArray&lt;char,TInlineAllocator&lt;*,*&gt;&gt;">
+    <DisplayString Condition="ArrayNum == 0">Empty</DisplayString>
+    <DisplayString Condition="ArrayNum &lt; 0">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &lt; ArrayNum">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &gt;= ArrayNum &amp;&amp; AllocatorInstance.SecondaryData.Data == 0">Num={ArrayNum} {(char*)AllocatorInstance.InlineData,[ArrayNum]s}</DisplayString>
+    <DisplayString Condition="ArrayMax &gt;= ArrayNum &amp;&amp; AllocatorInstance.SecondaryData.Data != 0">Num={ArrayNum} {(char*)AllocatorInstance.SecondaryData.Data,[ArrayNum]s}</DisplayString>
+    <StringView Condition="ArrayMax &gt;= ArrayNum &amp;&amp; AllocatorInstance.SecondaryData.Data == 0">(char*)AllocatorInstance.InlineData,[ArrayNum]s</StringView>
+    <StringView Condition="ArrayMax &gt;= ArrayNum &amp;&amp; AllocatorInstance.SecondaryData.Data != 0">(char*)AllocatorInstance.SecondaryData.Data,[ArrayNum]s</StringView>
+    <Expand>
+      <ArrayItems Condition="ArrayNum &lt;= ArrayMax">
+        <Size>ArrayNum</Size>
+        <ValuePointer Condition="AllocatorInstance.SecondaryData.Data == 0">(char*)AllocatorInstance.InlineData</ValuePointer>
+        <ValuePointer Condition="AllocatorInstance.SecondaryData.Data != 0">(char*)AllocatorInstance.SecondaryData.Data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
+  <!-- TVoxelArray<unsigned char> visualizers -->
+  <Type Name="TVoxelArray&lt;unsigned char,*&gt;">
+    <DisplayString Condition="ArrayNum == 0">Empty</DisplayString>
+    <DisplayString Condition="ArrayNum &lt; 0">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &lt; ArrayNum">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &gt;= ArrayNum">Num={ArrayNum} {(unsigned char*)AllocatorInstance.Data,[ArrayNum]s}</DisplayString>
+    <StringView Condition="ArrayMax &gt;= ArrayNum">(unsigned char*)AllocatorInstance.Data,[ArrayNum]s</StringView>
+    <Expand>
+      <ArrayItems Condition="ArrayNum &lt;= ArrayMax">
+        <Size>ArrayNum</Size>
+        <ValuePointer>(unsigned char*)AllocatorInstance.Data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+  <Type Name="TVoxelArray&lt;unsigned char,TFixedAllocator&lt;*&gt;&gt;">
+    <DisplayString Condition="ArrayNum == 0">Empty</DisplayString>
+    <DisplayString Condition="ArrayNum &lt; 0">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &lt; ArrayNum">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &gt;= ArrayNum">Num={ArrayNum} {(unsigned char*)AllocatorInstance.InlineData,[ArrayNum]s}</DisplayString>
+    <StringView Condition="ArrayMax &gt;= ArrayNum">(unsigned char*)AllocatorInstance.InlineData,[ArrayNum]s</StringView>
+    <Expand>
+      <ArrayItems Condition="ArrayNum &lt;= ArrayMax">
+        <Size>ArrayNum</Size>
+        <ValuePointer>(unsigned char*)AllocatorInstance.InlineData</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+  <Type Name="TVoxelArray&lt;unsigned char,TInlineAllocator&lt;*,*&gt;&gt;">
+    <DisplayString Condition="ArrayNum == 0">Empty</DisplayString>
+    <DisplayString Condition="ArrayNum &lt; 0">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &lt; ArrayNum">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &gt;= ArrayNum &amp;&amp; AllocatorInstance.SecondaryData.Data == 0">Num={ArrayNum} {(unsigned char*)AllocatorInstance.InlineData,[ArrayNum]s}</DisplayString>
+    <DisplayString Condition="ArrayMax &gt;= ArrayNum &amp;&amp; AllocatorInstance.SecondaryData.Data != 0">Num={ArrayNum} {(unsigned char*)AllocatorInstance.SecondaryData.Data,[ArrayNum]s}</DisplayString>
+    <StringView Condition="ArrayMax &gt;= ArrayNum &amp;&amp; AllocatorInstance.SecondaryData.Data == 0">(unsigned char*)AllocatorInstance.InlineData,[ArrayNum]s</StringView>
+    <StringView Condition="ArrayMax &gt;= ArrayNum &amp;&amp; AllocatorInstance.SecondaryData.Data != 0">(unsigned char*)AllocatorInstance.SecondaryData.Data,[ArrayNum]s</StringView>
+    <Expand>
+      <ArrayItems Condition="ArrayNum &lt;= ArrayMax">
+        <Size>ArrayNum</Size>
+        <ValuePointer Condition="AllocatorInstance.SecondaryData.Data == 0">(unsigned char*)AllocatorInstance.InlineData</ValuePointer>
+        <ValuePointer Condition="AllocatorInstance.SecondaryData.Data != 0">(unsigned char*)AllocatorInstance.SecondaryData.Data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
+  <!-- TVoxelArray<wchar_t> visualizers -->
+  <Type Name="TVoxelArray&lt;wchar_t,*&gt;">
+    <DisplayString Condition="ArrayNum == 0">Empty</DisplayString>
+    <DisplayString Condition="ArrayNum &lt; 0">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &lt; ArrayNum">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &gt;= ArrayNum">Num={ArrayNum} {(wchar_t*)AllocatorInstance.Data,[ArrayNum]su}</DisplayString>
+    <StringView Condition="ArrayMax &gt;= ArrayNum">(wchar_t*)AllocatorInstance.Data,[ArrayNum]su</StringView>
+    <Expand>
+      <ArrayItems Condition="ArrayNum &lt;= ArrayMax">
+        <Size>ArrayNum</Size>
+        <ValuePointer>(wchar_t*)AllocatorInstance.Data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+  <Type Name="TVoxelArray&lt;wchar_t,TFixedAllocator&lt;*&gt;&gt;">
+    <DisplayString Condition="ArrayNum == 0">Empty</DisplayString>
+    <DisplayString Condition="ArrayNum &lt; 0">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &lt; ArrayNum">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &gt;= ArrayNum">Num={ArrayNum} {(wchar_t*)AllocatorInstance.InlineData,[ArrayNum]su}</DisplayString>
+    <StringView Condition="ArrayMax &gt;= ArrayNum">(wchar_t*)AllocatorInstance.InlineData,[ArrayNum]su</StringView>
+    <Expand>
+      <ArrayItems Condition="ArrayNum &lt;= ArrayMax">
+        <Size>ArrayNum</Size>
+        <ValuePointer>(wchar_t*)AllocatorInstance.InlineData</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+  <Type Name="TVoxelArray&lt;wchar_t,TInlineAllocator&lt;*,*&gt;&gt;">
+    <DisplayString Condition="ArrayNum == 0">Empty</DisplayString>
+    <DisplayString Condition="ArrayNum &lt; 0">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &lt; ArrayNum">Invalid</DisplayString>
+    <DisplayString Condition="ArrayMax &gt;= ArrayNum &amp;&amp; AllocatorInstance.SecondaryData.Data == 0">Num={ArrayNum} {(wchar_t*)AllocatorInstance.InlineData,[ArrayNum]su}</DisplayString>
+    <DisplayString Condition="ArrayMax &gt;= ArrayNum &amp;&amp; AllocatorInstance.SecondaryData.Data != 0">Num={ArrayNum} {(wchar_t*)AllocatorInstance.SecondaryData.Data,[ArrayNum]su}</DisplayString>
+    <StringView Condition="ArrayMax &gt;= ArrayNum &amp;&amp; AllocatorInstance.SecondaryData.Data == 0">(wchar_t*)AllocatorInstance.InlineData,[ArrayNum]su</StringView>
+    <StringView Condition="ArrayMax &gt;= ArrayNum &amp;&amp; AllocatorInstance.SecondaryData.Data != 0">(wchar_t*)AllocatorInstance.SecondaryData.Data,[ArrayNum]su</StringView>
+    <Expand>
+      <ArrayItems Condition="ArrayNum &lt;= ArrayMax">
+        <Size>ArrayNum</Size>
+        <ValuePointer Condition="AllocatorInstance.SecondaryData.Data == 0">(wchar_t*)AllocatorInstance.InlineData</ValuePointer>
+        <ValuePointer Condition="AllocatorInstance.SecondaryData.Data != 0">(wchar_t*)AllocatorInstance.SecondaryData.Data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
+</AutoVisualizer>

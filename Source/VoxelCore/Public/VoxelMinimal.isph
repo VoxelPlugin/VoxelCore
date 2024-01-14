@@ -1,0 +1,1421 @@
+// Copyright Voxel Plugin, Inc. All Rights Reserved.
+
+#pragma once
+
+// ReSharper disable CppCStyleCast
+
+#define INTELLISENSE_PARSER (__INTELLISENSE__ || __RESHARPER__)
+
+#if INTELLISENSE_PARSER
+#define INTELLISENSE_ONLY(...) __VA_ARGS__
+#define varying
+#define uniform
+#define export
+#define foreach(...)
+#define assume(...) (void)!!(__VA_ARGS__)
+#define assert(...) (void)!!(__VA_ARGS__)
+#define VOXEL_DEBUG 1
+#define TARGET_WIDTH 8
+
+#define FOREACH(Var, Start, End) for (int32 Var = Start; Var < End; Var++)
+#define UNROLL
+#define UNROLL_N(N)
+#define IGNORE_PERF_WARNING
+
+int MakeRegister(int, ...);
+float MakeRegister(float, ...);
+
+template<int>
+struct floatv
+{
+	floatv() = default;
+	floatv(float);
+
+	float& operator[](int);
+	const float& operator[](int) const;
+};
+
+double operator ""d(long double);
+
+using int8 = char;
+using int16 = short;
+using int32 = int;
+using int64 = long long int;
+
+using uint8 = unsigned char;
+using uint16 = unsigned short;
+using uint32 = unsigned int;
+using uint64 = unsigned long long int;
+
+struct float16
+{
+	float x;
+	float y;
+};
+
+float min(float, float);
+double min(double, double);
+int32 min(int32, int32);
+float max(float, float);
+float max(double, double);
+int32 max(int32, int32);
+float clamp(float value, float a, float b);
+double clamp(double value, double a, double b);
+int32 clamp(int32 value, int32 a, int32 b);
+
+bool isnan(float16 v);
+bool isnan(float v);
+bool isnan(double v);
+
+int8 broadcast(int8 value, uniform int index);
+int16 broadcast(int16 value, uniform int index);
+int32 broadcast(int32 value, uniform int index);
+int64 broadcast(int64 value, uniform int index);
+float16 broadcast(float16 value, uniform int index);
+float broadcast(float value, uniform int index);
+double broadcast(double value, uniform int index);
+
+int8 rotate(int8 value, uniform int offset);
+int16 rotate(int16 value, uniform int offset);
+int32 rotate(int32 value, uniform int offset);
+int64 rotate(int64 value, uniform int offset);
+float16 rotate(float16 value, uniform int offset);
+float rotate(float value, uniform int offset);
+double rotate(double value, uniform int offset);
+
+int8 shift(int8 value, uniform int offset);
+int16 shift(int16 value, uniform int offset);
+int32 shift(int32 value, uniform int offset);
+int64 shift(int64 value, uniform int offset);
+float16 shift(float16 value, uniform int offset);
+float shift(float value, uniform int offset);
+double shift(double value, uniform int offset);
+
+int8 shuffle(int8 value, int permutation);
+int16 shuffle(int16 value, int permutation);
+int32 shuffle(int32 value, int permutation);
+int64 shuffle(int64 value, int permutation);
+float16 shuffle(float16 value, int permutation);
+float shuffle(float value, int permutation);
+double shuffle(double value, int permutation);
+
+bool any(bool v);
+bool all(bool v);
+bool none(bool v);
+
+int16 reduce_add(int8 x);
+uint16 reduce_add(uint8 x);
+int32 reduce_add(int16 x);
+uint32 reduce_add(uint16 x);
+int64 reduce_add(int32 x);
+uint64 reduce_add(uint32 x);
+int64 reduce_add(int64 x);
+uint64 reduce_add(uint64 x);
+
+float16 reduce_add(float16 x);
+float reduce_add(float x);
+double reduce_add(double x);
+
+int32 reduce_min(int32 a);
+uint32 reduce_min(uint32 a);
+int64 reduce_min(int64 a);
+uint64 reduce_min(uint64 a);
+
+float16 reduce_min(float16 a);
+float reduce_min(float a);
+double reduce_min(double a);
+
+int32 reduce_max(int32 a);
+uint32 reduce_max(uint32 a);
+int64 reduce_max(int64 a);
+uint64 reduce_max(uint64 a);
+
+float16 reduce_max(float16 a);
+float reduce_max(float a);
+double reduce_max(double a);
+
+bool reduce_equal(int32 v);
+bool reduce_equal(uint32 v);
+bool reduce_equal(int64 v);
+bool reduce_equal(uint64 v);
+
+bool reduce_equal(float16 v);
+bool reduce_equal(float v);
+bool reduce_equal(double);
+
+bool reduce_equal(int32 v, int32* sameval);
+bool reduce_equal(uint32 v, uint32* sameval);
+bool reduce_equal(int64 v, int64* sameval);
+bool reduce_equal(uint64 v, uint64* sameval);
+
+bool reduce_equal(float16 v, float16* sameval);
+bool reduce_equal(float v, float* sameval);
+bool reduce_equal(double, double* sameval);
+
+int32 exclusive_scan_add(int32 v);
+uint32 exclusive_scan_add(uint32 v);
+float16 exclusive_scan_add(float16 v);
+float exclusive_scan_add(float v);
+int64 exclusive_scan_add(int64 v);
+uint64 exclusive_scan_add(uint64 v);
+double exclusive_scan_add(double v);
+int32 exclusive_scan_and(int32 v);
+uint32 exclusive_scan_and(uint32 v);
+int64 exclusive_scan_and(int64 v);
+uint64 exclusive_scan_and(uint64 v);
+int32 exclusive_scan_or(int32 v);
+uint32 exclusive_scan_or(uint32 v);
+int64 exclusive_scan_or(int64 v);
+uint64 exclusive_scan_or(uint64 v);
+
+uniform bool extract(bool x, uniform int i);
+uniform int8 extract(int8 x, uniform int i);
+uniform int16 extract(int16 x, uniform int i);
+uniform int32 extract(int32 x, uniform int i);
+uniform int64 extract(int64 x, uniform int i);
+uniform uint8 extract(uint8 x, uniform int i);
+uniform uint16 extract(uint16 x, uniform int i);
+uniform uint32 extract(uint32 x, uniform int i);
+uniform uint64 extract(uint64 x, uniform int i);
+uniform float16 extract(float16 x, uniform int i);
+uniform float extract(float x, uniform int i);
+uniform double extract(double x, uniform int i);
+
+[[nodiscard]] bool insert(bool x, uniform int i, uniform bool v);
+[[nodiscard]] int8 insert(int8 x, uniform int i, uniform int8 v);
+[[nodiscard]] int16 insert(int16 x, uniform int i, uniform int16 v);
+[[nodiscard]] int32 insert(int32 x, uniform int i, uniform int32 v);
+[[nodiscard]] int64 insert(int64 x, uniform int i, uniform int64 v);
+[[nodiscard]] uint8 insert(uint8 x, uniform int i, uniform uint8 v);
+[[nodiscard]] uint16 insert(uint16 x, uniform int i, uniform uint16 v);
+[[nodiscard]] uint32 insert(uint32 x, uniform int i, uniform uint32 v);
+[[nodiscard]] uint64 insert(uint64 x, uniform int i, uniform uint64 v);
+[[nodiscard]] float16 insert(float16 x, uniform int i, uniform float16 v);
+[[nodiscard]] float insert(float x, uniform int i, uniform float v);
+[[nodiscard]] double insert(double x, uniform int i, uniform double v);
+
+bool and(bool a, bool b);
+bool or(bool a, bool b);
+uniform bool and(uniform bool a, uniform bool b);
+uniform bool or(uniform bool a, uniform bool b);
+
+int8 select(bool cond, int8 t, int8 f);
+int8 select(uniform bool cond, int8 t, int8 f);
+uniform int8 select(uniform bool cond, uniform int8 t, uniform int8 f);
+
+int16 select(bool cond, int16 t, int16 f);
+int32 select(bool cond, int32 t, int32 f);
+int64 select(bool cond, int64 t, int64 f);
+uint8 select(bool cond, uint8 t, uint8 f);
+uint16 select(bool cond, uint16 t, uint16 f);
+uint32 select(bool cond, uint32 t, uint32 f);
+uint64 select(bool cond, uint64 t, uint64 f);
+float select(bool cond, float t, float f);
+double select(bool cond, double t, double f);
+
+float abs(float value);
+int32 abs(int32 value);
+double abs(double value);
+
+float exp(float x);
+double exp(double x);
+float log(float x);
+double log(double x);
+float pow(float base, float exp);
+double pow(double base, double exp);
+float sqrt(float value);
+double sqrt(double value);
+float rsqrt(float value);
+double rsqrt(double value);
+float floor(float value);
+double floor(double value);
+float ceil(float value);
+double ceil(double value);
+float round(float value);
+double round(double value);
+float trunc(float x);
+double trunc(double x);
+
+float cos(float value);
+float acos(float value);
+float sin(float value);
+float asin(float value);
+float tan(float value);
+float atan(float value);
+float atan2(float valuea, float valueb);
+void sincos(float x, float* s, float* c);
+
+float16 float16bits(uint16 a);
+float16 float16bits(uint16 a);
+float floatbits(uint32 a);
+float floatbits(uint32 a);
+double doublebits(uint64 a);
+double doublebits(uint64 a);
+uint16 intbits(float16 a);
+uint16 intbits(float16 a);
+uint32 intbits(float a);
+uint32 intbits(float a);
+uint64 intbits(double a);
+uint64 intbits(double a);
+
+int32 packmask(bool value);
+int32 sign_extend(bool value);
+int32 popcnt(int32 v);
+int32 popcnt(bool v);
+int32 count_leading_zeros(int32 v);
+int32 count_trailing_zeros(int32 v);
+
+// Returns a mask of the most significant bit of each element in v
+uniform int32 __movmsk(varying int32 v);
+
+int32 programCount;
+int32 programIndex;
+
+#error "Compiler defined as parser"
+#else
+#define INTELLISENSE_ONLY(...)
+#define FOREACH(Var, Start, End) foreach (Var = Start ... End)
+#define UNROLL #pragma unroll
+#define UNROLL_N(N) UNROLL N
+#define IGNORE_PERF_WARNING #pragma ignore warning(perf)
+
+#if TARGET_WIDTH == 8
+#define MakeRegister(A, B, C, D, E, F, G, H) { A, B, C, D, E, F, G, H }
+#elif TARGET_WIDTH == 4
+#define MakeRegister(A, B, C, D) { A, B, C, D }
+#endif
+
+#define floatv float
+#endif
+
+#ifndef VOXEL_DEBUG
+// VOXEL_DEBUG seems to not be defined when packaging plugin
+#define VOXEL_DEBUG 0
+//#error "VOXEL_DEBUG not defined"
+#endif
+
+#define FORCEINLINE inline
+
+extern "C" void VoxelISPC_Assert(uniform int Line);
+extern "C" void VoxelISPC_UnsupportedTargetWidth(uniform int Width);
+
+#if VOXEL_DEBUG
+#define check(...) \
+	if (!(__VA_ARGS__)) \
+	{ \
+		VoxelISPC_Assert(__LINE__); \
+	}
+
+#define ensure(...) check(__VA_ARGS__)
+#define VOXEL_ASSUME(...) check(__VA_ARGS__)
+#else
+#define check(...)
+#define ensure(...) (__VA_ARGS__)
+#define VOXEL_ASSUME(...) assume((__VA_ARGS__))
+#endif
+
+#define unsupportedTargetWidth() VoxelISPC_UnsupportedTargetWidth(TARGET_WIDTH);
+
+#undef PI
+#define PI 3.1415926535897932f
+#define SMALL_NUMBER 1.e-8f
+#define KINDA_SMALL_NUMBER 1.e-4f
+#define BIG_NUMBER 3.4e+38f
+
+#if !INTELLISENSE_PARSER
+FORCEINLINE uniform float lerp(const uniform float A, const uniform float B, const uniform float Alpha)
+{
+	// Minimize float precision errors in case A or B is huge
+	return A * (1.f - Alpha) + B * Alpha;
+}
+#endif
+
+FORCEINLINE float lerp(const float A, const float B, const float Alpha)
+{
+	// Minimize float precision errors in case A or B is huge
+	return A * (1.f - Alpha) + B * Alpha;
+}
+FORCEINLINE double lerp(const double A, const double B, const double Alpha)
+{
+	return A * (1.f - Alpha) + B * Alpha;
+}
+
+FORCEINLINE float fmod(const float x, const float y)
+{
+	return x - trunc(x / y) * y;
+}
+
+FORCEINLINE bool IsFinite(const float A)
+{
+	return (intbits(A) & 0x7F800000U) != 0x7F800000U;
+}
+
+FORCEINLINE bool IsFinite(const double A)
+{
+	return ((intbits(A) >> 52) & 0x7FFU) != 0x7FFU;
+}
+
+FORCEINLINE float InvSqrt(const float X)
+{
+	return 1.f / sqrt(X);
+}
+FORCEINLINE double InvSqrt(const double X)
+{
+	return 1.d / sqrt(X);
+}
+
+FORCEINLINE float Square(const float X)
+{
+	return X * X;
+}
+
+FORCEINLINE float SmoothStep(const float A, const float B, const float Alpha)
+{
+	if (Alpha < A)
+	{
+		return 0.f;
+	}
+	else if (Alpha >= B)
+	{
+		return 1.f;
+	}
+
+	const float InterpFraction = (Alpha - A) / (B - A);
+	return InterpFraction * InterpFraction * (3.0f - 2.0f * InterpFraction);
+}
+
+FORCEINLINE uint32 MurmurHash32(uint32 Hash)
+{
+	Hash ^= Hash >> 16;
+	Hash *= 0x85ebca6b;
+	Hash ^= Hash >> 13;
+	Hash *= 0xc2b2ae35;
+	Hash ^= Hash >> 16;
+	return Hash;
+}
+
+FORCEINLINE uint32 MurmurHash32(const uint32 Value, const uint32 Seed)
+{
+	uint32 H = 1831214719 * (1460481823 + Seed);
+	return MurmurHash32(H ^ Value);
+}
+
+FORCEINLINE bool IsPowerOfTwo(const uint32 Value)
+{
+	return (Value & (Value - 1)) == 0;
+}
+
+FORCEINLINE uniform int32 DivideCeil(const uniform int32 Dividend, const uniform int32 Divisor)
+{
+	return (Dividend > 0) ? 1 + (Dividend - 1) / Divisor : (Dividend / Divisor);
+}
+FORCEINLINE uniform int32 DivideFloor(const uniform int32 Dividend, const uniform int32 Divisor)
+{
+	return Dividend / Divisor;
+}
+
+#define MAX_uint8	0xff
+#define MAX_uint16	0xffff
+#define MAX_uint32	0xffffffff
+#define MAX_uint64	0xffffffffffffffff
+#define MAX_int8	0x7f
+#define MAX_int16	0x7fff
+#define MAX_int32	0x7fffffff
+#define MAX_int64	0x7fffffffffffffff
+#define MIN_flt		1.175494351e-38F
+#define MAX_flt		3.402823466e+38F
+#define MIN_dbl		2.2250738585072014e-308
+#define MAX_dbl		1.7976931348623158e+308
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+struct float2
+{
+	float x;
+	float y;
+};
+struct float3
+{
+	float x;
+	float y;
+	float z;
+};
+struct float4
+{
+	float x;
+	float y;
+	float z;
+	float w;
+};
+
+struct double2
+{
+	double x;
+	double y;
+};
+struct double3
+{
+	double x;
+	double y;
+	double z;
+};
+struct double4
+{
+	double x;
+	double y;
+	double z;
+	double w;
+};
+
+struct int2
+{
+	int32 x;
+	int32 y;
+};
+struct int3
+{
+	int32 x;
+	int32 y;
+	int32 z;
+};
+struct int4
+{
+	int32 x;
+	int32 y;
+	int32 z;
+	int32 w;
+};
+
+#define float2_zero MakeFloat2(0, 0)
+#define float3_zero MakeFloat3(0, 0, 0)
+#define float4_zero MakeFloat4(0, 0, 0, 0)
+
+#define double2_zero MakeDouble2(0, 0)
+#define double3_zero MakeDouble3(0, 0, 0)
+#define double4_zero MakeDouble4(0, 0, 0, 0)
+
+#define int2_zero MakeInt2(0, 0)
+#define int3_zero MakeInt3(0, 0, 0)
+#define int4_zero MakeInt4(0, 0, 0, 0)
+
+#define float2_one MakeFloat2(1, 1)
+#define float3_one MakeFloat3(1, 1, 1)
+#define float4_one MakeFloat4(1, 1, 1, 1)
+
+#define int2_one MakeInt2(1, 1)
+#define int3_one MakeInt3(1, 1, 1)
+#define int4_one MakeInt4(1, 1, 1, 1)
+
+#define double2_one MakeDouble2(1, 1)
+#define double3_one MakeDouble3(1, 1, 1)
+#define double4_one MakeDouble4(1, 1, 1, 1)
+
+FORCEINLINE float2 MakeFloat2(const float X, const float Y)
+{
+	float2 Result;
+	Result.x = X;
+	Result.y = Y;
+	return Result;
+}
+FORCEINLINE float3 MakeFloat3(const float X, const float Y, const float Z)
+{
+	float3 Result;
+	Result.x = X;
+	Result.y = Y;
+	Result.z = Z;
+	return Result;
+}
+FORCEINLINE float4 MakeFloat4(const float X, const float Y, const float Z, const float W)
+{
+	float4 Result;
+	Result.x = X;
+	Result.y = Y;
+	Result.z = Z;
+	Result.w = W;
+	return Result;
+}
+
+FORCEINLINE double2 MakeDouble2(const double X, const double Y)
+{
+	double2 Result;
+	Result.x = X;
+	Result.y = Y;
+	return Result;
+}
+FORCEINLINE double3 MakeDouble3(const double X, const double Y, const double Z)
+{
+	double3 Result;
+	Result.x = X;
+	Result.y = Y;
+	Result.z = Z;
+	return Result;
+}
+FORCEINLINE double4 MakeDouble4(const double X, const double Y, const double Z, const double W)
+{
+	double4 Result;
+	Result.x = X;
+	Result.y = Y;
+	Result.z = Z;
+	Result.w = W;
+	return Result;
+}
+
+FORCEINLINE int2 MakeInt2(const int32 X, const int32 Y)
+{
+	int2 Result;
+	Result.x = X;
+	Result.y = Y;
+	return Result;
+}
+FORCEINLINE int3 MakeInt3(const int32 X, const int32 Y, const int32 Z)
+{
+	int3 Result;
+	Result.x = X;
+	Result.y = Y;
+	Result.z = Z;
+	return Result;
+}
+FORCEINLINE int4 MakeInt4(const int32 X, const int32 Y, const int32 Z, const int32 W)
+{
+	int4 Result;
+	Result.x = X;
+	Result.y = Y;
+	Result.z = Z;
+	Result.w = W;
+	return Result;
+}
+
+#define VECTOR_OP(Type, OpOp, Op) \
+	FORCEINLINE Type ## 2 OpOp(Type ## 2 A, Type ## 2 B) \
+	{ \
+	    Type ## 2 Result; \
+		Result.x = A.x Op B.x; \
+		Result.y = A.y Op B.y; \
+	    return Result; \
+	} \
+	FORCEINLINE Type ## 3 OpOp(Type ## 3 A, Type ## 3 B) \
+	{ \
+	    Type ## 3 Result; \
+		Result.x = A.x Op B.x; \
+		Result.y = A.y Op B.y; \
+		Result.z = A.z Op B.z; \
+	    return Result; \
+	} \
+	FORCEINLINE Type ## 4 OpOp(Type ## 4 A, Type ## 4 B) \
+	{ \
+	    Type ## 4 Result; \
+		Result.x = A.x Op B.x; \
+		Result.y = A.y Op B.y; \
+		Result.z = A.z Op B.z; \
+		Result.w = A.w Op B.w; \
+	    return Result; \
+	}
+
+#define SCALAR_VECTOR_OP(InputType, ScalarType, ResultType, OpOp, Op) \
+	FORCEINLINE ResultType ## 2 OpOp(InputType ## 2 A, ScalarType B) \
+	{ \
+	    ResultType ## 2 Result; \
+		Result.x = A.x Op B; \
+		Result.y = A.y Op B; \
+	    return Result; \
+	} \
+	FORCEINLINE ResultType ## 3 OpOp(InputType ## 3 A, ScalarType B) \
+	{ \
+	    ResultType ## 3 Result; \
+		Result.x = A.x Op B; \
+		Result.y = A.y Op B; \
+		Result.z = A.z Op B; \
+	    return Result; \
+	} \
+	FORCEINLINE ResultType ## 4 OpOp(InputType ## 4 A, ScalarType B) \
+	{ \
+	    ResultType ## 4 Result; \
+		Result.x = A.x Op B; \
+		Result.y = A.y Op B; \
+		Result.z = A.z Op B; \
+		Result.w = A.w Op B; \
+	    return Result; \
+	} \
+	\
+	FORCEINLINE ResultType ## 2 OpOp(ScalarType A, InputType ## 2 B) \
+	{ \
+	    ResultType ## 2 Result; \
+		Result.x = A Op B.x; \
+		Result.y = A Op B.y; \
+	    return Result; \
+	} \
+	FORCEINLINE ResultType ## 3 OpOp(ScalarType A, InputType ## 3 B) \
+	{ \
+	    ResultType ## 3 Result; \
+		Result.x = A Op B.x; \
+		Result.y = A Op B.y; \
+		Result.z = A Op B.z; \
+	    return Result; \
+	} \
+	FORCEINLINE ResultType ## 4 OpOp(ScalarType A, InputType ## 4 B) \
+	{ \
+	    ResultType ## 4 Result; \
+		Result.x = A Op B.x; \
+		Result.y = A Op B.y; \
+		Result.z = A Op B.z; \
+		Result.w = A Op B.w; \
+	    return Result; \
+	}
+
+VECTOR_OP(float, operator*, *);
+VECTOR_OP(float, operator/, /);
+VECTOR_OP(float, operator+, +);
+VECTOR_OP(float, operator-, -);
+
+VECTOR_OP(double, operator*, *);
+VECTOR_OP(double, operator/, /);
+VECTOR_OP(double, operator+, +);
+VECTOR_OP(double, operator-, -);
+
+VECTOR_OP(int, operator*, *);
+// Slow VECTOR_OP(int, operator/, /);
+VECTOR_OP(int, operator+, +);
+VECTOR_OP(int, operator-, -);
+
+SCALAR_VECTOR_OP(float, float, float, operator*, *);
+SCALAR_VECTOR_OP(float, float, float, operator/, /);
+SCALAR_VECTOR_OP(float, float, float, operator+, +);
+SCALAR_VECTOR_OP(float, float, float, operator-, -);
+
+SCALAR_VECTOR_OP(double, double, double, operator*, *);
+SCALAR_VECTOR_OP(double, double, double, operator/, /);
+SCALAR_VECTOR_OP(double, double, double, operator+, +);
+SCALAR_VECTOR_OP(double, double, double, operator-, -);
+
+SCALAR_VECTOR_OP(int, int32, int, operator*, *);
+// Slow SCALAR_VECTOR_OP(int, int32, int, operator/, /);
+SCALAR_VECTOR_OP(int, int32, int, operator+, +);
+SCALAR_VECTOR_OP(int, int32, int, operator-, -);
+
+SCALAR_VECTOR_OP(int, float, float, operator*, *);
+SCALAR_VECTOR_OP(int, float, float, operator/, /);
+SCALAR_VECTOR_OP(int, float, float, operator+, +);
+SCALAR_VECTOR_OP(int, float, float, operator-, -);
+
+#undef VECTOR_OP
+#undef SCALAR_VECTOR_OP
+
+FORCEINLINE float2 MakeFloat2(const int2 Value)
+{
+	float2 Result;
+	Result.x = Value.x;
+	Result.y = Value.y;
+	return Result;
+}
+FORCEINLINE float3 MakeFloat3(const int3 Value)
+{
+	float3 Result;
+	Result.x = Value.x;
+	Result.y = Value.y;
+	Result.z = Value.z;
+	return Result;
+}
+
+FORCEINLINE int2 MakeInt2(const float2 Value)
+{
+	int2 Result;
+	Result.x = Value.x;
+	Result.y = Value.y;
+	return Result;
+}
+FORCEINLINE int3 MakeInt3(const float3 Value)
+{
+	int3 Result;
+	Result.x = Value.x;
+	Result.y = Value.y;
+	Result.z = Value.z;
+	return Result;
+}
+
+FORCEINLINE float2 floor(const float2 Value)
+{
+	return MakeFloat2(
+		floor(Value.x),
+		floor(Value.y));
+}
+FORCEINLINE float3 floor(const float3 Value)
+{
+	return MakeFloat3(
+		floor(Value.x),
+		floor(Value.y),
+		floor(Value.z));
+}
+
+FORCEINLINE float2 clamp(const float2 Value, const float2 A, const float2 B)
+{
+	return MakeFloat2(
+		clamp(Value.x, A.x, B.x),
+		clamp(Value.y, A.y, B.y));
+}
+FORCEINLINE float3 clamp(const float3 Value, const float3 A, const float3 B)
+{
+	return MakeFloat3(
+		clamp(Value.x, A.x, B.x),
+		clamp(Value.y, A.y, B.y),
+		clamp(Value.z, A.z, B.z));
+}
+FORCEINLINE float3 clamp(const float3 Value, const float A, const float B)
+{
+	return MakeFloat3(
+		clamp(Value.x, A, B),
+		clamp(Value.y, A, B),
+		clamp(Value.z, A, B));
+}
+
+FORCEINLINE int2 clamp(const int2 Value, const int2 A, const int2 B)
+{
+	return MakeInt2(
+		clamp(Value.x, A.x, B.x),
+		clamp(Value.y, A.y, B.y));
+}
+FORCEINLINE int3 clamp(const int3 Value, const int3 A, const int3 B)
+{
+	return MakeInt3(
+		clamp(Value.x, A.x, B.x),
+		clamp(Value.y, A.y, B.y),
+		clamp(Value.z, A.z, B.z));
+}
+
+FORCEINLINE float2 lerp(const float2 A, const float2 B, const float Alpha)
+{
+	return MakeFloat2(
+		lerp(A.x, B.x, Alpha),
+		lerp(A.y, B.y, Alpha));
+}
+FORCEINLINE float3 lerp(const float3 A, const float3 B, const float Alpha)
+{
+	return MakeFloat3(
+		lerp(A.x, B.x, Alpha),
+		lerp(A.y, B.y, Alpha),
+		lerp(A.z, B.z, Alpha));
+}
+FORCEINLINE float4 lerp(const float4 A, const float4 B, const float Alpha)
+{
+	return MakeFloat4(
+		lerp(A.x, B.x, Alpha),
+		lerp(A.y, B.y, Alpha),
+		lerp(A.z, B.z, Alpha),
+		lerp(A.w, B.w, Alpha));
+}
+
+FORCEINLINE float length(const float2 Value)
+{
+	return sqrt(Value.x * Value.x + Value.y * Value.y);
+}
+FORCEINLINE float length(const float3 Value)
+{
+	return sqrt(Value.x * Value.x + Value.y * Value.y + Value.z * Value.z);
+}
+FORCEINLINE double length(const double2 Value)
+{
+	return sqrt(Value.x * Value.x + Value.y * Value.y);
+}
+FORCEINLINE double length(const double3 Value)
+{
+	return sqrt(Value.x * Value.x + Value.y * Value.y + Value.z * Value.z);
+}
+
+FORCEINLINE float distance(const float2 A, const float2 B)
+{
+	return length(B - A);
+}
+FORCEINLINE float distance(const float3 A, const float3 B)
+{
+	return length(B - A);
+}
+FORCEINLINE double distance(const double2 A, const double2 B)
+{
+	return length(B - A);
+}
+FORCEINLINE double distance(const double3 A, const double3 B)
+{
+	return length(B - A);
+}
+
+FORCEINLINE float2 normalize(const float2 Vector)
+{
+	const float SquareSum = Vector.x * Vector.x + Vector.y * Vector.y;
+	return Vector * InvSqrt(SquareSum);
+}
+FORCEINLINE float3 normalize(const float3 Vector)
+{
+	const float SquareSum = Vector.x * Vector.x + Vector.y * Vector.y + Vector.z * Vector.z;
+	if (SquareSum == 0.f)
+	{
+		return MakeFloat3(0, 0, 1);
+	}
+
+	return Vector * InvSqrt(SquareSum);
+}
+
+FORCEINLINE float2 abs(const float2 Vector)
+{
+	return MakeFloat2(
+		abs(Vector.x),
+		abs(Vector.y));
+}
+FORCEINLINE float3 abs(const float3 Vector)
+{
+	return MakeFloat3(
+		abs(Vector.x),
+		abs(Vector.y),
+		abs(Vector.z));
+}
+
+FORCEINLINE double2 normalize(const double2 Vector)
+{
+	const double SquareSum = Vector.x * Vector.x + Vector.y * Vector.y;
+	return Vector * InvSqrt(SquareSum);
+}
+FORCEINLINE double3 normalize(const double3 Vector)
+{
+	const double SquareSum = Vector.x * Vector.x + Vector.y * Vector.y + Vector.z * Vector.z;
+	if (SquareSum == 0.d)
+	{
+		return MakeDouble3(0, 0, 1);
+	}
+
+	return Vector * InvSqrt(SquareSum);
+}
+
+FORCEINLINE float3 cross(const float3 A, const float3 B)
+{
+	return MakeFloat3(
+		A.y * B.z - A.z * B.y,
+		A.z * B.x - A.x * B.z,
+		A.x * B.y - A.y * B.x
+	);
+}
+FORCEINLINE double3 cross(const double3 A, const double3 B)
+{
+	return MakeDouble3(
+		A.y * B.z - A.z * B.y,
+		A.z * B.x - A.x * B.z,
+		A.x * B.y - A.y * B.x
+	);
+}
+
+FORCEINLINE float dot(const float2 A, const float2 B)
+{
+	return A.x * B.x + A.y * B.y;
+}
+FORCEINLINE float dot(const float3 A, const float3 B)
+{
+	return A.x * B.x + A.y * B.y + A.z * B.z;
+}
+
+FORCEINLINE float3 min(const float3 A, const float3 B)
+{
+	return MakeFloat3(
+		min(A.x, B.x),
+		min(A.y, B.y),
+		min(A.z, B.z));
+}
+FORCEINLINE float3 max(const float3 A, const float3 B)
+{
+	return MakeFloat3(
+		max(A.x, B.x),
+		max(A.y, B.y),
+		max(A.z, B.z));
+}
+
+FORCEINLINE float3 min(const float3 A, const float B)
+{
+	return MakeFloat3(
+		min(A.x, B),
+		min(A.y, B),
+		min(A.z, B));
+}
+FORCEINLINE float3 max(const float3 A, const float B)
+{
+	return MakeFloat3(
+		max(A.x, B),
+		max(A.y, B),
+		max(A.z, B));
+}
+
+FORCEINLINE float3 min(const float A, const float3 B)
+{
+	return MakeFloat3(
+		min(A, B.x),
+		min(A, B.y),
+		min(A, B.z));
+}
+FORCEINLINE float3 max(const float A, const float3 B)
+{
+	return MakeFloat3(
+		max(A, B.x),
+		max(A, B.y),
+		max(A, B.z));
+}
+
+FORCEINLINE float DistanceSquared(const float2 A, const float2 B)
+{
+	const float2 C = A - B;
+	return dot(C, C);
+}
+FORCEINLINE float DistanceSquared(const float3 A, const float3 B)
+{
+	const float3 C = A - B;
+	return dot(C, C);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+struct float4x4
+{
+	float M[16];
+};
+
+FORCEINLINE float3 MatrixTransformPosition(const float4x4 Matrix, const float3 Vector)
+{
+	return MakeFloat3(
+		Matrix.M[0] * Vector.x + Matrix.M[4] * Vector.y + Matrix.M[8] * Vector.z + Matrix.M[12],
+		Matrix.M[1] * Vector.x + Matrix.M[5] * Vector.y + Matrix.M[9] * Vector.z + Matrix.M[13],
+		Matrix.M[2] * Vector.x + Matrix.M[6] * Vector.y + Matrix.M[10] * Vector.z + Matrix.M[14]);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FORCEINLINE float SmoothHelper(float Value, float Smoothness)
+{
+#if PLATFORM_WINDOWS
+	// Works even when Smoothness == 0 on Windows
+	// Breaks on M1 macs
+	return Value / Smoothness;
+#else
+	return Smoothness == 0.f
+		? Value < 0.f ? -1.f : 1.f
+		: Value / Smoothness;
+#endif
+}
+
+FORCEINLINE float SmoothMin(const float DistanceA, const float DistanceB, const float Smoothness)
+{
+	const float H = clamp(0.5f + 0.5f * SmoothHelper(DistanceB - DistanceA, Smoothness), 0.f, 1.f);
+	return lerp(DistanceB, DistanceA, H) - Smoothness * H * (1.f - H);
+}
+FORCEINLINE float SmoothMax(const float DistanceA, const float DistanceB, const float Smoothness)
+{
+	return -SmoothMin(-DistanceA, -DistanceB, Smoothness);
+}
+
+#if !INTELLISENSE_PARSER
+FORCEINLINE uniform float SmoothHelper(uniform float Value, uniform float Smoothness)
+{
+#if PLATFORM_WINDOWS
+	// Works even when Smoothness == 0 on Windows
+	// Breaks on M1 macs
+	return Value / Smoothness;
+#else
+	return Smoothness == 0.f
+		? Value < 0.f ? -1.f : 1.f
+		: Value / Smoothness;
+#endif
+}
+
+FORCEINLINE uniform float SmoothMin(const uniform float DistanceA, const uniform float DistanceB, const uniform float Smoothness)
+{
+	const uniform float H = clamp(0.5f + 0.5f * SmoothHelper(DistanceB - DistanceA, Smoothness), 0.f, 1.f);
+	return lerp(DistanceB, DistanceA, H) - Smoothness * H * (1.f - H);
+}
+FORCEINLINE uniform float SmoothMax(const uniform float DistanceA, const uniform float DistanceB, const uniform float Smoothness)
+{
+	return -SmoothMin(-DistanceA, -DistanceB, Smoothness);
+}
+#endif
+
+FORCEINLINE float SafeSmoothMin(const float DistanceA, const float DistanceB, const float Smoothness)
+{
+	const float H = clamp(0.5f + 0.5f * SmoothHelper(DistanceB - DistanceA, Smoothness), 0.f, 1.f);
+	const float Result = lerp(DistanceB, DistanceA, H) - Smoothness * H * (1.f - H);
+
+	return
+		H < KINDA_SMALL_NUMBER
+		? DistanceB
+		: H > 1.f - KINDA_SMALL_NUMBER
+		? DistanceA
+		: Result;
+}
+FORCEINLINE float SafeSmoothMax(const float DistanceA, const float DistanceB, const float Smoothness)
+{
+	return -SafeSmoothMin(-DistanceA, -DistanceB, Smoothness);
+}
+
+FORCEINLINE float BilinearInterpolation(const float A, const float B, const float C, const float D, const float X, const float Y)
+{
+	return lerp(lerp(A, B, X), lerp(C, D, X), Y);
+}
+
+FORCEINLINE float TrilinearInterpolation(
+	const float A, const float B, const float C, const float D,
+	const float E, const float F, const float G, const float H,
+	const float X, const float Y, const float Z)
+{
+	return lerp(
+		BilinearInterpolation(A, B, C, D, X, Y),
+		BilinearInterpolation(E, F, G, H, X, Y),
+		Z);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+struct FVoxelOctahedron
+{
+	uint8 X;
+	uint8 Y;
+};
+
+FORCEINLINE uint8 FloatToUINT8(const float Float)
+{
+	return clamp((int32)floor(Float * 255.999f), 0, 255);
+}
+FORCEINLINE float UINT8ToFloat(const uint8 Int)
+{
+	return Int / 255.f;
+}
+
+FORCEINLINE varying bool IsNearlyZero(const varying float Float)
+{
+	return abs(Float) < KINDA_SMALL_NUMBER;
+}
+#if !INTELLISENSE_PARSER
+FORCEINLINE uniform bool IsNearlyZero(const uniform float Float)
+{
+	return abs(Float) < KINDA_SMALL_NUMBER;
+}
+#endif
+
+// H00
+FORCEINLINE float HermiteP0(const float T)
+{
+	return (1 + 2 * T) * Square(1 - T);
+}
+// H10
+FORCEINLINE float HermiteD0(const float T)
+{
+	return T * Square(1 - T);
+}
+
+// H01
+FORCEINLINE float HermiteP1(const float T)
+{
+	return Square(T) * (3 - 2 * T);
+}
+// H11
+FORCEINLINE float HermiteD1(const float T)
+{
+	return Square(T) * (T - 1);
+}
+
+FORCEINLINE float2 UnitVectorToOctahedron(float3 Unit)
+{
+	const float AbsSum = abs(Unit.x) + abs(Unit.y) + abs(Unit.z);
+	Unit.x /= AbsSum;
+	Unit.y /= AbsSum;
+
+	float2 Result = MakeFloat2(Unit.x, Unit.y);
+	if (Unit.z <= 0)
+	{
+		Result.x = (1 - abs(Unit.y)) * (Unit.x >= 0 ? 1 : -1);
+		Result.y = (1 - abs(Unit.x)) * (Unit.y >= 0 ? 1 : -1);
+	}
+	return Result * 0.5f + 0.5f;
+}
+FORCEINLINE float3 OctahedronToUnitVector(float2 Octahedron)
+{
+	Octahedron = Octahedron * 2.f - 1.f;
+
+	float3 Unit;
+	Unit.x = Octahedron.x;
+	Unit.y = Octahedron.y;
+	Unit.z = 1.f - abs(Octahedron.x) - abs(Octahedron.y);
+
+	const float T = max(-Unit.z, 0.f);
+
+	Unit.x += Unit.x >= 0 ? -T : T;
+	Unit.y += Unit.y >= 0 ? -T : T;
+
+	return normalize(Unit);
+}
+
+FORCEINLINE float3 OctahedronToUnitVector(const FVoxelOctahedron Octahedron)
+{
+	return OctahedronToUnitVector(MakeFloat2(UINT8ToFloat(Octahedron.X), UINT8ToFloat(Octahedron.Y)));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FORCEINLINE bool IsIdentity(const float4 Rotation)
+{
+	return
+		Rotation.x == 0.f &&
+		Rotation.y == 0.f &&
+		Rotation.z == 0.f &&
+		Rotation.w == 1.f;
+}
+
+FORCEINLINE float4 MakeQuaternionFromEuler(const float Pitch, const float Yaw, const float Roll)
+{
+	float SinPitch;
+	float CosPitch;
+	sincos(fmod(Pitch, 360.0f) * PI / 360.f, &SinPitch, &CosPitch);
+
+	float SinYaw;
+	float CosYaw;
+	sincos(fmod(Yaw, 360.0f) * PI / 360.f, &SinYaw, &CosYaw);
+
+	float SinRoll;
+	float CosRoll;
+	sincos(fmod(Roll, 360.0f) * PI / 360.f, &SinRoll, &CosRoll);
+
+	return MakeFloat4(
+		CosRoll * SinPitch * SinYaw - SinRoll * CosPitch * CosYaw,
+		-CosRoll * SinPitch * CosYaw - SinRoll * CosPitch * SinYaw,
+		CosRoll * CosPitch * SinYaw - SinRoll * SinPitch * CosYaw,
+		CosRoll * CosPitch * CosYaw + SinRoll * SinPitch * SinYaw);
+}
+
+FORCEINLINE float Rotator_NormalizeAxis(float Angle)
+{
+	// returns Angle in the range (-360,360)
+	Angle = fmod(Angle, 360.f);
+
+	if (Angle < 0.f)
+	{
+		// Shift to [0,360) range
+		Angle += 360.f;
+	}
+
+	if (Angle > 180.f)
+	{
+		// Shift to (-180,180]
+		Angle -= 360.f;
+	}
+
+	return Angle;
+}
+FORCEINLINE void MakeEulerFromQuaternion(
+	const float4 Quat,
+	float& OutPitch,
+	float& OutYaw,
+	float& OutRoll)
+{
+	const float SingularityTest = Quat.z * Quat.x - Quat.w * Quat.y;
+	const float YawY = 2.f * (Quat.w * Quat.z + Quat.x * Quat.y);
+	const float YawX = (1.f - 2.f * (Quat.y * Quat.y) + (Quat.z * Quat.z));
+
+	// reference
+	// http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+	// http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/
+
+	// this value was found from experience, the above websites recommend different values
+	// but that isn't the case for us, so I went through different testing, and finally found the case
+	// where both of world lives happily.
+	const float SINGULARITY_THRESHOLD = 0.4999995f;
+	const float RAD_TO_DEG = (180.f / PI);
+
+	if (SingularityTest < -SINGULARITY_THRESHOLD)
+	{
+		OutPitch = -90.f;
+		OutYaw = (atan2(YawY, YawX) * RAD_TO_DEG);
+		OutRoll = Rotator_NormalizeAxis(-OutYaw - (2.f * atan2(Quat.x, Quat.w) * RAD_TO_DEG));
+	}
+	else if (SingularityTest > SINGULARITY_THRESHOLD)
+	{
+		OutPitch = 90.f;
+		OutYaw = (atan2(YawY, YawX) * RAD_TO_DEG);
+		OutRoll = Rotator_NormalizeAxis(OutYaw - (2.f * atan2(Quat.x, Quat.w) * RAD_TO_DEG));
+	}
+	else
+	{
+		OutPitch = (asin(2.f * SingularityTest) * RAD_TO_DEG);
+		OutYaw = (atan2(YawY, YawX) * RAD_TO_DEG);
+		OutRoll = (atan2(-2.f * (Quat.w * Quat.x + Quat.y * Quat.z), (1.f - 2.f * (Quat.x * Quat.x + Quat.y * Quat.y))) * RAD_TO_DEG);
+	}
+}
+
+FORCEINLINE float4 MakeQuaternionFromBasis(const float3 X, const float3 Y, const float3 Z)
+{
+	float4 Quat;
+
+	if (X.x + Y.y + Z.z > 0.0f)
+	{
+		const float InvS = InvSqrt(X.x + Y.y + Z.z + 1.0f);
+		const float S = 0.5f * InvS;
+
+		Quat.x = (Y.z - Z.y) * S;
+		Quat.y = (Z.x - X.z) * S;
+		Quat.z = (X.y - Y.x) * S;
+		Quat.w = 0.5f * (1.f / InvS);
+	}
+	else if (X.x > Y.y && X.x > Z.z)
+	{
+		const float InvS = InvSqrt(X.x - Y.y - Z.z + 1.0f);
+		const float S = 0.5f * InvS;
+
+		Quat.x = 0.5f * (1.f / InvS);
+		Quat.y = (X.y + Y.x) * S;
+		Quat.z = (X.z + Z.x) * S;
+		Quat.w = (Y.z - Z.y) * S;
+	}
+	else if (Y.y > X.x && Y.y > Z.z)
+	{
+		const float InvS = InvSqrt(Y.y - Z.z - X.x + 1.0f);
+		const float S = 0.5f * InvS;
+
+		Quat.y = 0.5f * (1.f / InvS);
+		Quat.z = (Y.z + Z.y) * S;
+		Quat.x = (Y.x + X.y) * S;
+		Quat.w = (Z.x - X.z) * S;
+	}
+	else
+	{
+		const float InvS = InvSqrt(Z.z - X.x - Y.y + 1.0f);
+		const float S = 0.5f * InvS;
+
+		Quat.z = 0.5f * (1.f / InvS);
+		Quat.x = (Z.x + X.z) * S;
+		Quat.y = (Z.y + Y.z) * S;
+		Quat.w = (X.y - Y.x) * S;
+	}
+
+	return Quat;
+}
+FORCEINLINE float4 MakeQuaternionFromZ(const float3 Z)
+{
+	const float3 NewZ = normalize(Z);
+
+	// Try to use up if possible
+	const float3 UpVector = abs(NewZ.z) < (1.f - KINDA_SMALL_NUMBER) ? MakeFloat3(0, 0, 1.f) : MakeFloat3(1.f, 0, 0);
+
+	const float3 NewX = normalize(cross(UpVector, NewZ));
+	const float3 NewY = cross(NewZ, NewX);
+
+	return MakeQuaternionFromBasis(NewX, NewY, NewZ);
+}
+
+FORCEINLINE float3 RotateVector(const float3 Position, const float4 Rotation)
+{
+	// See FQuat::RotateVector
+	const float3 Q = MakeFloat3(Rotation.x, Rotation.y, Rotation.z);
+	const float3 T = 2.f * cross(Q, Position);
+
+	return Position + (Rotation.w * T) + cross(Q, T);
+}
+
+FORCEINLINE float3 UnrotateVector(const float3 Position, const float4 Rotation)
+{
+	// See FQuat::UnrotateVector
+	const float3 Q = MakeFloat3(-Rotation.x, -Rotation.y, -Rotation.z);
+	const float3 T = 2.f * cross(Q, Position);
+
+	return Position + (Rotation.w * T) + cross(Q, T);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FORCEINLINE float GetFraction(const uint32 Seed)
+{
+	return floatbits(0x3F800000U | (Seed >> 9)) - 1.0f;
+}
+
+FORCEINLINE float RandRange(const uint32 Seed, const float2 Range)
+{
+	return Range.x + GetFraction(Seed) * (Range.y - Range.x);
+}
+
+FORCEINLINE float4 GetDistanceFieldColor(const float Value)
+{
+	// Credit for this snippet goes to Inigo Quilez
+
+	float4 Color = float4_one - (Value > 0 ? 1.f : -1.f) * MakeFloat4(0.1f, 0.4f, 0.7f, 0.f);
+	Color = Color
+		* (1.f - exp(-3.f * abs(Value)))
+		* (0.8f + 0.2f * cos(150.f * Value));
+
+	Color = lerp(Color, float4_one, 1.0 - SmoothStep(0.0f, 0.01f, abs(Value)));
+
+	Color.w = 1.f;
+	return Color;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FORCEINLINE uniform int32 MakeFastDivide16Magic(const uniform int32 Divisor)
+{
+	check(0 < Divisor);
+	check(1 <= Divisor && Divisor <= MAX_uint8);
+	return (1 << 16) / Divisor + 1;
+}
+FORCEINLINE uniform int64 MakeFastDivide32Magic(const uniform int32 Divisor)
+{
+	check(0 < Divisor);
+	check(1 <= Divisor && Divisor <= MAX_uint16);
+	return (((int64)1) << 32) / Divisor + 1;
+}
+
+FORCEINLINE varying int32 FastDivide16(const varying int32 Dividend, const uniform int32 Divisor, const uniform int32 Magic)
+{
+	check(0 <= Divisor);
+	check(0 <= Dividend);
+	check((int64)Divisor * (int64)Dividend <= MAX_uint16);
+	check(Magic == MakeFastDivide16Magic(Divisor));
+	const varying int32 Result = (Dividend * Magic) >> 16;
+	IGNORE_PERF_WARNING
+	check(Result == (Dividend / Divisor));
+	return Result;
+}
+FORCEINLINE varying int32 FastDivide32(const varying int32 Dividend, const uniform int32 Divisor, const uniform int64 Magic)
+{
+	check(0 <= Divisor);
+	check(0 <= Dividend);
+	check((int64)Divisor * (int64)Dividend <= MAX_uint32);
+	check(Magic == MakeFastDivide32Magic(Divisor));
+	const varying int32 Result = (Dividend * Magic) >> 32;
+	IGNORE_PERF_WARNING
+	check(Result == (Dividend / Divisor));
+	return Result;
+}
+
+#if !INTELLISENSE_PARSER
+FORCEINLINE uniform int32 FastDivide16(const uniform int32 Dividend, const uniform int32 Divisor, const uniform int32 Magic)
+{
+	check(0 <= Divisor);
+	check(0 <= Dividend);
+	check((int64)Divisor * (int64)Dividend <= MAX_uint16);
+	check(Magic == MakeFastDivide16Magic(Divisor));
+	const uniform int32 Result = (Dividend * Magic) >> 16;
+	check(Result == (Dividend / Divisor));
+	return Result;
+}
+FORCEINLINE uniform int32 FastDivide32(const uniform int32 Dividend, const uniform int32 Divisor, const uniform int64 Magic)
+{
+	check(0 <= Divisor);
+	check(0 <= Dividend);
+	check((int64)Divisor * (int64)Dividend <= MAX_uint32);
+	check(Magic == MakeFastDivide32Magic(Divisor));
+	const uniform int32 Result = (Dividend * Magic) >> 32;
+	check(Result == (Dividend / Divisor));
+	return Result;
+}
+#endif

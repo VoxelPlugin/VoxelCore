@@ -1,0 +1,72 @@
+// Copyright Voxel Plugin, Inc. All Rights Reserved.
+
+#pragma once
+
+#define in in
+#define out out
+#define inout inout
+#define numthreads(...) numthreads(__VA_ARGS__)
+#define nointerpolation nointerpolation
+#define groupshared groupshared
+
+#define discard discard
+
+#define UNROLL
+#define UNROLL_N(N)
+#define BRANCH
+#define FLATTEN
+
+#define SV_DispatchThreadID SV_DispatchThreadID
+#define SV_GroupID SV_GroupID
+#define SV_GroupThreadID SV_GroupThreadID
+#define SV_GroupIndex SV_GroupIndex
+#define SV_VertexID SV_VertexID
+#define SV_Position SV_Position
+#define SV_Target0 SV_Target0
+#define TEXCOORD0 TEXCOORD0
+#define TEXCOORD1 TEXCOORD1
+#define TEXCOORD2 TEXCOORD2
+#define TEXCOORD3 TEXCOORD3
+#define ATTRIBUTE0 ATTRIBUTE0
+#define ATTRIBUTE1 ATTRIBUTE1
+#define ATTRIBUTE2 ATTRIBUTE2
+#define ATTRIBUTE3 ATTRIBUTE3
+#define ATTRIBUTE4 ATTRIBUTE4
+#define ATTRIBUTE5 ATTRIBUTE5
+
+#define COMPUTESHADER COMPUTESHADER
+#define RAYHITGROUPSHADER RAYHITGROUPSHADER
+#define USE_MATERIAL_INTERSECTION_SHADER USE_MATERIAL_INTERSECTION_SHADER
+#define NEEDS_VERTEX_FACTORY_INTERPOLATION NEEDS_VERTEX_FACTORY_INTERPOLATION
+#define USE_DEVELOPMENT_SHADERS 1
+#define THREADGROUP_SIZE 64
+#define VF_USE_PRIMITIVE_SCENE_DATA 1
+
+#define PLATFORM_SUPPORTS_SRV_UB_MACRO(...) __VA_ARGS__
+
+#define RAY_TRACING_ENTRY_INTERSECTION(Name) void Name()
+#define HIT_KIND_TRIANGLE_FRONT_FACE 0
+
+#define CALC_SCALAR_ARRAY_SIZE(ElementCount) ((ElementCount+3)/4)
+#define DECLARE_SCALAR_ARRAY(ScalarType, ScalarName, ElementCount) ScalarType##4 ScalarName[CALC_SCALAR_ARRAY_SIZE(ElementCount)]
+#define GET_SCALAR_ARRAY_ELEMENT(PackedArray, ElementIndex) PackedArray[ElementIndex>>2u][ElementIndex&3u]
+
+#define VOXEL_MARCHING_CUBE_VERTEX_FACTORY 1
+
+struct FDefaultAttributes
+{
+	float2 Barycentrics;
+};
+
+#include "/Engine/Private/MaterialTemplate.ush"
+
+#define NUM_TEX_COORD_INTERPOLATORS 8
+#define NUM_CUSTOM_VERTEX_INTERPOLATORS 1
+#define NUM_MATERIAL_TEXCOORDS_VERTEX 8
+
+void GetMaterialCustomizedUVs(FMaterialVertexParameters Parameters, inout float2 OutTexCoords[NUM_TEX_COORD_INTERPOLATORS])
+{
+}
+void GetCustomInterpolators(FMaterialVertexParameters Parameters, inout float2 OutTexCoords[NUM_TEX_COORD_INTERPOLATORS])
+{
+}

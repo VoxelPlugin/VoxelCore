@@ -1,0 +1,21 @@
+﻿// Copyright Voxel Plugin, Inc. All Rights Reserved.
+
+#include "Common.ush"
+
+uint SizeX;
+uint SliceIndex;
+
+#if PIXEL_TYPE_INT == 1
+#define PIXEL_TYPE uint
+#elif PIXEL_TYPE_INT == 2
+#define PIXEL_TYPE float4
+#endif
+
+Buffer<PIXEL_TYPE> SrcBuffer;
+RWTexture2DArray<PIXEL_TYPE> TextureArray;
+
+[numthreads(32, 32, 1)]
+void Main(uint2 DispatchThreadId : SV_DispatchThreadID)
+{
+	TextureArray[uint3(DispatchThreadId, SliceIndex)] = SrcBuffer[DispatchThreadId.x + DispatchThreadId.y * SizeX];
+}

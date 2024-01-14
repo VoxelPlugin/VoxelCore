@@ -1,0 +1,16 @@
+﻿// Copyright Voxel Plugin, Inc. All Rights Reserved.
+
+#include "Common.ush"
+
+int ThreadGroupSize;
+int Multiplier;
+Buffer<uint> Num;
+RWBuffer<uint> IndirectDispatchArgs;
+
+[numthreads(1, 1, 1)]
+void Main()
+{
+	IndirectDispatchArgs[0] = DivideAndRoundUp(Num[0] * Multiplier, ThreadGroupSize);
+	IndirectDispatchArgs[1] = 1;
+	IndirectDispatchArgs[2] = 1;
+}
