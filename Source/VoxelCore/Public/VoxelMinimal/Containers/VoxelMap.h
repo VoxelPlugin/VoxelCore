@@ -25,6 +25,7 @@ struct TVoxelMapArrayType
 	}
 };
 
+// Minimize padding by using the best of all possible permutation between Key, Value and NextElementIndex
 template<typename KeyType, typename ValueType>
 struct TVoxelMapElementBase
 {
@@ -138,10 +139,15 @@ private:
 	friend class TVoxelMap;
 };
 
-// Smaller footprint than TMap
-// ~30-50% faster than TMap in dev builds for reads
-// up to 4x faster for adds if using Add_CheckNew
-// Much faster to Reserve as no sparse array/free list
+// Simple map with an array of elements and a hash table
+// The array isn't sparse, so removal will not keep order (it's basically a RemoveSwap)
+//
+// In a shipping build:
+// TVoxelMap::FindChecked   1.1x faster
+// TVoxelMap::Remove        1.2x faster
+// TVoxelMap::Reserve(1M)  74.4x faster
+// TVoxelMap::FindOrAdd     2.2x faster
+// TVoxelMap::Add_CheckNew  4.0x faster
 template<typename KeyType, typename ValueType, typename ArrayType = TVoxelMapArrayType<>>
 class TVoxelMap
 {
@@ -383,6 +389,8 @@ public:
 	}
 
 public:
+	// Will crash if Key is already in the map
+	// 2x faster than FindOrAdd
 	FORCEINLINE ValueType& Add_CheckNew(const KeyType& Key)
 	{
 		return this->AddHashed_CheckNew(this->HashValue(Key), Key);
