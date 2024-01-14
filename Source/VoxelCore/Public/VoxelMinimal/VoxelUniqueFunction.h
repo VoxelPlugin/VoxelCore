@@ -76,10 +76,9 @@ public:
 		return *this;
 	}
 
-	FORCEINLINE_ACTUAL ReturnType operator()(ArgTypes... Args) const
+	FORCEINLINE ReturnType operator()(ArgTypes... Args) const
 	{
-		checkVoxelSlow(Callable);
-		checkVoxelSlow(Allocation);
+		checkVoxelSlow(Callable && Allocation);
 		return (*Callable)(Allocation, Args...);
 	}
 
