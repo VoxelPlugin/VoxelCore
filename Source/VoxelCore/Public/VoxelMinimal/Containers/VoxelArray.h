@@ -18,6 +18,7 @@ public:
 	using Super::Shrink;
 	using Super::ArrayNum;
 	using Super::ArrayMax;
+	using Super::SwapMemory;
 	using Super::AllocatorInstance;
 	using Super::Num;
 	using Super::Super;
@@ -314,24 +315,10 @@ private:
 	}
 
 public:
-	FORCEINLINE void SwapMemory(const SizeType FirstIndexToSwap, const SizeType SecondIndexToSwap)
-	{
-		checkStatic(TIsTriviallyDestructible<ElementType>::Value);
-		checkVoxelSlow(IsValidIndex(FirstIndexToSwap));
-		checkVoxelSlow(IsValidIndex(SecondIndexToSwap));
-
-		// FMemory::Memswap is not inlined
-
-		ElementType& A = (*this)[FirstIndexToSwap];
-		ElementType& B = (*this)[SecondIndexToSwap];
-
-		TTypeCompatibleBytes<ElementType> Temp;
-		FMemory::Memcpy(&Temp, &A, sizeof(ElementType));
-		FMemory::Memcpy(&A, &B, sizeof(ElementType));
-		FMemory::Memcpy(&B, &Temp, sizeof(ElementType));
-	}
 	FORCEINLINE void Swap(const SizeType FirstIndexToSwap, const SizeType SecondIndexToSwap)
 	{
+		checkVoxelSlow(IsValidIndex(FirstIndexToSwap));
+		checkVoxelSlow(IsValidIndex(SecondIndexToSwap));
 		this->SwapMemory(FirstIndexToSwap, SecondIndexToSwap);
 	}
 

@@ -10,8 +10,17 @@ public:
 	static void Run();
 
 private:
-static void RunBenchmark(
-	const FString& Name,
-	TVoxelUniqueFunction<void()> EngineExecute,
-	TVoxelUniqueFunction<void()> VoxelExecute);
+	template<typename EngineLambdaType, typename VoxelLambdaType>
+	static void RunBenchmark(
+		const FString& Name,
+		int32 NumInnerRuns,
+		TFunction<void()> InitializeEngine,
+		TFunction<void()> InitializeVoxel,
+		EngineLambdaType EngineExecute,
+		VoxelLambdaType VoxelExecute);
+
+	template<typename LambdaType>
+	static void RunInnerBenchmark(
+		int32 NumRuns,
+		LambdaType Lambda);
 };
