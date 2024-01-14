@@ -24,7 +24,7 @@
 		{
 			"Name": "VoxelCoreEditor",
 			"Type": "Editor",
-			"LoadingPhase": "PostEngineInit"
+			"LoadingPhase": "Default"
 		}
 	]
 }

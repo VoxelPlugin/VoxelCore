@@ -32,6 +32,10 @@ IPlugin& FVoxelSystemUtilities::GetPlugin()
 	static TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin("Voxel");
 	if (!Plugin)
 	{
+		Plugin = IPluginManager::Get().FindPlugin("VoxelCore");
+	}
+	if (!Plugin)
+	{
 		Plugin = IPluginManager::Get().FindPlugin("Voxel-dev");
 	}
 	if (!Plugin)

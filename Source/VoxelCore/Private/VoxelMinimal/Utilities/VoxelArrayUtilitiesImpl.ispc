@@ -2,7 +2,7 @@
 
 #include "VoxelMinimal.isph"
 
-export uniform bool BaseUtilities_AllEqual_uint8(
+export uniform bool ArrayUtilities_AllEqual_uint8(
 	const uniform uint8 Constant,
 	const uniform uint8 Data[],
 	const uniform int32 Num)
@@ -28,7 +28,7 @@ export uniform bool BaseUtilities_AllEqual_uint8(
 	return true;
 }
 
-export uniform bool BaseUtilities_AllEqual_uint16(
+export uniform bool ArrayUtilities_AllEqual_uint16(
 	const uniform uint16 Constant,
 	const uniform uint16 Data[],
 	const uniform int32 Num)
@@ -54,7 +54,7 @@ export uniform bool BaseUtilities_AllEqual_uint16(
 	return true;
 }
 
-export uniform bool BaseUtilities_AllEqual_uint32(
+export uniform bool ArrayUtilities_AllEqual_uint32(
 	const uniform uint32 Constant,
 	const uniform uint32 Data[],
 	const uniform int32 Num)
@@ -80,7 +80,7 @@ export uniform bool BaseUtilities_AllEqual_uint32(
 	return true;
 }
 
-export uniform bool BaseUtilities_AllEqual_uint64(
+export uniform bool ArrayUtilities_AllEqual_uint64(
 	const uniform uint64 Constant,
 	const uniform uint64 Data[],
 	const uniform int32 Num)
@@ -110,7 +110,7 @@ export uniform bool BaseUtilities_AllEqual_uint64(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-export uniform float BaseUtilities_GetMin(
+export uniform float ArrayUtilities_GetMin(
 	const uniform float Values[],
 	const uniform int32 Num)
 {
@@ -138,7 +138,7 @@ export uniform float BaseUtilities_GetMin(
 	return Result;
 }
 
-export uniform float BaseUtilities_GetMax(
+export uniform float ArrayUtilities_GetMax(
 	const uniform float Values[],
 	const uniform int32 Num)
 {
@@ -166,7 +166,7 @@ export uniform float BaseUtilities_GetMax(
 	return Result;
 }
 
-export void BaseUtilities_GetMinMax_Int32(
+export void ArrayUtilities_GetMinMax_Int32(
 	const uniform int32 Values[],
 	const uniform int32 Num,
 	int32* uniform OutMin,
@@ -206,7 +206,7 @@ export void BaseUtilities_GetMinMax_Int32(
 	*OutMax = MaxResult;
 }
 
-export void BaseUtilities_GetMinMax_Float(
+export void ArrayUtilities_GetMinMax_Float(
 	const uniform float Values[],
 	const uniform int32 Num,
 	float* uniform OutMin,
@@ -246,7 +246,7 @@ export void BaseUtilities_GetMinMax_Float(
 	*OutMax = MaxResult;
 }
 
-export void BaseUtilities_GetMinMaxSafe_Float(
+export void ArrayUtilities_GetMinMaxSafe_Float(
 	const uniform float Values[],
 	const uniform int32 Num,
 	float* uniform OutMin,
@@ -296,7 +296,7 @@ export void BaseUtilities_GetMinMaxSafe_Float(
 	*OutMax = MaxResult;
 }
 
-export void BaseUtilities_GetMinMaxSafe_Double(
+export void ArrayUtilities_GetMinMaxSafe_Double(
 	const uniform double Values[],
 	const uniform int32 Num,
 	double* uniform OutMin,

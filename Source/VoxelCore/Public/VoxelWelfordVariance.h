@@ -32,4 +32,8 @@ struct TVoxelWelfordVariance
 			return ScaledVariance / (Num - 1);
 		}
 	}
+	FORCEINLINE T GetStd() const
+	{
+		return FMath::Sqrt(GetVariance());
+	}
 };

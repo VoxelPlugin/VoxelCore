@@ -86,11 +86,6 @@ public class ModuleRules_Voxel : ModuleRules
 		if (GetType().Name != "VoxelCore")
 		{
 			PublicDependencyModuleNames.Add("VoxelCore");
-
-			if (GetType().Name != "VoxelGraphCore")
-			{
-				PublicDependencyModuleNames.Add("VoxelGraphCore");
-			}
 		}
 
 		if (GetType().Name.EndsWith("Editor"))
@@ -102,9 +97,7 @@ public class ModuleRules_Voxel : ModuleRules
 					"SlateCore",
 					"EditorStyle",
 					"PropertyEditor",
-#if UE_5_0_OR_LATER
                     "EditorFramework",
-#endif
                 }
 			);
 
@@ -143,9 +136,7 @@ public class ModuleRules_Voxel : ModuleRules
 				"Intermediate",
 				"Build",
 				Target.Platform.ToString(),
-#if UE_5_2_OR_LATER
 				"x64",
-#endif
 				Target.bBuildEditor ? "UnrealEditor" : "UnrealGame",
 				Target.Configuration.ToString(),
 				GetType().Name));
@@ -157,11 +148,7 @@ public class VoxelCore : ModuleRules_Voxel
 {
 	public VoxelCore(ReadOnlyTargetRules Target) : base(Target)
 	{
-#if UE_5_2_OR_LATER
 		IWYUSupport = IWYUSupport.None;
-#else
-		bEnforceIWYU = false;
-#endif
 
 		if (!bUseUnity &&
 		    !bStrictIncludes)
@@ -209,7 +196,6 @@ public class VoxelCore : ModuleRules_Voxel
 				"HTTP",
 				"Slate",
 				"SlateCore",
-				"Landscape",
 			}
 		);
 
@@ -218,7 +204,6 @@ public class VoxelCore : ModuleRules_Voxel
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
-					"DesktopPlatform",
 					"UATHelper",
 				}
 			);
