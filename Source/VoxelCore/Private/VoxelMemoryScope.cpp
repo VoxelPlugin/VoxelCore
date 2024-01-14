@@ -1,4 +1,4 @@
-// Copyright Voxel Plugin, Inc. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMemoryScope.h"
 #include "HAL/PlatformStackWalk.h"

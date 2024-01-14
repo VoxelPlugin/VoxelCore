@@ -1,4 +1,4 @@
-// Copyright Voxel Plugin, Inc. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "Toolkits/VoxelEditorToolkitImpl.h"
 #include "Toolkits/ToolkitManager.h"

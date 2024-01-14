@@ -1,4 +1,4 @@
-// Copyright Voxel Plugin, Inc. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #ifdef CANNOT_INCLUDE_VOXEL_MINIMAL
 #error "VoxelMinimal.h recursively included"

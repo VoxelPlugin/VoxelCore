@@ -1,4 +1,4 @@
-// Copyright Voxel Plugin, Inc. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "Factories/VoxelFactory.h"
 #include "Factories/VoxelAssetClassParentFilter.h"

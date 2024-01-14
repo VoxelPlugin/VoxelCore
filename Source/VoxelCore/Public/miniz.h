@@ -1,4 +1,4 @@
-// Copyright Voxel Plugin, Inc. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 /* miniz.c 2.2.0 - public domain deflate/inflate, zlib-subset, ZIP reading/writing/appending, PNG writing
    See "unlicense" statement at the end of this file.
