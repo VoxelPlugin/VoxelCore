@@ -46,7 +46,6 @@ FORCEINLINE bool AreVoxelStatsEnabled()
 	return VoxelChannel.IsEnabled();
 }
 
-#define VOXEL_EVENT_SPEC_ID VOXEL_APPEND_LINE(__CpuProfilerEventSpecId)
 #define VOXEL_TRACE_ENABLED VOXEL_APPEND_LINE(__bTraceEnabled)
 
 #define VOXEL_SCOPE_COUNTER_IMPL(Condition, Description) \
@@ -56,8 +55,8 @@ FORCEINLINE bool AreVoxelStatsEnabled()
 	{ \
 		VOXEL_ALLOW_MALLOC_SCOPE(); \
 		static const FString StaticDescription = Description; \
-		static const uint32 VOXEL_EVENT_SPEC_ID = FCpuProfilerTrace::OutputEventType(*StaticDescription, __FILE__, __LINE__); \
-		FCpuProfilerTrace::OutputBeginEvent(VOXEL_EVENT_SPEC_ID); \
+		static const uint32 StaticSpecId = FCpuProfilerTrace::OutputEventType(*StaticDescription, __FILE__, __LINE__); \
+		FCpuProfilerTrace::OutputBeginEvent(StaticSpecId); \
 	} \
 	ON_SCOPE_EXIT \
 	{ \
