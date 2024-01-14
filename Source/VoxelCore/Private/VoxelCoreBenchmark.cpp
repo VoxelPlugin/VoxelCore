@@ -2,23 +2,31 @@
 
 #include "VoxelCoreBenchmark.h"
 #include "VoxelWelfordVariance.h"
+#include "Misc/OutputDeviceConsole.h"
+#include "Framework/Application/SlateApplication.h"
+
+#define LOG(Format, ...) GLogConsole->Serialize(*FString::Printf(TEXT(Format), ##__VA_ARGS__), ELogVerbosity::Display, "Voxel");
 
 void FVoxelCoreBenchmark::Run()
 {
-	LOG_VOXEL(Display, "####################################################");
-	LOG_VOXEL(Display, "####################################################");
-	LOG_VOXEL(Display, "####################################################");
-	LOG_VOXEL(Display, "VOXEL_DEBUG=%d", VOXEL_DEBUG);
+	FSlateApplication::Get().GetActiveTopLevelWindow()->Minimize();
+	GLogConsole->Show(true);
+
+	LOG("####################################################");
+	LOG("####################################################");
+	LOG("####################################################");
+	LOG("DO_CHECK=%d", DO_CHECK);
+	LOG("VOXEL_DEBUG=%d", VOXEL_DEBUG);
 
 	FString OSLabel, OSVersion;
 	FPlatformMisc::GetOSVersions(OSLabel, OSVersion);
-	LOG_VOXEL(Display, "OS: %s (%s)", *OSLabel, *OSVersion);
-	LOG_VOXEL(Display, "CPU: %s", *FPlatformMisc::GetCPUBrand());
-	LOG_VOXEL(Display, "GPU: %s", *FPlatformMisc::GetPrimaryGPUBrand());
+	LOG("OS: %s (%s)", *OSLabel, *OSVersion);
+	LOG("CPU: %s", *FPlatformMisc::GetCPUBrand());
+	LOG("GPU: %s", *FPlatformMisc::GetPrimaryGPUBrand());
 
-	LOG_VOXEL(Display, "####################################################");
-	LOG_VOXEL(Display, "####################################################");
-	LOG_VOXEL(Display, "####################################################");
+	LOG("####################################################");
+	LOG("####################################################");
+	LOG("####################################################");
 
 	RunBenchmark(
 		"Calling TUniqueFunction 1000 times",
@@ -82,7 +90,7 @@ void FVoxelCoreBenchmark::RunBenchmark(
 		VoxelTime.Add(EndTime - StartTime);
 	}
 
-	LOG_VOXEL(Display, "%s: Engine: %.3fus ~ %.3f Voxel: %.3fus ~ %.3f ----- %2.1f%% faster",
+	LOG("%s: Engine: %.3fus ~ %.2f Voxel: %.3fus ~ %.2f ----- %2.1f%% faster",
 		*Name,
 		EngineTime.Average * 1000000,
 		EngineTime.GetStd() * 1000000,
@@ -90,3 +98,5 @@ void FVoxelCoreBenchmark::RunBenchmark(
 		VoxelTime.GetStd() * 1000000,
 		(EngineTime.Average - VoxelTime.Average) / EngineTime.Average * 100);
 }
+
+#undef LOG

@@ -1,27 +1,17 @@
 // Copyright Voxel Plugin, Inc. All Rights Reserved.
 
-using System;
 using System.IO;
 using UnrealBuildTool;
 
-public class VoxelCoreEditor : ModuleRules_Voxel
+public class VoxelCoreEditor : ModuleRules
 {
     public VoxelCoreEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
-#if UE_5_2_OR_LATER
+		DefaultBuildSettings = BuildSettingsVersion.Latest;
+		CppStandard = CppStandardVersion.Cpp17;
 		IWYUSupport = IWYUSupport.None;
-#else
-		bEnforceIWYU = false;
-#endif
-
-		if (!bUseUnity &&
-			!bStrictIncludes)
-		{
-			PrivatePCHHeaderFile = "Public/VoxelCoreEditorMinimal.h";
-
-			Console.WriteLine("Using Voxel Editor shared PCH");
-			SharedPCHHeaderFile = "Public/VoxelCoreEditorMinimal.h";
-		}
+		bUseUnity = false;
+		PrivatePCHHeaderFile = "Public/VoxelEditorMinimal.h";
 
 		// For FDetailCategoryBuilderImpl
 		PrivateIncludePaths.Add(Path.Combine(EngineDirectory, "Source/Editor/PropertyEditor/Private"));
@@ -29,6 +19,20 @@ public class VoxelCoreEditor : ModuleRules_Voxel
         PublicDependencyModuleNames.AddRange(
             new string[]
             {
+				"VoxelCore",
+				"Core",
+				"CoreUObject",
+				"RHI",
+				"Engine",
+				"InputCore",
+				"RenderCore",
+				"DeveloperSettings",
+				"UnrealEd",
+				"Slate",
+				"SlateCore",
+				"EditorStyle",
+				"PropertyEditor",
+                "EditorFramework",
                 "AdvancedPreviewScene",
             });
 
