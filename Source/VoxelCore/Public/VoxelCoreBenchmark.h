@@ -7,6 +7,7 @@
 struct VOXELCORE_API FVoxelCoreBenchmark
 {
 public:
+	// Can be called from anywhere, typical usage is on startup
 	static void Run();
 
 private:
