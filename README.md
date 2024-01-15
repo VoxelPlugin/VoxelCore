@@ -38,7 +38,7 @@ A variety of high-performance containers are included:
 * `TVoxelStaticBitArray`
 
 Some of them, like TVoxelArray, are mainly there to disable range checking when `VOXEL_DEBUG` is 0.
-Others, like `TVoxelMap`, are full replacement of editor containers to be faster.
+Others, like `TVoxelMap`, are full replacement of engine containers to be faster.
 
 Here's a few benchmarks in a shipping build with checks disabled (see `FVoxelCoreBenchmark::Run()`), comparing voxel containers against engine ones.
 
