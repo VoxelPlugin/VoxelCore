@@ -18,7 +18,7 @@ If you have a custom PCH, you should add these includes to it.
 VoxelCore uses its own assertion macros (`checkVoxelSlow` etc).
 This allows disabling them in Development Editor builds, which is important for performance-heavy editor features to be fast.
 
-You can change this behavior in `VoxelCore.build.cs`.
+You can change this behavior in `VoxelCore.Build.cs`.
 
 ## Overview
 
