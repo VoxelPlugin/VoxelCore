@@ -225,6 +225,16 @@ public:
 
 	static bool PropertyFromText_InContainer(const FProperty& Property, const FString& Text, UObject* Owner);
 
+	template<typename T>
+	static bool TryImportText(const FString& Text, T& OutValue)
+	{
+		return PropertyFromText_Direct(
+			*MakeStructProperty<T>(),
+			*Text,
+			reinterpret_cast<void*>(&OutValue),
+			nullptr);
+	}
+
 public:
 	static FString PropertyToText_Direct(const FProperty& Property, const void* Data, const UObject* Owner);
 	template<typename T>
