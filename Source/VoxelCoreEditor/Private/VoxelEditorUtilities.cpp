@@ -10,6 +10,9 @@
 #include "Editor/PropertyEditor/Private/DetailPropertyRow.h"
 #undef private
 
+DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelDetailCustomization);
+DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelPropertyTypeCustomization);
+
 TSet<TWeakPtr<IPropertyHandle>> GVoxelWeakPropertyHandles;
 
 VOXEL_RUN_ON_STARTUP_EDITOR(RegisterVoxelWeakPropertyHandles)

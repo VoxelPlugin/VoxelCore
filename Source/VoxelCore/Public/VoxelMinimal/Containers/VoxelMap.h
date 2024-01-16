@@ -26,89 +26,39 @@ struct TVoxelMapArrayType
 };
 
 // Minimize padding by using the best of all possible permutation between Key, Value and NextElementIndex
+// In practice we only need to check two permutations:
+// - Key Value NextElementIndex: possible merges: KeyValue, ValueNextElementIndex
+// - Value Key NextElementIndex: possible merges: KeyValue, KeyNextElementIndex
 template<typename KeyType, typename ValueType>
 struct TVoxelMapElementBase
 {
 private:
-	struct FElement0
+	struct FElementKeyValue
 	{
 		const KeyType Key;
 		ValueType Value = FVoxelUtilities::MakeSafe<ValueType>();
 		int32 NextElementIndex VOXEL_DEBUG_ONLY(= -16);
 
-		FORCEINLINE explicit FElement0(const KeyType& Key)
+		FORCEINLINE explicit FElementKeyValue(const KeyType& Key)
 			: Key(Key)
 		{
 		}
 	};
-	struct FElement1
-	{
-		const KeyType Key;
-		int32 NextElementIndex VOXEL_DEBUG_ONLY(= -16);
-		ValueType Value = FVoxelUtilities::MakeSafe<ValueType>();
-
-		FORCEINLINE explicit FElement1(const KeyType& Key)
-			: Key(Key)
-		{
-		}
-	};
-	struct FElement2
+	struct FElementValueKey
 	{
 		ValueType Value = FVoxelUtilities::MakeSafe<ValueType>();
 		const KeyType Key;
 		int32 NextElementIndex VOXEL_DEBUG_ONLY(= -16);
 
-		FORCEINLINE explicit FElement2(const KeyType& Key)
-			: Key(Key)
-		{
-		}
-	};
-	struct FElement3
-	{
-		ValueType Value = FVoxelUtilities::MakeSafe<ValueType>();
-		int32 NextElementIndex VOXEL_DEBUG_ONLY(= -16);
-		const KeyType Key;
-
-		FORCEINLINE explicit FElement3(const KeyType& Key)
-			: Key(Key)
-		{
-		}
-	};
-	struct FElement4
-	{
-		int32 NextElementIndex VOXEL_DEBUG_ONLY(= -16);
-		const KeyType Key;
-		ValueType Value = FVoxelUtilities::MakeSafe<ValueType>();
-
-		FORCEINLINE explicit FElement4(const KeyType& Key)
-			: Key(Key)
-		{
-		}
-	};
-	struct FElement5
-	{
-		int32 NextElementIndex VOXEL_DEBUG_ONLY(= -16);
-		ValueType Value = FVoxelUtilities::MakeSafe<ValueType>();
-		const KeyType Key;
-
-		FORCEINLINE explicit FElement5(const KeyType& Key)
+		FORCEINLINE explicit FElementValueKey(const KeyType& Key)
 			: Key(Key)
 		{
 		}
 	};
 
-	template<typename A, typename B>
-	using TMin = typename TChooseClass < sizeof(A) < sizeof(B), A, B > ::Result;
 
 public:
-	using FElement = TMin<FElement0, TMin<FElement1, TMin<FElement2, TMin<FElement3, TMin<FElement4, FElement5>>>>>;
-
-	checkStatic(sizeof(FElement) <= sizeof(FElement0));
-	checkStatic(sizeof(FElement) <= sizeof(FElement1));
-	checkStatic(sizeof(FElement) <= sizeof(FElement2));
-	checkStatic(sizeof(FElement) <= sizeof(FElement3));
-	checkStatic(sizeof(FElement) <= sizeof(FElement4));
-	checkStatic(sizeof(FElement) <= sizeof(FElement5));
+	using FElement = typename TChooseClass<sizeof(FElementKeyValue) <= sizeof(FElementValueKey), FElementKeyValue, FElementValueKey>::Result;
 };
 
 template<typename KeyType, typename ValueType>

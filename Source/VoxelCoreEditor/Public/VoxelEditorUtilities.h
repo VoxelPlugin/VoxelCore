@@ -485,6 +485,8 @@ void RegisterVoxelStructLayout()
 class VOXELCOREEDITOR_API FVoxelDetailCustomization : public IDetailCustomization
 {
 public:
+	VOXEL_COUNT_INSTANCES();
+
 	template<typename T>
 	void KeepAlive(const TSharedPtr<T>& Ptr)
 	{
@@ -507,6 +509,8 @@ private:
 class VOXELCOREEDITOR_API FVoxelPropertyTypeCustomization : public IPropertyTypeCustomization
 {
 public:
+	VOXEL_COUNT_INSTANCES();
+
 	template<typename T>
 	void KeepAlive(const TSharedPtr<T>& Ptr)
 	{
