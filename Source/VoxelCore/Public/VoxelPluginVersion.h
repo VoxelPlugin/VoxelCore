@@ -93,7 +93,7 @@ struct FVoxelPluginVersion
 			}
 		}
 
-#define CHECK(...) if (!ensure(__VA_ARGS__)) { return false; }
+#define CHECK(...) if (!ensureVoxelSlow(__VA_ARGS__)) { return false; }
 
 		if (Version.StartsWith("dev"))
 		{
