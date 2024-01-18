@@ -20,9 +20,7 @@ struct VOXELCORE_API FVoxelMessageToken
 public:
 	virtual uint32 GetHash() const VOXEL_PURE_VIRTUAL({});
 	virtual FString ToString() const VOXEL_PURE_VIRTUAL({});
-#if WITH_EDITOR
-	virtual TSharedRef<IMessageToken> GetMessageToken() const VOXEL_PURE_VIRTUAL(MakeNullSharedRef<IMessageToken>());
-#endif
+	virtual TSharedRef<IMessageToken> GetMessageToken() const;
 	virtual void GetObjects(TSet<const UObject*>& OutObjects) const {}
 	virtual bool TryMerge(const FVoxelMessageToken& Other) { return false; }
 };
@@ -90,9 +88,7 @@ public:
 	FString ToString() const;
 	TSet<const UObject*> GetObjects() const;
 	EMessageSeverity::Type GetMessageSeverity() const;
-#if WITH_EDITOR
 	TSharedRef<FTokenizedMessage> CreateTokenizedMessage() const;
-#endif
 
 private:
 	const EVoxelMessageSeverity Severity;

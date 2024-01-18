@@ -4,6 +4,11 @@
 #include "VoxelMessageTokens.h"
 #include "Logging/TokenizedMessage.h"
 
+TSharedRef<IMessageToken> FVoxelMessageToken::GetMessageToken() const
+{
+	return FTextToken::Create(FText::FromString(ToString()));
+}
+
 void FVoxelMessageToken_Group::AddText(const FString& Text)
 {
 	AddToken(FVoxelMessageTokenFactory::CreateTextToken(Text));
@@ -107,7 +112,6 @@ EMessageSeverity::Type FVoxelMessage::GetMessageSeverity() const
 	}
 }
 
-#if WITH_EDITOR
 TSharedRef<FTokenizedMessage> FVoxelMessage::CreateTokenizedMessage() const
 {
 	VOXEL_FUNCTION_COUNTER();
@@ -121,4 +125,3 @@ TSharedRef<FTokenizedMessage> FVoxelMessage::CreateTokenizedMessage() const
 
 	return TokenizedMessage;
 }
-#endif

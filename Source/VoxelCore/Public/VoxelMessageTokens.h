@@ -19,9 +19,7 @@ public:
 	//~ Begin FVoxelMessageToken Interface
 	virtual uint32 GetHash() const override;
 	virtual FString ToString() const override;
-#if WITH_EDITOR
 	virtual TSharedRef<IMessageToken> GetMessageToken() const override;
-#endif
 	virtual bool TryMerge(const FVoxelMessageToken& Other) override;
 	//~ End FVoxelMessageToken Interface
 };
@@ -38,9 +36,7 @@ public:
 	//~ Begin FVoxelMessageToken Interface
 	virtual uint32 GetHash() const override;
 	virtual FString ToString() const override;
-#if WITH_EDITOR
 	virtual TSharedRef<IMessageToken> GetMessageToken() const override;
-#endif
 	virtual void GetObjects(TSet<const UObject*>& OutObjects) const override;
 	//~ End FVoxelMessageToken Interface
 };
@@ -57,9 +53,7 @@ public:
 	//~ Begin FVoxelMessageToken Interface
 	virtual uint32 GetHash() const override;
 	virtual FString ToString() const override;
-#if WITH_EDITOR
 	virtual TSharedRef<IMessageToken> GetMessageToken() const override;
-#endif
 	virtual void GetObjects(TSet<const UObject*>& OutObjects) const override;
 	//~ End FVoxelMessageToken Interface
 };

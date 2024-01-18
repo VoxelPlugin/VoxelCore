@@ -14,12 +14,10 @@ FString FVoxelMessageToken_Text::ToString() const
 	return Text;
 }
 
-#if WITH_EDITOR
 TSharedRef<IMessageToken> FVoxelMessageToken_Text::GetMessageToken() const
 {
 	return FTextToken::Create(FText::FromString(Text));
 }
-#endif
 
 bool FVoxelMessageToken_Text::TryMerge(const FVoxelMessageToken& Other)
 {
@@ -95,11 +93,11 @@ FString FVoxelMessageToken_Object::ToString() const
 	return Object->GetName();
 }
 
-#if WITH_EDITOR
 TSharedRef<IMessageToken> FVoxelMessageToken_Object::GetMessageToken() const
 {
 	ensure(IsInGameThread());
 
+#if WITH_EDITOR
 	return FActionToken::Create(
 			FText::FromString(ToString()),
 			FText::FromString(WeakObject.IsValid() ? WeakObject->GetPathName() : "null"),
@@ -113,8 +111,10 @@ TSharedRef<IMessageToken> FVoxelMessageToken_Object::GetMessageToken() const
 
 				FVoxelObjectUtilities::FocusObject(Object);
 			}));
-}
+#else
+	return Super::GetMessageToken();
 #endif
+}
 
 void FVoxelMessageToken_Object::GetObjects(TSet<const UObject*>& OutObjects) const
 {
@@ -170,11 +170,11 @@ FString FVoxelMessageToken_Pin::ToString() const
 	return Result;
 }
 
-#if WITH_EDITOR
 TSharedRef<IMessageToken> FVoxelMessageToken_Pin::GetMessageToken() const
 {
 	ensure(IsInGameThread());
 
+#if WITH_EDITOR
 	return FActionToken::Create(
 		FText::FromString(ToString()),
 		FText::FromString("Go to pin " + ToString()),
@@ -194,8 +194,10 @@ TSharedRef<IMessageToken> FVoxelMessageToken_Pin::GetMessageToken() const
 
 			FVoxelObjectUtilities::FocusObject(Node);
 		}));
-}
+#else
+	return Super::GetMessageToken();
 #endif
+}
 
 void FVoxelMessageToken_Pin::GetObjects(TSet<const UObject*>& OutObjects) const
 {

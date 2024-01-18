@@ -175,7 +175,7 @@ VOXEL_RUN_ON_STARTUP_GAME(CheckVoxelAllocations)
 }
 #endif
 
-FORCEINLINE FVoxelMemoryScope::FBlock& FVoxelMemoryScope::GetBlock(void* Original)
+FVoxelMemoryScope::FBlock& FVoxelMemoryScope::GetBlock(void* Original)
 {
 #if VOXEL_DEBUG
 	if (!GVoxelAllowLeak &&

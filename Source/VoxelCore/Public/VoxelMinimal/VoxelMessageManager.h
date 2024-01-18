@@ -51,10 +51,8 @@ extern VOXELCORE_API FVoxelMessageManager* GVoxelMessageManager;
 class VOXELCORE_API FVoxelMessageManager : public FVoxelSingleton
 {
 public:
-#if WITH_EDITOR
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnMessageLogged, const TSharedRef<FVoxelMessage>&);
 	FOnMessageLogged OnMessageLogged;
-#endif
 
 	using FGatherCallstack = TFunction<void(const TSharedRef<FVoxelMessage>& Message)>;
 	TVoxelArray<FGatherCallstack> GatherCallstacks;
