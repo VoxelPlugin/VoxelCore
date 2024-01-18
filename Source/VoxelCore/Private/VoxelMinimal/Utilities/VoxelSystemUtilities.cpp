@@ -13,7 +13,7 @@
 #include "EditorViewportClient.h"
 #endif
 
-void FVoxelSystemUtilities::DelayedCall(TFunction<void()> Call, const float Delay)
+void FVoxelUtilities::DelayedCall(TFunction<void()> Call, const float Delay)
 {
 	// Delay will be inaccurate if not on game thread but that's fine
 	FVoxelUtilities::RunOnGameThread([=]
@@ -27,7 +27,7 @@ void FVoxelSystemUtilities::DelayedCall(TFunction<void()> Call, const float Dela
 	});
 }
 
-IPlugin& FVoxelSystemUtilities::GetPlugin()
+IPlugin& FVoxelUtilities::GetPlugin()
 {
 	static TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin("Voxel");
 	if (!Plugin)
@@ -52,7 +52,7 @@ IPlugin& FVoxelSystemUtilities::GetPlugin()
 	return *Plugin;
 }
 
-FVoxelPluginVersion FVoxelSystemUtilities::GetPluginVersion()
+FVoxelPluginVersion FVoxelUtilities::GetPluginVersion()
 {
 	FString VersionName;
 	if (!FParse::Value(FCommandLine::Get(), TEXT("-PluginVersionName="), VersionName))
@@ -71,13 +71,13 @@ FVoxelPluginVersion FVoxelSystemUtilities::GetPluginVersion()
 	return Version;
 }
 
-FString FVoxelSystemUtilities::GetAppDataCache()
+FString FVoxelUtilities::GetAppDataCache()
 {
 	static FString Path = FPlatformMisc::GetEnvironmentVariable(TEXT("LOCALAPPDATA")) / "UnrealEngine" / "VoxelPlugin";
 	return Path;
 }
 
-void FVoxelSystemUtilities::CleanupFileCache(const FString& Path, const int64 MaxSize)
+void FVoxelUtilities::CleanupFileCache(const FString& Path, const int64 MaxSize)
 {
 	VOXEL_FUNCTION_COUNTER();
 
@@ -115,7 +115,7 @@ void FVoxelSystemUtilities::CleanupFileCache(const FString& Path, const int64 Ma
 	}
 }
 
-FString FVoxelSystemUtilities::Unzip(const TArray<uint8>& Data, TMap<FString, TVoxelArray64<uint8>>& OutFiles)
+FString FVoxelUtilities::Unzip(const TArray<uint8>& Data, TMap<FString, TVoxelArray64<uint8>>& OutFiles)
 {
 	VOXEL_FUNCTION_COUNTER();
 
@@ -141,7 +141,7 @@ FString FVoxelSystemUtilities::Unzip(const TArray<uint8>& Data, TMap<FString, TV
 }
 
 #if WITH_EDITOR
-void FVoxelSystemUtilities::EnsureViewportIsUpToDate()
+void FVoxelUtilities::EnsureViewportIsUpToDate()
 {
 	VOXEL_FUNCTION_COUNTER();
 

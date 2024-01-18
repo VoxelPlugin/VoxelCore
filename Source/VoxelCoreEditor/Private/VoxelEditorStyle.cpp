@@ -28,7 +28,7 @@ VOXEL_CONSOLE_COMMAND(
 FVoxelSlateStyleSet::FVoxelSlateStyleSet(const FName Name)
 	: FSlateStyleSet(Name)
 {
-	FSlateStyleSet::SetContentRoot(FVoxelSystemUtilities::GetPlugin().GetBaseDir() / TEXT("Resources/EditorIcons"));
+	FSlateStyleSet::SetContentRoot(FVoxelUtilities::GetPlugin().GetBaseDir() / TEXT("Resources/EditorIcons"));
 	FSlateStyleSet::SetCoreContentRoot(FPaths::EngineContentDir() / TEXT("Editor/Slate"));
 }
 

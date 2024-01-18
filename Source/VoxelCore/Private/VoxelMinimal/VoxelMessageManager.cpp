@@ -190,7 +190,7 @@ void FVoxelMessageManager::LogMessage_GameThread(const TSharedRef<FVoxelMessage>
 		return;
 	}
 
-	FVoxelSystemUtilities::DelayedCall(LogMessage);
+	FVoxelUtilities::DelayedCall(LogMessage);
 #endif
 }
 

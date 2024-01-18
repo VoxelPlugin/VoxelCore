@@ -55,7 +55,7 @@ public:
 		ensure(!GIsVoxelCoreModuleLoaded);
 		GIsVoxelCoreModuleLoaded = true;
 
-		const IPlugin& Plugin = FVoxelSystemUtilities::GetPlugin();
+		const IPlugin& Plugin = FVoxelUtilities::GetPlugin();
 		const FString Shaders = FPaths::ConvertRelativePathToFull(Plugin.GetBaseDir() / "Shaders");
 		AddShaderSourceDirectoryMapping(TEXT("/Plugin/Voxel"), Shaders);
 
@@ -86,7 +86,7 @@ private:
 	{
 		VOXEL_FUNCTION_COUNTER();
 
-		const FString Path = FPaths::ConvertRelativePathToFull(FVoxelSystemUtilities::GetPlugin().GetBaseDir() / "Shaders") / "VoxelEngineVersion.ush";
+		const FString Path = FPaths::ConvertRelativePathToFull(FVoxelUtilities::GetPlugin().GetBaseDir() / "Shaders") / "VoxelEngineVersion.ush";
 		const FString Text = "#define VOXEL_ENGINE_VERSION " + FString::FromInt(VOXEL_ENGINE_VERSION);
 
 		FString ExistingText;
