@@ -441,7 +441,7 @@ private:
 			} \
 			static const TCHAR* GetSourceFilename() \
 			{ \
-			    static const FString Filename = "/Plugin/Voxel" / FString(FolderPath) / #Name + ".usf"; \
+			    static const FString Filename = "/Plugin" / FString(FolderPath) / #Name + ".usf"; \
 				return *Filename; \
 			} \
 			static constexpr EShaderFrequency ShaderFrequency = InShaderFrequency; \

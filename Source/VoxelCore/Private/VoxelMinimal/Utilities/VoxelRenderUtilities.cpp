@@ -705,7 +705,7 @@ void FVoxelRenderUtilities::AsyncCopyTexture(
 
 namespace Voxel::RenderUtilities
 {
-	BEGIN_VOXEL_COMPUTE_SHADER("Utilities", BuildIndirectDispatchArgs)
+	BEGIN_VOXEL_COMPUTE_SHADER("Voxel/Utilities", BuildIndirectDispatchArgs)
 		VOXEL_SHADER_PARAMETER_CST(int32, ThreadGroupSize)
 		VOXEL_SHADER_PARAMETER_CST(int32, Multiplier)
 		VOXEL_SHADER_PARAMETER_SRV(Buffer<uint>, Num)
@@ -740,7 +740,7 @@ void FVoxelRenderUtilities::BuildIndirectDispatchArgsFromNum_1D(
 
 namespace Voxel::RenderUtilities
 {
-	BEGIN_VOXEL_COMPUTE_SHADER("Utilities", ClampNum)
+	BEGIN_VOXEL_COMPUTE_SHADER("Voxel/Utilities", ClampNum)
 		VOXEL_SHADER_PARAMETER_UAV(Buffer<uint>, Num)
 		VOXEL_SHADER_PARAMETER_CST(int32, Min)
 		VOXEL_SHADER_PARAMETER_CST(int32, Max)
@@ -772,7 +772,7 @@ void FVoxelRenderUtilities::ClampNum(
 
 namespace Voxel::RenderUtilities
 {
-	BEGIN_VOXEL_COMPUTE_SHADER("Utilities", ClearBuffer)
+	BEGIN_VOXEL_COMPUTE_SHADER("Voxel/Utilities", ClearBuffer)
 		VOXEL_SHADER_PARAMETER_INDIRECT_ARGS()
 		VOXEL_SHADER_PARAMETER_CST(uint32, Value)
 		VOXEL_SHADER_PARAMETER_UAV(Buffer<uint>, BufferToClear)
@@ -813,7 +813,7 @@ BEGIN_VOXEL_SHADER_PERMUTATION_DOMAIN(CopyToTextureArray)
 }
 END_VOXEL_SHADER_PERMUTATION_DOMAIN(CopyToTextureArray, FPixelType)
 
-BEGIN_VOXEL_COMPUTE_SHADER("Utilities", CopyToTextureArray)
+BEGIN_VOXEL_COMPUTE_SHADER("Voxel/Utilities", CopyToTextureArray)
 	VOXEL_SHADER_PARAMETER_CST(uint32, SizeX)
 	VOXEL_SHADER_PARAMETER_CST(uint32, SliceIndex)
 	VOXEL_SHADER_PARAMETER_SRV(Buffer<uint>, SrcBuffer)
