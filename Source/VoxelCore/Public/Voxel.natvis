@@ -280,7 +280,7 @@
     <Expand>
       <IndexListItems>
         <Size>NumBits</Size>
-        <ValueNode>(AllocatorInstance.Data[$i / 32] &gt;&gt; ($i % 32)) &amp; 1,d</ValueNode>
+        <ValueNode>(((uint32*)AllocatorInstance.Data)[$i / 32] &gt;&gt; ($i % 32)) &amp; 1,d</ValueNode>
       </IndexListItems>
     </Expand>
   </Type>
@@ -291,7 +291,7 @@
     <Expand>
       <IndexListItems>
         <Size>$T1</Size>
-        <ValueNode>(Array.Data[$i / 32] &gt;&gt; ($i % 32)) &amp; 1,d</ValueNode>
+        <ValueNode>(((uint32*)Array.Data)[$i / 32] &gt;&gt; ($i % 32)) &amp; 1,d</ValueNode>
       </IndexListItems>
     </Expand>
   </Type>
