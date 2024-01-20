@@ -3,7 +3,6 @@
 #pragma once
 
 #include "/Engine/Private/Common.ush"
-#include "/Engine/Private/VertexFactoryCommon.ush"
 #include "VoxelEngineVersion.ush"
 
 #define INTELLISENSE_PARSER __INTELLISENSE__ || __RESHARPER__
@@ -19,6 +18,8 @@
 #define INTELLISENSE_HIDE(...)
 #else
 #define INTELLISENSE_HIDE(...) __VA_ARGS__
+// Const breaks compiler
+#define const
 #endif
 
 #ifndef check
