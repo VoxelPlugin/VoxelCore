@@ -568,7 +568,9 @@ uint32 FVoxelObjectUtilities::HashProperty(const FProperty& Property, const void
 	CASE(FClassProperty);
 	CASE(FNameProperty);
 	CASE(FObjectProperty);
+#if VOXEL_ENGINE_VERSION < 504
 	CASE(FObjectPtrProperty);
+#endif
 	CASE(FWeakObjectProperty);
 #undef CASE
 	default: break;
@@ -724,7 +726,7 @@ void FVoxelObjectUtilities::AddStructReferencedObjects(FReferenceCollector& Coll
 
 	for (TPropertyValueIterator<const FObjectProperty> It(StructView.GetStruct(), StructView.GetMemory()); It; ++It)
 	{
-		UObject** ObjectPtr = static_cast<UObject**>(ConstCast(It.Value()));
+		TObjectPtr<UObject>* ObjectPtr = static_cast<TObjectPtr<UObject>*>(ConstCast(It.Value()));
 		Collector.AddReferencedObject(*ObjectPtr);
 	}
 }
@@ -907,90 +909,6 @@ FString GetStringMetaDataHierarchical(const UStruct* Struct, const FName Name)
 	return Result;
 }
 #endif
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-void FVoxelNullCheckReferenceCollector::AddStableReference(UObject** Object)
-{
-	const bool bValid = *Object != nullptr;
-	ReferenceCollector.AddStableReference(Object);
-	ensure(bValid == (*Object != nullptr));
-}
-
-void FVoxelNullCheckReferenceCollector::AddStableReferenceArray(TArray<UObject*>* Objects)
-{
-	for (UObject*& Object : *Objects)
-	{
-		AddStableReference(&Object);
-	}
-}
-
-void FVoxelNullCheckReferenceCollector::AddStableReferenceSet(TSet<UObject*>* Objects)
-{
-	for (UObject*& Object : *Objects)
-	{
-		AddStableReference(&Object);
-	}
-}
-
-bool FVoxelNullCheckReferenceCollector::NeedsPropertyReferencer() const
-{
-	return ReferenceCollector.NeedsPropertyReferencer();
-}
-
-bool FVoxelNullCheckReferenceCollector::IsIgnoringArchetypeRef() const
-{
-	return ReferenceCollector.IsIgnoringArchetypeRef();
-}
-
-bool FVoxelNullCheckReferenceCollector::IsIgnoringTransient() const
-{
-	return ReferenceCollector.IsIgnoringTransient();
-}
-
-void FVoxelNullCheckReferenceCollector::AllowEliminatingReferences(const bool bAllow)
-{
-	ReferenceCollector.AllowEliminatingReferences(bAllow);
-}
-
-void FVoxelNullCheckReferenceCollector::SetSerializedProperty(FProperty* InProperty)
-{
-	ReferenceCollector.SetSerializedProperty(InProperty);
-}
-
-FProperty* FVoxelNullCheckReferenceCollector::GetSerializedProperty() const
-{
-	return ReferenceCollector.GetSerializedProperty();
-}
-
-bool FVoxelNullCheckReferenceCollector::MarkWeakObjectReferenceForClearing(UObject** WeakReference)
-{
-	return ReferenceCollector.MarkWeakObjectReferenceForClearing(WeakReference);
-}
-
-void FVoxelNullCheckReferenceCollector::SetIsProcessingNativeReferences(const bool bIsNative)
-{
-	ReferenceCollector.SetIsProcessingNativeReferences(bIsNative);
-}
-
-bool FVoxelNullCheckReferenceCollector::IsProcessingNativeReferences() const
-{
-	return ReferenceCollector.IsProcessingNativeReferences();
-}
-
-bool FVoxelNullCheckReferenceCollector::NeedsInitialReferences() const
-{
-	return ReferenceCollector.NeedsInitialReferences();
-}
-
-void FVoxelNullCheckReferenceCollector::HandleObjectReference(UObject*& InObject, const UObject* InReferencingObject, const FProperty* InReferencingProperty)
-{
-	const bool bValid = InObject != nullptr;
-	ReferenceCollector.AddReferencedObject(InObject, InReferencingObject, InReferencingProperty);
-	ensure(bValid == (InObject != nullptr));
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

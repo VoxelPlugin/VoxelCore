@@ -366,8 +366,9 @@ void FVoxelInstancedStruct::AddStructReferencedObjects(FReferenceCollector& Coll
 		return;
 	}
 
-	Collector.AddReferencedObject(ScriptStruct);
-	check(ScriptStruct);
+	TObjectPtr<UScriptStruct> ScriptStructObject = ScriptStruct;
+	Collector.AddReferencedObject(ScriptStructObject);
+	check(ScriptStructObject);
 
 	FVoxelObjectUtilities::AddStructReferencedObjects(Collector, *this);
 }

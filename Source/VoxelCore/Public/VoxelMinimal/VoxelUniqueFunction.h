@@ -27,13 +27,26 @@ ReturnType VoxelCall(void* RawFunctor, ArgTypes&... Args)
 template<typename ReturnType, typename... ArgTypes>
 class TVoxelUniqueFunction<ReturnType(ArgTypes...)>
 {
+private:
+	template<typename FunctorType>
+	struct HasValidReturnType
+	{
+		using FunctorReturnType = decltype(DeclVal<FunctorType>()(DeclVal<ArgTypes>()...));
+
+		static constexpr bool Value =
+			std::is_same_v<ReturnType, FunctorReturnType> ||
+			TIsConstructible<ReturnType, FunctorReturnType>::Value;
+	};
+
 public:
 	TVoxelUniqueFunction() = default;
 	TVoxelUniqueFunction(decltype(nullptr)) {}
 
-	template<typename FunctorType, typename = typename TEnableIf<
-		!TIsTVoxelUniqueFunction<std::decay_t<FunctorType>>::Value&&
-		UE::Core::Private::Function::TFuncCanBindToFunctor<ReturnType(ArgTypes...), FunctorType>::Value>::Type>
+	template<typename FunctorType, typename = typename TEnableIf<TAnd<
+		TNot<TIsTVoxelUniqueFunction<std::decay_t<FunctorType>>>,
+		TIsInvocable<FunctorType, ArgTypes...>,
+		HasValidReturnType<FunctorType>
+	>::Value>::Type>
 	FORCEINLINE TVoxelUniqueFunction(FunctorType&& Functor)
 	{
 		this->Bind(MoveTemp(Functor));

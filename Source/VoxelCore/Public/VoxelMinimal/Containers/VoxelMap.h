@@ -80,7 +80,7 @@ private:
 	}
 	FORCEINLINE void MoveFrom(TVoxelMapElement&& Other)
 	{
-		ConstCast(Key) = MoveTemp(ConstCast(Other.Key));
+		const_cast<KeyType&>(Key) = MoveTemp(const_cast<KeyType&>(Other.Key));
 		Value = MoveTemp(Other.Value);
 		NextElementIndex = Other.NextElementIndex;
 	}

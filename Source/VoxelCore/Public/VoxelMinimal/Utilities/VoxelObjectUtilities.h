@@ -5,6 +5,7 @@
 #include "VoxelCoreMinimal.h"
 #include "Templates/Casts.h"
 #include "Templates/SubclassOf.h"
+#include "Templates/ChooseClass.h"
 #include "UObject/UObjectHash.h"
 #include "UObject/WeakInterfacePtr.h"
 #include "Serialization/BulkData.h"
@@ -339,17 +340,17 @@ public:
 public:
 	template<typename T>
 	using TPropertyType = typename TChooseClass<
-		std::is_same_v<T, bool>          , FBoolProperty      , typename TChooseClass<
-		std::is_same_v<T, uint8>         , FByteProperty      , typename TChooseClass<
-		std::is_same_v<T, float>         , FFloatProperty     , typename TChooseClass<
-		std::is_same_v<T, double>        , FDoubleProperty    , typename TChooseClass<
-		std::is_same_v<T, int32>         , FIntProperty       , typename TChooseClass<
-		std::is_same_v<T, int64>         , FInt64Property     , typename TChooseClass<
-		std::is_same_v<T, FName>         , FNameProperty      , typename TChooseClass<
-		TIsEnum<T>::Value                , FEnumProperty      , typename TChooseClass<
-		TIsDerivedFrom<T, UObject>::Value, FObjectProperty    , typename TChooseClass<
-		TIsTObjectPtr<T>::Value          , FObjectPtrProperty , typename TChooseClass<
-		TIsSoftObjectPtr<T>::Value       , FSoftObjectProperty, typename TChooseClass<
+		std::is_same_v<T, bool>          , FBoolProperty                                      , typename TChooseClass<
+		std::is_same_v<T, uint8>         , FByteProperty                                      , typename TChooseClass<
+		std::is_same_v<T, float>         , FFloatProperty                                     , typename TChooseClass<
+		std::is_same_v<T, double>        , FDoubleProperty                                    , typename TChooseClass<
+		std::is_same_v<T, int32>         , FIntProperty                                       , typename TChooseClass<
+		std::is_same_v<T, int64>         , FInt64Property                                     , typename TChooseClass<
+		std::is_same_v<T, FName>         , FNameProperty                                      , typename TChooseClass<
+		TIsEnum<T>::Value                , FEnumProperty                                      , typename TChooseClass<
+		TIsDerivedFrom<T, UObject>::Value, FObjectProperty                                    , typename TChooseClass<
+		TIsTObjectPtr<T>::Value          , UE_504_SWITCH(FObjectPtrProperty, FObjectProperty) , typename TChooseClass<
+		TIsSoftObjectPtr<T>::Value       , FSoftObjectProperty                                , typename TChooseClass<
 		TIsTSubclassOf<T>::Value         , FClassProperty
 	                                     , FStructProperty
 	>::Result
@@ -517,36 +518,6 @@ VOXELCORE_API TArray<UFunction*> GetClassFunctions(const UClass* Class, bool bIn
 #if WITH_EDITOR
 VOXELCORE_API FString GetStringMetaDataHierarchical(const UStruct* Struct, FName Name);
 #endif
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-class VOXELCORE_API FVoxelNullCheckReferenceCollector : public FReferenceCollector
-{
-public:
-	FReferenceCollector& ReferenceCollector;
-
-	explicit FVoxelNullCheckReferenceCollector(FReferenceCollector& ReferenceCollector)
-		: ReferenceCollector(ReferenceCollector)
-	{
-	}
-
-	virtual void AddStableReference(UObject** Object) override;
-	virtual void AddStableReferenceArray(TArray<UObject*>* Objects) override;
-	virtual void AddStableReferenceSet(TSet<UObject*>* Objects) override;
-	virtual bool NeedsPropertyReferencer() const override;
-	virtual bool IsIgnoringArchetypeRef() const override;
-	virtual bool IsIgnoringTransient() const override;
-	virtual void AllowEliminatingReferences(bool bAllow) override;
-	virtual void SetSerializedProperty(FProperty* InProperty) override;
-	virtual FProperty* GetSerializedProperty() const override;
-	virtual bool MarkWeakObjectReferenceForClearing(UObject** WeakReference) override;
-	virtual void SetIsProcessingNativeReferences(bool bIsNative) override;
-	virtual bool IsProcessingNativeReferences() const override;
-	virtual bool NeedsInitialReferences() const override;
-	virtual void HandleObjectReference(UObject*& InObject, const UObject* InReferencingObject, const FProperty* InReferencingProperty) override;
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

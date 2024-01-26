@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "Templates/MakeUnsigned.h"
 #include "VoxelMinimal/VoxelMemory.h"
 
 template<typename InElementType, typename InAllocator = FVoxelAllocator>

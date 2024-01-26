@@ -13,8 +13,11 @@
 
 // ReSharper disable CppUnusedIncludeDirective
 
+// Unreachable code, raises invalid warnings in templates when using if constexpr
+#pragma warning(disable : 4702)
+
 // Common includes
-#include "CoreMinimal.h"
+#include "CoreMinimal.h" 
 #include "EngineUtils.h"
 #include "Engine/World.h"
 #include "UObject/Package.h"
@@ -48,6 +51,14 @@ VOXELCORE_API DECLARE_LOG_CATEGORY_EXTERN(LogVoxel, Log, All);
 #else
 #define UE_503_SWITCH(Before, AfterOrEqual) Before
 #define UE_503_ONLY(...)
+#endif
+
+#if VOXEL_ENGINE_VERSION >= 504
+#define UE_504_SWITCH(Before, AfterOrEqual) AfterOrEqual
+#define UE_504_ONLY(...) __VA_ARGS__
+#else
+#define UE_504_SWITCH(Before, AfterOrEqual) Before
+#define UE_504_ONLY(...)
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
