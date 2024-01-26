@@ -49,6 +49,9 @@ public class VoxelCore : ModuleRules
 				"HTTP",
 				"Slate",
 				"SlateCore",
+#if UE_5_4_OR_LATER
+				"EventLoop",
+#endif
 			}
 		);
 
