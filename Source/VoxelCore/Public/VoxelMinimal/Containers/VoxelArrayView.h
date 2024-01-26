@@ -94,7 +94,7 @@ public:
 	FORCEINLINE bool IsValidSlice(InSizeType Index, InSizeType InNum) const
 	{
 		return
-			InNum > 0 &&
+			InNum >= 0 &&
 			IsValidIndex(Index) &&
 			IsValidIndex(Index + InNum - 1);
 	}

@@ -47,10 +47,11 @@ namespace FVoxelUtilities
 		> &&
 		TIsTriviallyDestructible<VOXEL_GET_TYPE(*GetData(DeclVal<ArrayTypeA>()))>::Value
 	>::Type>
-	FORCEINLINE bool MemoryEqual(ArrayTypeA&& A, ArrayTypeB&& B)
+	FORCEINLINE bool Equal(ArrayTypeA&& A, ArrayTypeB&& B)
 	{
-		checkVoxelSlow(GetNum(A) == GetNum(B));
-		return FPlatformMemory::Memcmp(GetData(A), GetData(B), GetNum(A) * sizeof(decltype(*GetData(A)))) == 0;
+		return
+			GetNum(A) == GetNum(B) &&
+			FVoxelUtilities::MemoryEqual(GetData(A), GetData(B), GetNum(A) * sizeof(decltype(*GetData(A))));
 	}
 
 	//////////////////////////////////////////////////////////////////////////////
