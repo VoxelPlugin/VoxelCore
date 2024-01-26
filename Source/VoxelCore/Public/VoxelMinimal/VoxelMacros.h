@@ -143,6 +143,21 @@ FORCEINLINE const FName& VoxelStaticName(const T&)
 		return StaticValue; \
 	}())
 
+#define MAKE_TAG_64(Text) \
+	[] \
+	{ \
+		checkStatic(sizeof(Text) == 9); \
+		return \
+			(uint64(Text[0]) << 0 * 8) | \
+			(uint64(Text[1]) << 1 * 8) | \
+			(uint64(Text[2]) << 2 * 8) | \
+			(uint64(Text[3]) << 3 * 8) | \
+			(uint64(Text[4]) << 4 * 8) | \
+			(uint64(Text[5]) << 5 * 8) | \
+			(uint64(Text[6]) << 6 * 8) | \
+			(uint64(Text[7]) << 7 * 8); \
+	}()
+
 #define GET_MEMBER_NAME_STATIC(ClassName, MemberName) STATIC_FNAME(GET_MEMBER_NAME_STRING_CHECKED(ClassName, MemberName))
 #define GET_OWN_MEMBER_NAME(MemberName) GET_MEMBER_NAME_CHECKED(std::decay_t<decltype(*this)>, MemberName)
 

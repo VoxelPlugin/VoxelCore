@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/Containers/VoxelArrayView.h"
 #include "VoxelMinimal/Utilities/VoxelMathUtilities.h"
 
 namespace FVoxelUtilities
@@ -100,7 +101,7 @@ namespace FVoxelUtilities
 		return MurmurHash64(H ^ uint32(Size));
 	}
 
-	FORCEINLINE uint64 MurmurHashBytes(const TConstArrayView<uint8>& Bytes, const uint32 Seed = 0)
+	FORCEINLINE uint64 MurmurHashBytes(const TConstVoxelArrayView<uint8>& Bytes, const uint32 Seed = 0)
 	{
 		constexpr int32 WordSize = sizeof(uint32);
 		const int32 Size = Bytes.Num() / WordSize;
@@ -217,4 +218,10 @@ namespace FVoxelUtilities
 		}
 		return Result;
 	}
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	VOXELCORE_API FSHAHash ShaHash(TConstVoxelArrayView64<uint8> Data);
 }

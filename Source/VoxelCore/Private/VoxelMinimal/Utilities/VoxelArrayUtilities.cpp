@@ -3,31 +3,31 @@
 #include "VoxelMinimal.h"
 #include "VoxelArrayUtilitiesImpl.ispc.generated.h"
 
-bool FVoxelUtilities::AllEqual(const uint8 Value, const TConstArrayView<uint8> Data)
+bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint8> Data, const uint8 Value)
 {
-	return ispc::ArrayUtilities_AllEqual_uint8(Value, Data.GetData(), Data.Num());
+	return ispc::ArrayUtilities_AllEqual_uint8(Data.GetData(), Data.Num(), Value);
 }
 
-bool FVoxelUtilities::AllEqual(const uint16 Value, const TConstArrayView<uint16> Data)
+bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint16> Data, const uint16 Value)
 {
-	return ispc::ArrayUtilities_AllEqual_uint16(Value, Data.GetData(), Data.Num());
+	return ispc::ArrayUtilities_AllEqual_uint16(Data.GetData(), Data.Num(), Value);
 }
 
-bool FVoxelUtilities::AllEqual(const uint32 Value, const TConstArrayView<uint32> Data)
+bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint32> Data, const uint32 Value)
 {
-	return ispc::ArrayUtilities_AllEqual_uint32(Value, Data.GetData(), Data.Num());
+	return ispc::ArrayUtilities_AllEqual_uint32(Data.GetData(), Data.Num(), Value);
 }
 
-bool FVoxelUtilities::AllEqual(const uint64 Value, const TConstArrayView<uint64> Data)
+bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint64> Data, const uint64 Value)
 {
-	return ispc::ArrayUtilities_AllEqual_uint64(Value, Data.GetData(), Data.Num());
+	return ispc::ArrayUtilities_AllEqual_uint64(Data.GetData(), Data.Num(), Value);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-float FVoxelUtilities::GetMin(const TConstArrayView<float> Data)
+float FVoxelUtilities::GetMin(const TConstVoxelArrayView<float> Data)
 {
 	if (!ensure(Data.Num() > 0))
 	{
@@ -37,7 +37,7 @@ float FVoxelUtilities::GetMin(const TConstArrayView<float> Data)
 	return ispc::ArrayUtilities_GetMin(Data.GetData(), Data.Num());
 }
 
-float FVoxelUtilities::GetMax(const TConstArrayView<float> Data)
+float FVoxelUtilities::GetMax(const TConstVoxelArrayView<float> Data)
 {
 	if (!ensure(Data.Num() > 0))
 	{
@@ -51,7 +51,7 @@ float FVoxelUtilities::GetMax(const TConstArrayView<float> Data)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FInt32Interval FVoxelUtilities::GetMinMax(const TConstArrayView<int32> Data)
+FInt32Interval FVoxelUtilities::GetMinMax(const TConstVoxelArrayView<int32> Data)
 {
 	if (!ensure(Data.Num() > 0))
 	{
@@ -63,7 +63,7 @@ FInt32Interval FVoxelUtilities::GetMinMax(const TConstArrayView<int32> Data)
 	return Result;
 }
 
-FFloatInterval FVoxelUtilities::GetMinMax(const TConstArrayView<float> Data)
+FFloatInterval FVoxelUtilities::GetMinMax(const TConstVoxelArrayView<float> Data)
 {
 	if (!ensure(Data.Num() > 0))
 	{
@@ -79,7 +79,7 @@ FFloatInterval FVoxelUtilities::GetMinMax(const TConstArrayView<float> Data)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FFloatInterval FVoxelUtilities::GetMinMaxSafe(const TConstArrayView<float> Data)
+FFloatInterval FVoxelUtilities::GetMinMaxSafe(const TConstVoxelArrayView<float> Data)
 {
 	if (!ensure(Data.Num() > 0))
 	{
@@ -91,7 +91,7 @@ FFloatInterval FVoxelUtilities::GetMinMaxSafe(const TConstArrayView<float> Data)
 	return Result;
 }
 
-FDoubleInterval FVoxelUtilities::GetMinMaxSafe(const TConstArrayView<double> Data)
+FDoubleInterval FVoxelUtilities::GetMinMaxSafe(const TConstVoxelArrayView<double> Data)
 {
 	if (!ensure(Data.Num() > 0))
 	{

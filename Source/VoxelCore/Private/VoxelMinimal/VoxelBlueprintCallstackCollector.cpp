@@ -16,7 +16,7 @@ void GatherBlueprintCallstack(const TSharedRef<FVoxelMessage>& Message)
 		return;
 	}
 
-	const TArrayView<const FFrame* const> ScriptStack = FBlueprintContextTracker::Get().GetCurrentScriptStack();
+	const TVoxelArrayView<const FFrame* const> ScriptStack = FBlueprintContextTracker::Get().GetCurrentScriptStack();
 
 	if (ScriptStack.Num() == 0 ||
 		!ensure(ScriptStack.Last()))

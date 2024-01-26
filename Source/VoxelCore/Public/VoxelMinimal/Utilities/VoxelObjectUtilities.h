@@ -505,8 +505,8 @@ TArray<ArrayType> GetDerivedClasses(const UClass* BaseClass = T::StaticClass(), 
 
 VOXELCORE_API TArray<UScriptStruct*> GetDerivedStructs(const UScriptStruct* BaseStruct, bool bIncludeBase = false);
 
-template<typename T, bool bIncludeBase = false>
-TArray<UScriptStruct*> GetDerivedStructs()
+template<typename T>
+TArray<UScriptStruct*> GetDerivedStructs(const bool bIncludeBase = false)
 {
 	return GetDerivedStructs(T::StaticStruct(), bIncludeBase);
 }

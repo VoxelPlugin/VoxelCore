@@ -3,9 +3,9 @@
 #include "VoxelMinimal.isph"
 
 export uniform bool ArrayUtilities_AllEqual_uint8(
-	const uniform uint8 Constant,
 	const uniform uint8 Data[],
-	const uniform int32 Num)
+	const uniform int32 Num,
+	const uniform uint8 Constant)
 {
 	const uniform int32 AlignedNum = programCount * (Num / programCount);
 
@@ -29,9 +29,9 @@ export uniform bool ArrayUtilities_AllEqual_uint8(
 }
 
 export uniform bool ArrayUtilities_AllEqual_uint16(
-	const uniform uint16 Constant,
 	const uniform uint16 Data[],
-	const uniform int32 Num)
+	const uniform int32 Num,
+	const uniform uint16 Constant)
 {
 	const uniform int32 AlignedNum = programCount * (Num / programCount);
 
@@ -55,9 +55,9 @@ export uniform bool ArrayUtilities_AllEqual_uint16(
 }
 
 export uniform bool ArrayUtilities_AllEqual_uint32(
-	const uniform uint32 Constant,
 	const uniform uint32 Data[],
-	const uniform int32 Num)
+	const uniform int32 Num,
+	const uniform uint32 Constant)
 {
 	const uniform int32 AlignedNum = programCount * (Num / programCount);
 
@@ -81,9 +81,9 @@ export uniform bool ArrayUtilities_AllEqual_uint32(
 }
 
 export uniform bool ArrayUtilities_AllEqual_uint64(
-	const uniform uint64 Constant,
 	const uniform uint64 Data[],
-	const uniform int32 Num)
+	const uniform int32 Num,
+	const uniform uint64 Constant)
 {
 	const uniform int32 AlignedNum = programCount * (Num / programCount);
 

@@ -102,7 +102,7 @@ public:
 	template<typename T>
 	static TSharedRef<FVoxelRDGExternalBuffer> CreateTyped(
 		FRHICommandListBase& RHICmdList,
-		const TConstArrayView<T> Array,
+		const TConstVoxelArrayView<T> Array,
 		const EPixelFormat Format,
 		const TCHAR* Name)
 	{
@@ -119,7 +119,7 @@ public:
 
 	static TSharedRef<FVoxelRDGExternalBuffer> Create(
 		FRHICommandListBase& RHICmdList,
-		TConstArrayView<uint8> Array,
+		TConstVoxelArrayView<uint8> Array,
 		EPixelFormat Format,
 		const TCHAR* Name,
 		EBufferUsageFlags AdditionalFlags = BUF_None);

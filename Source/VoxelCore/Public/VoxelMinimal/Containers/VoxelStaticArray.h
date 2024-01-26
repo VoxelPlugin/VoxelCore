@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/Containers/VoxelArrayView.h"
 
 template<typename T, int32 Size, int32 Alignment = alignof(T), bool bForceInitToZero = false>
 class alignas(Alignment) TVoxelStaticArray
@@ -171,13 +172,13 @@ public:
 		return TArray<T>(GetData(), Num());
 	}
 
-	operator TArrayView<T>()
+	operator TVoxelArrayView<T>()
 	{
-		return TArrayView<T>(GetData(), Num());
+		return TVoxelArrayView<T>(GetData(), Num());
 	}
-	operator TArrayView<const T>() const
+	operator TVoxelArrayView<const T>() const
 	{
-		return TArrayView<const T>(GetData(), Num());
+		return TVoxelArrayView<const T>(GetData(), Num());
 	}
 
 	FORCEINLINE T* begin() { return GetData(); }

@@ -125,7 +125,7 @@ TSharedRef<FVoxelRDGExternalBuffer> FVoxelRDGExternalBuffer::CreateStructured(
 
 TSharedRef<FVoxelRDGExternalBuffer> FVoxelRDGExternalBuffer::Create(
 	FRHICommandListBase& RHICmdList,
-	const TConstArrayView<uint8> Array,
+	const TConstVoxelArrayView<uint8> Array,
 	const EPixelFormat Format,
 	const TCHAR* Name,
 	const EBufferUsageFlags AdditionalFlags)

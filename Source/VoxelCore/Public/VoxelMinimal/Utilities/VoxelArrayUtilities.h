@@ -4,6 +4,7 @@
 
 #include "VoxelCoreMinimal.h"
 #include "Algo/IsSorted.h"
+#include "VoxelMinimal/Containers/VoxelArrayView.h"
 
 namespace FVoxelUtilities
 {
@@ -408,24 +409,24 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	VOXELCORE_API bool AllEqual(uint8 Value, TConstArrayView<uint8> Data);
-	VOXELCORE_API bool AllEqual(uint16 Value, TConstArrayView<uint16> Data);
-	VOXELCORE_API bool AllEqual(uint32 Value, TConstArrayView<uint32> Data);
-	VOXELCORE_API bool AllEqual(uint64 Value, TConstArrayView<uint64> Data);
+	VOXELCORE_API bool AllEqual(TConstVoxelArrayView<uint8> Data, uint8 Value);
+	VOXELCORE_API bool AllEqual(TConstVoxelArrayView<uint16> Data, uint16 Value);
+	VOXELCORE_API bool AllEqual(TConstVoxelArrayView<uint32> Data, uint32 Value);
+	VOXELCORE_API bool AllEqual(TConstVoxelArrayView<uint64> Data, uint64 Value);
 
-	VOXELCORE_API float GetMin(TConstArrayView<float> Data);
-	VOXELCORE_API float GetMax(TConstArrayView<float> Data);
+	VOXELCORE_API float GetMin(TConstVoxelArrayView<float> Data);
+	VOXELCORE_API float GetMax(TConstVoxelArrayView<float> Data);
 
 	// Will return { MAX_int32, -MAX_int32 } if no values are valid
-	VOXELCORE_API FInt32Interval GetMinMax(TConstArrayView<int32> Data);
+	VOXELCORE_API FInt32Interval GetMinMax(TConstVoxelArrayView<int32> Data);
 	// Will return { 0, 0 } if no values are valid
 	// Won't check for NaNs
-	VOXELCORE_API FFloatInterval GetMinMax(TConstArrayView<float> Data);
+	VOXELCORE_API FFloatInterval GetMinMax(TConstVoxelArrayView<float> Data);
 
 	// Will return { MAX_flt, -MAX_flt } if no values are valid
 	// Will skip NaNs and infinite values
-	VOXELCORE_API FFloatInterval GetMinMaxSafe(TConstArrayView<float> Data);
+	VOXELCORE_API FFloatInterval GetMinMaxSafe(TConstVoxelArrayView<float> Data);
 	// Will return { MAX_dbl, -MAX_dbl } if no values are valid
 	// Will skip NaNs and infinite values
-	VOXELCORE_API FDoubleInterval GetMinMaxSafe(TConstArrayView<double> Data);
+	VOXELCORE_API FDoubleInterval GetMinMaxSafe(TConstVoxelArrayView<double> Data);
 }
