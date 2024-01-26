@@ -194,6 +194,30 @@ public:
 		}
 		return true;
 	}
+	FORCENOINLINE bool OrderDependentEqual(const TVoxelMap& Other) const
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
+
+		if (Num() != Other.Num())
+		{
+			return false;
+		}
+
+		for (int32 Index = 0; Index < Num(); Index++)
+		{
+			const FElement& Element = Elements[Index];
+			const FElement& OtherElement = Other.Elements[Index];
+
+			if (!(Element.Key == OtherElement.Key) ||
+				!(Element.Value == OtherElement.Value))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	FORCENOINLINE void Append(const TVoxelMap& Other)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 1024);

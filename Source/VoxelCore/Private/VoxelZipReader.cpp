@@ -144,7 +144,7 @@ bool FVoxelZipReader::TryLoad(
 		return true;
 	}
 
-	const TConstVoxelArrayView<uint8> HeaderBytes = MakeVoxelArrayView(OutData).Slice(0, sizeof(FOodleHeader));
+	const TConstVoxelArrayView<uint8> HeaderBytes = MakeVoxelArrayView(OutData).LeftOf(sizeof(FOodleHeader));
 	const FOodleHeader& Header = FromByteVoxelArrayView<FOodleHeader>(HeaderBytes);
 
 	if (Header.Tag != FOodleHeader().Tag)

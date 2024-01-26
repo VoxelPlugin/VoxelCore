@@ -108,7 +108,7 @@ public:
 					NumToSet = NumPerChunk;
 				}
 			}
-			FVoxelUtilities::Memset(MakeVoxelArrayView(*Chunks[Index]).Slice(0, NumToSet), Value);
+			FVoxelUtilities::Memset(MakeVoxelArrayView(*Chunks[Index]).LeftOf(NumToSet), Value);
 		}
 	}
 	TVoxelArray<Type> Array() const
@@ -126,7 +126,7 @@ public:
 
 				FVoxelUtilities::Memcpy(
 					MakeVoxelArrayView(Result).Slice(Index, NumInChunk),
-					MakeVoxelArrayView(*Chunks[ChunkIndex]).Slice(0, NumInChunk));
+					MakeVoxelArrayView(*Chunks[ChunkIndex]).LeftOf(NumInChunk));
 
 				Index += NumInChunk;
 			}

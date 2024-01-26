@@ -104,25 +104,15 @@ public:
 		return TVoxelArrayView(GetData() + Index, InNum);
 	}
 
-	// Returns the left-most part of the view by taking the given number of elements from the left
-	FORCEINLINE TVoxelArrayView Left(const SizeType Count) const
+	// Index is excluded
+	FORCEINLINE TVoxelArrayView LeftOf(const SizeType Index) const
 	{
-		return Slice(0, Count);
+		return Slice(0, Index);
 	}
-	// Returns the left-most part of the view by chopping the given number of elements from the right
-	FORCEINLINE TVoxelArrayView LeftChop(const SizeType Count) const
+	// Index is included
+	FORCEINLINE TVoxelArrayView RightOf(const SizeType Index) const
 	{
-		return Slice(0, Num() - Count);
-	}
-	// Returns the right-most part of the view by taking the given number of elements from the right
-	FORCEINLINE TVoxelArrayView Right(const SizeType Count) const
-	{
-		return Slice(Num() - Count, Count);
-	}
-	// Returns the right-most part of the view by chopping the given number of elements from the left
-	FORCEINLINE TVoxelArrayView RightChop(const SizeType Count) const
-	{
-		return Slice(Count, Num() - Count);
+		return Slice(Index, Num() - Index);
 	}
 
 	FORCEINLINE ElementType& operator[](InSizeType Index) const
@@ -136,6 +126,12 @@ public:
 		RangeCheck(Num() - IndexFromTheEnd - 1);
 		return GetData()[Num() - IndexFromTheEnd - 1];
 	}
+
+private:
+	using Super::Left;
+	using Super::LeftChop;
+	using Super::Right;
+	using Super::RightChop;
 };
 
 template<typename T>

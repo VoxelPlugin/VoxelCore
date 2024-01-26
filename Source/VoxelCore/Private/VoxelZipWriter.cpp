@@ -140,7 +140,7 @@ void FVoxelZipWriter::WriteCompressed_Oodle(
 
 		CompressedData.SetNum(sizeof(FOodleHeader) + CompressedSize);
 
-		const TVoxelArrayView<uint8> HeaderBytes = MakeVoxelArrayView(CompressedData).Slice(0, sizeof(FOodleHeader));
+		const TVoxelArrayView<uint8> HeaderBytes = MakeVoxelArrayView(CompressedData).LeftOf(sizeof(FOodleHeader));
 		FOodleHeader& Header = FromByteVoxelArrayView<FOodleHeader>(HeaderBytes);
 		Header = {};
 		Header.UncompressedSize = Data.Num();

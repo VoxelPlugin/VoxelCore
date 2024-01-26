@@ -5,21 +5,41 @@
 
 bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint8> Data, const uint8 Value)
 {
+	if (Data.Num() == 0)
+	{
+		return true;
+	}
+
 	return ispc::ArrayUtilities_AllEqual_uint8(Data.GetData(), Data.Num(), Value);
 }
 
 bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint16> Data, const uint16 Value)
 {
+	if (Data.Num() == 0)
+	{
+		return true;
+	}
+
 	return ispc::ArrayUtilities_AllEqual_uint16(Data.GetData(), Data.Num(), Value);
 }
 
 bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint32> Data, const uint32 Value)
 {
+	if (Data.Num() == 0)
+	{
+		return true;
+	}
+
 	return ispc::ArrayUtilities_AllEqual_uint32(Data.GetData(), Data.Num(), Value);
 }
 
 bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint64> Data, const uint64 Value)
 {
+	if (Data.Num() == 0)
+	{
+		return true;
+	}
+
 	return ispc::ArrayUtilities_AllEqual_uint64(Data.GetData(), Data.Num(), Value);
 }
 
