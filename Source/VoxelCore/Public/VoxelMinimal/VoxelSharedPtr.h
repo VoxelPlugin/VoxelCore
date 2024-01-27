@@ -140,6 +140,12 @@ FORCEINLINE const TWeakPtr<T>& GetSharedFromThisWeakPtr(const TSharedFromThis<T>
 }
 
 template<typename T>
+FORCEINLINE bool IsExplicitlyNull(const TWeakPtr<T>& WeakPtr)
+{
+	return GetWeakPtrObject_Unsafe(WeakPtr) == nullptr;
+}
+
+template<typename T>
 FORCEINLINE bool IsSharedFromThisUnique(const TSharedFromThis<T>& SharedFromThis)
 {
 	const TWeakPtr<T>& WeakPtr = GetSharedFromThisWeakPtr(SharedFromThis);
