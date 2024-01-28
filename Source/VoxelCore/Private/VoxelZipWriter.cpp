@@ -101,51 +101,8 @@ void FVoxelZipWriter::WriteCompressed_Oodle(
 	const FOodleDataCompression::ECompressionLevel CompressionLevel)
 {
 	VOXEL_SCOPE_COUNTER_FORMAT("FVoxelZipWriter::WriteCompressed_Oodle %s %lldB", *Path, Data.Num());
-	using namespace FOodleDataCompression;
 
-	const int64 WorkingSizeNeeded = CompressedBufferSizeNeeded(Data.Num());
-
-	TVoxelArray64<uint8> CompressedData;
-	if (Data.Num() == 0)
-	{
-		CompressedData.SetNumZeroed(sizeof(FOodleHeader));
-		FOodleHeader& Header = FromByteVoxelArrayView<FOodleHeader>(MakeVoxelArrayView(CompressedData));
-		Header = {};
-	}
-	else
-	{
-		FVoxelUtilities::SetNumFast(CompressedData, sizeof(FOodleHeader) + WorkingSizeNeeded);
-
-		int64 CompressedSize;
-		{
-			VOXEL_SCOPE_COUNTER_FORMAT("CompressParallel %lldB %s %s",
-				Data.Num(),
-				ECompressorToString(Compressor),
-				ECompressionLevelToString(CompressionLevel));
-
-			CompressedSize = UE_503_SWITCH(Compress, CompressParallel)(
-				CompressedData.GetData() + sizeof(FOodleHeader),
-				WorkingSizeNeeded,
-				Data.GetData(),
-				Data.Num(),
-				Compressor,
-				CompressionLevel);
-		}
-
-		if (!ensure(CompressedSize > 0))
-		{
-			RaiseError();
-			return;
-		}
-
-		CompressedData.SetNum(sizeof(FOodleHeader) + CompressedSize);
-
-		const TVoxelArrayView<uint8> HeaderBytes = MakeVoxelArrayView(CompressedData).LeftOf(sizeof(FOodleHeader));
-		FOodleHeader& Header = FromByteVoxelArrayView<FOodleHeader>(HeaderBytes);
-		Header = {};
-		Header.UncompressedSize = Data.Num();
-		Header.CompressedSize = CompressedSize;
-	}
+	const TVoxelArray64<uint8> CompressedData = FVoxelUtilities::Compress(Data, Compressor, CompressionLevel);
 
 	WriteImpl(Path, CompressedData, MZ_NO_COMPRESSION);
 }

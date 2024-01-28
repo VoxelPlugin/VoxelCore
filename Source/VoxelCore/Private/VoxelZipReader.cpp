@@ -1,7 +1,6 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelZipReader.h"
-#include "Compression/OodleDataCompression.h"
 
 TSharedPtr<FVoxelZipReader> FVoxelZipReader::Create(
 	const int64 TotalSize,
@@ -139,58 +138,13 @@ bool FVoxelZipReader::TryLoad(
 	}
 	CheckError();
 
-	if (OutData.Num() < sizeof(FOodleHeader))
+	if (!FVoxelUtilities::IsCompressedData(OutData))
 	{
 		return true;
 	}
 
-	const TConstVoxelArrayView<uint8> HeaderBytes = MakeVoxelArrayView(OutData).LeftOf(sizeof(FOodleHeader));
-	const FOodleHeader& Header = FromByteVoxelArrayView<FOodleHeader>(HeaderBytes);
-
-	if (Header.Tag != FOodleHeader().Tag)
-	{
-		return true;
-	}
-
-	if (!ensure(sizeof(FOodleHeader) + Header.CompressedSize == OutData.Num()))
-	{
-		return false;
-	}
-
-	using namespace FOodleDataCompression;
-
-	TVoxelArray64<uint8> UncompressedData;
-	FVoxelUtilities::SetNumFast(UncompressedData, Header.UncompressedSize);
-
-#if VOXEL_ENGINE_VERSION >= 503
-	if (bAllowParallel)
-	{
-		VOXEL_SCOPE_COUNTER_FORMAT("DecompressParallel %lldB", Header.UncompressedSize);
-
-		if (!ensure(DecompressParallel(
-			UncompressedData.GetData(),
-			Header.UncompressedSize,
-			OutData.GetData() + sizeof(FOodleHeader),
-			Header.CompressedSize)))
-		{
-			return false;
-		}
-	}
-	else
-#endif
-	{
-		VOXEL_SCOPE_COUNTER_FORMAT("Decompress %lldB", Header.UncompressedSize);
-
-		if (!ensure(Decompress(
-			UncompressedData.GetData(),
-			Header.UncompressedSize,
-			OutData.GetData() + sizeof(FOodleHeader),
-			Header.CompressedSize)))
-		{
-			return false;
-		}
-	}
-
-	OutData = MoveTemp(UncompressedData);
-	return true;
+	return FVoxelUtilities::Decompress(
+		OutData,
+		OutData,
+		bAllowParallel);
 }

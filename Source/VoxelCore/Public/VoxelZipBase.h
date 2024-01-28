@@ -17,13 +17,6 @@ public:
 	}
 
 protected:
-	struct FOodleHeader
-	{
-		TVoxelStaticArray<char, 8> Tag = { 'O', 'O', 'D', 'L', 'E', '_', 'V', 'O' };
-		int64 UncompressedSize = 0;
-		int64 CompressedSize = 0;
-	};
-
 	mutable mz_zip_archive Archive;
 
 	void CheckError() const;

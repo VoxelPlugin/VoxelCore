@@ -122,3 +122,137 @@ FDoubleInterval FVoxelUtilities::GetMinMaxSafe(const TConstVoxelArrayView<double
 	ispc::ArrayUtilities_GetMinMaxSafe_Double(Data.GetData(), Data.Num(), &Result.Min, &Result.Max);
 	return Result;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+struct FVoxelOodleHeader
+{
+	uint64 Tag = MAKE_TAG_64("OODLE_VO");
+	int64 UncompressedSize = 0;
+	int64 CompressedSize = 0;
+};
+
+TVoxelArray64<uint8> FVoxelUtilities::Compress(
+	const TConstVoxelArrayView64<uint8> Data,
+	const FOodleDataCompression::ECompressor Compressor,
+	const FOodleDataCompression::ECompressionLevel CompressionLevel)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	if (Data.Num() == 0)
+	{
+		return TVoxelArray64<uint8>(MakeByteVoxelArrayView(FVoxelOodleHeader()));
+	}
+
+	const int64 WorkingSizeNeeded = FOodleDataCompression::CompressedBufferSizeNeeded(Data.Num());
+
+	TVoxelArray64<uint8> CompressedData;
+	SetNumFast(CompressedData, sizeof(FVoxelOodleHeader) + WorkingSizeNeeded);
+
+	int64 CompressedSize;
+	{
+		VOXEL_SCOPE_COUNTER_FORMAT("CompressParallel %lldB %s %s",
+			Data.Num(),
+			ECompressorToString(Compressor),
+			ECompressionLevelToString(CompressionLevel));
+
+		CompressedSize = FOodleDataCompression::UE_503_SWITCH(Compress, CompressParallel)(
+			CompressedData.GetData() + sizeof(FVoxelOodleHeader),
+			WorkingSizeNeeded,
+			Data.GetData(),
+			Data.Num(),
+			Compressor,
+			CompressionLevel);
+	}
+	check(CompressedSize > 0);
+
+	check(int64(sizeof(FVoxelOodleHeader)) + CompressedSize <= CompressedData.Num());
+	CompressedData.SetNum(sizeof(FVoxelOodleHeader) + CompressedSize);
+
+	const TVoxelArrayView<uint8> HeaderBytes = MakeVoxelArrayView(CompressedData).LeftOf(sizeof(FVoxelOodleHeader));
+	FVoxelOodleHeader& Header = FromByteVoxelArrayView<FVoxelOodleHeader>(HeaderBytes);
+	Header.Tag = FVoxelOodleHeader().Tag;
+	Header.UncompressedSize = Data.Num();
+	Header.CompressedSize = CompressedSize;
+
+	return CompressedData;
+}
+
+bool FVoxelUtilities::IsCompressedData(const TConstVoxelArrayView64<uint8> CompressedData)
+{
+	if (CompressedData.Num() < sizeof(FVoxelOodleHeader))
+	{
+		return false;
+	}
+
+	const TConstVoxelArrayView<uint8> HeaderBytes = MakeVoxelArrayView(CompressedData).LeftOf(sizeof(FVoxelOodleHeader));
+	const FVoxelOodleHeader Header = FromByteVoxelArrayView<FVoxelOodleHeader>(HeaderBytes);
+
+	if (Header.Tag != FVoxelOodleHeader().Tag)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool FVoxelUtilities::Decompress(
+	const TConstVoxelArrayView64<uint8> CompressedData,
+	TVoxelArray64<uint8>& OutData,
+	const bool bAllowParallel)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	if (!ensureVoxelSlow(CompressedData.Num() >= sizeof(FVoxelOodleHeader)))
+	{
+		return false;
+	}
+
+	const TConstVoxelArrayView<uint8> HeaderBytes = MakeVoxelArrayView(CompressedData).LeftOf(sizeof(FVoxelOodleHeader));
+	const FVoxelOodleHeader Header = FromByteVoxelArrayView<FVoxelOodleHeader>(HeaderBytes);
+
+	if (!ensureVoxelSlow(Header.Tag == FVoxelOodleHeader().Tag) ||
+		!ensureVoxelSlow(sizeof(FVoxelOodleHeader) + Header.CompressedSize == CompressedData.Num()))
+	{
+		return false;
+	}
+
+	using namespace FOodleDataCompression;
+
+	TVoxelArray64<uint8> UncompressedData;
+	FVoxelUtilities::SetNumFast(UncompressedData, Header.UncompressedSize);
+
+#if VOXEL_ENGINE_VERSION >= 503
+	if (bAllowParallel)
+	{
+		VOXEL_SCOPE_COUNTER_FORMAT("DecompressParallel %lldB", Header.UncompressedSize);
+
+		if (!ensure(FOodleDataCompression::DecompressParallel(
+			UncompressedData.GetData(),
+			Header.UncompressedSize,
+			CompressedData.GetData() + sizeof(FVoxelOodleHeader),
+			Header.CompressedSize)))
+		{
+			return false;
+		}
+	}
+	else
+#endif
+	{
+		VOXEL_SCOPE_COUNTER_FORMAT("Decompress %lldB", Header.UncompressedSize);
+
+		if (!ensure(FOodleDataCompression::Decompress(
+			UncompressedData.GetData(),
+			Header.UncompressedSize,
+			CompressedData.GetData() + sizeof(FVoxelOodleHeader),
+			Header.CompressedSize)))
+		{
+			return false;
+		}
+	}
+
+	OutData = MoveTemp(UncompressedData);
+	return true;
+}

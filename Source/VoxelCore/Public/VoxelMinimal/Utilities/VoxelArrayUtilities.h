@@ -1,9 +1,10 @@
-﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #pragma once
 
 #include "VoxelCoreMinimal.h"
 #include "Algo/IsSorted.h"
+#include "Compression/OodleDataCompression.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 
 namespace FVoxelUtilities
@@ -430,4 +431,20 @@ namespace FVoxelUtilities
 	// Will return { MAX_dbl, -MAX_dbl } if no values are valid
 	// Will skip NaNs and infinite values
 	VOXELCORE_API FDoubleInterval GetMinMaxSafe(TConstVoxelArrayView<double> Data);
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	VOXELCORE_API TVoxelArray64<uint8> Compress(
+		TConstVoxelArrayView64<uint8> Data,
+		FOodleDataCompression::ECompressor Compressor = FOodleDataCompression::ECompressor::Leviathan,
+		FOodleDataCompression::ECompressionLevel CompressionLevel = FOodleDataCompression::ECompressionLevel::Optimal3);
+
+	VOXELCORE_API bool IsCompressedData(TConstVoxelArrayView64<uint8> CompressedData);
+
+	VOXELCORE_API bool Decompress(
+		TConstVoxelArrayView64<uint8> CompressedData,
+		TVoxelArray64<uint8>& OutData,
+		bool bAllowParallel = true);
 }

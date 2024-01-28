@@ -254,6 +254,26 @@ public:
 		return Result;
 	}
 
+	FORCENOINLINE friend FArchive& operator<<(FArchive& Ar, TVoxelMap& Map)
+	{
+		if ((TCanBulkSerialize<KeyType>::Value || std::is_arithmetic_v<KeyType>) &&
+			(TCanBulkSerialize<ValueType>::Value || std::is_arithmetic_v<ValueType>))
+		{
+			Map.Elements.BulkSerialize(Ar);
+		}
+		else
+		{
+			Ar << Map.Elements;
+		}
+
+		if (Ar.IsLoading())
+		{
+			Map.Rehash();
+		}
+
+		return Ar;
+	}
+
 public:
 	FORCEINLINE ValueType* Find(const KeyType& Key)
 	{

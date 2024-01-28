@@ -1,4 +1,4 @@
-﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
 
@@ -83,16 +83,19 @@ FText FVoxelUtilities::ConvertToNumberText(double Value)
 
 bool FVoxelUtilities::IsInt(const FStringView& Text)
 {
-	for (const TCHAR Char : Text)
+	for (const TCHAR& Char : Text)
 	{
-		if (FChar::IsDigit(Char))
+		if (Char == TEXT('-') ||
+			Char == TEXT('+'))
 		{
+			if (&Char != &Text[0])
+			{
+				return false;
+			}
 			continue;
 		}
 
-		if (Char == TEXT('.') ||
-			Char == TEXT('-') ||
-			Char == TEXT('+'))
+		if (FChar::IsDigit(Char))
 		{
 			continue;
 		}
@@ -107,15 +110,19 @@ bool FVoxelUtilities::IsFloat(const FStringView& Text)
 {
 	for (const TCHAR Char : Text)
 	{
-		if (FChar::IsDigit(Char))
+		if (Char == TEXT('-') ||
+			Char == TEXT('+'))
 		{
+			if (&Char != &Text[0])
+			{
+				return false;
+			}
 			continue;
 		}
 
 		if (Char == TEXT('.') ||
-			Char == TEXT('-') ||
-			Char == TEXT('+') ||
-			Char == TEXT('f'))
+			Char == TEXT('f') ||
+			FChar::IsDigit(Char))
 		{
 			continue;
 		}

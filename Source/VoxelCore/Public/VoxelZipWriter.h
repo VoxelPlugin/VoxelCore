@@ -4,7 +4,6 @@
 
 #include "VoxelMinimal.h"
 #include "VoxelZipBase.h"
-#include "Compression/OodleDataCompression.h"
 
 class VOXELCORE_API FVoxelZipWriter : public FVoxelZipBase
 {

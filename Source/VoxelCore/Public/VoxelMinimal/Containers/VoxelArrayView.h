@@ -93,8 +93,13 @@ public:
 
 	FORCEINLINE bool IsValidSlice(InSizeType Index, InSizeType InNum) const
 	{
+		if (InNum == 0)
+		{
+			// Allow zero-sized slices at Num()
+			return 0 <= Index && Index <= Num();
+		}
+
 		return
-			InNum >= 0 &&
 			IsValidIndex(Index) &&
 			IsValidIndex(Index + InNum - 1);
 	}
