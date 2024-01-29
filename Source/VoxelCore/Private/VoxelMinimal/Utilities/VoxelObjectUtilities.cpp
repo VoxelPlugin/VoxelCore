@@ -735,32 +735,48 @@ void FVoxelObjectUtilities::AddStructReferencedObjects(FReferenceCollector& Coll
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TUniquePtr<FBoolProperty> FVoxelObjectUtilities::MakeBoolProperty()
+const FBoolProperty& FVoxelObjectUtilities::MakeBoolProperty()
 {
-	TUniquePtr<FBoolProperty> Property = MakeUnique<FBoolProperty>(FFieldVariant(), FName(), EObjectFlags());
-	Property->ElementSize = sizeof(bool);
-	return Property;
+	static const TUniquePtr<FBoolProperty> Property = INLINE_LAMBDA
+	{
+		TUniquePtr<FBoolProperty> Result = MakeUnique<FBoolProperty>(FFieldVariant(), FName(), EObjectFlags());
+		Result->ElementSize = sizeof(bool);
+		return Result;
+	};
+	return *Property;
 }
 
-TUniquePtr<FFloatProperty> FVoxelObjectUtilities::MakeFloatProperty()
+const FFloatProperty& FVoxelObjectUtilities::MakeFloatProperty()
 {
-	TUniquePtr<FFloatProperty> Property = MakeUnique<FFloatProperty>(FFieldVariant(), FName(), EObjectFlags());
-	Property->ElementSize = sizeof(float);
-	return Property;
+	static const TUniquePtr<FFloatProperty> Property = INLINE_LAMBDA
+	{
+		TUniquePtr<FFloatProperty> Result = MakeUnique<FFloatProperty>(FFieldVariant(), FName(), EObjectFlags());
+		Result->ElementSize = sizeof(float);
+		return Result;
+	};
+	return *Property;
 }
 
-TUniquePtr<FIntProperty> FVoxelObjectUtilities::MakeIntProperty()
+const FIntProperty& FVoxelObjectUtilities::MakeIntProperty()
 {
-	TUniquePtr<FIntProperty> Property = MakeUnique<FIntProperty>(FFieldVariant(), FName(), EObjectFlags());
-	Property->ElementSize = sizeof(int32);
-	return Property;
+	static const TUniquePtr<FIntProperty> Property = INLINE_LAMBDA
+	{
+		TUniquePtr<FIntProperty> Result = MakeUnique<FIntProperty>(FFieldVariant(), FName(), EObjectFlags());
+		Result->ElementSize = sizeof(int32);
+		return Result;
+	};
+	return *Property;
 }
 
-TUniquePtr<FNameProperty> FVoxelObjectUtilities::MakeNameProperty()
+const FNameProperty& FVoxelObjectUtilities::MakeNameProperty()
 {
-	TUniquePtr<FNameProperty> Property = MakeUnique<FNameProperty>(FFieldVariant(), FName(), EObjectFlags());
-	Property->ElementSize = sizeof(FName);
-	return Property;
+	static const TUniquePtr<FNameProperty> Property = INLINE_LAMBDA
+	{
+		TUniquePtr<FNameProperty> Result = MakeUnique<FNameProperty>(FFieldVariant(), FName(), EObjectFlags());
+		Result->ElementSize = sizeof(FName);
+		return Result;
+	};
+	return *Property;
 }
 
 TUniquePtr<FEnumProperty> FVoxelObjectUtilities::MakeEnumProperty(const UEnum* Enum)

@@ -10,6 +10,12 @@ struct TVoxelAddOnlySetElement
 {
 	Type Value;
 	int32 NextElementIndex;
+
+	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, TVoxelAddOnlySetElement& Element)
+	{
+		Ar << Element.Value;
+		return Ar;
+	}
 };
 
 // Smaller footprint than TSet
@@ -214,6 +220,18 @@ public:
 			}
 		}
 		return true;
+	}
+
+	FORCENOINLINE friend FArchive& operator<<(FArchive& Ar, TVoxelAddOnlySet& Set)
+	{
+		Ar << Set.Elements;
+
+		if (Ar.IsLoading())
+		{
+			Set.Rehash();
+		}
+
+		return Ar;
 	}
 
 public:

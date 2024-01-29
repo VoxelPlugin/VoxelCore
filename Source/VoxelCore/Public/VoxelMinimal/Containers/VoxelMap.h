@@ -39,6 +39,7 @@ private:
 		ValueType Value = FVoxelUtilities::MakeSafe<ValueType>();
 		int32 NextElementIndex VOXEL_DEBUG_ONLY(= -16);
 
+		FElementKeyValue() = default;
 		FORCEINLINE explicit FElementKeyValue(const KeyType& Key)
 			: Key(Key)
 		{
@@ -50,6 +51,7 @@ private:
 		const KeyType Key;
 		int32 NextElementIndex VOXEL_DEBUG_ONLY(= -16);
 
+		FElementValueKey() = default;
 		FORCEINLINE explicit FElementValueKey(const KeyType& Key)
 			: Key(Key)
 		{
@@ -83,6 +85,13 @@ private:
 		const_cast<KeyType&>(Key) = MoveTemp(const_cast<KeyType&>(Other.Key));
 		Value = MoveTemp(Other.Value);
 		NextElementIndex = Other.NextElementIndex;
+	}
+
+	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, TVoxelMapElement& Element)
+	{
+		Ar << const_cast<KeyType&>(Element.Key);
+		Ar << Element.Value;
+		return Ar;
 	}
 
 	template<typename, typename, typename>
@@ -256,15 +265,7 @@ public:
 
 	FORCENOINLINE friend FArchive& operator<<(FArchive& Ar, TVoxelMap& Map)
 	{
-		if ((TCanBulkSerialize<KeyType>::Value || std::is_arithmetic_v<KeyType>) &&
-			(TCanBulkSerialize<ValueType>::Value || std::is_arithmetic_v<ValueType>))
-		{
-			Map.Elements.BulkSerialize(Ar);
-		}
-		else
-		{
-			Ar << Map.Elements;
-		}
+		Ar << Map.Elements;
 
 		if (Ar.IsLoading())
 		{
@@ -499,6 +500,25 @@ public:
 			}
 		}
 		return true;
+	}
+
+public:
+	void KeySort()
+	{
+		this->KeySort(TLess<KeyType>());
+	}
+	void ValueSort()
+	{
+		this->ValueSort(TLess<ValueType>());
+	}
+
+	bool AreKeySorted() const
+	{
+		return this->AreKeySorted(TLess<KeyType>());
+	}
+	bool AreValueSorted() const
+	{
+		return this->AreValueSorted(TLess<ValueType>());
 	}
 
 public:

@@ -230,7 +230,7 @@ public:
 	static bool TryImportText(const FString& Text, T& OutValue)
 	{
 		return PropertyFromText_Direct(
-			*MakeStructProperty<T>(),
+			MakeStructProperty<T>(),
 			*Text,
 			reinterpret_cast<void*>(&OutValue),
 			nullptr);
@@ -311,10 +311,10 @@ public:
 	}
 
 public:
-	static TUniquePtr<FBoolProperty> MakeBoolProperty();
-	static TUniquePtr<FFloatProperty> MakeFloatProperty();
-	static TUniquePtr<FIntProperty> MakeIntProperty();
-	static TUniquePtr<FNameProperty> MakeNameProperty();
+	static const FBoolProperty& MakeBoolProperty();
+	static const FFloatProperty& MakeFloatProperty();
+	static const FIntProperty& MakeIntProperty();
+	static const FNameProperty& MakeNameProperty();
 
 	static TUniquePtr<FEnumProperty> MakeEnumProperty(const UEnum* Enum);
 	static TUniquePtr<FStructProperty> MakeStructProperty(const UScriptStruct* Struct);
@@ -322,19 +322,22 @@ public:
 	static TUniquePtr<FArrayProperty> MakeArrayProperty(FProperty* InnerProperty);
 
 	template<typename T>
-	static TUniquePtr<FStructProperty> MakeEnumProperty()
+	static const FEnumProperty& MakeEnumProperty()
 	{
-		return FVoxelObjectUtilities::MakeEnumProperty(StaticEnumFast<T>());
+		static const TUniquePtr<FEnumProperty>& Property = *FVoxelObjectUtilities::MakeEnumProperty(StaticEnumFast<T>());
+		return *Property;
 	}
 	template<typename T>
-	static TUniquePtr<FStructProperty> MakeStructProperty()
+	static const FStructProperty& MakeStructProperty()
 	{
-		return FVoxelObjectUtilities::MakeStructProperty(StaticStructFast<T>());
+		static const TUniquePtr<FStructProperty>& Property = FVoxelObjectUtilities::MakeStructProperty(StaticStructFast<T>());
+		return *Property;
 	}
 	template<typename T>
-	static TUniquePtr<FStructProperty> MakeObjectProperty()
+	static const FObjectProperty& MakeObjectProperty()
 	{
-		return FVoxelObjectUtilities::MakeObjectProperty(StaticClassFast<T>());
+		static const TUniquePtr<FObjectProperty>& Property = FVoxelObjectUtilities::MakeObjectProperty(StaticClassFast<T>());
+		return *Property;
 	}
 
 public:
