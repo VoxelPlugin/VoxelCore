@@ -76,8 +76,7 @@ public:
 
 		Elements.Reserve(Number);
 
-		const int32 NewHashSize = TSetAllocator<>::GetNumberOfHashBuckets(Number);
-
+		const int32 NewHashSize = GetHashSize(Number);
 		if (HashSize < NewHashSize)
 		{
 			HashSize = NewHashSize;
@@ -231,6 +230,7 @@ public:
 			Set.Rehash();
 		}
 
+		Set.CheckInvariants();
 		return Ar;
 	}
 
@@ -242,6 +242,8 @@ public:
 	}
 	FORCEINLINE int32 Find(const Type& Value) const
 	{
+		CheckInvariants();
+
 		if (HashSize == 0)
 		{
 			return -1;
@@ -271,6 +273,7 @@ public:
 	FORCEINLINE bool ContainsHashed(const uint32 Hash, const Type& Value) const
 	{
 		checkVoxelSlow(Hash == this->HashValue(Value));
+		CheckInvariants();
 
 		if (HashSize == 0)
 		{
@@ -296,6 +299,8 @@ public:
 	template<typename LambdaType>
 	FORCEINLINE bool Contains(const uint32 Hash, LambdaType Matches) const
 	{
+		CheckInvariants();
+
 		if (HashSize == 0)
 		{
 			return false;
@@ -326,15 +331,14 @@ public:
 	{
 		checkVoxelSlow(Hash == this->HashValue(Value));
 		checkVoxelSlow(!this->Contains(Value));
+		CheckInvariants();
 
 		const int32 NewElementIndex = Elements.Emplace();
 		FElement& Element = Elements[NewElementIndex];
 		Element.Value = Value;
 
-		const int32 DesiredHashSize = TSetAllocator<>::GetNumberOfHashBuckets(Elements.Num());
-		if (HashSize < DesiredHashSize)
+		if (HashSize < GetHashSize(Elements.Num()))
 		{
-			HashSize = DesiredHashSize;
 			Rehash();
 		}
 		else
@@ -354,6 +358,8 @@ public:
 	}
 	FORCEINLINE int32 FindOrAdd(const Type& Value, bool& bIsInSet)
 	{
+		CheckInvariants();
+
 		const uint32 Hash = this->HashValue(Value);
 
 		if (HashSize > 0)
@@ -377,10 +383,8 @@ public:
 		FElement& Element = Elements[NewElementIndex];
 		Element.Value = Value;
 
-		const int32 DesiredHashSize = TSetAllocator<>::GetNumberOfHashBuckets(Elements.Num());
-		if (HashSize < DesiredHashSize)
+		if (HashSize < GetHashSize(Elements.Num()))
 		{
-			HashSize = DesiredHashSize;
 			Rehash();
 		}
 		else
@@ -394,6 +398,8 @@ public:
 	}
 	FORCEINLINE void Add_NoRehash(const Type& Value)
 	{
+		CheckInvariants();
+
 		const uint32 Hash = this->HashValue(Value);
 
 		if (HashSize > 0)
@@ -414,8 +420,7 @@ public:
 		FElement& Element = Elements[NewElementIndex];
 		Element.Value = Value;
 
-		const int32 DesiredHashSize = TSetAllocator<>::GetNumberOfHashBuckets(Elements.Num());
-		checkVoxelSlow(HashSize >= DesiredHashSize);
+		checkVoxelSlow(HashSize >= GetHashSize(Elements.Num()));
 
 		int32& ElementIndex = GetElementIndex(Hash);
 		Element.NextElementIndex = ElementIndex;
@@ -426,9 +431,7 @@ public:
 	FORCENOINLINE void BulkAdd(const ArrayType& NewElements)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(NewElements.Num(), 1024);
-
 		checkVoxelSlow(Num() == 0);
-		HashSize = TSetAllocator<>::GetNumberOfHashBuckets(NewElements.Num());
 
 		FVoxelUtilities::SetNumFast(Elements, NewElements.Num());
 
@@ -489,6 +492,18 @@ private:
 	TVoxelArray<int32, AllocatorType> HashTable;
 	TVoxelArray<FElement, AllocatorType> Elements;
 
+	FORCEINLINE static int32 GetHashSize(const int32 NumElements)
+	{
+		return TSetAllocator<>::GetNumberOfHashBuckets(NumElements);
+	}
+	FORCEINLINE void CheckInvariants() const
+	{
+		if (Elements.Num() > 0)
+		{
+			checkVoxelSlow(HashSize >= GetHashSize(Elements.Num()));
+		}
+	}
+
 	FORCEINLINE int32& GetElementIndex(const uint32 Hash)
 	{
 		checkVoxelSlow(HashSize != 0);
@@ -507,11 +522,8 @@ private:
 		VOXEL_FUNCTION_COUNTER_NUM(HashSize, 1024);
 
 		HashTable.Reset();
-
-		if (HashSize == 0)
-		{
-			return;
-		}
+		HashSize = FMath::Max(HashSize, GetHashSize(Elements.Num()));
+		checkVoxelSlow(HashSize >= 0);
 
 		checkVoxelSlow(FMath::IsPowerOfTwo(HashSize));
 		FVoxelUtilities::SetNumFast(HashTable, HashSize);

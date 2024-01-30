@@ -65,6 +65,8 @@ extern VOXELCORE_API bool GVoxelProfilerInfiniteLoop;
 #define ensureMsgfVoxelSlowNoSideEffects(x, ...) ensureMsgf((x) || GVoxelDisableSlowChecks, ##__VA_ARGS__)
 #define VOXEL_ASSUME(...) check(__VA_ARGS__)
 #define VOXEL_DEBUG_ONLY(...) __VA_ARGS__
+#undef FORCEINLINE
+#define FORCEINLINE inline
 #else
 #define checkVoxelSlow(x)
 #define checkfVoxelSlow(x, ...)

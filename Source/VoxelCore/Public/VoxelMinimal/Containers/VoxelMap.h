@@ -171,8 +171,7 @@ public:
 
 		Elements.Reserve(Number);
 
-		const int32 NewHashSize = TSetAllocator<>::GetNumberOfHashBuckets(Number);
-
+		const int32 NewHashSize = GetHashSize(Number);
 		if (HashSize < NewHashSize)
 		{
 			HashSize = NewHashSize;
@@ -272,6 +271,7 @@ public:
 			Map.Rehash();
 		}
 
+		Map.CheckInvariants();
 		return Ar;
 	}
 
@@ -283,6 +283,7 @@ public:
 	FORCEINLINE ValueType* FindHashed(const uint32 Hash, const KeyType& Key)
 	{
 		checkVoxelSlow(this->HashValue(Key) == Hash);
+		CheckInvariants();
 
 		if (HashSize == 0)
 		{
@@ -336,6 +337,8 @@ public:
 
 	FORCEINLINE ValueType& FindChecked(const KeyType& Key)
 	{
+		CheckInvariants();
+
 		int32 ElementIndex = this->GetElementIndex(this->HashValue(Key));
 		while (true)
 		{
@@ -526,14 +529,13 @@ public:
 	{
 		checkVoxelSlow(!this->Contains(Key));
 		checkVoxelSlow(this->HashValue(Key) == Hash);
+		CheckInvariants();
 
 		const int32 NewElementIndex = Elements.Emplace(Key);
 		FElement& Element = Elements[NewElementIndex];
 
-		const int32 DesiredHashSize = TSetAllocator<>::GetNumberOfHashBuckets(Elements.Num());
-		if (HashSize < DesiredHashSize)
+		if (HashSize < GetHashSize(Elements.Num()))
 		{
-			HashSize = DesiredHashSize;
 			Rehash();
 		}
 		else
@@ -549,12 +551,12 @@ public:
 	{
 		checkVoxelSlow(!this->Contains(Key));
 		checkVoxelSlow(this->HashValue(Key) == Hash);
+		CheckInvariants();
 
 		const int32 NewElementIndex = Elements.Emplace_NoGrow(Key);
 		FElement& Element = Elements[NewElementIndex];
 
-		const int32 DesiredHashSize = TSetAllocator<>::GetNumberOfHashBuckets(Elements.Num());
-		checkVoxelSlow(HashSize >= DesiredHashSize);
+		checkVoxelSlow(HashSize >= GetHashSize(Elements.Num()));
 
 		int32& ElementIndex = this->GetElementIndex(Hash);
 		Element.NextElementIndex = ElementIndex;
@@ -600,6 +602,7 @@ public:
 	{
 		checkVoxelSlow(this->Contains(Key));
 		checkVoxelSlow(this->HashValue(Key) == Hash);
+		CheckInvariants();
 
 		// Find element index, removing any reference to it
 		int32 ElementIndex;
@@ -751,6 +754,18 @@ private:
 	TMapArray<int32> HashTable;
 	TMapArray<FElement> Elements;
 
+	FORCEINLINE static int32 GetHashSize(const int32 NumElements)
+	{
+		return TSetAllocator<>::GetNumberOfHashBuckets(NumElements);
+	}
+	FORCEINLINE void CheckInvariants() const
+	{
+		if (Elements.Num() > 0)
+		{
+			checkVoxelSlow(HashSize >= GetHashSize(Elements.Num()));
+		}
+	}
+
 	FORCEINLINE int32& GetElementIndex(const uint32 Hash)
 	{
 		checkVoxelSlow(HashSize != 0);
@@ -769,11 +784,8 @@ private:
 		VOXEL_FUNCTION_COUNTER_NUM(HashSize, 1024);
 
 		HashTable.Reset();
-
-		if (HashSize == 0)
-		{
-			return;
-		}
+		HashSize = FMath::Max(HashSize, GetHashSize(Elements.Num()));
+		checkVoxelSlow(HashSize >= 0);
 
 		checkVoxelSlow(FMath::IsPowerOfTwo(HashSize));
 		ArrayType::SetNumFast(HashTable, HashSize);
