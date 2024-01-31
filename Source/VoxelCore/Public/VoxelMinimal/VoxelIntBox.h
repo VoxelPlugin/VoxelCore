@@ -26,6 +26,7 @@ struct VOXELCORE_API FVoxelIntBox
 	FIntVector Max = FIntVector(ForceInit);
 
 	static const FVoxelIntBox Infinite;
+	static const FVoxelIntBox InvertedInfinite;
 
 	FVoxelIntBox() = default;
 

@@ -49,7 +49,7 @@ public:
 	>::Value>::Type>
 	FORCEINLINE TVoxelUniqueFunction(FunctorType&& Functor)
 	{
-		this->Bind(MoveTemp(Functor));
+		this->Bind(MoveTempIfPossible(Functor));
 	}
 	TVoxelUniqueFunction(const TVoxelUniqueFunction& Other) = delete;
 
@@ -113,7 +113,7 @@ private:
 		FunctorType Functor;
 
 		explicit TStorage(FunctorType&& Functor)
-			: Functor(MoveTemp(Functor))
+			: Functor(MoveTempIfPossible(Functor))
 		{
 		}
 
@@ -135,7 +135,7 @@ private:
 
 		using FStorage = TStorage<FunctorType>;
 
-		FStorage* Storage = new (GVoxelMemory) FStorage(MoveTemp(Functor));
+		FStorage* Storage = new (GVoxelMemory) FStorage(MoveTempIfPossible(Functor));
 		Storage->Destroy = &FStorage::CallDestroy;
 
 		Callable = &VoxelCall<FunctorType, ReturnType, ArgTypes...>;

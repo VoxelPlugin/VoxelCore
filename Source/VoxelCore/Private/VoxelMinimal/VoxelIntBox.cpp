@@ -4,6 +4,13 @@
 
 // +/- 1024: prevents integers overflow
 const FVoxelIntBox FVoxelIntBox::Infinite = FVoxelIntBox(FIntVector(MIN_int32 + 1024), FIntVector(MAX_int32 - 1024));
+const FVoxelIntBox FVoxelIntBox::InvertedInfinite = []
+{
+	FVoxelIntBox Box;
+	Box.Min = Infinite.Max;
+	Box.Max = Infinite.Min;
+	return Box;
+}();
 
 FVoxelIntBox FVoxelIntBox::FromPositions(const TVoxelArrayView<const FIntVector> Positions)
 {
