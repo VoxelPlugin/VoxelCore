@@ -254,8 +254,8 @@ UTexture2DArray* FVoxelTextureUtilities::CreateTextureArray(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TArray64<uint8> FVoxelTextureUtilities::CompressPng_RGB(
-	const TConstArrayView64<FVoxelColor3>& ColorData,
+TVoxelArray64<uint8> FVoxelTextureUtilities::CompressPng_RGB(
+	const TConstVoxelArrayView64<FVoxelColor3> ColorData,
 	const int32 Width,
 	const int32 Height)
 {
@@ -263,7 +263,7 @@ TArray64<uint8> FVoxelTextureUtilities::CompressPng_RGB(
 
 	check(ColorData.Num() == int64(Width) * int64(Height));
 
-	TArray64<uint8> CompressedData;
+	TVoxelArray64<uint8> CompressedData;
 
 	png_structp PngStruct = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
 	check(PngStruct);
@@ -285,7 +285,7 @@ TArray64<uint8> FVoxelTextureUtilities::CompressPng_RGB(
 		&CompressedData,
 		[](const png_structp PngStruct, const png_bytep Data, const png_size_t Length)
 		{
-			TArray64<uint8>* CompressedDataPtr = static_cast<TArray64<uint8>*>(png_get_io_ptr(PngStruct));
+			TVoxelArray64<uint8>* CompressedDataPtr = static_cast<TVoxelArray64<uint8>*>(png_get_io_ptr(PngStruct));
 			CompressedDataPtr->Append(Data, Length);
 		},
 		nullptr);
@@ -300,8 +300,8 @@ TArray64<uint8> FVoxelTextureUtilities::CompressPng_RGB(
 	return CompressedData;
 }
 
-TArray64<uint8> FVoxelTextureUtilities::CompressPng_Grayscale(
-	const TConstArrayView64<uint16>& GrayscaleData,
+TVoxelArray64<uint8> FVoxelTextureUtilities::CompressPng_Grayscale(
+	const TConstVoxelArrayView64<uint16> GrayscaleData,
 	const int32 Width,
 	const int32 Height)
 {
@@ -328,7 +328,7 @@ TArray64<uint8> FVoxelTextureUtilities::CompressPng_Grayscale(
 		return {};
 	}
 
-	return ImageWrapper->GetCompressed();
+	return TVoxelArray64<uint8>(ImageWrapper->GetCompressed());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -336,7 +336,7 @@ TArray64<uint8> FVoxelTextureUtilities::CompressPng_Grayscale(
 ///////////////////////////////////////////////////////////////////////////////
 
 bool FVoxelTextureUtilities::UncompressPng_RGB(
-	const TConstArrayView64<uint8>& CompressedData,
+	const TConstVoxelArrayView64<uint8> CompressedData,
 	TVoxelArray64<FVoxelColor3>& OutColorData,
 	int32& OutWidth,
 	int32& OutHeight)
@@ -393,7 +393,7 @@ bool FVoxelTextureUtilities::UncompressPng_RGB(
 }
 
 bool FVoxelTextureUtilities::UncompressPng_Grayscale(
-	const TConstArrayView64<uint8>& CompressedData,
+	const TConstVoxelArrayView64<uint8> CompressedData,
 	TVoxelArray64<uint16>& OutGrayscaleData,
 	int32& OutWidth,
 	int32& OutHeight)
