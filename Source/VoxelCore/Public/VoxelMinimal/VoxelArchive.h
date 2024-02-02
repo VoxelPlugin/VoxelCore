@@ -52,7 +52,7 @@ public:
 	}
 
 private:
-	class FArchiveImpl final : public FMemoryArchive
+	class VOXELCORE_API FArchiveImpl final : public FMemoryArchive
 	{
 	public:
 		TVoxelArray64<uint8> Bytes;
@@ -112,7 +112,7 @@ public:
 	}
 
 private:
-	class FArchiveImpl final : public FMemoryArchive
+	class VOXELCORE_API FArchiveImpl final : public FMemoryArchive
 	{
 	public:
 		const TConstVoxelArrayView64<uint8> Bytes;
