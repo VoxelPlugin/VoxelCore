@@ -3,7 +3,10 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "Async/Async.h"
 #include "Async/ParallelFor.h"
+#include "VoxelMinimal/Containers/VoxelArray.h"
+#include "VoxelMinimal/Containers/VoxelArrayView.h"
 
 template<ENamedThreads::Type Thread, ESubsequentsMode::Type SubsequentsMode = ESubsequentsMode::FireAndForget>
 class TVoxelGraphTask
@@ -149,4 +152,39 @@ typename TEnableIf<sizeof(GetNum(DeclVal<ArrayType>())) != 0>::Type ParallelFor(
 			}
 		}
 	}, Flags);
+}
+
+template<typename Type, typename SizeType, typename LambdaType>
+void ParallelFor_ArrayView_Slow(
+	const TVoxelArrayView<Type, SizeType> ArrayView,
+	LambdaType Lambda,
+	const int32 MaxNumThreads = FPlatformMisc::NumberOfCores())
+{
+	if (ArrayView.Num() == 0)
+	{
+		return;
+	}
+
+	TVoxelInlineArray<TFuture<void>, 32> Futures;
+
+	const int64 NumThreads = FMath::Clamp<int64>(MaxNumThreads, 1, ArrayView.Num());
+	for (int32 ThreadIndex = 0; ThreadIndex < NumThreads; ThreadIndex++)
+	{
+		const int64 ElementsPerThreads = FVoxelUtilities::DivideCeil_Positive<int64>(ArrayView.Num(), NumThreads);
+
+		const int64 StartIndex = ThreadIndex * ElementsPerThreads;
+		const int64 EndIndex = FMath::Min<int64>((ThreadIndex + 1) * ElementsPerThreads, ArrayView.Num());
+
+		const TVoxelArrayView<Type, SizeType> ThreadArrayView = ArrayView.Slice(StartIndex, EndIndex - StartIndex);
+
+		Futures.Add(Async(EAsyncExecution::ThreadPool, [=]
+		{
+			Lambda(ThreadArrayView);
+		}));
+	}
+
+	for (const TFuture<void>& Future : Futures)
+	{
+		Future.Wait();
+	}
 }

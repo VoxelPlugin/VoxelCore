@@ -163,6 +163,8 @@ void FVoxelMessageManager::LogMessage_GameThread(const TSharedRef<FVoxelMessage>
 		}
 		break;
 		}
+
+		OnMessageLogged.Broadcast(Message);
 		return;
 	}
 
@@ -191,8 +193,6 @@ void FVoxelMessageManager::LogMessage_GameThread(const TSharedRef<FVoxelMessage>
 	}
 
 	FVoxelUtilities::DelayedCall(LogMessage);
-#else
-	OnMessageLogged.Broadcast(Message);
 #endif
 }
 
