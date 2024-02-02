@@ -436,12 +436,12 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
+	VOXELCORE_API bool IsCompressedData(TConstVoxelArrayView64<uint8> CompressedData);
+
 	VOXELCORE_API TVoxelArray64<uint8> Compress(
 		TConstVoxelArrayView64<uint8> Data,
 		FOodleDataCompression::ECompressor Compressor = FOodleDataCompression::ECompressor::Leviathan,
 		FOodleDataCompression::ECompressionLevel CompressionLevel = FOodleDataCompression::ECompressionLevel::Optimal3);
-
-	VOXELCORE_API bool IsCompressedData(TConstVoxelArrayView64<uint8> CompressedData);
 
 	VOXELCORE_API bool Decompress(
 		TConstVoxelArrayView64<uint8> CompressedData,

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/Containers/VoxelArrayView.h"
 #include "VoxelMinimal/Utilities/VoxelMathUtilities.h"
 
 namespace FVoxelUtilities
@@ -32,6 +33,9 @@ namespace FVoxelUtilities
 	VOXELCORE_API FName Concatenate(const FStringView& String, FName Name);
 	VOXELCORE_API FName Concatenate(FName Name, const FStringView& String);
 	VOXELCORE_API FName Concatenate(FName A, FName B);
+
+	VOXELCORE_API FString BlobToHex(TConstVoxelArrayView64<uint8> Data);
+	VOXELCORE_API TVoxelArray<uint8> HexToBlob(const FString& Source);
 
 	template<typename BuilderType, typename NumberType, typename = typename TEnableIf<std::is_integral_v<NumberType>>::Type>
 	FORCEINLINE void AppendNumber(BuilderType& Builder, const NumberType Number)

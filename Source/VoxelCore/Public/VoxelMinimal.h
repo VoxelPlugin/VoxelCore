@@ -63,6 +63,7 @@
 #include "VoxelMinimal/VoxelStructView.h"
 #include "VoxelMinimal/VoxelSuccess.h"
 #include "VoxelMinimal/VoxelTicker.h"
+#include "VoxelMinimal/VoxelArchive.h"
 #include "VoxelMinimal/VoxelUniqueFunction.h"
 #include "VoxelMinimal/VoxelVirtualStruct.h"
 #include "VoxelMinimal/VoxelWeakPropertyPtr.h"

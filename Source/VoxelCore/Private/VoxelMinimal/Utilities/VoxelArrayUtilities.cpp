@@ -134,6 +134,24 @@ struct FVoxelOodleHeader
 	int64 CompressedSize = 0;
 };
 
+bool FVoxelUtilities::IsCompressedData(const TConstVoxelArrayView64<uint8> CompressedData)
+{
+	if (CompressedData.Num() < sizeof(FVoxelOodleHeader))
+	{
+		return false;
+	}
+
+	const TConstVoxelArrayView<uint8> HeaderBytes = MakeVoxelArrayView(CompressedData).LeftOf(sizeof(FVoxelOodleHeader));
+	const FVoxelOodleHeader Header = FromByteVoxelArrayView<FVoxelOodleHeader>(HeaderBytes);
+
+	if (Header.Tag != FVoxelOodleHeader().Tag)
+	{
+		return false;
+	}
+
+	return true;
+}
+
 TVoxelArray64<uint8> FVoxelUtilities::Compress(
 	const TConstVoxelArrayView64<uint8> Data,
 	const FOodleDataCompression::ECompressor Compressor,
@@ -143,7 +161,7 @@ TVoxelArray64<uint8> FVoxelUtilities::Compress(
 
 	if (Data.Num() == 0)
 	{
-		return TVoxelArray64<uint8>(MakeByteVoxelArrayView(FVoxelOodleHeader()));
+		return {};
 	}
 
 	const int64 WorkingSizeNeeded = FOodleDataCompression::CompressedBufferSizeNeeded(Data.Num());
@@ -180,30 +198,20 @@ TVoxelArray64<uint8> FVoxelUtilities::Compress(
 	return CompressedData;
 }
 
-bool FVoxelUtilities::IsCompressedData(const TConstVoxelArrayView64<uint8> CompressedData)
-{
-	if (CompressedData.Num() < sizeof(FVoxelOodleHeader))
-	{
-		return false;
-	}
-
-	const TConstVoxelArrayView<uint8> HeaderBytes = MakeVoxelArrayView(CompressedData).LeftOf(sizeof(FVoxelOodleHeader));
-	const FVoxelOodleHeader Header = FromByteVoxelArrayView<FVoxelOodleHeader>(HeaderBytes);
-
-	if (Header.Tag != FVoxelOodleHeader().Tag)
-	{
-		return false;
-	}
-
-	return true;
-}
-
 bool FVoxelUtilities::Decompress(
 	const TConstVoxelArrayView64<uint8> CompressedData,
 	TVoxelArray64<uint8>& OutData,
 	const bool bAllowParallel)
 {
 	VOXEL_FUNCTION_COUNTER();
+
+	ensure(OutData.Num() == 0);
+	OutData.Reset();
+
+	if (CompressedData.Num() == 0)
+	{
+		return true;
+	}
 
 	if (!ensureVoxelSlow(CompressedData.Num() >= sizeof(FVoxelOodleHeader)))
 	{

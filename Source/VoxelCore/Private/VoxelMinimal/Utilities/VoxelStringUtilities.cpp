@@ -81,6 +81,10 @@ FText FVoxelUtilities::ConvertToNumberText(double Value)
 	return FText::Format(INVTEXT("{0}{1}"), FText::AsNumber(Value, &Options), FText::FromString(Unit));
 }
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 bool FVoxelUtilities::IsInt(const FStringView& Text)
 {
 	for (const TCHAR& Char : Text)
@@ -133,6 +137,10 @@ bool FVoxelUtilities::IsFloat(const FStringView& Text)
 	return true;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 FName FVoxelUtilities::Concatenate(const FStringView& String, const FName Name)
 {
 	TStringBuilderWithBuffer<TCHAR, NAME_SIZE> Builder;
@@ -155,4 +163,28 @@ FName FVoxelUtilities::Concatenate(const FName A, const FName B)
 	AppendName(Builder, A);
 	AppendName(Builder, B);
 	return FName(Builder);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FString FVoxelUtilities::BlobToHex(const TConstVoxelArrayView64<uint8> Data)
+{
+	return FString::FromHexBlob(Data.GetData(), Data.Num());
+}
+
+TVoxelArray<uint8> FVoxelUtilities::HexToBlob(const FString& Source)
+{
+	if (!ensure(Source.Len() % 2 == 0))
+	{
+		return {};
+	}
+
+	TVoxelArray<uint8> Result;
+	SetNumFast(Result, Source.Len() / 2);
+
+	verify(FString::ToHexBlob(Source, Result.GetData(), Result.Num()));
+
+	return Result;
 }
