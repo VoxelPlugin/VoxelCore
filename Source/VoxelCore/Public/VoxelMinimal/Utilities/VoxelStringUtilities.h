@@ -1,4 +1,4 @@
-﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #pragma once
 
@@ -22,6 +22,11 @@ namespace FVoxelUtilities
 	{
 		ensureVoxelSlowNoSideEffects(IsFloat(Text));
 		return FCString::Atof(Text.GetData());
+	}
+	FORCEINLINE double StringToDouble(const FStringView& Text)
+	{
+		ensureVoxelSlowNoSideEffects(IsFloat(Text));
+		return FCString::Atod(Text.GetData());
 	}
 
 	VOXELCORE_API FName Concatenate(const FStringView& String, FName Name);

@@ -108,7 +108,7 @@ bool FVoxelUtilities::IsInt(const FStringView& Text)
 
 bool FVoxelUtilities::IsFloat(const FStringView& Text)
 {
-	for (const TCHAR Char : Text)
+	for (const TCHAR& Char : Text)
 	{
 		if (Char == TEXT('-') ||
 			Char == TEXT('+'))
