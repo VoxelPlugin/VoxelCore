@@ -689,6 +689,11 @@ public:
 			checkVoxelSlow(ElementPtr);
 			return *ElementPtr;
 		}
+		FORCEINLINE TType<FElement>* operator->() const
+		{
+			checkVoxelSlow(ElementPtr);
+			return ElementPtr;
+		}
 		FORCEINLINE bool operator!=(const TIterator&) const
 		{
 			return ElementPtr != nullptr;
@@ -707,7 +712,7 @@ public:
 
 		FORCEINLINE void RemoveCurrent()
 		{
-			MapPtr->RemoveChecked(Key());
+			MapPtr->RemoveChecked(MakeCopy(Key()));
 			// Check for invalid access
 			ElementPtr = nullptr;
 			Index--;

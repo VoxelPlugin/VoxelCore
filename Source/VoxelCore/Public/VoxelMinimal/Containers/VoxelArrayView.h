@@ -225,3 +225,12 @@ FORCEINLINE const T& FromByteVoxelArrayView(const TConstVoxelArrayView<uint8, Si
 	checkVoxelSlow(Array.Num() == sizeof(T));
 	return *reinterpret_cast<const T*>(Array.GetData());
 }
+
+template<typename T, typename SizeType>
+struct TVoxelConstCast<TVoxelArrayView<const T, SizeType>>
+{
+	FORCEINLINE static const TVoxelArrayView<T, SizeType>& ConstCast(const TVoxelArrayView<const T, SizeType>& Value)
+	{
+		return ReinterpretCastRef<TVoxelArrayView<T, SizeType>>(Value);
+	}
+};

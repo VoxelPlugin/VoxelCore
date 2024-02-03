@@ -347,16 +347,16 @@
     </Expand>
   </Type>
 
-  <!-- TVoxelAddOnlySetElement visualizer -->
-  <Type Name="TVoxelAddOnlySetElement&lt;*&gt;">
+  <!-- TVoxelSetElement visualizer -->
+  <Type Name="TVoxelSetElement&lt;*&gt;">
     <DisplayString>{Value}</DisplayString>
     <Expand>
       <ExpandedItem>Value</ExpandedItem>
     </Expand>
   </Type>
 
-  <!-- TVoxelAddOnlySet visualizer -->
-  <Type Name="TVoxelAddOnlySet&lt;*&gt;">
+  <!-- TVoxelSet visualizer -->
+  <Type Name="TVoxelSet&lt;*&gt;">
     <DisplayString Condition="Elements.ArrayNum == 0">Empty</DisplayString>
     <DisplayString Condition="Elements.ArrayNum &lt; 0">Invalid</DisplayString>
     <DisplayString Condition="Elements.ArrayMax &lt; Elements.ArrayNum">Invalid</DisplayString>

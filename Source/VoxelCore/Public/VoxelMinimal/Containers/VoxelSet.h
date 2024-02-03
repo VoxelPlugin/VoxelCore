@@ -18,26 +18,50 @@ struct TVoxelAddOnlySetElement
 	}
 };
 
+struct FVoxelSetIndex
+{
+public:
+	FVoxelSetIndex() = default;
+	FVoxelSetIndex(const int32 Index)
+		: Index(Index)
+	{
+	}
+
+	FORCEINLINE bool IsValid() const
+	{
+		return Index != -1;
+	}
+	FORCEINLINE operator int32() const
+	{
+		return Index;
+	}
+
+	operator bool() const = delete;
+
+private:
+	int32 Index = -1;
+};
+
 // Smaller footprint than TSet
 // Much faster to Reserve as no sparse array/free list
 template<typename Type, typename AllocatorType = FVoxelAllocator>
-class TVoxelAddOnlySet
+class TVoxelSet
 {
 public:
 	using FElement = TVoxelAddOnlySetElement<Type>;
 
-	TVoxelAddOnlySet() = default;
-	TVoxelAddOnlySet(const TVoxelAddOnlySet&) = default;
-	TVoxelAddOnlySet& operator=(const TVoxelAddOnlySet&) = default;
+	TVoxelSet() = default;
+	TVoxelSet(const TVoxelSet&) = default;
+	TVoxelSet& operator=(const TVoxelSet&) = default;
 
-	TVoxelAddOnlySet(TVoxelAddOnlySet&& Other)
+	TVoxelSet(TVoxelSet&& Other)
 		: HashSize(Other.HashSize)
 		, HashTable(MoveTemp(Other.HashTable))
 		, Elements(MoveTemp(Other.Elements))
 	{
 		Other.Reset();
 	}
-	TVoxelAddOnlySet& operator=(TVoxelAddOnlySet&& Other)
+	TVoxelSet& operator=(TVoxelSet&& Other)
 	{
 		HashSize = Other.HashSize;
 		HashTable = MoveTemp(Other.HashTable);
@@ -104,7 +128,16 @@ public:
 			this->Add(Value);
 		}
 	}
-	FORCENOINLINE TVoxelAddOnlySet Intersect(const TVoxelAddOnlySet& Other) const
+	FORCENOINLINE void Append(const TVoxelSet<Type>& Set)
+	{
+		this->Reserve(Num() + Set.Num());
+
+		for (const Type& Value : Set)
+		{
+			this->Add(Value);
+		}
+	}
+	FORCENOINLINE TVoxelSet Intersect(const TVoxelSet& Other) const
 	{
 		if (Num() < Other.Num())
 		{
@@ -114,7 +147,7 @@ public:
 
 		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 1024);
 
-		TVoxelAddOnlySet Result;
+		TVoxelSet Result;
 		Result.Reserve(Other.Num());
 
 		for(const Type& Value : Other)
@@ -128,11 +161,11 @@ public:
 		}
 		return Result;
 	}
-	FORCENOINLINE TVoxelAddOnlySet Union(const TVoxelAddOnlySet& Other) const
+	FORCENOINLINE TVoxelSet Union(const TVoxelSet& Other) const
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num() + Other.Num(), 1024);
 
-		TVoxelAddOnlySet Result;
+		TVoxelSet Result;
 		Result.Reserve(Num() + Other.Num());
 
 		for (const Type& Value : *this)
@@ -146,11 +179,11 @@ public:
 		return Result;
 	}
 	// Returns all the elements not in Other
-	FORCENOINLINE TVoxelAddOnlySet Difference(const TVoxelAddOnlySet& Other) const
+	FORCENOINLINE TVoxelSet Difference(const TVoxelSet& Other) const
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
 
-		TVoxelAddOnlySet Result;
+		TVoxelSet Result;
 		Result.Reserve(Num()); // Worst case is no elements of this are in Other
 
 		for (const Type& Value : *this)
@@ -164,7 +197,7 @@ public:
 		}
 		return Result;
 	}
-	FORCENOINLINE bool Includes(const TVoxelAddOnlySet& Other) const
+	FORCENOINLINE bool Includes(const TVoxelSet& Other) const
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Other, 1024);
 
@@ -182,9 +215,9 @@ public:
 		}
 		return true;
 	}
-	FORCENOINLINE TVoxelAddOnlySet<Type> Reverse() const
+	FORCENOINLINE TVoxelSet<Type> Reverse() const
 	{
-		TVoxelAddOnlySet<Type> Result;
+		TVoxelSet<Type> Result;
 		Result.Reserve(Num());
 		for (int32 Index = Elements.Num() - 1; Index >= 0; Index--)
 		{
@@ -202,7 +235,7 @@ public:
 		}
 		return Result;
 	}
-	FORCENOINLINE bool OrderIndependentEqual(const TVoxelAddOnlySet& Other) const
+	FORCENOINLINE bool OrderIndependentEqual(const TVoxelSet& Other) const
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
 
@@ -220,8 +253,23 @@ public:
 		}
 		return true;
 	}
+	template<typename ArrayType>
+	FORCENOINLINE void BulkAdd(const ArrayType& NewElements)
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(NewElements.Num(), 1024);
+		checkVoxelSlow(Num() == 0);
 
-	FORCENOINLINE friend FArchive& operator<<(FArchive& Ar, TVoxelAddOnlySet& Set)
+		FVoxelUtilities::SetNumFast(Elements, NewElements.Num());
+
+		for (int32 Index = 0; Index < NewElements.Num(); Index++)
+		{
+			Elements[Index].Value = NewElements[Index];
+		}
+
+		Rehash();
+	}
+
+	FORCENOINLINE friend FArchive& operator<<(FArchive& Ar, TVoxelSet& Set)
 	{
 		Ar << Set.Elements;
 
@@ -240,8 +288,13 @@ public:
 		checkVoxelSlow(Elements.Num() == 1);
 		return Elements[0].Value;
 	}
-	FORCEINLINE int32 Find(const Type& Value) const
+	FORCEINLINE FVoxelSetIndex Find(const Type& Value) const
 	{
+		return this->FindHashed(this->HashValue(Value), Value);
+	}
+	FORCEINLINE FVoxelSetIndex FindHashed(const uint32 Hash, const Type& Value) const
+	{
+		checkVoxelSlow(Hash == this->HashValue(Value));
 		CheckInvariants();
 
 		if (HashSize == 0)
@@ -249,7 +302,7 @@ public:
 			return -1;
 		}
 
-		int32 ElementIndex = this->GetElementIndex(HashValue(Value));
+		int32 ElementIndex = this->GetElementIndex(Hash);
 		while (true)
 		{
 			if (ElementIndex == -1)
@@ -323,11 +376,25 @@ public:
 		}
 	}
 
-	FORCEINLINE int32 Add_CheckNew(const Type& Value)
+	FORCEINLINE FVoxelSetIndex Add_CheckNew(const Type& Value)
 	{
 		return this->AddHashed_CheckNew(this->HashValue(Value), Value);
 	}
-	FORCEINLINE int32 AddHashed_CheckNew(const uint32 Hash, const Type& Value)
+	FORCEINLINE FVoxelSetIndex Add_EnsureNew(const Type& Value)
+	{
+		const uint32 Hash = this->HashValue(Value);
+
+		const FVoxelSetIndex Index = this->FindHashed(Hash, Value);
+		if (Index.IsValid())
+		{
+			ensure(false);
+			return Index;
+		}
+
+		return this->AddHashed_CheckNew(Hash, Value);
+	}
+
+	FORCEINLINE FVoxelSetIndex AddHashed_CheckNew(const uint32 Hash, const Type& Value)
 	{
 		checkVoxelSlow(Hash == this->HashValue(Value));
 		checkVoxelSlow(!this->Contains(Value));
@@ -351,12 +418,12 @@ public:
 		return NewElementIndex;
 	}
 
-	FORCEINLINE int32 Add(const Type& Value)
+	FORCEINLINE FVoxelSetIndex Add(const Type& Value)
 	{
 		bool bIsInSet = false;
 		return this->FindOrAdd(Value, bIsInSet);
 	}
-	FORCEINLINE int32 FindOrAdd(const Type& Value, bool& bIsInSet)
+	FORCEINLINE FVoxelSetIndex FindOrAdd(const Type& Value, bool& bIsInSet)
 	{
 		CheckInvariants();
 
@@ -427,58 +494,166 @@ public:
 		ElementIndex = NewElementIndex;
 	}
 
-	template<typename ArrayType>
-	FORCENOINLINE void BulkAdd(const ArrayType& NewElements)
+public:
+	// Not order-preserving
+	FORCEINLINE bool Remove(const Type& Value)
 	{
-		VOXEL_FUNCTION_COUNTER_NUM(NewElements.Num(), 1024);
-		checkVoxelSlow(Num() == 0);
-
-		FVoxelUtilities::SetNumFast(Elements, NewElements.Num());
-
-		for (int32 Index = 0; Index < NewElements.Num(); Index++)
+		const uint32 Hash = this->HashValue(Value);
+		if (!this->ContainsHashed(Hash, Value))
 		{
-			Elements[Index].Value = NewElements[Index];
+			return false;
 		}
 
-		Rehash();
+		this->RemoveHashedChecked(Hash, Value);
+		return true;
+	}
+	FORCEINLINE void RemoveChecked(const Type& Value)
+	{
+		this->RemoveHashedChecked(this->HashValue(Value), Value);
+	}
+	FORCEINLINE void RemoveHashedChecked(const uint32 Hash, const Type& Value)
+	{
+		checkVoxelSlow(this->Contains(Value));
+		checkVoxelSlow(this->HashValue(Value) == Hash);
+		CheckInvariants();
+
+		// Find element index, removing any reference to it
+		int32 ElementIndex;
+		{
+			int32* ElementIndexPtr = &this->GetElementIndex(Hash);
+			while (true)
+			{
+				FElement& Element = Elements[*ElementIndexPtr];
+				if (!(Element.Value == Value))
+				{
+					ElementIndexPtr = &Element.NextElementIndex;
+					continue;
+				}
+
+				ElementIndex = *ElementIndexPtr;
+				*ElementIndexPtr = Element.NextElementIndex;
+				break;
+			}
+		}
+		checkVoxelSlow(Elements[ElementIndex].Value == Value);
+
+		// If we're the last element just pop
+		if (ElementIndex == Elements.Num() - 1)
+		{
+			Elements.Pop();
+			return;
+		}
+
+		// Otherwise move the last element to our index
+
+		const Type LastValue = Elements.Last().Value;
+		const uint32 LastHash = this->HashValue(LastValue);
+
+		int32* ElementIndexPtr = &this->GetElementIndex(LastHash);
+		while (*ElementIndexPtr != Elements.Num() - 1)
+		{
+			ElementIndexPtr = &Elements[*ElementIndexPtr].NextElementIndex;
+		}
+
+		*ElementIndexPtr = ElementIndex;
+		Elements[ElementIndex] = Elements.Pop();
 	}
 
 public:
-	struct FIterator
+	template<bool bConst>
+	struct TIterator
 	{
-		typename TVoxelArray<FElement>::RangedForConstIteratorType It;
+		template<typename T>
+		using TType = typename TChooseClass<bConst, const T, T>::Result;
 
-		FORCEINLINE explicit FIterator(const typename TVoxelArray<FElement>::RangedForConstIteratorType& It)
-			: It(It)
+		TType<TVoxelSet>* SetPtr = nullptr;
+		TType<FElement>* ElementPtr = nullptr;
+		int32 Index = 0;
+
+		TIterator() = default;
+		FORCEINLINE explicit TIterator(TType<TVoxelSet>& Set)
+			: SetPtr(&Set)
 		{
+			if (Set.Elements.Num() > 0)
+			{
+				ElementPtr = &Set.Elements[0];
+			}
 		}
 
-		FORCEINLINE FIterator& operator++()
+		FORCEINLINE TIterator& operator++()
 		{
-			++It;
+			Index++;
+			if (Index < SetPtr->Elements.Num())
+			{
+				ElementPtr = &SetPtr->Elements[Index];
+			}
+			else
+			{
+				ElementPtr = nullptr;
+			}
 			return *this;
 		}
 		FORCEINLINE explicit operator bool() const
 		{
-			return bool(It);
+			return ElementPtr != nullptr;
 		}
-		FORCEINLINE const Type& operator*() const
+		FORCEINLINE TType<Type>& operator*() const
 		{
-			return (*It).Value;
+			checkVoxelSlow(ElementPtr);
+			return ElementPtr->Value;
 		}
-		FORCEINLINE bool operator!=(const FIterator& Other) const
+		FORCEINLINE TType<Type>* operator->() const
 		{
-			return It != Other.It;
+			checkVoxelSlow(ElementPtr);
+			return &ElementPtr->Value;
+		}
+		FORCEINLINE bool operator!=(const TIterator&) const
+		{
+			return ElementPtr != nullptr;
+		}
+
+		FORCEINLINE TType<Type>& Value() const
+		{
+			checkVoxelSlow(ElementPtr);
+			return ElementPtr->Value;
+		}
+
+		FORCEINLINE void RemoveCurrent()
+		{
+			SetPtr->RemoveChecked(MakeCopy(Value()));
+			// Check for invalid access
+			ElementPtr = nullptr;
+			Index--;
 		}
 	};
+	using FIterator = TIterator<false>;
+	using FConstIterator = TIterator<true>;
 
-	FORCEINLINE FIterator begin() const
+	FORCEINLINE FIterator CreateIterator()
 	{
-		return FIterator(Elements.begin());
+		return FIterator(*this);
 	}
-	FORCEINLINE FIterator end() const
+	FORCEINLINE FConstIterator CreateIterator() const
 	{
-		return FIterator(Elements.end());
+		return FConstIterator(*this);
+	}
+
+	FORCEINLINE FIterator begin()
+	{
+		return CreateIterator();
+	}
+	FORCEINLINE FIterator end()
+	{
+		return {};
+	}
+
+	FORCEINLINE FConstIterator begin() const
+	{
+		return CreateIterator();
+	}
+	FORCEINLINE FConstIterator end() const
+	{
+		return {};
 	}
 
 public:
@@ -541,4 +716,4 @@ private:
 };
 
 template<typename T, int32 NumInlineElements>
-using TVoxelAddOnlySetInline = TVoxelAddOnlySet<T, TVoxelInlineAllocator<NumInlineElements>>;
+using TVoxelInlineSet = TVoxelSet<T, TVoxelInlineAllocator<NumInlineElements>>;

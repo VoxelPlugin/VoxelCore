@@ -287,20 +287,6 @@ struct FVoxelSparseArrayAllocator
 	using BitArrayAllocator = FVoxelAllocator;
 };
 
-struct FVoxelSetAllocator
-{
-	using SparseArrayAllocator = FVoxelSparseArrayAllocator;
-	using HashAllocator = TVoxelInlineAllocator<1>;
-
-	FORCEINLINE static uint32 GetNumberOfHashBuckets(const uint32 NumHashedElements)
-	{
-		return TSetAllocator<>::GetNumberOfHashBuckets(NumHashedElements);
-	}
-};
-
-template<typename T, typename KeyFuncs = DefaultKeyFuncs<T>>
-using TVoxelSet = TSet<T, KeyFuncs, FVoxelSetAllocator>;
-
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

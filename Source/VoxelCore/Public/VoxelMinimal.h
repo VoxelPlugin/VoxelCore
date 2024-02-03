@@ -69,7 +69,7 @@
 #include "VoxelMinimal/VoxelWeakPropertyPtr.h"
 #include "VoxelMinimal/VoxelWorldSubsystem.h"
 
-#include "VoxelMinimal/Containers/VoxelAddOnlySet.h"
+#include "VoxelMinimal/Containers/VoxelSet.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 #include "VoxelMinimal/Containers/VoxelBitArray.h"

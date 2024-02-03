@@ -117,11 +117,20 @@ public:
 		return Index;
 	}
 
-	FORCEINLINE Type& Emplace_GetRef()
+	template<typename... ArgTypes, typename = typename TEnableIf<TIsConstructible<Type, ArgTypes...>::Value>::Type>
+	FORCEINLINE int32 Emplace(ArgTypes&&... Args)
 	{
 		const int32 Index = AddUninitialized();
 		Type& Value = (*this)[Index];
-		new (&Value) Type(MoveTemp(Value));
+		new (&Value) Type(Forward<ArgTypes>(Args)...);
+		return Index;
+	}
+	template<typename... ArgTypes, typename = typename TEnableIf<TIsConstructible<Type, ArgTypes...>::Value>::Type>
+	FORCEINLINE Type& Emplace_GetRef(ArgTypes&&... Args)
+	{
+		const int32 Index = AddUninitialized();
+		Type& Value = (*this)[Index];
+		new (&Value) Type(Forward<ArgTypes>(Args)...);
 		return Value;
 	}
 
