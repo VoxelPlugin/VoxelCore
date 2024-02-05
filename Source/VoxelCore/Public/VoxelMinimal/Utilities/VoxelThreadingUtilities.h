@@ -154,6 +154,37 @@ typename TEnableIf<sizeof(GetNum(DeclVal<ArrayType>())) != 0>::Type ParallelFor(
 	}, Flags);
 }
 
+// Will starve the task graph
+template<typename Type, typename SizeType, typename LambdaType>
+void ParallelFor_ArrayView(
+	const TVoxelArrayView<Type, SizeType> ArrayView,
+	LambdaType Lambda,
+	const int32 MaxNumThreads = FPlatformMisc::NumberOfCores())
+{
+	if (ArrayView.Num() == 0)
+	{
+		return;
+	}
+
+	const int64 NumThreads = FMath::Clamp<int64>(MaxNumThreads, 1, ArrayView.Num());
+	ParallelFor(NumThreads, [&](const int64 ThreadIndex)
+	{
+		const int64 ElementsPerThreads = FVoxelUtilities::DivideCeil_Positive<int64>(ArrayView.Num(), NumThreads);
+
+		const int64 StartIndex = ThreadIndex * ElementsPerThreads;
+		const int64 EndIndex = FMath::Min<int64>((ThreadIndex + 1) * ElementsPerThreads, ArrayView.Num());
+
+		if (StartIndex >= EndIndex)
+		{
+			// Will happen on small arrays
+			return;
+		}
+
+		const TVoxelArrayView<Type, SizeType> ThreadArrayView = ArrayView.Slice(StartIndex, EndIndex - StartIndex);
+		Lambda(ThreadArrayView);
+	});
+}
+
 template<typename Type, typename SizeType, typename LambdaType>
 void ParallelFor_ArrayView_Slow(
 	const TVoxelArrayView<Type, SizeType> ArrayView,
@@ -174,6 +205,12 @@ void ParallelFor_ArrayView_Slow(
 
 		const int64 StartIndex = ThreadIndex * ElementsPerThreads;
 		const int64 EndIndex = FMath::Min<int64>((ThreadIndex + 1) * ElementsPerThreads, ArrayView.Num());
+
+		if (StartIndex >= EndIndex)
+		{
+			// Will happen on small arrays
+			continue;
+		}
 
 		const TVoxelArrayView<Type, SizeType> ThreadArrayView = ArrayView.Slice(StartIndex, EndIndex - StartIndex);
 

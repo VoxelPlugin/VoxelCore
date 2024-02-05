@@ -151,6 +151,11 @@ public:
 		Elements.Reset();
 		HashTable.Reset();
 	}
+	FORCEINLINE void Reset_KeepHashSize()
+	{
+		Elements.Reset();
+		Rehash();
+	}
 	FORCEINLINE void Empty()
 	{
 		HashSize = 0;
