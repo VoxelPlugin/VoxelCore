@@ -6,12 +6,12 @@
 #include "VoxelMinimal/Containers/VoxelArray.h"
 
 template<typename Type>
-struct TVoxelAddOnlySetElement
+struct TVoxelSetElement
 {
 	Type Value;
 	int32 NextElementIndex;
 
-	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, TVoxelAddOnlySetElement& Element)
+	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, TVoxelSetElement& Element)
 	{
 		Ar << Element.Value;
 		return Ar;
@@ -48,7 +48,7 @@ template<typename Type, typename AllocatorType = FVoxelAllocator>
 class TVoxelSet
 {
 public:
-	using FElement = TVoxelAddOnlySetElement<Type>;
+	using FElement = TVoxelSetElement<Type>;
 
 	TVoxelSet() = default;
 	TVoxelSet(const TVoxelSet&) = default;
