@@ -143,8 +143,15 @@ bool FVoxelZipReader::TryLoad(
 		return true;
 	}
 
-	return FVoxelUtilities::Decompress(
+	TVoxelArray64<uint8> UncompressedData;
+	if (!ensure(FVoxelUtilities::Decompress(
 		OutData,
-		OutData,
-		bAllowParallel);
+		UncompressedData,
+		bAllowParallel)))
+	{
+		return false;
+	}
+
+	OutData = MoveTemp(UncompressedData);
+	return true;
 }
