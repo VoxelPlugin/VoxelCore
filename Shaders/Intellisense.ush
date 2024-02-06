@@ -21,6 +21,7 @@
 #define SV_GroupThreadID SV_GroupThreadID
 #define SV_GroupIndex SV_GroupIndex
 #define SV_VertexID SV_VertexID
+#define SV_InstanceID SV_InstanceID
 #define SV_Position SV_Position
 #define SV_Target0 SV_Target0
 #define TEXCOORD0 TEXCOORD0
