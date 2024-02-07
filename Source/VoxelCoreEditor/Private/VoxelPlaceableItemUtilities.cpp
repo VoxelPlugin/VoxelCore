@@ -90,7 +90,7 @@ VOXEL_RUN_ON_STARTUP_EDITOR(UpdateVoxelPlaceableItemsSubMenus)
 		}
 
 		FToolMenuEntry* Entry = Section->FindEntry(VoxelPlaceableItemHandle);
-		if (!ensure(Entry))
+		if (!Entry)
 		{
 			return;
 		}
