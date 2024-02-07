@@ -22,6 +22,8 @@
 #define SV_GroupIndex SV_GroupIndex
 #define SV_VertexID SV_VertexID
 #define SV_InstanceID SV_InstanceID
+#define SV_PrimitiveID SV_PrimitiveID
+#define SV_Barycentrics SV_Barycentrics
 #define SV_Position SV_Position
 #define SV_Target0 SV_Target0
 #define SV_Target1 SV_Target1
