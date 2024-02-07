@@ -24,6 +24,13 @@
 #define SV_InstanceID SV_InstanceID
 #define SV_Position SV_Position
 #define SV_Target0 SV_Target0
+#define SV_Target1 SV_Target1
+#define SV_Target2 SV_Target2
+#define SV_Target3 SV_Target3
+#define SV_Target4 SV_Target4
+#define SV_Target5 SV_Target5
+#define SV_Target6 SV_Target6
+#define SV_Target7 SV_Target7
 #define TEXCOORD0 TEXCOORD0
 #define TEXCOORD1 TEXCOORD1
 #define TEXCOORD2 TEXCOORD2
