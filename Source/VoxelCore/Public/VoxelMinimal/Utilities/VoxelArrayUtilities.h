@@ -440,6 +440,7 @@ namespace FVoxelUtilities
 
 	VOXELCORE_API TVoxelArray64<uint8> Compress(
 		TConstVoxelArrayView64<uint8> Data,
+		bool bAllowParallel = true,
 		FOodleDataCompression::ECompressor Compressor = FOodleDataCompression::ECompressor::Leviathan,
 		FOodleDataCompression::ECompressionLevel CompressionLevel = FOodleDataCompression::ECompressionLevel::Optimal3);
 

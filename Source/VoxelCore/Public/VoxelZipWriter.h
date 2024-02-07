@@ -33,6 +33,7 @@ public:
 	void WriteCompressed_Oodle(
 		const FString& Path,
 		TConstVoxelArrayView64<uint8> Data,
+		bool bAllowParallel = true,
 		FOodleDataCompression::ECompressor Compressor = FOodleDataCompression::ECompressor::Leviathan,
 		FOodleDataCompression::ECompressionLevel CompressionLevel = FOodleDataCompression::ECompressionLevel::Optimal3);
 

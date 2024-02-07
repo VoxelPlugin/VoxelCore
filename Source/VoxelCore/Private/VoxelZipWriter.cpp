@@ -97,12 +97,13 @@ void FVoxelZipWriter::WriteCompressed(
 void FVoxelZipWriter::WriteCompressed_Oodle(
 	const FString& Path,
 	const TConstVoxelArrayView64<uint8> Data,
+	const bool bAllowParallel,
 	const FOodleDataCompression::ECompressor Compressor,
 	const FOodleDataCompression::ECompressionLevel CompressionLevel)
 {
 	VOXEL_SCOPE_COUNTER_FORMAT("FVoxelZipWriter::WriteCompressed_Oodle %s %lldB", *Path, Data.Num());
 
-	const TVoxelArray64<uint8> CompressedData = FVoxelUtilities::Compress(Data, Compressor, CompressionLevel);
+	const TVoxelArray64<uint8> CompressedData = FVoxelUtilities::Compress(Data, bAllowParallel, Compressor, CompressionLevel);
 
 	WriteImpl(Path, CompressedData, MZ_NO_COMPRESSION);
 }

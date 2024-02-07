@@ -154,6 +154,7 @@ bool FVoxelUtilities::IsCompressedData(const TConstVoxelArrayView64<uint8> Compr
 
 TVoxelArray64<uint8> FVoxelUtilities::Compress(
 	const TConstVoxelArrayView64<uint8> Data,
+	const bool bAllowParallel,
 	const FOodleDataCompression::ECompressor Compressor,
 	const FOodleDataCompression::ECompressionLevel CompressionLevel)
 {
@@ -170,6 +171,7 @@ TVoxelArray64<uint8> FVoxelUtilities::Compress(
 	SetNumFast(CompressedData, sizeof(FVoxelOodleHeader) + WorkingSizeNeeded);
 
 	int64 CompressedSize;
+	if (bAllowParallel)
 	{
 		VOXEL_SCOPE_COUNTER_FORMAT("CompressParallel %lldB %s %s",
 			Data.Num(),
@@ -177,6 +179,21 @@ TVoxelArray64<uint8> FVoxelUtilities::Compress(
 			ECompressionLevelToString(CompressionLevel));
 
 		CompressedSize = FOodleDataCompression::UE_503_SWITCH(Compress, CompressParallel)(
+			CompressedData.GetData() + sizeof(FVoxelOodleHeader),
+			WorkingSizeNeeded,
+			Data.GetData(),
+			Data.Num(),
+			Compressor,
+			CompressionLevel);
+	}
+	else
+	{
+		VOXEL_SCOPE_COUNTER_FORMAT("Compress %lldB %s %s",
+			Data.Num(),
+			ECompressorToString(Compressor),
+			ECompressionLevelToString(CompressionLevel));
+
+		CompressedSize = FOodleDataCompression::Compress(
 			CompressedData.GetData() + sizeof(FVoxelOodleHeader),
 			WorkingSizeNeeded,
 			Data.GetData(),
