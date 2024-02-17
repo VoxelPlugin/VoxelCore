@@ -1,5 +1,6 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
+using System.IO;
 using UnrealBuildTool;
 
 public class VoxelCore : ModuleRules
