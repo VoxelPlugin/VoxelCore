@@ -1,4 +1,4 @@
-﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #pragma once
 
@@ -85,6 +85,15 @@ public:
 		for (Type& Value : *this)
 		{
 			Result.Add(&Value);
+		}
+		return Result;
+	}
+	int32 Num() const
+	{
+		int32 Result = 0;
+		for (Type& Value : *this)
+		{
+			Result++;
 		}
 		return Result;
 	}
