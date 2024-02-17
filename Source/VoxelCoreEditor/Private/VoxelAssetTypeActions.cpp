@@ -91,7 +91,7 @@ void FVoxelAssetTypeActionsBase::GetActions(const TArray<UObject*>& InObjects, F
 			{
 				for (UObject* Object : InObjects)
 				{
-					FVoxelObjectUtilities::InvokeFunctionWithNoParameters(Object, Function);
+					FVoxelUtilities::InvokeFunctionWithNoParameters(Object, Function);
 				}
 			})));
 	}

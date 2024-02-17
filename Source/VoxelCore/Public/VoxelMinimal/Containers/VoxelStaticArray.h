@@ -16,7 +16,7 @@ public:
 
 	// Default constructor, only valid for complex types
 	// For trivially destructible types you need to choose whether to init them (ForceInit) or not (NoInit)
-	INTELLISENSE_ONLY(template<typename = typename TEnableIf<!bCanNoInit>::Type>)
+	INTELLISENSE_ONLY(template<typename = std::enable_if_t<!bCanNoInit>>)
 	TVoxelStaticArray()
 	{
 		checkStatic(!bCanNoInit);
@@ -33,7 +33,7 @@ public:
 			new (&Element) T{};
 		}
 	}
-	INTELLISENSE_ONLY(template<typename = typename TEnableIf<bCanNoInit>::Type>)
+	INTELLISENSE_ONLY(template<typename = std::enable_if_t<bCanNoInit>>)
 	FORCEINLINE explicit TVoxelStaticArray(ENoInit)
 	{
 		checkStatic(bCanNoInit);
@@ -46,7 +46,7 @@ public:
 #endif
 	}
 
-	INTELLISENSE_ONLY(template<typename = typename TEnableIf<TIsPODType<T>::Value>::Type>)
+	INTELLISENSE_ONLY(template<typename = std::enable_if_t<TIsPODType<T>::Value>>)
 	FORCEINLINE explicit TVoxelStaticArray(T Value)
 	{
 		static_assert(TIsPODType<T>::Value, "This might have unintended consequences");
@@ -56,7 +56,7 @@ public:
 			new (&Element) T(Value);
 		}
 	}
-	template<typename... TArgs, typename = typename TEnableIf<sizeof...(TArgs) == Size && Size != 1>::Type>
+	template<typename... TArgs, typename = std::enable_if_t<sizeof...(TArgs) == Size && Size != 1>>
 	FORCEINLINE TVoxelStaticArray(TArgs... Args)
 	{
 		static_assert(sizeof...(Args) == Size, "");

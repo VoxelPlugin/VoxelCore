@@ -54,15 +54,21 @@ public:
 	void Initialize(TVoxelArray<FElement>&& Elements);
 	void Shrink();
 
-	const TVoxelArray<FNode>& GetNodes() const
+public:
+	FORCEINLINE const FVoxelBox& GetBounds() const
+	{
+		return RootBounds;
+	}
+	FORCEINLINE TConstVoxelArrayView<FNode> GetNodes() const
 	{
 		return Nodes;
 	}
-	const TVoxelArray<FLeaf>& GetLeaves() const
+	FORCEINLINE TConstVoxelArrayView<FLeaf> GetLeaves() const
 	{
 		return Leaves;
 	}
 
+public:
 	using FBulkRaycastLambda = TFunctionRef<void(int32 Payload, TVoxelArrayView<FVector3f> RayPositions, TVoxelArrayView<FVector3f> RayDirections)>;
 	void BulkRaycast(
 		TConstVoxelArrayView<FVector3f> RayPositions,
@@ -164,7 +170,7 @@ public:
 		return true;
 	}
 
-	bool Overlap(const FVoxelBox& OverlapBounds) const
+	bool Intersect(const FVoxelBox& OverlapBounds) const
 	{
 		return Overlap(OverlapBounds, [](int32)
 		{
@@ -197,9 +203,16 @@ public:
 						continue;
 					}
 
-					if (Lambda(Element.Payload))
+					if constexpr (std::is_void_v<decltype(Lambda(int32()))>)
 					{
-						return true;
+						Lambda(Element.Payload);
+					}
+					else
+					{
+						if (Lambda(Element.Payload))
+						{
+							return true;
+						}
 					}
 				}
 			}
@@ -273,6 +286,7 @@ public:
 	}
 
 private:
+	FVoxelBox RootBounds;
 	TVoxelArray<FNode> Nodes;
 	TVoxelArray<FLeaf> Leaves;
 };

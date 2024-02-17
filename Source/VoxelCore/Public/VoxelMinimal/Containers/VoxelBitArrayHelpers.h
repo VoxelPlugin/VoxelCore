@@ -264,7 +264,7 @@ public:
 	}
 
 	template<typename DataType>
-	FORCEINLINE static typename TEnableIf<!TIsPODType<DataType>::Value, uint32>::Type GetPacked(
+	FORCEINLINE static std::enable_if_t<!TIsPODType<DataType>::Value, uint32> GetPacked(
 		const int32 TypeSizeInBits,
 		const DataType& Data,
 		const int64 Index)
@@ -278,7 +278,7 @@ public:
 		return GetPackedSafe(TypeSizeInBits, reinterpret_cast<const uint32*>(DataPtr), reinterpret_cast<const uint32*>(MaxDataPtr), Index);
 	}
 	template<typename DataType>
-	FORCEINLINE static typename TEnableIf<!TIsPODType<DataType>::Value>::Type SetPacked(
+	FORCEINLINE static std::enable_if_t<!TIsPODType<DataType>::Value> SetPacked(
 		const int32 TypeSizeInBits,
 		DataType& Data,
 		const int64 Index,

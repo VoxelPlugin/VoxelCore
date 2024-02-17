@@ -202,7 +202,7 @@ public:
 
 		if (!ensure(PropertyHandle) ||
 			!ensure(PropertyHandle->GetProperty()) ||
-			!ensure(FVoxelObjectUtilities::MatchesProperty<T>(*PropertyHandle->GetProperty(), false)))
+			!ensure(FVoxelUtilities::MatchesProperty<T>(*PropertyHandle->GetProperty(), false)))
 		{
 			return;
 		}
@@ -225,7 +225,7 @@ public:
 
 		if (!ensure(PropertyHandle) ||
 			!ensure(PropertyHandle->GetProperty()) ||
-			!ensure(FVoxelObjectUtilities::MatchesProperty<T>(*PropertyHandle->GetProperty(), false)))
+			!ensure(FVoxelUtilities::MatchesProperty<T>(*PropertyHandle->GetProperty(), false)))
 		{
 			return;
 		}
@@ -295,7 +295,7 @@ public:
 			return;
 		}
 
-		const FString StringValue = FVoxelObjectUtilities::PropertyToText_Direct(*Property, static_cast<const void*>(&Value), nullptr);
+		const FString StringValue = FVoxelUtilities::PropertyToText_Direct(*Property, static_cast<const void*>(&Value), nullptr);
 		ensure(Handle->SetValueFromFormattedString(StringValue) == FPropertyAccess::Success);
 	}
 

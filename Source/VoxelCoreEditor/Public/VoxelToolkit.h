@@ -71,7 +71,7 @@ public:
 	virtual UScriptStruct* GetDefaultMode() const { return nullptr; }
 
 public:
-	static FVoxelToolkit* OpenToolkit(const UObject& Asset, UScriptStruct* ToolkitStruct);
+	static FVoxelToolkit* OpenToolkit(const UObject& Asset, const UScriptStruct* ToolkitStruct);
 
 	template<typename T>
 	static T* OpenToolkit(const UObject& Asset)

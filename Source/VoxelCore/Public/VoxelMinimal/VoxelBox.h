@@ -153,6 +153,12 @@ struct VOXELCORE_API FVoxelBox
 			Min.Y <= Max.Y &&
 			Min.Z <= Max.Z;
 	}
+	FORCEINLINE bool IsValidAndNotEmpty() const
+	{
+		return
+			IsValid() &&
+			*this != FVoxelBox();
+	}
 
 	FORCEINLINE bool Contains(const double X, const double Y, const double Z) const
 	{
@@ -380,6 +386,10 @@ struct VOXELCORE_API FVoxelBox
 		return Translate(Offset);
 	}
 
+	FVoxelBox TransformBy(const FMatrix& Transform) const;
+	FVoxelBox TransformBy(const FTransform& Transform) const;
+	FVoxelBox InverseTransformBy(const FTransform& Transform) const;
+
 	FORCEINLINE FVoxelBox& operator*=(const double Scale)
 	{
 		Min *= Scale;
@@ -400,61 +410,6 @@ struct VOXELCORE_API FVoxelBox
 	FORCEINLINE bool operator!=(const FVoxelBox& Other) const
 	{
 		return Min != Other.Min || Max != Other.Max;
-	}
-
-	template<typename MatrixType>
-	FVoxelBox TransformByImpl(const MatrixType& Transform) const
-	{
-		if (IsInfinite())
-		{
-			return Infinite;
-		}
-
-		FVector3d Vertices[8] =
-		{
-			FVector3d(Min.X, Min.Y, Min.Z),
-			FVector3d(Max.X, Min.Y, Min.Z),
-			FVector3d(Min.X, Max.Y, Min.Z),
-			FVector3d(Max.X, Max.Y, Min.Z),
-			FVector3d(Min.X, Min.Y, Max.Z),
-			FVector3d(Max.X, Min.Y, Max.Z),
-			FVector3d(Min.X, Max.Y, Max.Z),
-			FVector3d(Max.X, Max.Y, Max.Z)
-		};
-
-		for (int32 Index = 0; Index < 8; Index++)
-		{
-			Vertices[Index] = FVector3d(Transform.TransformPosition(FVector(Vertices[Index])));
-		}
-
-		FVoxelBox NewBox;
-		NewBox.Min = Vertices[0];
-		NewBox.Max = Vertices[0];
-
-		for (int32 Index = 1; Index < 8; Index++)
-		{
-			NewBox.Min = FVoxelUtilities::ComponentMin(NewBox.Min, Vertices[Index]);
-			NewBox.Max = FVoxelUtilities::ComponentMax(NewBox.Max, Vertices[Index]);
-		}
-
-		return NewBox;
-	}
-
-	FVoxelBox TransformBy(const FMatrix44f& Transform) const
-	{
-		return TransformByImpl(FMatrix44d(Transform));
-	}
-	FVoxelBox TransformBy(const FTransform3f& Transform) const
-	{
-		return TransformByImpl(FTransform3d(Transform));
-	}
-	FVoxelBox TransformBy(const FMatrix44d& Transform) const
-	{
-		return TransformByImpl(Transform);
-	}
-	FVoxelBox TransformBy(const FTransform3d& Transform) const
-	{
-		return TransformByImpl(Transform);
 	}
 
 	FORCEINLINE FVoxelBox& operator+=(const FVoxelBox& Other)

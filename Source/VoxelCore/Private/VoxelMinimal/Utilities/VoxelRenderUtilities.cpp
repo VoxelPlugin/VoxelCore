@@ -12,7 +12,13 @@
 #include "TextureResource.h"
 #include "RenderGraphUtils.h"
 #include "RenderTargetPool.h"
+#include "PrimitiveSceneProxy.h"
 #include "Materials/MaterialRenderProxy.h"
+
+#if VOXEL_ENGINE_VERSION < 504
+// Needed to cancel motion blur when reusing proxies
+#include "ScenePrivate.h"
+#endif
 
 FRDGBuilder* FVoxelRDGBuilderScope::StaticBuilder = nullptr;
 
@@ -1070,4 +1076,25 @@ void FVoxelRenderUtilities::KeepAliveThisFrameAndRelease(const TSharedPtr<FRende
 		ensure(Resource.IsUnique());
 		Resource->ReleaseResource();
 	});
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void FVoxelRenderUtilities::ResetPreviousLocalToWorld(
+	const UPrimitiveComponent& Component,
+	const FPrimitiveSceneProxy& SceneProxy)
+{
+#if VOXEL_ENGINE_VERSION < 504
+	// Hack to cancel motion blur when mesh components are reused in the same frame
+	VOXEL_ENQUEUE_RENDER_COMMAND(UpdateTransformCommand)(
+		[&SceneProxy, PreviousLocalToWorld = Component.GetRenderMatrix()](FRHICommandListImmediate& RHICmdList)
+		{
+			FScene& Scene = static_cast<FScene&>(SceneProxy.GetScene());
+			Scene.VelocityData.OverridePreviousTransform(SceneProxy.GetPrimitiveComponentId(), PreviousLocalToWorld);
+		});
+#else
+	EMIT_CUSTOM_WARNING("Fix ScenePrivate.h");
+#endif
 }

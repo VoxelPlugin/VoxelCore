@@ -15,7 +15,7 @@ VOXEL_RUN_ON_STARTUP_EDITOR(RegisterToolkits)
 			continue;
 		}
 
-		TVoxelInstancedStruct<FVoxelToolkit> Toolkit(Struct);
+		const TSharedRef<FVoxelToolkit> Toolkit = MakeSharedStruct<FVoxelToolkit>(Struct);
 
 		const FObjectProperty* Property = Toolkit->GetObjectProperty();
 		if (!Property)

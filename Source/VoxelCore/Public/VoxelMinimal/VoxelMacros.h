@@ -53,16 +53,15 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-extern VOXELCORE_API bool GVoxelDisableSlowChecks;
 extern VOXELCORE_API bool GVoxelProfilerInfiniteLoop;
 
 #if VOXEL_DEBUG
-#define checkVoxelSlow(x) check((x) || GVoxelDisableSlowChecks)
-#define checkfVoxelSlow(x, ...) checkf((x) || GVoxelDisableSlowChecks, ##__VA_ARGS__)
-#define ensureVoxelSlow(x) ensure((x) || GVoxelDisableSlowChecks)
-#define ensureMsgfVoxelSlow(x, ...) ensureMsgf((x) || GVoxelDisableSlowChecks, ##__VA_ARGS__)
-#define ensureVoxelSlowNoSideEffects(x) ensure((x) || GVoxelDisableSlowChecks)
-#define ensureMsgfVoxelSlowNoSideEffects(x, ...) ensureMsgf((x) || GVoxelDisableSlowChecks, ##__VA_ARGS__)
+#define checkVoxelSlow(x) check(x)
+#define checkfVoxelSlow(x, ...) checkf(x, ##__VA_ARGS__)
+#define ensureVoxelSlow(x) ensure(x)
+#define ensureMsgfVoxelSlow(x, ...) ensureMsgf(x, ##__VA_ARGS__)
+#define ensureVoxelSlowNoSideEffects(x) ensure(x)
+#define ensureMsgfVoxelSlowNoSideEffects(x, ...) ensureMsgf(x, ##__VA_ARGS__)
 #define VOXEL_ASSUME(...) check(__VA_ARGS__)
 #define VOXEL_DEBUG_ONLY(...) __VA_ARGS__
 #undef FORCEINLINE
@@ -489,51 +488,51 @@ protected:
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename ToType, typename FromType, typename = typename TEnableIf<sizeof(FromType) == sizeof(ToType)>::Type>
+template<typename ToType, typename FromType, typename = std::enable_if_t<sizeof(FromType) == sizeof(ToType)>>
 FORCEINLINE ToType* ReinterpretCastPtr(FromType* From)
 {
 	return reinterpret_cast<ToType*>(From);
 }
-template<typename ToType, typename FromType, typename = typename TEnableIf<sizeof(FromType) == sizeof(ToType)>::Type>
+template<typename ToType, typename FromType, typename = std::enable_if_t<sizeof(FromType) == sizeof(ToType)>>
 FORCEINLINE const ToType* ReinterpretCastPtr(const FromType* From)
 {
 	return reinterpret_cast<const ToType*>(From);
 }
 
-template<typename ToType, typename FromType, typename = typename TEnableIf<sizeof(FromType) == sizeof(ToType)>::Type>
+template<typename ToType, typename FromType, typename = std::enable_if_t<sizeof(FromType) == sizeof(ToType)>>
 FORCEINLINE ToType& ReinterpretCastRef(FromType& From)
 {
 	return reinterpret_cast<ToType&>(From);
 }
-template<typename ToType, typename FromType, typename = typename TEnableIf<sizeof(FromType) == sizeof(ToType)>::Type>
+template<typename ToType, typename FromType, typename = std::enable_if_t<sizeof(FromType) == sizeof(ToType)>>
 FORCEINLINE const ToType& ReinterpretCastRef(const FromType& From)
 {
 	return reinterpret_cast<const ToType&>(From);
 }
 
-template<typename ToType, typename FromType, typename = typename TEnableIf<sizeof(FromType) == sizeof(ToType) && !TIsReferenceType<FromType>::Value>::Type>
+template<typename ToType, typename FromType, typename = std::enable_if_t<sizeof(FromType) == sizeof(ToType) && !TIsReferenceType<FromType>::Value>>
 FORCEINLINE ToType&& ReinterpretCastRef(FromType&& From)
 {
 	return reinterpret_cast<ToType&&>(From);
 }
 
-template<typename ToType, typename FromType, typename = typename TEnableIf<sizeof(FromType) == sizeof(ToType) && std::is_const_v<FromType> == std::is_const_v<ToType>>::Type>
+template<typename ToType, typename FromType, typename = std::enable_if_t<sizeof(FromType) == sizeof(ToType) && std::is_const_v<FromType> == std::is_const_v<ToType>>>
 FORCEINLINE TSharedPtr<ToType>& ReinterpretCastSharedPtr(TSharedPtr<FromType>& From)
 {
 	return ReinterpretCastRef<TSharedPtr<ToType>>(From);
 }
-template<typename ToType, typename FromType, typename = typename TEnableIf<sizeof(FromType) == sizeof(ToType) && std::is_const_v<FromType> == std::is_const_v<ToType>>::Type>
+template<typename ToType, typename FromType, typename = std::enable_if_t<sizeof(FromType) == sizeof(ToType) && std::is_const_v<FromType> == std::is_const_v<ToType>>>
 FORCEINLINE TSharedRef<ToType>& ReinterpretCastSharedPtr(TSharedRef<FromType>& From)
 {
 	return ReinterpretCastRef<TSharedRef<ToType>>(From);
 }
 
-template<typename ToType, typename FromType, typename = typename TEnableIf<sizeof(FromType) == sizeof(ToType) && std::is_const_v<FromType> == std::is_const_v<ToType>>::Type>
+template<typename ToType, typename FromType, typename = std::enable_if_t<sizeof(FromType) == sizeof(ToType) && std::is_const_v<FromType> == std::is_const_v<ToType>>>
 FORCEINLINE const TSharedPtr<ToType>& ReinterpretCastSharedPtr(const TSharedPtr<FromType>& From)
 {
 	return ReinterpretCastRef<TSharedPtr<ToType>>(From);
 }
-template<typename ToType, typename FromType, typename = typename TEnableIf<sizeof(FromType) == sizeof(ToType) && std::is_const_v<FromType> == std::is_const_v<ToType>>::Type>
+template<typename ToType, typename FromType, typename = std::enable_if_t<sizeof(FromType) == sizeof(ToType) && std::is_const_v<FromType> == std::is_const_v<ToType>>>
 FORCEINLINE const TSharedRef<ToType>& ReinterpretCastSharedRef(const TSharedRef<FromType>& From)
 {
 	return ReinterpretCastRef<TSharedRef<ToType>>(From);
@@ -543,23 +542,23 @@ FORCEINLINE const TSharedRef<ToType>& ReinterpretCastSharedRef(const TSharedRef<
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename ToType, typename FromType, typename Allocator, typename = typename TEnableIf<sizeof(FromType) == sizeof(ToType)>::Type>
+template<typename ToType, typename FromType, typename Allocator, typename = std::enable_if_t<sizeof(FromType) == sizeof(ToType)>>
 FORCEINLINE TArray<ToType, Allocator>& ReinterpretCastArray(TArray<FromType, Allocator>& Array)
 {
 	return reinterpret_cast<TArray<ToType, Allocator>&>(Array);
 }
-template<typename ToType, typename FromType, typename Allocator, typename = typename TEnableIf<sizeof(FromType) == sizeof(ToType)>::Type>
+template<typename ToType, typename FromType, typename Allocator, typename = std::enable_if_t<sizeof(FromType) == sizeof(ToType)>>
 FORCEINLINE const TArray<ToType, Allocator>& ReinterpretCastArray(const TArray<FromType, Allocator>& Array)
 {
 	return reinterpret_cast<const TArray<ToType, Allocator>&>(Array);
 }
 
-template<typename ToType, typename FromType, typename Allocator, typename = typename TEnableIf<sizeof(FromType) == sizeof(ToType)>::Type>
+template<typename ToType, typename FromType, typename Allocator, typename = std::enable_if_t<sizeof(FromType) == sizeof(ToType)>>
 FORCEINLINE TArray<ToType, Allocator>&& ReinterpretCastArray(TArray<FromType, Allocator>&& Array)
 {
 	return reinterpret_cast<TArray<ToType, Allocator>&&>(Array);
 }
-template<typename ToType, typename FromType, typename Allocator, typename = typename TEnableIf<sizeof(FromType) == sizeof(ToType)>::Type>
+template<typename ToType, typename FromType, typename Allocator, typename = std::enable_if_t<sizeof(FromType) == sizeof(ToType)>>
 FORCEINLINE const TArray<ToType, Allocator>&& ReinterpretCastArray(const TArray<FromType, Allocator>&& Array)
 {
 	return reinterpret_cast<const TArray<ToType, Allocator>&&>(Array);
@@ -569,14 +568,14 @@ FORCEINLINE const TArray<ToType, Allocator>&& ReinterpretCastArray(const TArray<
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename ToType, typename ToAllocator, typename FromType, typename Allocator, typename = typename TEnableIf<sizeof(FromType) != sizeof(ToType)>::Type>
+template<typename ToType, typename ToAllocator, typename FromType, typename Allocator, typename = std::enable_if_t<sizeof(FromType) != sizeof(ToType)>>
 FORCEINLINE TArray<ToType, ToAllocator> ReinterpretCastArray_Copy(const TArray<FromType, Allocator>& Array)
 {
 	const int64 NumBytes = Array.Num() * sizeof(FromType);
 	check(NumBytes % sizeof(ToType) == 0);
 	return TArray<ToType, Allocator>(reinterpret_cast<const ToType*>(Array.GetData()), NumBytes / sizeof(ToType));
 }
-template<typename ToType, typename FromType, typename Allocator, typename = typename TEnableIf<sizeof(FromType) != sizeof(ToType)>::Type>
+template<typename ToType, typename FromType, typename Allocator, typename = std::enable_if_t<sizeof(FromType) != sizeof(ToType)>>
 FORCEINLINE TArray<ToType, Allocator> ReinterpretCastArray_Copy(const TArray<FromType, Allocator>& Array)
 {
 	return ReinterpretCastArray_Copy<ToType, Allocator>(Array);
@@ -586,23 +585,23 @@ FORCEINLINE TArray<ToType, Allocator> ReinterpretCastArray_Copy(const TArray<Fro
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename ToType, typename FromType, typename Allocator, typename = typename TEnableIf<sizeof(FromType) == sizeof(ToType)>::Type>
+template<typename ToType, typename FromType, typename Allocator, typename = std::enable_if_t<sizeof(FromType) == sizeof(ToType)>>
 FORCEINLINE TSet<ToType, DefaultKeyFuncs<ToType>, Allocator>& ReinterpretCastSet(TSet<FromType, DefaultKeyFuncs<FromType>, Allocator>& Set)
 {
 	return reinterpret_cast<TSet<ToType, DefaultKeyFuncs<ToType>, Allocator>&>(Set);
 }
-template<typename ToType, typename FromType, typename Allocator, typename = typename TEnableIf<sizeof(FromType) == sizeof(ToType)>::Type>
+template<typename ToType, typename FromType, typename Allocator, typename = std::enable_if_t<sizeof(FromType) == sizeof(ToType)>>
 FORCEINLINE const TSet<ToType, DefaultKeyFuncs<ToType>, Allocator>& ReinterpretCastSet(const TSet<FromType, DefaultKeyFuncs<FromType>, Allocator>& Set)
 {
 	return reinterpret_cast<const TSet<ToType, DefaultKeyFuncs<ToType>, Allocator>&>(Set);
 }
 
-template<typename ToType, typename FromType, typename Allocator, typename = typename TEnableIf<sizeof(FromType) == sizeof(ToType)>::Type>
+template<typename ToType, typename FromType, typename Allocator, typename = std::enable_if_t<sizeof(FromType) == sizeof(ToType)>>
 FORCEINLINE TSet<ToType, DefaultKeyFuncs<ToType>, Allocator>&& ReinterpretCastSet(TSet<FromType, DefaultKeyFuncs<FromType>, Allocator>&& Set)
 {
 	return reinterpret_cast<TSet<ToType, DefaultKeyFuncs<ToType>, Allocator>&&>(Set);
 }
-template<typename ToType, typename FromType, typename Allocator, typename = typename TEnableIf<sizeof(FromType) == sizeof(ToType)>::Type>
+template<typename ToType, typename FromType, typename Allocator, typename = std::enable_if_t<sizeof(FromType) == sizeof(ToType)>>
 FORCEINLINE const TSet<ToType, DefaultKeyFuncs<ToType>, Allocator>&& ReinterpretCastSet(const TSet<FromType, DefaultKeyFuncs<FromType>, Allocator>&& Set)
 {
 	return reinterpret_cast<const TSet<ToType, DefaultKeyFuncs<ToType>, Allocator>&&>(Set);

@@ -24,19 +24,15 @@ public:
 
 	FVoxelInstancedStruct(const FVoxelInstancedStruct& Other)
 	{
-		InitializeAs(Other.ScriptStruct, Other.StructMemory);
+		InitializeAs(Other.GetScriptStruct(), Other.GetStructMemory());
 	}
 
 	FORCEINLINE FVoxelInstancedStruct(FVoxelInstancedStruct&& Other)
-		: ScriptStruct(Other.ScriptStruct)
-		, StructMemory(Other.StructMemory)
+		: PrivateScriptStruct(MoveTemp(Other.PrivateScriptStruct))
+		, PrivateStructMemory(MoveTemp(Other.PrivateStructMemory))
 	{
-		Other.ScriptStruct = nullptr;
-		Other.StructMemory = nullptr;
-	}
-	FORCEINLINE ~FVoxelInstancedStruct()
-	{
-		Reset();
+		Other.PrivateScriptStruct = nullptr;
+		Other.PrivateStructMemory = nullptr;
 	}
 
 public:
@@ -47,7 +43,7 @@ public:
 			return *this;
 		}
 
-		InitializeAs(Other.ScriptStruct, Other.StructMemory);
+		InitializeAs(Other.GetScriptStruct(), Other.GetStructMemory());
 		return *this;
 	}
 
@@ -55,49 +51,16 @@ public:
 	{
 		checkVoxelSlow(this != &Other);
 
-		Reset();
+		PrivateScriptStruct = MoveTemp(Other.PrivateScriptStruct);
+		PrivateStructMemory = MoveTemp(Other.PrivateStructMemory);
 
-		ScriptStruct = Other.ScriptStruct;
-		StructMemory = Other.StructMemory;
-
-		Other.ScriptStruct = nullptr;
-		Other.StructMemory = nullptr;
+		Other.PrivateScriptStruct = nullptr;
+		Other.PrivateStructMemory = nullptr;
 
 		return *this;
 	}
 
-	// Called in move operators so FORCEINLINE
-	FORCEINLINE void Reset()
-	{
-		if (!ScriptStruct)
-		{
-			checkVoxelSlow(!ScriptStruct && !StructMemory);
-			return;
-		}
-
-		Free();
-	}
-
-	void Free();
-	void* Release();
 	void InitializeAs(UScriptStruct* NewScriptStruct, const void* NewStructMemory = nullptr);
-
-	template<typename T>
-	T* Release()
-	{
-		checkVoxelSlow(IsA<T>());
-		return static_cast<T*>(Release());
-	}
-	template<typename T>
-	TVoxelUniquePtr<T> ReleaseUnique()
-	{
-		return TVoxelUniquePtr<T>(Release<T>());
-	}
-	template<typename T>
-	TSharedPtr<T> ReleaseShared()
-	{
-		return MakeVoxelShareable(Release<T>());
-	}
 
 	template<typename T>
 	static FVoxelInstancedStruct Make()
@@ -141,39 +104,39 @@ public:
 	FORCEINLINE UScriptStruct* GetScriptStruct() const
 	{
 #if VOXEL_DEBUG
-		if (ScriptStruct &&
-			ScriptStruct->IsChildOf(StaticStructFast<FVoxelVirtualStruct>()))
+		if (PrivateScriptStruct &&
+			PrivateScriptStruct->IsChildOf(StaticStructFast<FVoxelVirtualStruct>()))
 		{
-			checkVoxelSlow(ScriptStruct == Get<FVoxelVirtualStruct>().GetStruct());
+			checkVoxelSlow(PrivateScriptStruct == reinterpret_cast<const FVoxelVirtualStruct*>(PrivateStructMemory.Get())->GetStruct());
 		}
 #endif
-		return ScriptStruct;
+		return PrivateScriptStruct;
 	}
 
 	FORCEINLINE void* GetStructMemory()
 	{
-		return StructMemory;
+		return PrivateStructMemory.Get();
 	}
 	FORCEINLINE const void* GetStructMemory() const
 	{
-		return StructMemory;
+		return PrivateStructMemory.Get();
 	}
 
 	FORCEINLINE TVoxelArrayView<uint8> GetStructView()
 	{
 		checkVoxelSlow(IsValid());
-		return TVoxelArrayView<uint8>(static_cast<uint8*>(StructMemory), ScriptStruct->GetStructureSize());
+		return TVoxelArrayView<uint8>(static_cast<uint8*>(GetStructMemory()), GetScriptStruct()->GetStructureSize());
 	}
 	FORCEINLINE TConstVoxelArrayView<uint8> GetStructView() const
 	{
 		checkVoxelSlow(IsValid());
-		return TConstVoxelArrayView<uint8>(static_cast<const uint8*>(StructMemory), ScriptStruct->GetStructureSize());
+		return TConstVoxelArrayView<uint8>(static_cast<const uint8*>(GetStructMemory()), GetScriptStruct()->GetStructureSize());
 	}
 
 	FORCEINLINE bool IsValid() const
 	{
-		checkVoxelSlow((ScriptStruct != nullptr) == (StructMemory != nullptr));
-		return ScriptStruct != nullptr;
+		checkVoxelSlow((GetScriptStruct() != nullptr) == (GetStructMemory() != nullptr));
+		return GetScriptStruct() != nullptr;
 	}
 
 public:
@@ -181,7 +144,7 @@ public:
 	{
 		return
 			IsValid() &&
-			ScriptStruct->IsChildOf(Struct);
+			GetScriptStruct()->IsChildOf(Struct);
 	}
 	template<typename T>
 	FORCEINLINE bool IsA() const
@@ -197,7 +160,7 @@ public:
 			return nullptr;
 		}
 
-		return static_cast<T*>(StructMemory);
+		return static_cast<T*>(GetStructMemory());
 	}
 	template<typename T>
 	FORCEINLINE const T* GetPtr() const
@@ -209,7 +172,7 @@ public:
 	FORCEINLINE T& Get()
 	{
 		checkVoxelSlow(IsA<T>());
-		return *static_cast<T*>(StructMemory);
+		return *static_cast<T*>(GetStructMemory());
 	}
 	template<typename T>
 	FORCEINLINE const T& Get() const
@@ -217,6 +180,12 @@ public:
 		return ConstCast(this)->Get<T>();
 	}
 
+	template<typename T>
+	TSharedRef<T> AsShared() const
+	{
+		checkVoxelSlow(IsA<T>())
+		return ReinterpretCastRef<TSharedRef<T>>(PrivateStructMemory);
+	}
 	template<typename T>
 	TSharedRef<T> MakeSharedCopy() const
 	{
@@ -226,12 +195,12 @@ public:
 	FORCEINLINE void CopyFrom(const void* Data)
 	{
 		checkVoxelSlow(IsValid());
-		ScriptStruct->CopyScriptStruct(GetStructMemory(), Data);
+		GetScriptStruct()->CopyScriptStruct(GetStructMemory(), Data);
 	}
 	FORCEINLINE void CopyTo(void* Data) const
 	{
 		checkVoxelSlow(IsValid());
-		ScriptStruct->CopyScriptStruct(Data, GetStructMemory());
+		GetScriptStruct()->CopyScriptStruct(Data, GetStructMemory());
 	}
 
 public:
@@ -245,8 +214,8 @@ public:
 	}
 
 private:
-	UScriptStruct* ScriptStruct = nullptr;
-	void* StructMemory = nullptr;
+	UScriptStruct* PrivateScriptStruct = nullptr;
+	FSharedVoidPtr PrivateStructMemory;
 };
 
 template<>
@@ -273,18 +242,18 @@ struct TVoxelInstancedStruct : private FVoxelInstancedStruct
 public:
 	TVoxelInstancedStruct() = default;
 
-	template<typename OtherType, typename = typename TEnableIf<TIsDerivedFrom<OtherType, T>::Value>::Type>
+	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
 	FORCEINLINE TVoxelInstancedStruct(const TVoxelInstancedStruct<OtherType>& Other)
 		: FVoxelInstancedStruct(Other)
 	{
 	}
-	template<typename OtherType, typename = typename TEnableIf<TIsDerivedFrom<OtherType, T>::Value>::Type>
+	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
 	FORCEINLINE TVoxelInstancedStruct(TVoxelInstancedStruct<OtherType>&& Other)
 		: FVoxelInstancedStruct(MoveTemp(Other))
 	{
 	}
 
-	template<typename OtherType, typename = typename TEnableIf<TIsDerivedFrom<OtherType, T>::Value>::Type>
+	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
 	FORCEINLINE TVoxelInstancedStruct(const OtherType& Other)
 		: FVoxelInstancedStruct(FVoxelInstancedStruct::Make(Other))
 	{
@@ -308,13 +277,13 @@ public:
 	}
 
 public:
-	template<typename OtherType, typename = typename TEnableIf<TIsDerivedFrom<OtherType, T>::Value>::Type>
+	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
 	FORCEINLINE TVoxelInstancedStruct& operator=(const TVoxelInstancedStruct<OtherType>& Other)
 	{
 		FVoxelInstancedStruct::operator=(Other);
 		return *this;
 	}
-	template<typename OtherType, typename = typename TEnableIf<TIsDerivedFrom<OtherType, T>::Value>::Type>
+	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
 	FORCEINLINE TVoxelInstancedStruct& operator=(TVoxelInstancedStruct<OtherType>&& Other)
 	{
 		FVoxelInstancedStruct::operator=(MoveTemp(Other));
@@ -335,15 +304,14 @@ public:
 	}
 
 public:
-	using FVoxelInstancedStruct::Reset;
 	using FVoxelInstancedStruct::GetScriptStruct;
 	using FVoxelInstancedStruct::IsValid;
 	using FVoxelInstancedStruct::IsA;
 	using FVoxelInstancedStruct::AddStructReferencedObjects;
 
-	FORCEINLINE T* Release()
+	FORCEINLINE TSharedRef<T> AsShared()
 	{
-		return static_cast<T*>(FVoxelInstancedStruct::Release());
+		return FVoxelInstancedStruct::AsShared<T>();
 	}
 
 public:
@@ -358,7 +326,7 @@ public:
 		return ConstCast(*this).Get();
 	}
 
-	template<typename OtherType, typename = typename TEnableIf<TIsDerivedFrom<OtherType, T>::Value && !std::is_same_v<OtherType, T>>::Type>
+	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value && !std::is_same_v<OtherType, T>>>
 	FORCEINLINE OtherType& Get()
 	{
 		CheckType();
@@ -366,7 +334,7 @@ public:
 		checkVoxelSlow(IsA<OtherType>());
 		return *static_cast<OtherType*>(GetStructMemory());
 	}
-	template<typename OtherType, typename = typename TEnableIf<TIsDerivedFrom<OtherType, T>::Value && !std::is_same_v<OtherType, T>>::Type>
+	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value && !std::is_same_v<OtherType, T>>>
 	FORCEINLINE const OtherType& Get() const
 	{
 		return ConstCast(*this).template Get<OtherType>();
@@ -384,19 +352,19 @@ public:
 		return static_cast<const T*>(GetStructMemory());
 	}
 
-	template<typename OtherType, typename = typename TEnableIf<TIsDerivedFrom<OtherType, T>::Value && !std::is_same_v<OtherType, T>>::Type>
+	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value && !std::is_same_v<OtherType, T>>>
 	FORCEINLINE OtherType* GetPtr()
 	{
 		return FVoxelInstancedStruct::GetPtr<OtherType>();
 	}
-	template<typename OtherType, typename = typename TEnableIf<TIsDerivedFrom<OtherType, T>::Value && !std::is_same_v<OtherType, T>>::Type>
+	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value && !std::is_same_v<OtherType, T>>>
 	FORCEINLINE const OtherType* GetPtr() const
 	{
 		return FVoxelInstancedStruct::GetPtr<OtherType>();
 	}
 
 public:
-	template<typename OtherType, typename = typename TEnableIf<TIsDerivedFrom<OtherType, T>::Value && !std::is_same_v<OtherType, T>>::Type>
+	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value && !std::is_same_v<OtherType, T>>>
 	FORCEINLINE bool IsA() const
 	{
 		return FVoxelInstancedStruct::IsA<OtherType>();
@@ -408,7 +376,7 @@ public:
 			ensureVoxelSlow(GetScriptStruct()->IsChildOf(StaticStructFast<T>()));
 	}
 
-	template<typename OtherType = T, typename = typename TEnableIf<TIsDerivedFrom<OtherType, T>::Value>::Type>
+	template<typename OtherType = T, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
 	FORCEINLINE TSharedRef<OtherType> MakeSharedCopy() const
 	{
 		return FVoxelInstancedStruct::MakeSharedCopy<OtherType>();

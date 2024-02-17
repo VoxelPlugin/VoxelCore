@@ -930,4 +930,9 @@ public:
 public:
 	static void KeepAliveThisFrame(void* Key, TFunction<void()> Lambda);
 	static void KeepAliveThisFrameAndRelease(const TSharedPtr<FRenderResource>& Resource);
+
+public:
+	static void ResetPreviousLocalToWorld(
+		const UPrimitiveComponent& Component,
+		const FPrimitiveSceneProxy& SceneProxy);
 };

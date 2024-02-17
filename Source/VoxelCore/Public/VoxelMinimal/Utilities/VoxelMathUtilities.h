@@ -61,7 +61,7 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	template<int32 Base, int32 InValue, typename = typename TEnableIf<(InValue > 0)>::Type>
+	template<int32 Base, int32 InValue, typename = std::enable_if_t<(InValue > 0)>>
 	FORCEINLINE constexpr int32 FloorLog()
 	{
 		int32 Value = InValue;
@@ -88,7 +88,7 @@ namespace FVoxelUtilities
 			return Exponent - 1;
 		}
 	}
-	template<int32 Base, int32 InValue, typename = typename TEnableIf<(InValue > 0)>::Type>
+	template<int32 Base, int32 InValue, typename = std::enable_if_t<(InValue > 0)>>
 	FORCEINLINE constexpr int32 CeilLog()
 	{
 		int32 Value = InValue;
@@ -115,7 +115,7 @@ namespace FVoxelUtilities
 			return Exponent + 1;
 		}
 	}
-	template<int32 Base, int32 InValue, typename = typename TEnableIf<(InValue > 0) && FloorLog<Base, InValue>() == CeilLog<Base, InValue>()>::Type>
+	template<int32 Base, int32 InValue, typename = std::enable_if_t<(InValue > 0) && FloorLog<Base, InValue>() == CeilLog<Base, InValue>()>>
 	FORCEINLINE constexpr int32 ExactLog()
 	{
 		int32 Value = InValue;
@@ -132,26 +132,26 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	template<int32 Value, typename = typename TEnableIf<(Value > 0)>::Type>
+	template<int32 Value, typename = std::enable_if_t<(Value > 0)>>
 	constexpr int32 FloorLog2() { return FloorLog<2, Value>(); }
 
-	template<int32 Value, typename = typename TEnableIf<(Value > 0)>::Type>
+	template<int32 Value, typename = std::enable_if_t<(Value > 0)>>
 	constexpr int32 CeilLog2() { return CeilLog<2, Value>(); }
 
-	template<int32 Value, typename = typename TEnableIf<(Value > 0) && FloorLog2<Value>() == CeilLog2<Value>()>::Type>
+	template<int32 Value, typename = std::enable_if_t<(Value > 0) && FloorLog2<Value>() == CeilLog2<Value>()>>
 	constexpr int32 ExactLog2() { return ExactLog<2, Value>(); }
 
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	template<int32 Value, typename = typename TEnableIf<(Value > 0)>::Type>
+	template<int32 Value, typename = std::enable_if_t<(Value > 0)>>
 	constexpr int32 FloorLog10() { return FloorLog<10, Value>(); }
 
-	template<int32 Value, typename = typename TEnableIf<(Value > 0)>::Type>
+	template<int32 Value, typename = std::enable_if_t<(Value > 0)>>
 	constexpr int32 CeilLog10() { return CeilLog<10, Value>(); }
 
-	template<int32 Value, typename = typename TEnableIf<(Value > 0) && FloorLog10<Value>() == CeilLog10<Value>()>::Type>
+	template<int32 Value, typename = std::enable_if_t<(Value > 0) && FloorLog10<Value>() == CeilLog10<Value>()>>
 	constexpr int32 ExactLog10() { return ExactLog<10, Value>(); }
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -254,6 +254,19 @@ namespace FVoxelUtilities
 	{
 		return reinterpret_cast<const uint32&>(Value);
 	}
+
+	FORCEINLINE float NaN()
+	{
+		return FloatBits(0xFFFFFFFF);
+	}
+	FORCEINLINE bool IsNaN(const float Value)
+	{
+		const bool bIsNaN = (IntBits(Value) & 0x7FFFFFFF) > 0x7F800000;
+		checkVoxelSlow(bIsNaN == FMath::IsNaN(Value));
+		return bIsNaN;
+	}
+	template<typename T>
+	bool IsNaN(T) = delete;
 
 	FORCEINLINE bool SignBit(const float Value)
 	{

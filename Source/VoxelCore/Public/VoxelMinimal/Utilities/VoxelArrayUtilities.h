@@ -29,25 +29,25 @@ namespace FVoxelUtilities
 		FMemory::Memset(GetData(Array), Value, GetNum(Array) * sizeof(decltype(*GetData(Array))));
 	}
 
-	template<typename DstArrayType, typename SrcArrayType, typename = typename TEnableIf<
-		!TIsConst<typename TRemoveReference<decltype(*GetData(DeclVal<DstArrayType>()))>::Type>::Value &&
+	template<typename DstArrayType, typename SrcArrayType, typename = std::enable_if_t<
+		!std::is_const_v<std::remove_reference_t<decltype(*GetData(DeclVal<DstArrayType>()))>> &&
 		std::is_same_v<
 			VOXEL_GET_TYPE(*GetData(DeclVal<DstArrayType>())),
 			VOXEL_GET_TYPE(*GetData(DeclVal<SrcArrayType>()))
-		>>::Type>
+		>>>
 	FORCEINLINE void Memcpy(DstArrayType&& Dest, SrcArrayType&& Src)
 	{
 		checkVoxelSlow(GetNum(Dest) == GetNum(Src));
 		FMemory::Memcpy(GetData(Dest), GetData(Src), GetNum(Dest) * sizeof(decltype(*GetData(Dest))));
 	}
 
-	template<typename ArrayTypeA, typename ArrayTypeB, typename = typename TEnableIf<
+	template<typename ArrayTypeA, typename ArrayTypeB, typename = std::enable_if_t<
 		std::is_same_v<
 			VOXEL_GET_TYPE(*GetData(DeclVal<ArrayTypeA>())),
 			VOXEL_GET_TYPE(*GetData(DeclVal<ArrayTypeB>()))
 		> &&
 		TIsTriviallyDestructible<VOXEL_GET_TYPE(*GetData(DeclVal<ArrayTypeA>()))>::Value
-	>::Type>
+	>>
 	FORCEINLINE bool Equal(ArrayTypeA&& A, ArrayTypeB&& B)
 	{
 		return
@@ -90,7 +90,7 @@ namespace FVoxelUtilities
 		FVoxelUtilities::SetNum(Array, int64(Size.X) * int64(Size.Y) * int64(Size.Z));
 	}
 
-	template<typename ArrayType, typename NumType, typename = typename TEnableIf<TIsTriviallyDestructible<VOXEL_GET_TYPE(*::GetData(DeclVal<ArrayType>()))>::Value>::Type>
+	template<typename ArrayType, typename NumType, typename = std::enable_if_t<TIsTriviallyDestructible<VOXEL_GET_TYPE(*::GetData(DeclVal<ArrayType>()))>::Value>>
 	FORCENOINLINE void SetNumFast(ArrayType& Array, NumType Num)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num, 4096);
@@ -98,7 +98,7 @@ namespace FVoxelUtilities
 		Array.Reserve(Num);
 		Array.SetNumUninitialized(Num, false);
 	}
-	template<typename ArrayType, typename = typename TEnableIf<TIsTriviallyDestructible<VOXEL_GET_TYPE(*::GetData(DeclVal<ArrayType>()))>::Value>::Type>
+	template<typename ArrayType, typename = std::enable_if_t<TIsTriviallyDestructible<VOXEL_GET_TYPE(*::GetData(DeclVal<ArrayType>()))>::Value>>
 	FORCEINLINE void SetNumFast(ArrayType& Array, const FIntVector& Size)
 	{
 		FVoxelUtilities::SetNumFast(Array, int64(Size.X) * int64(Size.Y) * int64(Size.Z));
@@ -122,7 +122,7 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	template<typename ArrayType, typename = typename TEnableIf<!TIsConst<typename TRemoveReference<decltype(*GetData(DeclVal<ArrayType>()))>::Type>::Value>::Type>
+	template<typename ArrayType, typename = std::enable_if_t<!std::is_const_v<std::remove_reference_t<decltype(*GetData(DeclVal<ArrayType>()))>>>>
 	FORCENOINLINE void SetAll(ArrayType&& Array, const VOXEL_GET_TYPE(*GetData(DeclVal<ArrayType>())) Value)
 	{
 		using T = VOXEL_GET_TYPE(*GetData(DeclVal<ArrayType>()));

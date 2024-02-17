@@ -87,7 +87,7 @@ TSharedRef<IVoxelWorldSubsystem> IVoxelWorldSubsystem::GetInternal(
 	TSharedRef<IVoxelWorldSubsystem>(*Constructor)())
 {
 	VOXEL_SCOPE_LOCK(GVoxelWorldSubsystemManager->CriticalSection);
-	ensure(!IsInGameThreadFast() || World.ResolveObjectPtr() || !GIsRunning);
+	ensure(!IsInGameThreadFast() || World.ResolveObjectPtr() || !GIsRunning || GIsGarbageCollecting);
 
 	TSharedPtr<IVoxelWorldSubsystem>& Subsystem = GVoxelWorldSubsystemManager->WorldToNameToSubsystem_RequiresLock.FindOrAdd(World).FindOrAdd(Name);
 	if (!Subsystem)

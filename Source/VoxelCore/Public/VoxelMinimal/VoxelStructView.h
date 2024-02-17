@@ -56,7 +56,7 @@ public:
 			checkVoxelSlow(IsA<T>());
 		}
 	}
-	template<typename OtherType, typename = typename TEnableIf<
+	template<typename OtherType, typename = std::enable_if_t<
 		!std::is_same_v<T, OtherType>
 		&&
 		(
@@ -69,7 +69,7 @@ public:
 			TIntegralConstant<bool, std::is_void_v<T> || std::is_void_v<OtherType>>,
 			TIsDerivedFrom<OtherType, T>
 		>::Value
-		>::Type>
+		>>
 	FORCEINLINE TVoxelStructView(const TVoxelStructView<OtherType>& Other)
 	{
 		ScriptStruct = Other.GetStruct();

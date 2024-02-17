@@ -54,9 +54,9 @@ void FVoxelToolkit::AddReferencedObjects(FReferenceCollector& Collector)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FVoxelToolkit* FVoxelToolkit::OpenToolkit(const UObject& Asset, UScriptStruct* ToolkitStruct)
+FVoxelToolkit* FVoxelToolkit::OpenToolkit(const UObject& Asset, const UScriptStruct* ToolkitStruct)
 {
-	const FObjectProperty* ObjectProperty = TVoxelInstancedStruct<FVoxelToolkit>(ToolkitStruct)->GetObjectProperty();
+	const FObjectProperty* ObjectProperty = MakeSharedStruct<FVoxelToolkit>(ToolkitStruct)->GetObjectProperty();
 	if (!ensure(ObjectProperty))
 	{
 		return nullptr;

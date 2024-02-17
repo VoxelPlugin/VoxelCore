@@ -17,7 +17,7 @@
 #pragma warning(disable : 4702)
 
 // Common includes
-#include "CoreMinimal.h" 
+#include "CoreMinimal.h"
 #include "EngineUtils.h"
 #include "Engine/World.h"
 #include "UObject/Package.h"

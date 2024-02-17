@@ -93,7 +93,7 @@ struct TVoxelMemoryDeleter
 {
 	TVoxelMemoryDeleter() = default;
 
-	template<typename OtherType, typename = typename TEnableIf<TIsDerivedFrom<OtherType, T>::Value>::Type>
+	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
 	TVoxelMemoryDeleter(const TVoxelMemoryDeleter<OtherType>&)
 	{
 	}
@@ -297,26 +297,26 @@ FORCEINLINE TSharedRef<T> MakeVoxelShareable(T* Object)
 	FVoxelMemory::CheckIsVoxelAlloc(Object);
 	return TSharedRef<T>(Object, TVoxelMemoryDeleter<T>());
 }
-template<typename T, typename... ArgsTypes, typename = std::enable_if_t<std::is_constructible_v<T, ArgsTypes...>>>
-FORCEINLINE TSharedRef<T> MakeVoxelShared(ArgsTypes&&... Args)
+template<typename T, typename... ArgTypes, typename = std::enable_if_t<std::is_constructible_v<T, ArgTypes...>>>
+FORCEINLINE TSharedRef<T> MakeVoxelShared(ArgTypes&&... Args)
 {
-	return MakeVoxelShareable(new (GVoxelMemory) T(Forward<ArgsTypes>(Args)...));
+	return MakeVoxelShareable(new (GVoxelMemory) T(Forward<ArgTypes>(Args)...));
 }
 
-template<typename T, typename... ArgsTypes, typename = std::enable_if_t<std::is_constructible_v<T, ArgsTypes...>>>
-FORCEINLINE TVoxelUniquePtr<T> MakeVoxelUnique(ArgsTypes&&... Args)
+template<typename T, typename... ArgTypes, typename = std::enable_if_t<std::is_constructible_v<T, ArgTypes...>>>
+FORCEINLINE TVoxelUniquePtr<T> MakeVoxelUnique(ArgTypes&&... Args)
 {
-	return TVoxelUniquePtr<T>(new (GVoxelMemory) T(Forward<ArgsTypes>(Args)...));
+	return TVoxelUniquePtr<T>(new (GVoxelMemory) T(Forward<ArgTypes>(Args)...));
 }
 
 // Need TEnableIf as &&& is equivalent to &, so T could get matched with Smthg&
 template<typename T>
-FORCEINLINE typename TEnableIf<!TIsReferenceType<T>::Value, TSharedRef<T>>::Type MakeSharedCopy(T&& Data)
+FORCEINLINE std::enable_if_t<!TIsReferenceType<T>::Value, TSharedRef<T>> MakeSharedCopy(T&& Data)
 {
 	return MakeVoxelShared<T>(MoveTemp(Data));
 }
 template<typename T>
-FORCEINLINE typename TEnableIf<!TIsReferenceType<T>::Value, TVoxelUniquePtr<T>>::Type MakeUniqueCopy(T&& Data)
+FORCEINLINE std::enable_if_t<!TIsReferenceType<T>::Value, TVoxelUniquePtr<T>> MakeUniqueCopy(T&& Data)
 {
 	return MakeVoxelUnique<T>(MoveTemp(Data));
 }

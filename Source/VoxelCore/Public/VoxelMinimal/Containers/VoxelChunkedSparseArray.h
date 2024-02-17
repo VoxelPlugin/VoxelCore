@@ -117,7 +117,7 @@ public:
 		return Index;
 	}
 
-	template<typename... ArgTypes, typename = typename TEnableIf<TIsConstructible<Type, ArgTypes...>::Value>::Type>
+	template<typename... ArgTypes, typename = std::enable_if_t<TIsConstructible<Type, ArgTypes...>::Value>>
 	FORCEINLINE int32 Emplace(ArgTypes&&... Args)
 	{
 		const int32 Index = AddUninitialized();
@@ -125,7 +125,7 @@ public:
 		new (&Value) Type(Forward<ArgTypes>(Args)...);
 		return Index;
 	}
-	template<typename... ArgTypes, typename = typename TEnableIf<TIsConstructible<Type, ArgTypes...>::Value>::Type>
+	template<typename... ArgTypes, typename = std::enable_if_t<TIsConstructible<Type, ArgTypes...>::Value>>
 	FORCEINLINE Type& Emplace_GetRef(ArgTypes&&... Args)
 	{
 		const int32 Index = AddUninitialized();

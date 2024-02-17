@@ -49,7 +49,7 @@ FORCEINLINE TWeakPtr<T> MakeWeakPtr(const TSharedRef<T>& Ptr)
 ///////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-FORCEINLINE typename TEnableIf<!TIsReferenceType<T>::Value, T>::Type MakeCopy(T&& Data)
+FORCEINLINE std::enable_if_t<!TIsReferenceType<T>::Value, T> MakeCopy(T&& Data)
 {
 	return MoveTemp(Data);
 }
@@ -175,6 +175,18 @@ FORCEINLINE void ClearSharedRefReferencer(TSharedRef<T>& Ptr)
 	ClearSharedPtrReferencer(ReinterpretCastRef<TSharedPtr<T>>(Ptr));
 }
 
+template<typename T, typename LambdaType, typename... ArgTypes, typename = std::enable_if_t<std::is_constructible_v<T, ArgTypes...>>>
+FORCEINLINE TSharedRef<T> MakeShared_OnDestroy(LambdaType&& OnDestroy, ArgTypes&&... Args)
+{
+	return ReinterpretCastRef<TSharedRef<T>>(TSharedPtr<T>(
+		new (GVoxelMemory) T(Forward<ArgTypes>(Args)...),
+		[OnDestroy = MoveTemp(OnDestroy)](T* Object)
+		{
+			OnDestroy();
+			FVoxelMemory::Delete(Object);
+		}));
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -189,17 +201,17 @@ using FSharedVoidRef = TSharedRef<Voxel::Internal::FVoidPtr>;
 using FWeakVoidPtr = TWeakPtr<Voxel::Internal::FVoidPtr>;
 
 template<typename T>
-FORCEINLINE FWeakVoidPtr MakeWeakVoidPtr(const TWeakPtr<T>& Ptr)
+FORCEINLINE const FWeakVoidPtr& MakeWeakVoidPtr(const TWeakPtr<T>& Ptr)
 {
 	return ReinterpretCastRef<FWeakVoidPtr>(Ptr);
 }
 template<typename T>
-FORCEINLINE FSharedVoidPtr MakeSharedVoidPtr(const TSharedPtr<T>& Ptr)
+FORCEINLINE const FSharedVoidPtr& MakeSharedVoidPtr(const TSharedPtr<T>& Ptr)
 {
 	return ReinterpretCastRef<FSharedVoidPtr>(Ptr);
 }
 template<typename T>
-FORCEINLINE FSharedVoidRef MakeSharedVoidRef(const TSharedRef<T>& Ptr)
+FORCEINLINE const FSharedVoidRef& MakeSharedVoidRef(const TSharedRef<T>& Ptr)
 {
 	return ReinterpretCastRef<FSharedVoidRef>(Ptr);
 }

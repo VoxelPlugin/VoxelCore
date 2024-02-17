@@ -9,8 +9,11 @@ VOXEL_RUN_ON_STARTUP_GAME(CheckVoxelVirtualStruct)
 {
 	for (UScriptStruct* Struct : GetDerivedStructs<FVoxelVirtualStruct>())
 	{
-		TVoxelInstancedStruct<FVoxelVirtualStruct> Instance(Struct);
-		ensureAlwaysMsgf(Instance->GetStruct() == Struct, TEXT("Missing %s() in %s"), *Instance->Internal_GetMacroName(), *Struct->GetStructCPPName());
+		const TSharedRef<FVoxelVirtualStruct> Instance = MakeSharedStruct<FVoxelVirtualStruct>(Struct);
+
+		ensureAlwaysMsgf(Instance->GetStruct() == Struct, TEXT("Missing %s() in %s"),
+			*Instance->Internal_GetMacroName(),
+			*Struct->GetStructCPPName());
 	}
 }
 #endif
@@ -37,7 +40,7 @@ TSharedRef<FVoxelVirtualStruct> FVoxelVirtualStruct::MakeSharedCopy() const
 
 void FVoxelVirtualStruct::AddStructReferencedObjects(FReferenceCollector& Collector)
 {
-	FVoxelObjectUtilities::AddStructReferencedObjects(Collector, MakeVoxelStructView(*this));
+	FVoxelUtilities::AddStructReferencedObjects(Collector, MakeVoxelStructView(*this));
 }
 
 bool FVoxelVirtualStruct::Equals_UPropertyOnly(

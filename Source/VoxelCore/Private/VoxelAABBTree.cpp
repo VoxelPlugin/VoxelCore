@@ -59,6 +59,8 @@ void FVoxelAABBTree::Initialize(TVoxelArray<FElement>&& InElements)
 		NodeToProcess->NodeLevel = 0;
 		NodeToProcess->NodeIndex = Nodes.Emplace();
 
+		RootBounds = NodeToProcess->Bounds;
+
 		NodesToProcess.Add(MoveTemp(NodeToProcess));
 	}
 

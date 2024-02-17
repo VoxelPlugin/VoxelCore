@@ -4,11 +4,6 @@
 #include "Interfaces/IPluginManager.h"
 
 VOXEL_CONSOLE_VARIABLE(
-	VOXELCORE_API, bool, GVoxelDisableSlowChecks, false,
-	"voxel.DisableSlowChecks",
-	"Disable slow checks if VOXEL_DEBUG is 1. Does not affect performance.");
-
-VOXEL_CONSOLE_VARIABLE(
 	VOXELCORE_API, bool, GVoxelProfilerInfiniteLoop, false,
 	"voxel.profiler.InfiniteLoop",
 	".");

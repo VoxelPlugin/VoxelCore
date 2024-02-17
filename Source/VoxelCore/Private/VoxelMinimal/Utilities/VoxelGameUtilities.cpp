@@ -1,7 +1,6 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
-#include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/GameViewportClient.h"
 
@@ -15,7 +14,7 @@ VOXEL_CONSOLE_VARIABLE(
 	"voxel.FreezeCamera",
 	"");
 
-FViewport* FVoxelGameUtilities::GetViewport(const UWorld* World)
+FViewport* FVoxelUtilities::GetViewport(const UWorld* World)
 {
 	VOXEL_FUNCTION_COUNTER();
 	ensure(IsInGameThread());
@@ -65,7 +64,7 @@ FViewport* FVoxelGameUtilities::GetViewport(const UWorld* World)
 	}
 }
 
-bool FVoxelGameUtilities::GetCameraView(const UWorld* World, FVector& OutPosition, FRotator& OutRotation, float& OutFOV)
+bool FVoxelUtilities::GetCameraView(const UWorld* World, FVector& OutPosition, FRotator& OutRotation, float& OutFOV)
 {
 	VOXEL_FUNCTION_COUNTER();
 	ensure(IsInGameThread());
@@ -232,88 +231,18 @@ public:
 };
 FVoxelActorSelectionTracker* GVoxelActorSelectionTracker = new FVoxelActorSelectionTracker();
 
-bool FVoxelGameUtilities::IsActorSelected_AnyThread(const FObjectKey Actor)
+bool FVoxelUtilities::IsActorSelected_AnyThread(const FObjectKey Actor)
 {
 	VOXEL_SCOPE_LOCK(GVoxelActorSelectionTracker->CriticalSection);
 	return GVoxelActorSelectionTracker->SelectedActors_RequiresLock.Contains(Actor);
 }
 #endif
 
-void FVoxelGameUtilities::CopyBodyInstance(FBodyInstance& Dest, const FBodyInstance& Source)
+void FVoxelUtilities::CopyBodyInstance(FBodyInstance& Dest, const FBodyInstance& Source)
 {
 	VOXEL_FUNCTION_COUNTER();
 	check(IsInGameThread());
 
 	Dest.CopyRuntimeBodyInstancePropertiesFrom(&Source);
 	Dest.SetObjectType(Source.GetObjectType());
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-void FVoxelGameUtilities::DrawLine(
-	const FObjectKey World,
-	const FVector& Start,
-	const FVector& End,
-	const FLinearColor& Color,
-	const float Thickness,
-	const float LifeTime)
-{
-	FVoxelUtilities::RunOnGameThread([=]
-	{
-		VOXEL_FUNCTION_COUNTER();
-
-		const UWorld* WorldObject = Cast<UWorld>(World.ResolveObjectPtr());
-		if (!ensure(WorldObject))
-		{
-			return;
-		}
-
-		DrawDebugLine(
-			WorldObject,
-			Start,
-			End,
-			Color.ToFColor(true),
-			false,
-			LifeTime,
-			0,
-			Thickness);
-	});
-}
-
-void FVoxelGameUtilities::DrawBox(
-	const FObjectKey World,
-	const FVoxelBox& Box,
-	const FMatrix& Transform,
-	const FLinearColor& Color,
-	const float Thickness,
-	const float LifeTime)
-{
-	VOXEL_FUNCTION_COUNTER();
-
-	if (Box.IsInfinite())
-	{
-		return;
-	}
-
-	const auto Get = [&](const double X, const double Y, const double Z)
-	{
-		return Transform.TransformPosition(FVector(X, Y, Z));
-	};
-
-	DrawLine(World, Get(Box.Min.X, Box.Min.Y, Box.Min.Z), Get(Box.Max.X, Box.Min.Y, Box.Min.Z), Color, Thickness, LifeTime);
-	DrawLine(World, Get(Box.Min.X, Box.Max.Y, Box.Min.Z), Get(Box.Max.X, Box.Max.Y, Box.Min.Z), Color, Thickness, LifeTime);
-	DrawLine(World, Get(Box.Min.X, Box.Min.Y, Box.Max.Z), Get(Box.Max.X, Box.Min.Y, Box.Max.Z), Color, Thickness, LifeTime);
-	DrawLine(World, Get(Box.Min.X, Box.Max.Y, Box.Max.Z), Get(Box.Max.X, Box.Max.Y, Box.Max.Z), Color, Thickness, LifeTime);
-
-	DrawLine(World, Get(Box.Min.X, Box.Min.Y, Box.Min.Z), Get(Box.Min.X, Box.Max.Y, Box.Min.Z), Color, Thickness, LifeTime);
-	DrawLine(World, Get(Box.Max.X, Box.Min.Y, Box.Min.Z), Get(Box.Max.X, Box.Max.Y, Box.Min.Z), Color, Thickness, LifeTime);
-	DrawLine(World, Get(Box.Min.X, Box.Min.Y, Box.Max.Z), Get(Box.Min.X, Box.Max.Y, Box.Max.Z), Color, Thickness, LifeTime);
-	DrawLine(World, Get(Box.Max.X, Box.Min.Y, Box.Max.Z), Get(Box.Max.X, Box.Max.Y, Box.Max.Z), Color, Thickness, LifeTime);
-
-	DrawLine(World, Get(Box.Min.X, Box.Min.Y, Box.Min.Z), Get(Box.Min.X, Box.Min.Y, Box.Max.Z), Color, Thickness, LifeTime);
-	DrawLine(World, Get(Box.Max.X, Box.Min.Y, Box.Min.Z), Get(Box.Max.X, Box.Min.Y, Box.Max.Z), Color, Thickness, LifeTime);
-	DrawLine(World, Get(Box.Min.X, Box.Max.Y, Box.Min.Z), Get(Box.Min.X, Box.Max.Y, Box.Max.Z), Color, Thickness, LifeTime);
-	DrawLine(World, Get(Box.Max.X, Box.Max.Y, Box.Min.Z), Get(Box.Max.X, Box.Max.Y, Box.Max.Z), Color, Thickness, LifeTime);
 }

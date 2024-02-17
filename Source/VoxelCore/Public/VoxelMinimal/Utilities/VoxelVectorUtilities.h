@@ -52,14 +52,14 @@ namespace FVoxelUtilities
 	}
 
 	template<typename Vector, typename Result = Vector>
-	using TEnableIfAnyVector2 = typename TEnableIf<std::is_same_v<Vector, FIntPoint> || std::is_same_v<Vector, FVector2f> || std::is_same_v<Vector, FVector2d>, Result>::Type;
+	using TEnableIfAnyVector2 = std::enable_if_t<std::is_same_v<Vector, FIntPoint> || std::is_same_v<Vector, FVector2f> || std::is_same_v<Vector, FVector2d>, Result>;
 	template<typename Vector, typename Result = Vector>
-	using TEnableIfAnyVector3 = typename TEnableIf<std::is_same_v<Vector, FIntVector> || std::is_same_v<Vector, FVector3f> || std::is_same_v<Vector, FVector3d>, Result>::Type;
+	using TEnableIfAnyVector3 = std::enable_if_t<std::is_same_v<Vector, FIntVector> || std::is_same_v<Vector, FVector3f> || std::is_same_v<Vector, FVector3d>, Result>;
 
 	template<typename Vector, typename Result = Vector>
-	using TEnableIfFloatVector2 = typename TEnableIf<std::is_same_v<Vector, FVector2f> || std::is_same_v<Vector, FVector2d>, Result>::Type;
+	using TEnableIfFloatVector2 = std::enable_if_t<std::is_same_v<Vector, FVector2f> || std::is_same_v<Vector, FVector2d>, Result>;
 	template<typename Vector, typename Result = Vector>
-	using TEnableIfFloatVector3 = typename TEnableIf<std::is_same_v<Vector, FVector3f> || std::is_same_v<Vector, FVector3d>, Result>::Type;
+	using TEnableIfFloatVector3 = std::enable_if_t<std::is_same_v<Vector, FVector3f> || std::is_same_v<Vector, FVector3d>, Result>;
 
 	template<typename VectorType>
 	FORCEINLINE TEnableIfFloatVector2<VectorType> RoundToFloat(const VectorType& Vector)

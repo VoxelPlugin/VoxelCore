@@ -9,7 +9,7 @@ void FVoxelCategoryBuilder::AddProperty(
 	TSharedPtr<FCategory> CategoryRef = RootCategory;
 	if (!Category.IsEmpty())
 	{
-		for (const FString& SubCategory : FVoxelObjectUtilities::ParseCategory(Category))
+		for (const FString& SubCategory : FVoxelUtilities::ParseCategory(Category))
 		{
 			TSharedPtr<FCategory>& SubCategoryRef = CategoryRef->NameToChild.FindOrAdd(FName(SubCategory));
 			if (!SubCategoryRef)

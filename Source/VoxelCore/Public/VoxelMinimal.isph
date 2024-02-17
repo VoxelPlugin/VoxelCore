@@ -971,17 +971,48 @@ FORCEINLINE float DistanceSquared(const float3 A, const float3 B)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+struct double2x2
+{
+	double M[2][2];
+};
+
+FORCEINLINE double2 TransformPosition(const double2x2 Matrix, const double2 Position)
+{
+	return MakeDouble2(
+		Position.x * Matrix.M[0][0] + Position.y * Matrix.M[1][0],
+		Position.x * Matrix.M[0][1] + Position.y * Matrix.M[1][1]);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+struct FTransform2d
+{
+	double2x2 Matrix;
+	double2 Translation;
+};
+
+FORCEINLINE double2 TransformPosition(const FTransform2d Transform, const double2 Position)
+{
+	return TransformPosition(Transform.Matrix, Position) + Transform.Translation;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 struct float4x4
 {
 	float M[16];
 };
 
-FORCEINLINE float3 MatrixTransformPosition(const float4x4 Matrix, const float3 Vector)
+FORCEINLINE float3 TransformPosition(const float4x4 Matrix, const float3 Position)
 {
 	return MakeFloat3(
-		Matrix.M[0] * Vector.x + Matrix.M[4] * Vector.y + Matrix.M[8] * Vector.z + Matrix.M[12],
-		Matrix.M[1] * Vector.x + Matrix.M[5] * Vector.y + Matrix.M[9] * Vector.z + Matrix.M[13],
-		Matrix.M[2] * Vector.x + Matrix.M[6] * Vector.y + Matrix.M[10] * Vector.z + Matrix.M[14]);
+		Matrix.M[0] * Position.x + Matrix.M[4] * Position.y + Matrix.M[8] * Position.z + Matrix.M[12],
+		Matrix.M[1] * Position.x + Matrix.M[5] * Position.y + Matrix.M[9] * Position.z + Matrix.M[13],
+		Matrix.M[2] * Position.x + Matrix.M[6] * Position.y + Matrix.M[10] * Position.z + Matrix.M[14]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1326,6 +1357,26 @@ FORCEINLINE float3 UnrotateVector(const float3 Position, const float4 Rotation)
 	const float3 T = 2.f * cross(Q, Position);
 
 	return Position + (Rotation.w * T) + cross(Q, T);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FORCEINLINE float2 RotateVector2D(const float2 Position, const float2 Rotation)
+{
+	float2 Result;
+	Result.x = Position.x * Rotation.x - Position.y * Rotation.y;
+	Result.y = Position.x * Rotation.y + Position.y * Rotation.x;
+	return Result;
+}
+
+FORCEINLINE double2 RotateVector2D(const double2 Position, const double2 Rotation)
+{
+	double2 Result;
+	Result.x = Position.x * Rotation.x - Position.y * Rotation.y;
+	Result.y = Position.x * Rotation.y + Position.y * Rotation.x;
+	return Result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

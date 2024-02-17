@@ -3,34 +3,9 @@
 #include "VoxelMinimal.h"
 #include "UObject/UObjectThreadContext.h"
 
-void FVoxelInstancedStruct::Free()
-{
-	if (!ensure(ScriptStruct) ||
-		!ensure(StructMemory))
-	{
-		return;
-	}
-
-	FVoxelObjectUtilities::DestroyStruct_Safe(ScriptStruct, StructMemory);
-	FVoxelMemory::Free(StructMemory);
-
-	ScriptStruct = nullptr;
-	StructMemory = nullptr;
-}
-
-void* FVoxelInstancedStruct::Release()
-{
-	void* OutStructMemory = StructMemory;
-
-	ScriptStruct = nullptr;
-	StructMemory = nullptr;
-
-	return OutStructMemory;
-}
-
 void FVoxelInstancedStruct::InitializeAs(UScriptStruct* NewScriptStruct, const void* NewStructMemory)
 {
-	Reset();
+	*this = {};
 
 	if (!NewScriptStruct)
 	{
@@ -39,17 +14,8 @@ void FVoxelInstancedStruct::InitializeAs(UScriptStruct* NewScriptStruct, const v
 		return;
 	}
 
-	ScriptStruct = NewScriptStruct;
-	StructMemory = FVoxelMemory::Malloc(
-		NewScriptStruct->GetStructureSize(),
-		NewScriptStruct->GetMinAlignment());
-
-	ScriptStruct->InitializeStruct(StructMemory);
-
-	if (NewStructMemory)
-	{
-		ScriptStruct->CopyScriptStruct(StructMemory, NewStructMemory);
-	}
+	PrivateScriptStruct = NewScriptStruct;
+	PrivateStructMemory = MakeSharedStruct(NewScriptStruct, NewStructMemory);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -67,7 +33,7 @@ uint64 FVoxelInstancedStruct::GetPropertyHash() const
 	int32 Index = 0;
 	for (const FProperty& Property : GetStructProperties(GetScriptStruct()))
 	{
-		const uint32 PropertyHash = FVoxelObjectUtilities::HashProperty(Property, Property.ContainerPtrToValuePtr<void>(this));
+		const uint32 PropertyHash = FVoxelUtilities::HashProperty(Property, Property.ContainerPtrToValuePtr<void>(this));
 		Hash ^= FVoxelUtilities::MurmurHash(PropertyHash, Index++);
 	}
 	return Hash;
@@ -84,10 +50,10 @@ bool FVoxelInstancedStruct::NetSerialize(FArchive& Ar, UPackageMap& Map)
 			return true;
 		}
 
-		FString PathName = ScriptStruct->GetPathName();
+		FString PathName = GetScriptStruct()->GetPathName();
 		Ar << PathName;
 
-		ScriptStruct->SerializeItem(Ar, StructMemory, nullptr);
+		GetScriptStruct()->SerializeItem(Ar, GetStructMemory(), nullptr);
 		return true;
 	}
 	else if (Ar.IsLoading())
@@ -108,7 +74,7 @@ bool FVoxelInstancedStruct::NetSerialize(FArchive& Ar, UPackageMap& Map)
 		}
 
 		*this = FVoxelInstancedStruct(NewScriptStruct);
-		ScriptStruct->SerializeItem(Ar, StructMemory, nullptr);
+		GetScriptStruct()->SerializeItem(Ar, GetStructMemory(), nullptr);
 		return true;
 	}
 	else
@@ -160,17 +126,17 @@ bool FVoxelInstancedStruct::Serialize(FArchive& Ar)
 				Ar.Preload(NewScriptStruct);
 			}
 
-			if (NewScriptStruct != ScriptStruct)
+			if (NewScriptStruct != GetScriptStruct())
 			{
 				InitializeAs(NewScriptStruct);
 			}
-			ensure(ScriptStruct == NewScriptStruct);
+			ensure(GetScriptStruct() == NewScriptStruct);
 		}
 
 		int32 SerializedSize = 0;
 		Ar << SerializedSize;
 
-		if (!ScriptStruct && SerializedSize > 0)
+		if (!GetScriptStruct() && SerializedSize > 0)
 		{
 			// Struct not found
 
@@ -198,29 +164,29 @@ bool FVoxelInstancedStruct::Serialize(FArchive& Ar)
 
 			Ar.Seek(Ar.Tell() + SerializedSize);
 		}
-		else if (ScriptStruct)
+		else if (GetScriptStruct())
 		{
 			const int64 Start = Ar.Tell();
-			ScriptStruct->SerializeItem(Ar, StructMemory, nullptr);
+			GetScriptStruct()->SerializeItem(Ar, GetStructMemory(), nullptr);
 			ensure(Ar.Tell() - Start == SerializedSize);
 
-			if (ScriptStruct->IsChildOf(FVoxelVirtualStruct::StaticStruct()))
+			if (GetScriptStruct()->IsChildOf(StaticStructFast<FVoxelVirtualStruct>()))
 			{
-				static_cast<FVoxelVirtualStruct*>(StructMemory)->PostSerialize();
+				static_cast<FVoxelVirtualStruct*>(GetStructMemory())->PostSerialize();
 			}
 
-			if (ScriptStruct == FBodyInstance::StaticStruct())
+			if (GetScriptStruct() == StaticStructFast<FBodyInstance>())
 			{
-				static_cast<FBodyInstance*>(StructMemory)->LoadProfileData(false);
+				static_cast<FBodyInstance*>(GetStructMemory())->LoadProfileData(false);
 			}
 		}
 	}
 	else if (Ar.IsSaving())
 	{
 		FString StructName;
-		if (ScriptStruct)
+		if (GetScriptStruct())
 		{
-			StructName = ScriptStruct->GetName();
+			StructName = GetScriptStruct()->GetName();
 		}
 		else
 		{
@@ -228,7 +194,7 @@ bool FVoxelInstancedStruct::Serialize(FArchive& Ar)
 		}
 
 		Ar << StructName;
-		Ar << ScriptStruct;
+		Ar << PrivateScriptStruct;
 
 		const int64 SerializedSizePosition = Ar.Tell();
 		{
@@ -237,16 +203,16 @@ bool FVoxelInstancedStruct::Serialize(FArchive& Ar)
 		}
 
 		const int64 Start = Ar.Tell();
-		if (ScriptStruct)
+		if (GetScriptStruct())
 		{
-			check(StructMemory);
+			check(GetStructMemory());
 
-			if (ScriptStruct->IsChildOf(FVoxelVirtualStruct::StaticStruct()))
+			if (GetScriptStruct()->IsChildOf(StaticStructFast<FVoxelVirtualStruct>()))
 			{
-				static_cast<FVoxelVirtualStruct*>(StructMemory)->PreSerialize();
+				static_cast<FVoxelVirtualStruct*>(GetStructMemory())->PreSerialize();
 			}
 
-			ScriptStruct->SerializeItem(Ar, StructMemory, nullptr);
+			GetScriptStruct()->SerializeItem(Ar, GetStructMemory(), nullptr);
 		}
 		const int64 End = Ar.Tell();
 
@@ -268,25 +234,26 @@ bool FVoxelInstancedStruct::Identical(const FVoxelInstancedStruct* Other, const 
 		return false;
 	}
 
-	if (ScriptStruct != Other->ScriptStruct)
-	{
-		return false;
-	}
-
-	if (!ScriptStruct)
+	if (!IsValid() &&
+		!Other->IsValid())
 	{
 		return true;
 	}
 
-	VOXEL_SCOPE_COUNTER_FORMAT("CompareScriptStruct %s", *ScriptStruct->GetName());
-	return ScriptStruct->CompareScriptStruct(StructMemory, Other->StructMemory, PortFlags);
+	if (GetScriptStruct() != Other->GetScriptStruct())
+	{
+		return false;
+	}
+
+	VOXEL_SCOPE_COUNTER_FORMAT("CompareScriptStruct %s", *GetScriptStruct()->GetName());
+	return GetScriptStruct()->CompareScriptStruct(GetStructMemory(), Other->GetStructMemory(), PortFlags);
 }
 
 bool FVoxelInstancedStruct::ExportTextItem(FString& ValueStr, const FVoxelInstancedStruct& DefaultValue, UObject* Parent, const int32 PortFlags, UObject* ExportRootScope) const
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	if (!ScriptStruct)
+	if (!IsValid())
 	{
 		ValueStr += "None";
 		return true;
@@ -294,11 +261,13 @@ bool FVoxelInstancedStruct::ExportTextItem(FString& ValueStr, const FVoxelInstan
 
 	const FVoxelInstancedStruct* DefaultValuePtr = &DefaultValue;
 
-	ValueStr += ScriptStruct->GetPathName();
-	ScriptStruct->ExportText(
+	ValueStr += GetScriptStruct()->GetPathName();
+	GetScriptStruct()->ExportText(
 		ValueStr,
-		StructMemory,
-		DefaultValuePtr && ScriptStruct == DefaultValuePtr->GetScriptStruct() ? DefaultValuePtr->GetStructMemory() : nullptr,
+		GetStructMemory(),
+		DefaultValuePtr && GetScriptStruct() == DefaultValuePtr->GetScriptStruct()
+		? DefaultValuePtr->GetStructMemory()
+		: nullptr,
 		Parent,
 		PortFlags,
 		ExportRootScope);
@@ -323,7 +292,7 @@ bool FVoxelInstancedStruct::ImportTextItem(const TCHAR*& Buffer, const int32 Por
 	if (StructPathName.Len() == 0 ||
 		StructPathName == "None")
 	{
-		Reset();
+		*this = {};
 		return true;
 	}
 
@@ -333,7 +302,7 @@ bool FVoxelInstancedStruct::ImportTextItem(const TCHAR*& Buffer, const int32 Por
 		return false;
 	}
 
-	if (NewScriptStruct != ScriptStruct)
+	if (NewScriptStruct != GetScriptStruct())
 	{
 		InitializeAs(NewScriptStruct);
 	}
@@ -341,7 +310,7 @@ bool FVoxelInstancedStruct::ImportTextItem(const TCHAR*& Buffer, const int32 Por
 	{
 		const TCHAR* Result = NewScriptStruct->ImportText(
 			Buffer,
-			StructMemory,
+			GetStructMemory(),
 			Parent,
 			PortFlags,
 			ErrorText,
@@ -361,22 +330,22 @@ void FVoxelInstancedStruct::AddStructReferencedObjects(FReferenceCollector& Coll
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	if (!ScriptStruct)
+	if (!GetScriptStruct())
 	{
 		return;
 	}
 
-	TObjectPtr<UScriptStruct> ScriptStructObject = ScriptStruct;
+	TObjectPtr<UScriptStruct> ScriptStructObject = GetScriptStruct();
 	Collector.AddReferencedObject(ScriptStructObject);
 	check(ScriptStructObject);
 
-	FVoxelObjectUtilities::AddStructReferencedObjects(Collector, *this);
+	FVoxelUtilities::AddStructReferencedObjects(Collector, *this);
 }
 
 void FVoxelInstancedStruct::GetPreloadDependencies(TArray<UObject*>& OutDependencies) const
 {
-	if (ScriptStruct)
+	if (GetScriptStruct())
 	{
-		OutDependencies.Add(ScriptStruct);
+		OutDependencies.Add(GetScriptStruct());
 	}
 }

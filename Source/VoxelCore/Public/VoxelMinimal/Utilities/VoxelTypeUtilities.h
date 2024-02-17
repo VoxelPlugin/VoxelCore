@@ -17,13 +17,13 @@ namespace FVoxelUtilities
 		!TIsTSharedRef_V<T> &&
 		!TIsDerivedFrom<T, UObject>::Value;
 
-	template<typename T, typename = typename TEnableIf<CanMakeSafe<T>>::Type>
-	typename TEnableIf<!TModels<CForceInitializable, T>::Value, T>::Type MakeSafe()
+	template<typename T, typename = std::enable_if_t<CanMakeSafe<T>>>
+	std::enable_if_t<!TModels<CForceInitializable, T>::Value, T> MakeSafe()
 	{
 		return T();
 	}
-	template<typename T, typename = typename TEnableIf<CanMakeSafe<T>>::Type>
-	typename TEnableIf<TModels<CForceInitializable, T>::Value, T>::Type MakeSafe()
+	template<typename T, typename = std::enable_if_t<CanMakeSafe<T>>>
+	std::enable_if_t<TModels<CForceInitializable, T>::Value, T> MakeSafe()
 	{
 		return T(ForceInit);
 	}

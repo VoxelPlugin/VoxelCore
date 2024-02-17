@@ -21,33 +21,26 @@ public:
 	using Super::Num;
 
 	template<typename T>
-	struct TIsCompatibleElementType
-	{
-		/** NOTE:
-		 * The stars in the TPointerIsConvertibleFromTo test are *IMPORTANT*
-		 * They prevent TArrayView<Base>(TArray<Derived>&) from compiling!
-		 */
-		static constexpr bool Value =
-			TPointerIsConvertibleFromTo<T*, ElementType* const>::Value ||
-			(
-				(!TIsConst<T>::Value || TIsConst<ElementType>::Value) &&
-				TIsPointer<T>::Value &&
-				TIsPointer<ElementType>::Value &&
-				TPointerIsConvertibleFromTo<
-					typename TRemovePointer<std::remove_cv_t<T>>::Type,
-					typename TRemovePointer<std::remove_cv_t<ElementType>>::Type>::Value
-			);
-	};
+	static constexpr bool IsCompatibleElementType_V =
+		(TPointerIsConvertibleFromTo<T, ElementType>::Value && sizeof(T) == sizeof(ElementType)) ||
+		(
+			(!std::is_const_v<T> || std::is_const_v<ElementType>) &&
+			std::is_pointer_v<T> &&
+			std::is_pointer_v<ElementType> &&
+			TPointerIsConvertibleFromTo<
+				std::remove_pointer_t<std::remove_cv_t<T>>,
+				std::remove_pointer_t<std::remove_cv_t<ElementType>>>::Value
+		);
 
 	TVoxelArrayView() = default;
 
 	template<
 		typename OtherRangeType,
-		typename = typename TEnableIf<
+		typename = std::enable_if_t<
 			!std::is_same_v<OtherRangeType, TVoxelArrayView> &&
-			TIsContiguousContainer<std::remove_cv_t<typename TRemoveReference<OtherRangeType>::Type>>::Value &&
-			TIsCompatibleElementType<typename TRemovePointer<decltype(::GetData(DeclVal<OtherRangeType>()))>::Type>::Value
-		>::Type
+			TIsContiguousContainer<std::remove_cv_t<std::remove_reference_t<OtherRangeType>>>::Value &&
+			IsCompatibleElementType_V<std::remove_pointer_t<decltype(::GetData(DeclVal<OtherRangeType>()))>>
+		>
 	>
 	FORCEINLINE TVoxelArrayView(OtherRangeType&& Other)
 	{
@@ -64,7 +57,7 @@ public:
 		reinterpret_cast<FDummy&>(*this).ArrayNum = SizeType(OtherNum);
 	}
 
-	template<typename OtherElementType, typename = typename TEnableIf<TIsCompatibleElementType<OtherElementType>::Value>::Type>
+	template<typename OtherElementType, typename = std::enable_if_t<IsCompatibleElementType_V<OtherElementType>>>
 	FORCEINLINE TVoxelArrayView(OtherElementType* InData, SizeType InCount)
 	{
 		struct FDummy
@@ -78,7 +71,7 @@ public:
 		checkVoxelSlow(InCount >= 0);
 	}
 
-	template<typename OtherElementType, typename = typename TEnableIf<TIsCompatibleElementType<OtherElementType>::Value && std::is_const_v<ElementType>>::Type>
+	template<typename OtherElementType, typename = std::enable_if_t<IsCompatibleElementType_V<OtherElementType> && std::is_const_v<ElementType>>>
 	FORCEINLINE TVoxelArrayView(const std::initializer_list<OtherElementType> Elements)
 		: TVoxelArrayView(Elements.begin(), Elements.size())
 	{
@@ -168,16 +161,16 @@ FORCEINLINE auto MakeVoxelArrayView(T&& Other)
 	if constexpr (TIsContiguousContainer<T>::Value)
 	{
 		return TVoxelArrayView<
-			typename TRemoveReference<decltype(*GetData(DeclVal<T>()))>::Type,
+			std::remove_reference_t<decltype(*GetData(DeclVal<T>()))>,
 			decltype(GetNum(Other))>(Other);
 	}
 	else
 	{
-		return TVoxelArrayView<typename TRemoveReference<T>::Type>(&Other, 1);
+		return TVoxelArrayView<std::remove_reference_t<T>>(&Other, 1);
 	}
 }
 
-template<typename ElementType, typename SizeType, typename = typename TEnableIf<std::is_same_v<SizeType, int32> || std::is_same_v<SizeType, int64>>::Type>
+template<typename ElementType, typename SizeType, typename = std::enable_if_t<std::is_same_v<SizeType, int32> || std::is_same_v<SizeType, int64>>>
 FORCEINLINE auto MakeVoxelArrayView(ElementType* Pointer, const SizeType Size)
 {
 	return TVoxelArrayView<ElementType, SizeType>(Pointer, Size);
@@ -190,7 +183,7 @@ FORCEINLINE TVoxelArrayView<ToType, SizeType> ReinterpretCastVoxelArrayView(TVox
 	checkVoxelSlow(NumBytes % sizeof(ToType) == 0);
 	return TVoxelArrayView<ToType, SizeType>(reinterpret_cast<ToType*>(ArrayView.GetData()), NumBytes / sizeof(ToType));
 }
-template<typename ToType, typename FromType, typename SizeType, typename = typename TEnableIf<!TIsConst<ToType>::Value>::Type>
+template<typename ToType, typename FromType, typename SizeType, typename = std::enable_if_t<!std::is_const_v<ToType>>>
 FORCEINLINE TVoxelArrayView<const ToType, SizeType> ReinterpretCastVoxelArrayView(TVoxelArrayView<const FromType, SizeType> ArrayView)
 {
 	return ReinterpretCastVoxelArrayView<const ToType>(ArrayView);

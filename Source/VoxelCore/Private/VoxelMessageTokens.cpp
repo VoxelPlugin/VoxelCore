@@ -109,7 +109,7 @@ TSharedRef<IMessageToken> FVoxelMessageToken_Object::GetMessageToken() const
 					return;
 				}
 
-				FVoxelObjectUtilities::FocusObject(Object);
+				FVoxelUtilities::FocusObject(Object);
 			}));
 #else
 	return Super::GetMessageToken();
@@ -192,7 +192,7 @@ TSharedRef<IMessageToken> FVoxelMessageToken_Pin::GetMessageToken() const
 				return;
 			}
 
-			FVoxelObjectUtilities::FocusObject(Node);
+			FVoxelUtilities::FocusObject(Node);
 		}));
 #else
 	return Super::GetMessageToken();

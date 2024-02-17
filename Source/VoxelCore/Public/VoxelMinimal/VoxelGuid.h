@@ -39,12 +39,12 @@ public:
 
 private:
 	template<char Char>
-	static constexpr typename TEnableIf<'0' <= Char && Char <= '9', uint32>::Type CharToInt()
+	static constexpr std::enable_if_t<'0' <= Char && Char <= '9', uint32> CharToInt()
 	{
 		return Char - '0';
 	}
 	template<char Char>
-	static constexpr typename TEnableIf<'A' <= Char && Char <= 'F', uint32>::Type CharToInt()
+	static constexpr std::enable_if_t<'A' <= Char && Char <= 'F', uint32> CharToInt()
 	{
 		return 10 + Char - 'A';
 	}

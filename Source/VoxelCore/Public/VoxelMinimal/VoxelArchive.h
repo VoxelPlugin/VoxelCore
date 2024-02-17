@@ -4,6 +4,8 @@
 
 #include "VoxelCoreMinimal.h"
 #include "Serialization/MemoryArchive.h"
+#include "VoxelMinimal/Containers/VoxelArray.h"
+#include "VoxelMinimal/Containers/VoxelArrayView.h"
 
 class VOXELCORE_API FVoxelWriter
 {

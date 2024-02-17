@@ -3,8 +3,8 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
-#include "Async/Async.h"
 #include "Async/ParallelFor.h"
+#include "VoxelMinimal/VoxelFuture.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 
@@ -14,7 +14,7 @@ class TVoxelGraphTask
 public:
 	TVoxelUniqueFunction<void()> Lambda;
 
-	explicit TVoxelGraphTask(TVoxelUniqueFunction<void()>&& Lambda)
+	explicit TVoxelGraphTask(TVoxelUniqueFunction<void()> Lambda)
 		: Lambda(MoveTemp(Lambda))
 	{
 	}
@@ -47,13 +47,51 @@ FORCEINLINE bool IsInGameThreadFast()
 }
 
 VOXELCORE_API void FlushVoxelGameThreadTasks();
-VOXELCORE_API void AsyncVoxelTask(TVoxelUniqueFunction<void()>&& Lambda);
+VOXELCORE_API void AsyncVoxelTaskImpl(TVoxelUniqueFunction<void()> Lambda);
+VOXELCORE_API void AsyncBackgroundTaskImpl(TVoxelUniqueFunction<void()> Lambda);
+
+template<typename LambdaType, typename FutureType = TVoxelFutureType<typename TVoxelLambdaInfo<LambdaType>::ReturnType>>
+FORCEINLINE FutureType AsyncVoxelTask(LambdaType Lambda)
+{
+	const typename FutureType::PromiseType Promise;
+	AsyncVoxelTaskImpl([Lambda = MoveTemp(Lambda), Promise]
+	{
+		if constexpr (std::is_void_v<typename TVoxelLambdaInfo<LambdaType>::ReturnType>)
+		{
+			Lambda();
+			Promise.Set();
+		}
+		else
+		{
+			Promise.Set(Lambda());
+		}
+	});
+	return Promise.GetFuture();
+}
+template<typename LambdaType, typename FutureType = TVoxelFutureType<typename TVoxelLambdaInfo<LambdaType>::ReturnType>>
+FORCEINLINE FutureType AsyncBackgroundTask(LambdaType Lambda)
+{
+	const typename FutureType::PromiseType Promise;
+	AsyncBackgroundTaskImpl([Lambda = MoveTemp(Lambda), Promise]
+	{
+		if constexpr (std::is_void_v<typename TVoxelLambdaInfo<LambdaType>::ReturnType>)
+		{
+			Lambda();
+			Promise.Set();
+		}
+		else
+		{
+			Promise.Set(Lambda());
+		}
+	});
+	return Promise.GetFuture();
+}
 
 namespace FVoxelUtilities
 {
 	// Will never be called right away, even if we are on the game thread
 	// Useful to avoid deadlocks
-	VOXELCORE_API void RunOnGameThread_Async(TVoxelUniqueFunction<void()>&& Lambda);
+	VOXELCORE_API void RunOnGameThread_Async(TVoxelUniqueFunction<void()> Lambda);
 
 	template<typename T>
 	FORCEINLINE void RunOnGameThread(T&& Lambda)
@@ -105,15 +143,15 @@ TSharedRef<T> MakeVoxelShareable_RenderThread(T* Object)
 	}).ToSharedRef();
 }
 
-template<typename T, typename... ArgsTypes, typename = std::enable_if_t<std::is_constructible_v<T, ArgsTypes...>>>
-TSharedRef<T> MakeVoxelShared_GameThread(ArgsTypes&&... Args)
+template<typename T, typename... ArgTypes, typename = std::enable_if_t<std::is_constructible_v<T, ArgTypes...>>>
+TSharedRef<T> MakeVoxelShared_GameThread(ArgTypes&&... Args)
 {
-	return MakeVoxelShareable_GameThread(new (GVoxelMemory) T(Forward<ArgsTypes>(Args)...));
+	return MakeVoxelShareable_GameThread(new (GVoxelMemory) T(Forward<ArgTypes>(Args)...));
 }
-template<typename T, typename... ArgsTypes, typename = std::enable_if_t<std::is_constructible_v<T, ArgsTypes...>>>
-TSharedRef<T> MakeVoxelShared_RenderThread(ArgsTypes&&... Args)
+template<typename T, typename... ArgTypes, typename = std::enable_if_t<std::is_constructible_v<T, ArgTypes...>>>
+TSharedRef<T> MakeVoxelShared_RenderThread(ArgTypes&&... Args)
 {
-	return MakeVoxelShareable_RenderThread(new (GVoxelMemory) T(Forward<ArgsTypes>(Args)...));
+	return MakeVoxelShareable_RenderThread(new (GVoxelMemory) T(Forward<ArgTypes>(Args)...));
 }
 
 struct CParallelForLambdaHasIndex
@@ -123,7 +161,7 @@ struct CParallelForLambdaHasIndex
 };
 
 template<typename ArrayType, typename LambdaType>
-typename TEnableIf<sizeof(GetNum(DeclVal<ArrayType>())) != 0>::Type ParallelFor(
+std::enable_if_t<sizeof(GetNum(DeclVal<ArrayType>())) != 0> ParallelFor(
 	ArrayType& Array,
 	LambdaType Lambda,
 	const EParallelForFlags Flags = EParallelForFlags::None,
@@ -183,45 +221,4 @@ void ParallelFor_ArrayView(
 		const TVoxelArrayView<Type, SizeType> ThreadArrayView = ArrayView.Slice(StartIndex, EndIndex - StartIndex);
 		Lambda(ThreadArrayView);
 	});
-}
-
-template<typename Type, typename SizeType, typename LambdaType>
-void ParallelFor_ArrayView_Slow(
-	const TVoxelArrayView<Type, SizeType> ArrayView,
-	LambdaType Lambda,
-	const int32 MaxNumThreads = FPlatformMisc::NumberOfCores())
-{
-	if (ArrayView.Num() == 0)
-	{
-		return;
-	}
-
-	TVoxelInlineArray<TFuture<void>, 32> Futures;
-
-	const int64 NumThreads = FMath::Clamp<int64>(MaxNumThreads, 1, ArrayView.Num());
-	for (int32 ThreadIndex = 0; ThreadIndex < NumThreads; ThreadIndex++)
-	{
-		const int64 ElementsPerThreads = FVoxelUtilities::DivideCeil_Positive<int64>(ArrayView.Num(), NumThreads);
-
-		const int64 StartIndex = ThreadIndex * ElementsPerThreads;
-		const int64 EndIndex = FMath::Min<int64>((ThreadIndex + 1) * ElementsPerThreads, ArrayView.Num());
-
-		if (StartIndex >= EndIndex)
-		{
-			// Will happen on small arrays
-			continue;
-		}
-
-		const TVoxelArrayView<Type, SizeType> ThreadArrayView = ArrayView.Slice(StartIndex, EndIndex - StartIndex);
-
-		Futures.Add(Async(EAsyncExecution::ThreadPool, [=]
-		{
-			Lambda(ThreadArrayView);
-		}));
-	}
-
-	for (const TFuture<void>& Future : Futures)
-	{
-		Future.Wait();
-	}
 }

@@ -17,7 +17,9 @@ thread_local int32 GVoxelLLMScopeCounter = 0;
 struct FVoxelLLMScope
 {
 	const FLLMScope LLMScope = FLLMScope(LLMTagDeclaration_Voxel.GetUniqueName(), false, ELLMTagSet::None, ELLMTracker::Default);
+#if UE_MEMORY_TAGS_TRACE_ENABLED && UE_TRACE_ENABLED
 	const FMemScope MemScope = FMemScope(LLMTagDeclaration_Voxel.GetUniqueName());
+#endif
 };
 thread_local TOptional<FVoxelLLMScope> GVoxelLLMScope;
 

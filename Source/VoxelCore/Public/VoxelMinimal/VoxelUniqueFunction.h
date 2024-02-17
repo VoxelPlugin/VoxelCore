@@ -42,11 +42,11 @@ public:
 	TVoxelUniqueFunction() = default;
 	TVoxelUniqueFunction(decltype(nullptr)) {}
 
-	template<typename FunctorType, typename = typename TEnableIf<TAnd<
+	template<typename FunctorType, typename = std::enable_if_t<TAnd<
 		TNot<TIsTVoxelUniqueFunction<std::decay_t<FunctorType>>>,
 		TIsInvocable<FunctorType, ArgTypes...>,
 		HasValidReturnType<FunctorType>
-	>::Value>::Type>
+	>::Value>>
 	FORCEINLINE TVoxelUniqueFunction(FunctorType&& Functor)
 	{
 		this->Bind(MoveTempIfPossible(Functor));

@@ -239,12 +239,12 @@ struct VOXELCORE_API FVoxelIntBox
 		return ((X >= Min.X) && (X < Max.X) && (Y >= Min.Y) && (Y < Max.Y) && (Z >= Min.Z) && (Z < Max.Z));
 	}
 	template<typename T>
-	FORCEINLINE typename TEnableIf<std::is_same_v<T, FVector3f> || std::is_same_v<T, FVector3d> || std::is_same_v<T, FIntVector>, bool>::Type ContainsTemplate(const T& V) const
+	FORCEINLINE std::enable_if_t<std::is_same_v<T, FVector3f> || std::is_same_v<T, FVector3d> || std::is_same_v<T, FIntVector>, bool> ContainsTemplate(const T& V) const
 	{
 		return ContainsTemplate(V.X, V.Y, V.Z);
 	}
 	template<typename T>
-	FORCEINLINE typename TEnableIf<std::is_same_v<T, FBox> || std::is_same_v<T, FVoxelIntBox>, bool>::Type ContainsTemplate(const T& Other) const
+	FORCEINLINE std::enable_if_t<std::is_same_v<T, FBox> || std::is_same_v<T, FVoxelIntBox>, bool> ContainsTemplate(const T& Other) const
 	{
 		return Min.X <= Other.Min.X && Min.Y <= Other.Min.Y && Min.Z <= Other.Min.Z &&
 			   Max.X >= Other.Max.X && Max.Y >= Other.Max.Y && Max.Z >= Other.Max.Z;
@@ -407,49 +407,49 @@ struct VOXELCORE_API FVoxelIntBox
 	// union(return value, Other) = this
 	TArray<FVoxelIntBox, TFixedAllocator<6>> Difference(const FVoxelIntBox& Other) const;
 
-	template<typename TNumeric, typename TVector>
-	FORCEINLINE TNumeric ComputeSquaredDistanceFromBoxToPoint(const TVector& Point) const
+	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
+	FORCEINLINE ScalarType ComputeSquaredDistanceFromBoxToPoint(const VectorType& Point) const
 	{
 		// Accumulates the distance as we iterate axis
-		TNumeric DistSquared = 0;
+		ScalarType DistSquared = 0;
 
 		// Check each axis for min/max and add the distance accordingly
 		if (Point.X < Min.X)
 		{
-			DistSquared += FMath::Square<TNumeric>(Min.X - Point.X);
+			DistSquared += FMath::Square<ScalarType>(Min.X - Point.X);
 		}
 		else if (Point.X > Max.X)
 		{
-			DistSquared += FMath::Square<TNumeric>(Point.X - Max.X);
+			DistSquared += FMath::Square<ScalarType>(Point.X - Max.X);
 		}
 
 		if (Point.Y < Min.Y)
 		{
-			DistSquared += FMath::Square<TNumeric>(Min.Y - Point.Y);
+			DistSquared += FMath::Square<ScalarType>(Min.Y - Point.Y);
 		}
 		else if (Point.Y > Max.Y)
 		{
-			DistSquared += FMath::Square<TNumeric>(Point.Y - Max.Y);
+			DistSquared += FMath::Square<ScalarType>(Point.Y - Max.Y);
 		}
 
 		if (Point.Z < Min.Z)
 		{
-			DistSquared += FMath::Square<TNumeric>(Min.Z - Point.Z);
+			DistSquared += FMath::Square<ScalarType>(Min.Z - Point.Z);
 		}
 		else if (Point.Z > Max.Z)
 		{
-			DistSquared += FMath::Square<TNumeric>(Point.Z - Max.Z);
+			DistSquared += FMath::Square<ScalarType>(Point.Z - Max.Z);
 		}
 
 		return DistSquared;
 	}
 	FORCEINLINE uint64 ComputeSquaredDistanceFromBoxToPoint(const FIntVector& Point) const
 	{
-		return ComputeSquaredDistanceFromBoxToPoint<uint64>(Point);
+		return ComputeSquaredDistanceFromBoxToPoint<FIntVector, uint64>(Point);
 	}
 	FORCEINLINE double DistanceFromBoxToPoint(const FVector3d& Point) const
 	{
-		return FMath::Sqrt(ComputeSquaredDistanceFromBoxToPoint<double>(Point));
+		return FMath::Sqrt(ComputeSquaredDistanceFromBoxToPoint(Point));
 	}
 
 	// We try to make the following true:
