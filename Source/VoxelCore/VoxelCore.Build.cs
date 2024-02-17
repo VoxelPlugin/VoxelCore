@@ -65,5 +65,11 @@ public class VoxelCore : ModuleRules
 				}
 			);
 		}
+
+		PrivateIncludePaths.AddRange(
+			new string[] {
+				Path.Combine(EngineDirectory, "Source/Runtime/Renderer/Private")
+			}
+		);
 	}
 }
