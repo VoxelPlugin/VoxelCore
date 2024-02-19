@@ -341,6 +341,19 @@ bool FVoxelTextureUtilities::UncompressPng_RGB(
 	int32& OutWidth,
 	int32& OutHeight)
 {
+	return Uncompress_RGB(
+		CompressedData,
+		OutColorData,
+		OutWidth,
+		OutHeight);
+}
+
+bool FVoxelTextureUtilities::Uncompress_RGB(
+	const TConstVoxelArrayView64<uint8> CompressedData,
+	TVoxelArray64<FVoxelColor3>& OutColorData,
+	int32& OutWidth,
+	int32& OutHeight)
+{
 	VOXEL_FUNCTION_COUNTER();
 
 	OutColorData.Reset();

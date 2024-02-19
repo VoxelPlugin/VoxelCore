@@ -159,6 +159,41 @@ public:
 
 #undef Define
 
+public:
+	template<
+		typename LambdaType,
+		typename FutureType = TVoxelFutureType<typename TVoxelLambdaInfo<LambdaType>::ReturnType>,
+		typename = std::enable_if_t<!std::is_void_v<decltype(DeclVal<LambdaType>()())>>,
+		typename = void>
+	[[nodiscard]] FORCEINLINE FutureType Then(
+		const EVoxelFutureThread Thread,
+		LambdaType Continuation) const
+	{
+		const typename FutureType::PromiseType Promise;
+		PromiseState->AddContinuation(Thread, [Promise, Continuation = MoveTemp(Continuation)](const FSharedVoidRef& Value)
+		{
+			Promise.Set(Continuation());
+		});
+		return Promise.GetFuture();
+	}
+
+#define Define(Thread) \
+	template< \
+		typename LambdaType, \
+		typename = std::enable_if_t<!std::is_void_v<decltype(DeclVal<LambdaType>()())>>> \
+	[[nodiscard]] FORCEINLINE TVoxelFutureType<typename TVoxelLambdaInfo<LambdaType>::ReturnType> Then_ ## Thread(LambdaType Continuation) const \
+	{ \
+		return Then(EVoxelFutureThread::Thread, MoveTemp(Continuation)); \
+	}
+
+	Define(AnyThread);
+	Define(GameThread);
+	Define(RenderThread);
+	Define(AsyncThread);
+	Define(VoxelThread);
+
+#undef Define
+
 protected:
 	TSharedPtr<FVoxelPromiseState> PromiseState;
 

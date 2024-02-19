@@ -59,6 +59,12 @@ public:
 		int32& OutWidth,
 		int32& OutHeight);
 
+	static bool Uncompress_RGB(
+		TConstVoxelArrayView64<uint8> CompressedData,
+		TVoxelArray64<FVoxelColor3>& OutColorData,
+		int32& OutWidth,
+		int32& OutHeight);
+
 	static bool UncompressPng_Grayscale(
 		TConstVoxelArrayView64<uint8> CompressedData,
 		TVoxelArray64<uint16>& OutGrayscaleData,

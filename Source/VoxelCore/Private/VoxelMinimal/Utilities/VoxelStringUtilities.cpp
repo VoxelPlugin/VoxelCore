@@ -85,53 +85,101 @@ FText FVoxelUtilities::ConvertToNumberText(double Value)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-bool FVoxelUtilities::IsInt(const FStringView& Text)
+bool FVoxelUtilities::IsInt(FStringView Text)
 {
-	for (const TCHAR& Char : Text)
+	if (Text.Len() == 0)
 	{
-		if (Char == TEXT('-') ||
-			Char == TEXT('+'))
-		{
-			if (&Char != &Text[0])
-			{
-				return false;
-			}
-			continue;
-		}
-
-		if (FChar::IsDigit(Char))
-		{
-			continue;
-		}
-
 		return false;
+	}
+
+	if (Text[0] == TEXT('-') ||
+		Text[0] == TEXT('+'))
+	{
+		Text.RemovePrefix(1);
+	}
+
+	if (Text.Len() == 0)
+	{
+		return false;
+	}
+
+	for (const TCHAR Char : Text)
+	{
+		if (!FChar::IsDigit(Char))
+		{
+			return false;
+		}
 	}
 
 	return true;
 }
 
-bool FVoxelUtilities::IsFloat(const FStringView& Text)
+bool FVoxelUtilities::IsFloat(FStringView Text)
 {
-	for (const TCHAR& Char : Text)
+	if (Text.Len() == 0)
 	{
-		if (Char == TEXT('-') ||
-			Char == TEXT('+'))
-		{
-			if (&Char != &Text[0])
-			{
-				return false;
-			}
-			continue;
-		}
-
-		if (Char == TEXT('.') ||
-			Char == TEXT('f') ||
-			FChar::IsDigit(Char))
-		{
-			continue;
-		}
-
 		return false;
+	}
+
+	if (Text[0] == TEXT('-') ||
+		Text[0] == TEXT('+'))
+	{
+		Text.RemovePrefix(1);
+	}
+
+	if (Text.Len() == 0)
+	{
+		return false;
+	}
+
+	if (Text[Text.Len() - 1] == TEXT('f'))
+	{
+		Text.RemoveSuffix(1);
+	}
+
+	if (Text.Len() == 0)
+	{
+		return false;
+	}
+
+	while (
+		Text.Len() > 0 &&
+		FChar::IsDigit(Text[0]))
+	{
+		Text.RemovePrefix(1);
+	}
+
+	if (Text.Len() == 0)
+	{
+		return true;
+	}
+
+	if (Text[0] == TEXT('.'))
+	{
+		Text.RemovePrefix(1);
+
+		if (Text.Len() == 0)
+		{
+			return true;
+		}
+
+		while (
+			Text.Len() > 0 &&
+			FChar::IsDigit(Text[0]))
+		{
+			Text.RemovePrefix(1);
+		}
+
+		if (Text.Len() == 0)
+		{
+			return true;
+		}
+	}
+
+	if (Text[0] == TEXT('e'))
+	{
+		Text.RemovePrefix(1);
+		return IsInt(Text);
 	}
 
 	return true;

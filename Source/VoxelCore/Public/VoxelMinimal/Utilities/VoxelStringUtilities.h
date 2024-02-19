@@ -11,13 +11,13 @@ namespace FVoxelUtilities
 	VOXELCORE_API FText ConvertToTimeText(double Value, int32 NumExtraDigits = 0);
 	VOXELCORE_API FText ConvertToNumberText(double Value);
 
-	VOXELCORE_API bool IsInt(const FStringView& Text);
-	VOXELCORE_API bool IsFloat(const FStringView& Text);
+	VOXELCORE_API bool IsInt(FStringView Text);
+	VOXELCORE_API bool IsFloat(FStringView Text);
 
-	FORCEINLINE int32 StringToInt(const FStringView& Text)
+	FORCEINLINE int64 StringToInt(const FStringView& Text)
 	{
 		ensureVoxelSlowNoSideEffects(IsInt(Text));
-		return FCString::Atoi(Text.GetData());
+		return FCString::Atoi64(Text.GetData());
 	}
 	FORCEINLINE float StringToFloat(const FStringView& Text)
 	{

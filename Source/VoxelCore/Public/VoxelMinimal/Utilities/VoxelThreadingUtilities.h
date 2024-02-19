@@ -167,6 +167,39 @@ FORCEINLINE FutureType RunOnGameThread(LambdaType Lambda)
 	});
 	return Promise.GetFuture();
 }
+template<typename LambdaType, typename FutureType = TVoxelFutureType<typename TVoxelLambdaInfo<LambdaType>::ReturnType>>
+FORCEINLINE FutureType RunOnRenderThread(LambdaType Lambda)
+{
+	const typename FutureType::PromiseType Promise;
+	VOXEL_ENQUEUE_RENDER_COMMAND(RunOnRenderThread)([Lambda = MoveTemp(Lambda), Promise](FRHICommandList& RHICmdList)
+	{
+		if constexpr (std::is_void_v<typename TVoxelLambdaInfo<LambdaType>::ReturnType>)
+		{
+			if constexpr (std::is_same_v<typename TVoxelLambdaInfo<LambdaType>::ArgTypes, TVoxelTypes<>>)
+			{
+				Lambda();
+				Promise.Set();
+			}
+			else
+			{
+				Lambda(RHICmdList);
+				Promise.Set();
+			}
+		}
+		else
+		{
+			if constexpr (std::is_same_v<typename TVoxelLambdaInfo<LambdaType>::ArgTypes, TVoxelTypes<>>)
+			{
+				Promise.Set(Lambda());
+			}
+			else
+			{
+				Promise.Set(Lambda(RHICmdList));
+			}
+		}
+	});
+	return Promise.GetFuture();
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

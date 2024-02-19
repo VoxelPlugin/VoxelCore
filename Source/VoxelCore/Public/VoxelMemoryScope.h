@@ -16,7 +16,10 @@ public:
 	struct FBlock
 	{
 		uint64 Size : 48;
-		uint64 Alignment : 16;
+		uint64 Alignment : 15;
+#if VOXEL_DEBUG
+		uint64 IsValid : 1;
+#endif
 		void* UnalignedPtr = nullptr;
 	};
 	checkStatic(sizeof(FBlock) == 16);
