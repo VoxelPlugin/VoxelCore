@@ -11,12 +11,12 @@ DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelPromiseState);
 FVoxelPromiseState::~FVoxelPromiseState()
 {
 	ensure(IsComplete());
-	ensure(ThreadToOnComplete_RequiresLock.Num() == 0);
+	ensure(ThreadToContinuation_RequiresLock.Num() == 0);
 }
 
 void FVoxelPromiseState::Set(const FSharedVoidRef& Value)
 {
-	FThreadToOnComplete ThreadToOnComplete;
+	FThreadToContinuation ThreadToContinuation;
 	{
 		VOXEL_SCOPE_LOCK(CriticalSection);
 
@@ -26,17 +26,17 @@ void FVoxelPromiseState::Set(const FSharedVoidRef& Value)
 		checkVoxelSlow(!bIsComplete.Get());
 		bIsComplete.Set(true);
 
-		ThreadToOnComplete = MoveTemp(ThreadToOnComplete_RequiresLock);
+		ThreadToContinuation = MoveTemp(ThreadToContinuation_RequiresLock);
 
 		// No need to keep ourselves alive anymore
 		ThisPtr_RequiresLock.Reset();
 	}
 
-	for (auto& It : ThreadToOnComplete)
+	for (auto& It : ThreadToContinuation)
 	{
-		Dispatch(It.Key, [OnComplete = MoveTemp(It.Value), Value]
+		Dispatch(It.Key, [Continuation = MoveTemp(It.Value), Value]
 		{
-			OnComplete(Value);
+			Continuation(Value);
 		});
 	}
 }
@@ -49,22 +49,22 @@ void FVoxelPromiseState::Set(const FVoxelFuture& Future)
 		return;
 	}
 
-	Future.PromiseState->AddOnComplete(EVoxelFutureThread::AnyThread, [This = AsShared()](const FSharedVoidRef& Value)
+	Future.PromiseState->AddContinuation(EVoxelFutureThread::AnyThread, [This = AsShared()](const FSharedVoidRef& Value)
 	{
 		This->Set(Value);
 	});
 }
 
-void FVoxelPromiseState::AddOnComplete(
+void FVoxelPromiseState::AddContinuation(
 	const EVoxelFutureThread Thread,
-	TVoxelUniqueFunction<void(const FSharedVoidRef&)> OnComplete)
+	TVoxelUniqueFunction<void(const FSharedVoidRef&)> Continuation)
 {
 	{
 		VOXEL_SCOPE_LOCK(CriticalSection);
 
 		if (!bIsComplete.Get())
 		{
-			ThreadToOnComplete_RequiresLock.Add({ Thread, MoveTemp(OnComplete) });
+			ThreadToContinuation_RequiresLock.Add({ Thread, MoveTemp(Continuation) });
 
 			if (!ThisPtr_RequiresLock)
 			{
@@ -78,9 +78,9 @@ void FVoxelPromiseState::AddOnComplete(
 	checkVoxelSlow(IsComplete());
 	checkVoxelSlow(Value_RequiresLock.IsValid());
 
-	Dispatch(Thread, [OnComplete = MoveTemp(OnComplete), Value = Value_RequiresLock.ToSharedRef()]
+	Dispatch(Thread, [Continuation = MoveTemp(Continuation), Value = Value_RequiresLock.ToSharedRef()]
 	{
-		OnComplete(Value);
+		Continuation(Value);
 	});
 }
 
@@ -103,7 +103,7 @@ FORCEINLINE void FVoxelPromiseState::Dispatch(
 	break;
 	case EVoxelFutureThread::GameThread:
 	{
-		FVoxelUtilities::RunOnGameThread(MoveTemp(Lambda));
+		RunOnGameThread(MoveTemp(Lambda));
 	}
 	break;
 	case EVoxelFutureThread::RenderThread:
@@ -114,7 +114,7 @@ FORCEINLINE void FVoxelPromiseState::Dispatch(
 		});
 	}
 	break;
-	case EVoxelFutureThread::BackgroundThread:
+	case EVoxelFutureThread::AsyncThread:
 	{
 		AsyncBackgroundTaskImpl(MoveTemp(Lambda));
 	}
@@ -142,7 +142,7 @@ FVoxelFuture::FVoxelFuture(const TConstVoxelArrayView<FVoxelFuture> Futures)
 
 	for (const FVoxelFuture& Future : Futures)
 	{
-		Future.OnComplete_AnyThread([=]
+		Future.Then_AnyThread([=]
 		{
 			if (Counter->Decrement_ReturnNew() == 0)
 			{
@@ -169,15 +169,11 @@ void FVoxelPromise::Set() const
 
 TVoxelFuture<bool> operator&&(const TVoxelFuture<bool>& A, const TVoxelFuture<bool>& B)
 {
-	const TVoxelPromise<bool> Promise;
-
-	A.OnComplete_AnyThread([=](const bool bValueA)
+	return A.Then_AnyThread([=](const bool bValueA)
 	{
-		B.OnComplete_AnyThread([=](const bool bValueB)
+		return B.Then_AnyThread([=](const bool bValueB)
 		{
-			Promise.Set(bValueA && bValueB);
+			return bValueA && bValueB;
 		});
 	});
-
-	return Promise.GetFuture();
 }

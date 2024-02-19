@@ -131,7 +131,7 @@ void FVoxelTextureUtilities::RemoveBulkData(UTexture2D* Texture)
 	// Make sure texture is streamed in before clearing bulk data
 	VOXEL_ENQUEUE_RENDER_COMMAND(RemoveBulkData)([WeakTexture = MakeWeakObjectPtr(Texture)](FRHICommandListImmediate& RHICmdList)
 	{
-		FVoxelUtilities::RunOnGameThread([=]
+		RunOnGameThread([=]
 		{
 			UTexture2D* LocalTexture = WeakTexture.Get();
 			if (!ensure(LocalTexture))

@@ -39,6 +39,25 @@ public:
 	}
 };
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#define VOXEL_ENQUEUE_RENDER_COMMAND(Name) \
+	INTELLISENSE_ONLY(struct VOXEL_APPEND_LINE(FDummy) { void Name(); }); \
+	[](auto&& Lambda) \
+	{ \
+		ENQUEUE_RENDER_COMMAND(Name)([Lambda = MoveTemp(Lambda)](FRHICommandListImmediate& RHICmdList) \
+		{ \
+			VOXEL_SCOPE_COUNTER(#Name); \
+			Lambda(RHICmdList); \
+		}); \
+	}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 FORCEINLINE bool IsInGameThreadFast()
 {
 	const bool bIsInGameThread = FPlatformTLS::GetCurrentThreadId() == GGameThreadId;
@@ -47,8 +66,34 @@ FORCEINLINE bool IsInGameThreadFast()
 }
 
 VOXELCORE_API void FlushVoxelGameThreadTasks();
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 VOXELCORE_API void AsyncVoxelTaskImpl(TVoxelUniqueFunction<void()> Lambda);
 VOXELCORE_API void AsyncBackgroundTaskImpl(TVoxelUniqueFunction<void()> Lambda);
+VOXELCORE_API void AsyncThreadPoolTaskImpl(TVoxelUniqueFunction<void()> Lambda);
+
+// Will never be called right away, even if we are on the game thread
+// Useful to avoid deadlocks
+VOXELCORE_API void RunOnGameThread_Async(TVoxelUniqueFunction<void()> Lambda);
+
+template<typename LambdaType>
+FORCEINLINE void RunOnGameThreadImpl(LambdaType Lambda)
+{
+	if (!IsInGameThreadFast())
+	{
+		RunOnGameThread_Async(MoveTemp(Lambda));
+		return;
+	}
+
+	Lambda();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 template<typename LambdaType, typename FutureType = TVoxelFutureType<typename TVoxelLambdaInfo<LambdaType>::ReturnType>>
 FORCEINLINE FutureType AsyncVoxelTask(LambdaType Lambda)
@@ -86,35 +131,46 @@ FORCEINLINE FutureType AsyncBackgroundTask(LambdaType Lambda)
 	});
 	return Promise.GetFuture();
 }
-
-namespace FVoxelUtilities
+template<typename LambdaType, typename FutureType = TVoxelFutureType<typename TVoxelLambdaInfo<LambdaType>::ReturnType>>
+FORCEINLINE FutureType AsyncThreadPoolTask(LambdaType Lambda)
 {
-	// Will never be called right away, even if we are on the game thread
-	// Useful to avoid deadlocks
-	VOXELCORE_API void RunOnGameThread_Async(TVoxelUniqueFunction<void()> Lambda);
-
-	template<typename T>
-	FORCEINLINE void RunOnGameThread(T&& Lambda)
+	const typename FutureType::PromiseType Promise;
+	AsyncThreadPoolTaskImpl([Lambda = MoveTemp(Lambda), Promise]
 	{
-		if (IsInGameThreadFast())
+		if constexpr (std::is_void_v<typename TVoxelLambdaInfo<LambdaType>::ReturnType>)
 		{
 			Lambda();
+			Promise.Set();
 		}
 		else
 		{
-			FVoxelUtilities::RunOnGameThread_Async(MoveTemp(Lambda));
+			Promise.Set(Lambda());
 		}
-	}
-
-	template<typename KeyType, typename ValueType, typename SetAllocator, typename KeyFuncs>
-	struct TMapWithPairs : TMap<KeyType, ValueType, SetAllocator, KeyFuncs>
-	{
-		auto& GetPairs()
-		{
-			return TMap<KeyType, ValueType, SetAllocator, KeyFuncs>::Pairs;
-		}
-	};
+	});
+	return Promise.GetFuture();
 }
+template<typename LambdaType, typename FutureType = TVoxelFutureType<typename TVoxelLambdaInfo<LambdaType>::ReturnType>>
+FORCEINLINE FutureType RunOnGameThread(LambdaType Lambda)
+{
+	const typename FutureType::PromiseType Promise;
+	RunOnGameThreadImpl([Lambda = MoveTemp(Lambda), Promise]
+	{
+		if constexpr (std::is_void_v<typename TVoxelLambdaInfo<LambdaType>::ReturnType>)
+		{
+			Lambda();
+			Promise.Set();
+		}
+		else
+		{
+			Promise.Set(Lambda());
+		}
+	});
+	return Promise.GetFuture();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
 TSharedRef<T> MakeVoxelShareable_GameThread(T* Object)
@@ -123,7 +179,7 @@ TSharedRef<T> MakeVoxelShareable_GameThread(T* Object)
 
 	return TSharedPtr<T>(Object, [](T* InObject)
 	{
-		FVoxelUtilities::RunOnGameThread([=]
+		RunOnGameThread([=]
 		{
 			FVoxelMemory::Delete(InObject);
 		});
@@ -136,7 +192,7 @@ TSharedRef<T> MakeVoxelShareable_RenderThread(T* Object)
 
 	return TSharedPtr<T>(Object, [](T* InObject)
 	{
-		ENQUEUE_RENDER_COMMAND(MakeVoxelShareable_RenderThread)([=](FRHICommandListImmediate& RHICmdList)
+		VOXEL_ENQUEUE_RENDER_COMMAND(MakeVoxelShareable_RenderThread)([=](FRHICommandListImmediate& RHICmdList)
 		{
 			FVoxelMemory::Delete(InObject);
 		});
@@ -153,6 +209,10 @@ TSharedRef<T> MakeVoxelShared_RenderThread(ArgTypes&&... Args)
 {
 	return MakeVoxelShareable_RenderThread(new (GVoxelMemory) T(Forward<ArgTypes>(Args)...));
 }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 struct CParallelForLambdaHasIndex
 {

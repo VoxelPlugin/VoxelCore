@@ -16,12 +16,47 @@ class TVoxelFuture;
 template<typename>
 class TVoxelPromise;
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template<typename T, typename = void>
+struct TVoxelFutureTypeImpl
+{
+	using Type = TVoxelFuture<T>;
+};
+
+template<typename T>
+struct TVoxelFutureTypeImpl<TSharedRef<T>>
+{
+	using Type = TVoxelFuture<T>;
+};
+
+template<typename T>
+struct TVoxelFutureTypeImpl<TVoxelFuture<T>>
+{
+	using Type = TVoxelFuture<T>;
+};
+
+template<>
+struct TVoxelFutureTypeImpl<void>
+{
+	using Type = FVoxelFuture;
+};
+
+template<typename Type>
+using TVoxelFutureType = typename TVoxelFutureTypeImpl<Type>::Type;
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 enum class EVoxelFutureThread : uint8
 {
 	AnyThread,
 	GameThread,
 	RenderThread,
-	BackgroundThread,
+	AsyncThread,
 	VoxelThread,
 };
 
@@ -52,17 +87,17 @@ public:
 	void Set(const FSharedVoidRef& Value);
 	void Set(const FVoxelFuture& Future);
 
-	void AddOnComplete(
+	void AddContinuation(
 		EVoxelFutureThread Thread,
-		TVoxelUniqueFunction<void(const FSharedVoidRef&)> OnComplete);
+		TVoxelUniqueFunction<void(const FSharedVoidRef&)> Continuation);
 
 private:
-	using FThreadToOnComplete = TVoxelInlineArray<TPair<EVoxelFutureThread, TVoxelUniqueFunction<void(const FSharedVoidRef&)>>, 1>;
+	using FThreadToContinuation = TVoxelInlineArray<TPair<EVoxelFutureThread, TVoxelUniqueFunction<void(const FSharedVoidRef&)>>, 1>;
 
 	mutable FVoxelCriticalSection_NoPadding CriticalSection;
 	TVoxelAtomic<bool> bIsComplete;
 	FSharedVoidPtr Value_RequiresLock;
-	FThreadToOnComplete ThreadToOnComplete_RequiresLock;
+	FThreadToContinuation ThreadToContinuation_RequiresLock;
 	TSharedPtr<FVoxelPromiseState> ThisPtr_RequiresLock;
 
 	FVoxelPromiseState() = default;
@@ -99,45 +134,30 @@ public:
 
 public:
 	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()())>>>
-	FORCEINLINE void OnComplete_AnyThread(LambdaType OnComplete) const
+	FORCEINLINE void Then(
+		const EVoxelFutureThread Thread,
+		LambdaType Continuation) const
 	{
-		PromiseState->AddOnComplete(EVoxelFutureThread::AnyThread, [OnComplete = MoveTemp(OnComplete)](const FSharedVoidRef&)
+		PromiseState->AddContinuation(Thread, [Continuation = MoveTemp(Continuation)](const FSharedVoidRef&)
 		{
-			OnComplete();
+			Continuation();
 		});
 	}
-	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()())>>>
-	FORCEINLINE void OnComplete_GameThread(LambdaType OnComplete) const
-	{
-		PromiseState->AddOnComplete(EVoxelFutureThread::GameThread, [OnComplete = MoveTemp(OnComplete)](const FSharedVoidRef&)
-		{
-			OnComplete();
-		});
+
+#define Define(Thread) \
+	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()())>>> \
+	FORCEINLINE void Then_ ## Thread(LambdaType Continuation) const \
+	{ \
+		Then(EVoxelFutureThread::Thread, MoveTemp(Continuation)); \
 	}
-	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()())>>>
-	FORCEINLINE void OnComplete_RenderThread(LambdaType OnComplete) const
-	{
-		PromiseState->AddOnComplete(EVoxelFutureThread::RenderThread, [OnComplete = MoveTemp(OnComplete)](const FSharedVoidRef&)
-		{
-			OnComplete();
-		});
-	}
-	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()())>>>
-	FORCEINLINE void OnComplete_BackgroundThread(LambdaType OnComplete) const
-	{
-		PromiseState->AddOnComplete(EVoxelFutureThread::BackgroundThread, [OnComplete = MoveTemp(OnComplete)](const FSharedVoidRef&)
-		{
-			OnComplete();
-		});
-	}
-	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()())>>>
-	FORCEINLINE void OnComplete_VoxelThread(LambdaType OnComplete) const
-	{
-		PromiseState->AddOnComplete(EVoxelFutureThread::VoxelThread, [OnComplete = MoveTemp(OnComplete)](const FSharedVoidRef&)
-		{
-			OnComplete();
-		});
-	}
+
+	Define(AnyThread);
+	Define(GameThread);
+	Define(RenderThread);
+	Define(AsyncThread);
+	Define(VoxelThread);
+
+#undef Define
 
 protected:
 	TSharedPtr<FVoxelPromiseState> PromiseState;
@@ -184,6 +204,14 @@ public:
 	TVoxelFuture() = default;
 	TVoxelFuture(const TSharedRef<T>& Value);
 
+	template<typename OtherType, typename = std::enable_if_t<
+		std::is_null_pointer_v<OtherType> &&
+		TIsConstructible<T, const OtherType&>::Value>>
+	TVoxelFuture(const OtherType& OtherValue)
+		: TVoxelFuture(T(OtherValue))
+	{
+	}
+
 	FORCEINLINE TVoxelFuture(const T& Value)
 		: TVoxelFuture(MakeSharedCopy(Value))
 	{
@@ -199,88 +227,109 @@ public:
 	}
 
 public:
-	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<const TSharedRef<T>&>()))>>, typename = void>
-	FORCEINLINE void OnComplete_AnyThread(LambdaType OnComplete) const
+	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<const TSharedRef<T>&>()))>>>
+	FORCEINLINE void Then(
+		const EVoxelFutureThread Thread,
+		LambdaType Continuation) const
 	{
-		PromiseState->AddOnComplete(EVoxelFutureThread::AnyThread, [OnComplete = MoveTemp(OnComplete)](const FSharedVoidRef& Value)
+		PromiseState->AddContinuation(Thread, [Continuation = MoveTemp(Continuation)](const FSharedVoidRef& Value)
 		{
-			OnComplete(ReinterpretCastRef<TSharedRef<T>>(Value));
+			Continuation(ReinterpretCastRef<TSharedRef<T>>(Value));
 		});
 	}
-	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<const TSharedRef<T>&>()))>>, typename = void>
-	FORCEINLINE void OnComplete_GameThread(LambdaType OnComplete) const
+	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<T&>()))>>, typename = void>
+	FORCEINLINE void Then(
+		const EVoxelFutureThread Thread,
+		LambdaType Continuation) const
 	{
-		PromiseState->AddOnComplete(EVoxelFutureThread::GameThread, [OnComplete = MoveTemp(OnComplete)](const FSharedVoidRef& Value)
+		PromiseState->AddContinuation(Thread, [Continuation = MoveTemp(Continuation)](const FSharedVoidRef& Value)
 		{
-			OnComplete(ReinterpretCastRef<TSharedRef<T>>(Value));
-		});
-	}
-	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<const TSharedRef<T>&>()))>>, typename = void>
-	FORCEINLINE void OnComplete_RenderThread(LambdaType OnComplete) const
-	{
-		PromiseState->AddOnComplete(EVoxelFutureThread::RenderThread, [OnComplete = MoveTemp(OnComplete)](const FSharedVoidRef& Value)
-		{
-			OnComplete(ReinterpretCastRef<TSharedRef<T>>(Value));
-		});
-	}
-	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<const TSharedRef<T>&>()))>>, typename = void>
-	FORCEINLINE void OnComplete_BackgroundThread(LambdaType OnComplete) const
-	{
-		PromiseState->AddOnComplete(EVoxelFutureThread::BackgroundThread, [OnComplete = MoveTemp(OnComplete)](const FSharedVoidRef& Value)
-		{
-			OnComplete(ReinterpretCastRef<TSharedRef<T>>(Value));
-		});
-	}
-	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<const TSharedRef<T>&>()))>>, typename = void>
-	FORCEINLINE void OnComplete_VoxelThread(LambdaType OnComplete) const
-	{
-		PromiseState->AddOnComplete(EVoxelFutureThread::VoxelThread, [OnComplete = MoveTemp(OnComplete)](const FSharedVoidRef& Value)
-		{
-			OnComplete(ReinterpretCastRef<TSharedRef<T>>(Value));
+			Continuation(*ReinterpretCastRef<TSharedRef<T>>(Value));
 		});
 	}
 
+#define Define(Thread) \
+	template< \
+		typename LambdaType, \
+		typename LambdaInfo = TVoxelLambdaInfo<LambdaType>, \
+		typename = std::enable_if_t<std::is_void_v<typename LambdaInfo::ReturnType>>, \
+		typename = std::enable_if_t< \
+			std::is_same_v<typename LambdaInfo::ArgTypes, TVoxelTypes<const TSharedRef<T>&>> || \
+			std::is_same_v<typename LambdaInfo::ArgTypes, TVoxelTypes<T&>> || \
+			std::is_same_v<typename LambdaInfo::ArgTypes, TVoxelTypes<const T&>> || \
+			std::is_same_v<typename LambdaInfo::ArgTypes, TVoxelTypes<T>> || \
+			std::is_same_v<typename LambdaInfo::ArgTypes, TVoxelTypes<const T>>>> \
+	FORCEINLINE void Then_ ## Thread(LambdaType Continuation) const \
+	{ \
+		Then(EVoxelFutureThread::Thread, MoveTemp(Continuation)); \
+	}
+
+	Define(AnyThread);
+	Define(GameThread);
+	Define(RenderThread);
+	Define(AsyncThread);
+	Define(VoxelThread);
+
+#undef Define
+
 public:
-	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<T&>()))>>>
-	FORCEINLINE void OnComplete_AnyThread(LambdaType OnComplete) const
+	template<
+		typename LambdaType,
+		typename FutureType = TVoxelFutureType<typename TVoxelLambdaInfo<LambdaType>::ReturnType>,
+		typename = std::enable_if_t<!std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<const TSharedRef<T>&>()))>>,
+		typename = void>
+	[[nodiscard]] FORCEINLINE FutureType Then(
+		const EVoxelFutureThread Thread,
+		LambdaType Continuation) const
 	{
-		PromiseState->AddOnComplete(EVoxelFutureThread::AnyThread, [OnComplete = MoveTemp(OnComplete)](const FSharedVoidRef& Value)
+		const typename FutureType::PromiseType Promise;
+		PromiseState->AddContinuation(Thread, [Promise, Continuation = MoveTemp(Continuation)](const FSharedVoidRef& Value)
 		{
-			OnComplete(*ReinterpretCastRef<TSharedRef<T>>(Value));
+			Promise.Set(Continuation(ReinterpretCastRef<TSharedRef<T>>(Value)));
 		});
+		return Promise.GetFuture();
 	}
-	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<T&>()))>>>
-	FORCEINLINE void OnComplete_GameThread(LambdaType OnComplete) const
+	template<
+		typename LambdaType,
+		typename FutureType = TVoxelFutureType<typename TVoxelLambdaInfo<LambdaType>::ReturnType>,
+		typename = std::enable_if_t<!std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<T&>()))>>,
+		typename = void,
+		typename = void>
+	[[nodiscard]] FORCEINLINE FutureType Then(
+		const EVoxelFutureThread Thread,
+		LambdaType Continuation) const
 	{
-		PromiseState->AddOnComplete(EVoxelFutureThread::GameThread, [OnComplete = MoveTemp(OnComplete)](const FSharedVoidRef& Value)
+		const typename FutureType::PromiseType Promise;
+		PromiseState->AddContinuation(Thread, [Promise, Continuation = MoveTemp(Continuation)](const FSharedVoidRef& Value)
 		{
-			OnComplete(*ReinterpretCastRef<TSharedRef<T>>(Value));
+			Promise.Set(Continuation(*ReinterpretCastRef<TSharedRef<T>>(Value)));
 		});
+		return Promise.GetFuture();
 	}
-	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<T&>()))>>>
-	FORCEINLINE void OnComplete_RenderThread(LambdaType OnComplete) const
-	{
-		PromiseState->AddOnComplete(EVoxelFutureThread::RenderThread, [OnComplete = MoveTemp(OnComplete)](const FSharedVoidRef& Value)
-		{
-			OnComplete(*ReinterpretCastRef<TSharedRef<T>>(Value));
-		});
+
+#define Define(Thread) \
+	template< \
+		typename LambdaType, \
+		typename LambdaInfo = TVoxelLambdaInfo<LambdaType>, \
+		typename = std::enable_if_t<!std::is_void_v<typename LambdaInfo::ReturnType>>, \
+		typename = std::enable_if_t< \
+			std::is_same_v<typename LambdaInfo::ArgTypes, TVoxelTypes<const TSharedRef<T>&>> || \
+			std::is_same_v<typename LambdaInfo::ArgTypes, TVoxelTypes<T&>> || \
+			std::is_same_v<typename LambdaInfo::ArgTypes, TVoxelTypes<const T&>> || \
+			std::is_same_v<typename LambdaInfo::ArgTypes, TVoxelTypes<T>> || \
+			std::is_same_v<typename LambdaInfo::ArgTypes, TVoxelTypes<const T>>>> \
+	[[nodiscard]] FORCEINLINE TVoxelFutureType<typename TVoxelLambdaInfo<LambdaType>::ReturnType> Then_ ## Thread(LambdaType Continuation) const \
+	{ \
+		return Then(EVoxelFutureThread::Thread, MoveTemp(Continuation)); \
 	}
-	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<T&>()))>>>
-	FORCEINLINE void OnComplete_BackgroundThread(LambdaType OnComplete) const
-	{
-		PromiseState->AddOnComplete(EVoxelFutureThread::BackgroundThread, [OnComplete = MoveTemp(OnComplete)](const FSharedVoidRef& Value)
-		{
-			OnComplete(*ReinterpretCastRef<TSharedRef<T>>(Value));
-		});
-	}
-	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<T&>()))>>>
-	FORCEINLINE void OnComplete_VoxelThread(LambdaType OnComplete) const
-	{
-		PromiseState->AddOnComplete(EVoxelFutureThread::VoxelThread, [OnComplete = MoveTemp(OnComplete)](const FSharedVoidRef& Value)
-		{
-			OnComplete(*ReinterpretCastRef<TSharedRef<T>>(Value));
-		});
-	}
+
+	Define(AnyThread);
+	Define(GameThread);
+	Define(RenderThread);
+	Define(AsyncThread);
+	Define(VoxelThread);
+
+#undef Define
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -315,34 +364,6 @@ public:
 		PromiseState->Set(Future);
 	}
 };
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-template<typename, typename = void>
-struct TVoxelFutureTypeImpl;
-
-template<typename T>
-struct TVoxelFutureTypeImpl<TSharedRef<T>>
-{
-	using Type = TVoxelFuture<T>;
-};
-
-template<typename T>
-struct TVoxelFutureTypeImpl<TVoxelFuture<T>>
-{
-	using Type = TVoxelFuture<T>;
-};
-
-template<>
-struct TVoxelFutureTypeImpl<void>
-{
-	using Type = FVoxelFuture;
-};
-
-template<typename Type>
-using TVoxelFutureType = typename TVoxelFutureTypeImpl<Type>::Type;
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

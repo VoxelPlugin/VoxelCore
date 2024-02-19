@@ -288,7 +288,7 @@ FVoxelMaterialRef::~FVoxelMaterialRef()
 		return;
 	}
 
-	FVoxelUtilities::RunOnGameThread([MaterialInstanceRef = MaterialInstanceRef]
+	RunOnGameThread([MaterialInstanceRef = MaterialInstanceRef]
 	{
 		check(IsInGameThread());
 
@@ -383,7 +383,7 @@ void FVoxelMaterialRef::SetDynamicParameter_GameThread(const FName Name, const T
 
 	Value->AddOnChanged(MakeWeakPtrDelegate(this, [this, Name, WeakValue = MakeWeakPtr(Value)]
 	{
-		FVoxelUtilities::RunOnGameThread(MakeWeakPtrLambda(this, [this, Name, WeakValue]
+		RunOnGameThread(MakeWeakPtrLambda(this, [this, Name, WeakValue]
 		{
 			const TSharedPtr<FVoxelDynamicMaterialParameter> PinnedValue = WeakValue.Pin();
 			if (!ensure(PinnedValue))

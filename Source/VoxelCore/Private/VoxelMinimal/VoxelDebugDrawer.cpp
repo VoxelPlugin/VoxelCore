@@ -1,4 +1,4 @@
-﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
 #include "DrawDebugHelpers.h"
@@ -10,7 +10,7 @@ FVoxelDebugDrawer::FVoxelDebugDrawer(const FObjectKey& World)
 
 FVoxelDebugDrawer::~FVoxelDebugDrawer()
 {
-	FVoxelUtilities::RunOnGameThread([State = PrivateState]
+	RunOnGameThread([State = PrivateState]
 	{
 		VOXEL_FUNCTION_COUNTER();
 
