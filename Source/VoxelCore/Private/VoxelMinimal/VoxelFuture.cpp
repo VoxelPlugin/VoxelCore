@@ -162,6 +162,13 @@ FVoxelFuture::FVoxelFuture(const TConstVoxelArrayView<FVoxelFuture> Futures)
 	*this = Promise.GetFuture();
 }
 
+FVoxelFuture FVoxelFuture::Done()
+{
+	const FVoxelPromise Promise;
+	Promise.Set();
+	return Promise.GetFuture();
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -169,19 +176,4 @@ FVoxelFuture::FVoxelFuture(const TConstVoxelArrayView<FVoxelFuture> Futures)
 void FVoxelPromise::Set() const
 {
 	PromiseState->Set(MakeSharedVoid());
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-TVoxelFuture<bool> operator&&(const TVoxelFuture<bool>& A, const TVoxelFuture<bool>& B)
-{
-	return A.Then_AnyThread([=](const bool bValueA)
-	{
-		return B.Then_AnyThread([=](const bool bValueB)
-		{
-			return bValueA && bValueB;
-		});
-	});
 }

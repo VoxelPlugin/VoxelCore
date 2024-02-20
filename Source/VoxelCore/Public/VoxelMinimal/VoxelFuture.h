@@ -5,7 +5,6 @@
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelUniqueFunction.h"
 #include "VoxelMinimal/VoxelCriticalSection.h"
-#include "VoxelMinimal/VoxelFuture.h"
 #include "VoxelMinimal/Containers/VoxelMap.h"
 
 class FVoxelFuture;
@@ -121,6 +120,8 @@ public:
 
 	FVoxelFuture() = default;
 	explicit FVoxelFuture(TConstVoxelArrayView<FVoxelFuture> Futures);
+
+	static FVoxelFuture Done();
 
 public:
 	FORCEINLINE bool IsValid() const
@@ -403,8 +404,6 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-VOXELCORE_API TVoxelFuture<bool> operator&&(const TVoxelFuture<bool>& A, const TVoxelFuture<bool>& B);
 
 template<typename T>
 FORCEINLINE TVoxelFuture<T>::TVoxelFuture(const TSharedRef<T>& Value)
