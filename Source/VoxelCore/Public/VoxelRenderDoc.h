@@ -1,4 +1,4 @@
-﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #pragma once
 
@@ -27,5 +27,14 @@ void StartRenderDocCapture()
 }
 void EndRenderDocCapture()
 {
+	FRHICommandListImmediate::Get().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
+
 	(*GVoxelRenderDocAPI->EndFrameCapture)(nullptr, nullptr);
 }
+
+#define VOXEL_RENDER_DOC_CAPTURE() \
+	StartRenderDocCapture(); \
+	ON_SCOPE_EXIT \
+	{ \
+		EndRenderDocCapture(); \
+	};

@@ -135,6 +135,14 @@ FVoxelFuture::FVoxelFuture(const TConstVoxelArrayView<FVoxelFuture> Futures)
 {
 	VOXEL_FUNCTION_COUNTER_NUM(Futures.Num(), 16);
 
+	if (Futures.Num() == 0)
+	{
+		const FVoxelPromise Promise;
+		Promise.Set();
+		*this = Promise.GetFuture();
+		return;
+	}
+
 	const FVoxelPromise Promise;
 
 	const TSharedRef<FVoxelCounter32> Counter = MakeVoxelShared<FVoxelCounter32>();
