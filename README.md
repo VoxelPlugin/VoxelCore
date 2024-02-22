@@ -515,3 +515,4 @@ const TSharedRef<FVoxelWorldChannelManager> ChannelManager = FVoxelWorldChannelM
 ### Credits
 
 [miniz](https://github.com/richgel999/miniz)
+[Transvoxel](https://transvoxel.org/)
