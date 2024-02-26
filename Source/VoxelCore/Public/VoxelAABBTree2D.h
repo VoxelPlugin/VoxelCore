@@ -4,18 +4,18 @@
 
 #include "VoxelMinimal.h"
 
-class VOXELCORE_API FVoxelAABBTree
+class VOXELCORE_API FVoxelAABBTree2D
 {
 public:
 	struct FElement
 	{
-		FVoxelBox Bounds;
+		FVoxelBox2D Bounds;
 		int32 Payload = -1;
 	};
 	struct FNode
 	{
-		FVoxelBox ChildBounds0;
-		FVoxelBox ChildBounds1;
+		FVoxelBox2D ChildBounds0;
+		FVoxelBox2D ChildBounds1;
 
 		union
 		{
@@ -43,7 +43,7 @@ public:
 	const int32 MaxChildrenInLeaf;
 	const int32 MaxTreeDepth;
 
-	explicit FVoxelAABBTree(
+	explicit FVoxelAABBTree2D(
 		const int32 MaxChildrenInLeaf = 12,
 		const int32 MaxTreeDepth = 16)
 		: MaxChildrenInLeaf(MaxChildrenInLeaf)
@@ -55,7 +55,7 @@ public:
 	void Shrink();
 
 public:
-	FORCEINLINE const FVoxelBox& GetBounds() const
+	FORCEINLINE const FVoxelBox2D& GetBounds() const
 	{
 		ensure(RootBounds.IsValidAndNotEmpty());
 		return RootBounds;
@@ -70,108 +70,7 @@ public:
 	}
 
 public:
-	using FBulkRaycastLambda = TFunctionRef<void(int32 Payload, TVoxelArrayView<FVector3f> RayPositions, TVoxelArrayView<FVector3f> RayDirections)>;
-	void BulkRaycast(
-		TConstVoxelArrayView<FVector3f> RayPositions,
-		TConstVoxelArrayView<FVector3f> RayDirections,
-		FBulkRaycastLambda Lambda);
-
-	template<typename LambdaType>
-	bool Raycast(const FVector& RayOrigin, const FVector& RayDirection, LambdaType&& Lambda) const
-	{
-		if (Nodes.Num() == 0)
-		{
-			return true;
-		}
-
-		TVoxelInlineArray<int32, 64> QueuedNodes;
-		QueuedNodes.Add(0);
-
-		while (QueuedNodes.Num() > 0)
-		{
-			const int32 NodeIndex = QueuedNodes.Pop();
-
-			const FNode& Node = Nodes[NodeIndex];
-			if (Node.bLeaf)
-			{
-				const FLeaf& Leaf = Leaves[Node.LeafIndex];
-				for (const FElement& Element : Leaf.Elements)
-				{
-					if (!Element.Bounds.RayBoxIntersection(RayOrigin, RayDirection))
-					{
-						continue;
-					}
-
-					if (!Lambda(Element.Payload))
-					{
-						return false;
-					}
-				}
-			}
-			else
-			{
-				if (Node.ChildBounds0.RayBoxIntersection(RayOrigin, RayDirection))
-				{
-					QueuedNodes.Add(Node.ChildIndex0);
-				}
-				if (Node.ChildBounds1.RayBoxIntersection(RayOrigin, RayDirection))
-				{
-					QueuedNodes.Add(Node.ChildIndex1);
-				}
-			}
-		}
-
-		return true;
-	}
-	template<typename LambdaType>
-	bool Sweep(const FVector& RayOrigin, const FVector& RayDirection, const FVector& SweepHalfExtents, LambdaType&& Lambda) const
-	{
-		if (Nodes.Num() == 0)
-		{
-			return true;
-		}
-
-		TVoxelInlineArray<int32, 64> QueuedNodes;
-		QueuedNodes.Add(0);
-
-		while (QueuedNodes.Num() > 0)
-		{
-			const int32 NodeIndex = QueuedNodes.Pop();
-
-			const FNode& Node = Nodes[NodeIndex];
-			if (Node.bLeaf)
-			{
-				const FLeaf& Leaf = Leaves[Node.LeafIndex];
-				for (const FElement& Element : Leaf.Elements)
-				{
-					if (!Element.Bounds.Extend(SweepHalfExtents).RayBoxIntersection(RayOrigin, RayDirection))
-					{
-						continue;
-					}
-
-					if (!Lambda(Element.Payload))
-					{
-						return false;
-					}
-				}
-			}
-			else
-			{
-				if (Node.ChildBounds0.Extend(SweepHalfExtents).RayBoxIntersection(RayOrigin, RayDirection))
-				{
-					QueuedNodes.Add(Node.ChildIndex0);
-				}
-				if (Node.ChildBounds1.Extend(SweepHalfExtents).RayBoxIntersection(RayOrigin, RayDirection))
-				{
-					QueuedNodes.Add(Node.ChildIndex1);
-				}
-			}
-		}
-
-		return true;
-	}
-
-	bool Intersect(const FVoxelBox& OverlapBounds) const
+	bool Intersect(const FVoxelBox2D& OverlapBounds) const
 	{
 		return Overlap(OverlapBounds, [](int32)
 		{
@@ -179,7 +78,7 @@ public:
 		});
 	}
 	template<typename LambdaType>
-	bool Overlap(const FVoxelBox& OverlapBounds, LambdaType&& Lambda) const
+	bool Overlap(const FVoxelBox2D& OverlapBounds, LambdaType&& Lambda) const
 	{
 		if (Nodes.Num() == 0)
 		{
@@ -276,10 +175,10 @@ public:
 		}
 	}
 	template<typename VisitType>
-	void TraverseBounds(const FVoxelBox& Bounds, VisitType&& Visit) const
+	void TraverseBounds(const FVoxelBox2D& Bounds, VisitType&& Visit) const
 	{
 		this->Traverse(
-			[&](const FVoxelBox& OtherBounds)
+			[&](const FVoxelBox2D& OtherBounds)
 			{
 				return OtherBounds.Intersect(Bounds);
 			},
@@ -287,7 +186,7 @@ public:
 	}
 
 private:
-	FVoxelBox RootBounds;
+	FVoxelBox2D RootBounds;
 	TVoxelArray<FNode> Nodes;
 	TVoxelArray<FLeaf> Leaves;
 };

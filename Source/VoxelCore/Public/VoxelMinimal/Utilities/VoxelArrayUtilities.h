@@ -125,6 +125,8 @@ namespace FVoxelUtilities
 	template<typename ArrayType, typename = std::enable_if_t<!std::is_const_v<std::remove_reference_t<decltype(*GetData(DeclVal<ArrayType>()))>>>>
 	FORCENOINLINE void SetAll(ArrayType&& Array, const VOXEL_GET_TYPE(*GetData(DeclVal<ArrayType>())) Value)
 	{
+		VOXEL_FUNCTION_COUNTER_NUM(GetNum(Array), 1024);
+
 		using T = VOXEL_GET_TYPE(*GetData(DeclVal<ArrayType>()));
 
 		T* RESTRICT Start = GetData(Array);
@@ -419,7 +421,8 @@ namespace FVoxelUtilities
 	VOXELCORE_API float GetMin(TConstVoxelArrayView<float> Data);
 	VOXELCORE_API float GetMax(TConstVoxelArrayView<float> Data);
 
-	// Will return { MAX_int32, -MAX_int32 } if no values are valid
+	VOXELCORE_API FInt32Interval GetMinMax(TConstVoxelArrayView<uint8> Data);
+	VOXELCORE_API FInt32Interval GetMinMax(TConstVoxelArrayView<uint16> Data);
 	VOXELCORE_API FInt32Interval GetMinMax(TConstVoxelArrayView<int32> Data);
 	// Will return { 0, 0 } if no values are valid
 	// Won't check for NaNs
@@ -431,6 +434,9 @@ namespace FVoxelUtilities
 	// Will return { MAX_dbl, -MAX_dbl } if no values are valid
 	// Will skip NaNs and infinite values
 	VOXELCORE_API FDoubleInterval GetMinMaxSafe(TConstVoxelArrayView<double> Data);
+
+	// Will replace -0 by +0
+	VOXELCORE_API void FixupSignBit(TVoxelArrayView<float> Data);
 
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////

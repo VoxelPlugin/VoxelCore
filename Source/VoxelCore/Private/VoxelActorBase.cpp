@@ -51,6 +51,12 @@ void UVoxelActorBaseRootComponent::UpdateBounds()
 	GetOuterAVoxelActorBase()->NotifyTransformChanged();
 }
 
+FBoxSphereBounds UVoxelActorBaseRootComponent::CalcBounds(const FTransform& LocalToWorld) const
+{
+	const FVoxelBox LocalBounds = GetOuterAVoxelActorBase()->GetLocalBounds();
+	return FBoxSphereBounds(LocalBounds.TransformBy(LocalToWorld).ToFBox());
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -254,6 +260,29 @@ void AVoxelActorBase::Tick(const float DeltaTime)
 		Create();
 	}
 
+	if (ShouldDestroyWhenHidden())
+	{
+		if (IsHidden() ||
+	#if WITH_EDITOR
+			IsHiddenEd()
+	#else
+			false
+	#endif
+			)
+		{
+			if (IsRuntimeCreated())
+			{
+				Destroy();
+				bPrivateCreateOnceVisible = true;
+			}
+		}
+		else if (bPrivateCreateOnceVisible)
+		{
+			bPrivateCreateOnceVisible = false;
+			Create();
+		}
+	}
+
 	if (bPrivateRecreateQueued &&
 		CanBeCreated())
 	{
@@ -331,6 +360,8 @@ void AVoxelActorBase::Destroy()
 
 	// Clear RuntimeRecreate queue
 	bPrivateRecreateQueued = false;
+	// If the user called this manually we never want to create again
+	bPrivateCreateOnceVisible = false;
 
 	if (!IsRuntimeCreated())
 	{

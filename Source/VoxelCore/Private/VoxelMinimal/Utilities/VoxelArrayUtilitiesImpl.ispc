@@ -166,7 +166,91 @@ export uniform float ArrayUtilities_GetMax(
 	return Result;
 }
 
-export void ArrayUtilities_GetMinMax_Int32(
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+export void ArrayUtilities_GetMinMax_uint8(
+	const uniform uint8 Values[],
+	const uniform int32 Num,
+	int32* uniform OutMin,
+	int32* uniform OutMax)
+{
+	const uniform int32 AlignedNum = programCount * (Num / programCount);
+
+	uniform int32 MinResult;
+	uniform int32 MaxResult;
+	if (AlignedNum != 0)
+	{
+		varying int32 MinValue = MAX_int32;
+		varying int32 MaxValue = -MAX_int32;
+		for (uniform int32 Index = 0; Index < AlignedNum; Index += programCount)
+		{
+			const varying int32 Value = Values[Index + programIndex];
+			MinValue = min(MinValue, Value);
+			MaxValue = max(MaxValue, Value);
+		}
+		MinResult = reduce_min(MinValue);
+		MaxResult = reduce_max(MaxValue);
+	}
+	else
+	{
+		MinResult = MAX_int32;
+		MaxResult = -MAX_int32;
+	}
+
+	for (uniform int32 Index = AlignedNum; Index < Num; Index++)
+	{
+		const uniform int32 Value = Values[Index];
+		MinResult = min(MinResult, Value);
+		MaxResult = max(MaxResult, Value);
+	}
+
+	*OutMin = MinResult;
+	*OutMax = MaxResult;
+}
+
+export void ArrayUtilities_GetMinMax_uint16(
+	const uniform uint16 Values[],
+	const uniform int32 Num,
+	int32* uniform OutMin,
+	int32* uniform OutMax)
+{
+	const uniform int32 AlignedNum = programCount * (Num / programCount);
+
+	uniform int32 MinResult;
+	uniform int32 MaxResult;
+	if (AlignedNum != 0)
+	{
+		varying int32 MinValue = MAX_int32;
+		varying int32 MaxValue = -MAX_int32;
+		for (uniform int32 Index = 0; Index < AlignedNum; Index += programCount)
+		{
+			const varying int32 Value = Values[Index + programIndex];
+			MinValue = min(MinValue, Value);
+			MaxValue = max(MaxValue, Value);
+		}
+		MinResult = reduce_min(MinValue);
+		MaxResult = reduce_max(MaxValue);
+	}
+	else
+	{
+		MinResult = MAX_int32;
+		MaxResult = -MAX_int32;
+	}
+
+	for (uniform int32 Index = AlignedNum; Index < Num; Index++)
+	{
+		const uniform int32 Value = Values[Index];
+		MinResult = min(MinResult, Value);
+		MaxResult = max(MaxResult, Value);
+	}
+
+	*OutMin = MinResult;
+	*OutMax = MaxResult;
+}
+
+export void ArrayUtilities_GetMinMax_int32(
 	const uniform int32 Values[],
 	const uniform int32 Num,
 	int32* uniform OutMin,
@@ -206,7 +290,7 @@ export void ArrayUtilities_GetMinMax_Int32(
 	*OutMax = MaxResult;
 }
 
-export void ArrayUtilities_GetMinMax_Float(
+export void ArrayUtilities_GetMinMax_float(
 	const uniform float Values[],
 	const uniform int32 Num,
 	float* uniform OutMin,
@@ -246,7 +330,11 @@ export void ArrayUtilities_GetMinMax_Float(
 	*OutMax = MaxResult;
 }
 
-export void ArrayUtilities_GetMinMaxSafe_Float(
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+export void ArrayUtilities_GetMinMaxSafe_float(
 	const uniform float Values[],
 	const uniform int32 Num,
 	float* uniform OutMin,
@@ -296,7 +384,7 @@ export void ArrayUtilities_GetMinMaxSafe_Float(
 	*OutMax = MaxResult;
 }
 
-export void ArrayUtilities_GetMinMaxSafe_Double(
+export void ArrayUtilities_GetMinMaxSafe_double(
 	const uniform double Values[],
 	const uniform int32 Num,
 	double* uniform OutMin,
@@ -344,4 +432,21 @@ export void ArrayUtilities_GetMinMaxSafe_Double(
 
 	*OutMin = MinResult;
 	*OutMax = MaxResult;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+export void ArrayUtilities_FixupSignBit(
+	uniform float Values[],
+	const uniform int32 Num)
+{
+	FOREACH(Index, 0, Num)
+	{
+		if (intbits(Values[Index]) == 0x80000000)
+		{
+			Values[Index] = 0;
+		}
+	}
 }

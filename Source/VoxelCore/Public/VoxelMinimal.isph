@@ -22,6 +22,8 @@
 #define UNROLL_N(N)
 #define IGNORE_PERF_WARNING
 
+#define coherent_if if
+
 int MakeRegister(int, ...);
 float MakeRegister(float, ...);
 
@@ -279,6 +281,8 @@ int32 programIndex;
 #define UNROLL_N(N) UNROLL N
 #define IGNORE_PERF_WARNING #pragma ignore warning(perf)
 
+#define coherent_if cif
+
 #if TARGET_WIDTH == 8
 #define MakeRegister(A, B, C, D, E, F, G, H) { A, B, C, D, E, F, G, H }
 #elif TARGET_WIDTH == 4
@@ -321,6 +325,9 @@ extern "C" void VoxelISPC_UnsupportedTargetWidth(uniform int Width);
 #define SMALL_NUMBER 1.e-8f
 #define KINDA_SMALL_NUMBER 1.e-4f
 #define BIG_NUMBER 3.4e+38f
+
+#define PREPROCESSOR_JOIN_INNER(X, Y) X ## Y
+#define PREPROCESSOR_JOIN(X, Y) PREPROCESSOR_JOIN_INNER(X, Y)
 
 #if !INTELLISENSE_PARSER
 FORCEINLINE uniform float lerp(const uniform float A, const uniform float B, const uniform float Alpha)
@@ -561,6 +568,17 @@ FORCEINLINE double4 MakeDouble4(const double X, const double Y, const double Z, 
 	Result.w = W;
 	return Result;
 }
+
+#if !INTELLISENSE_PARSER
+FORCEINLINE uniform double3 MakeDouble3(const uniform double X, const uniform double Y, const uniform double Z)
+{
+	uniform double3 Result;
+	Result.x = X;
+	Result.y = Y;
+	Result.z = Z;
+	return Result;
+}
+#endif
 
 FORCEINLINE int2 MakeInt2(const int32 X, const int32 Y)
 {
@@ -1188,6 +1206,14 @@ FORCEINLINE float3 OctahedronToUnitVector(const FVoxelOctahedron Octahedron)
 	return OctahedronToUnitVector(MakeFloat2(UINT8ToFloat(Octahedron.X), UINT8ToFloat(Octahedron.Y)));
 }
 
+FORCEINLINE FVoxelOctahedron MakeOctahedron(const float2 Octahedron)
+{
+	FVoxelOctahedron Result;
+	Result.X = FloatToUINT8(Octahedron.x);
+	Result.Y = FloatToUINT8(Octahedron.y);
+	return Result;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -1346,6 +1372,14 @@ FORCEINLINE float3 RotateVector(const float3 Position, const float4 Rotation)
 	// See FQuat::RotateVector
 	const float3 Q = MakeFloat3(Rotation.x, Rotation.y, Rotation.z);
 	const float3 T = 2.f * cross(Q, Position);
+
+	return Position + (Rotation.w * T) + cross(Q, T);
+}
+FORCEINLINE double3 RotateVector(const double3 Position, const double4 Rotation)
+{
+	// See FQuat::RotateVector
+	const double3 Q = MakeDouble3(Rotation.x, Rotation.y, Rotation.z);
+	const double3 T = 2.f * cross(Q, Position);
 
 	return Position + (Rotation.w * T) + cross(Q, T);
 }

@@ -92,6 +92,36 @@ FVoxelBox FVoxelBox::FromPositions(const TConstVoxelArrayView<FVector3d> Positio
     return FVoxelBox(Min, Max);
 }
 
+FVoxelBox FVoxelBox::FromPositions(const TConstVoxelArrayView<FVector4f> Positions)
+{
+	VOXEL_FUNCTION_COUNTER_NUM(Positions.Num(), 32);
+	checkStatic(sizeof(FVector4f) == sizeof(VectorRegister4Float));
+
+	if (Positions.Num() == 0)
+	{
+		return {};
+	}
+	if (Positions.Num() == 1)
+	{
+		return FVoxelBox(Positions[0]);
+	}
+
+	const TConstVoxelArrayView<VectorRegister4Float> VectorPositions = ReinterpretCastVoxelArrayView<VectorRegister4Float>(Positions);
+
+	VectorRegister4Float Min = VectorPositions[0];
+	VectorRegister4Float Max = VectorPositions[0];
+
+	for (const VectorRegister4Float& Position : VectorPositions)
+	{
+		Min = VectorMin(Min, Position);
+		Max = VectorMax(Max, Position);
+	}
+
+	return FVoxelBox(
+		FVector3f(ReinterpretCastRef<FVector4f>(Min)),
+		FVector3f(ReinterpretCastRef<FVector4f>(Max)));
+}
+
 FVoxelBox FVoxelBox::FromPositions(
     const TConstVoxelArrayView<float> PositionX,
     const TConstVoxelArrayView<float> PositionY,

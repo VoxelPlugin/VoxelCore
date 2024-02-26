@@ -96,6 +96,7 @@ struct VOXELCORE_API FVoxelBox
 	static FVoxelBox FromPositions(TConstVoxelArrayView<FIntVector> Positions);
 	static FVoxelBox FromPositions(TConstVoxelArrayView<FVector3f> Positions);
 	static FVoxelBox FromPositions(TConstVoxelArrayView<FVector3d> Positions);
+	static FVoxelBox FromPositions(TConstVoxelArrayView<FVector4f> Positions);
 
 	static FVoxelBox FromPositions(
 		TConstVoxelArrayView<float> PositionX,

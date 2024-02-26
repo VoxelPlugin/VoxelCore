@@ -82,7 +82,6 @@
 #include "VoxelMinimal/Containers/VoxelStaticArray.h"
 #include "VoxelMinimal/Containers/VoxelStaticBitArray.h"
 
-#include "VoxelMinimal/Utilities/Voxel2DUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelArrayUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelDistanceFieldUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelGameUtilities.h"
@@ -98,6 +97,7 @@
 #include "VoxelMinimal/Utilities/VoxelSystemUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelTextureUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelThreadingUtilities.h"
+#include "VoxelMinimal/Utilities/VoxelTransformUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelTypeUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelVectorUtilities.h"
 

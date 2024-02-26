@@ -36,6 +36,7 @@ public:
 
 	//~ Begin UPrimitiveComponent Interface
 	virtual void UpdateBounds() override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	//~ End UPrimitiveComponent Interface
 };
 
@@ -106,6 +107,8 @@ public:
 public:
 	virtual bool CanBeCreated() const { return true; }
 	virtual void NotifyTransformChanged() {}
+	virtual bool ShouldDestroyWhenHidden() const { return false; }
+	virtual FVoxelBox GetLocalBounds() const { return {}; }
 
 protected:
 	TSharedPtr<IVoxelActorRuntime> GetActorRuntime() const
@@ -118,6 +121,7 @@ protected:
 private:
 	bool bPrivateCreateQueued = false;
 	bool bPrivateRecreateQueued = false;
+	bool bPrivateCreateOnceVisible = false;
 	TSharedPtr<IVoxelActorRuntime> PrivateRuntime;
 
 public:

@@ -135,21 +135,24 @@ public:
 
 public:
 	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()())>>>
-	FORCEINLINE void Then(
+	FORCEINLINE FVoxelFuture Then(
 		const EVoxelFutureThread Thread,
 		LambdaType Continuation) const
 	{
-		PromiseState->AddContinuation(Thread, [Continuation = MoveTemp(Continuation)](const FSharedVoidRef&)
+		const typename TVoxelFutureType<typename TVoxelLambdaInfo<LambdaType>::ReturnType>::PromiseType Promise;
+		PromiseState->AddContinuation(Thread, [Continuation = MoveTemp(Continuation), Promise](const FSharedVoidRef&)
 		{
 			Continuation();
+			Promise.Set();
 		});
+		return Promise.GetFuture();
 	}
 
 #define Define(Thread) \
 	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()())>>> \
-	FORCEINLINE void Then_ ## Thread(LambdaType Continuation) const \
+	FORCEINLINE FVoxelFuture Then_ ## Thread(LambdaType Continuation) const \
 	{ \
-		Then(EVoxelFutureThread::Thread, MoveTemp(Continuation)); \
+		return Then(EVoxelFutureThread::Thread, MoveTemp(Continuation)); \
 	}
 
 	Define(AnyThread);
@@ -264,24 +267,30 @@ public:
 
 public:
 	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<const TSharedRef<T>&>()))>>>
-	FORCEINLINE void Then(
+	FORCEINLINE FVoxelFuture Then(
 		const EVoxelFutureThread Thread,
 		LambdaType Continuation) const
 	{
-		PromiseState->AddContinuation(Thread, [Continuation = MoveTemp(Continuation)](const FSharedVoidRef& Value)
+		const FVoxelPromise Promise;
+		PromiseState->AddContinuation(Thread, [Continuation = MoveTemp(Continuation), Promise](const FSharedVoidRef& Value)
 		{
 			Continuation(ReinterpretCastRef<TSharedRef<T>>(Value));
+			Promise.Set();
 		});
+		return Promise.GetFuture();
 	}
 	template<typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<T&>()))>>, typename = void>
-	FORCEINLINE void Then(
+	FORCEINLINE FVoxelFuture Then(
 		const EVoxelFutureThread Thread,
 		LambdaType Continuation) const
 	{
-		PromiseState->AddContinuation(Thread, [Continuation = MoveTemp(Continuation)](const FSharedVoidRef& Value)
+		const FVoxelPromise Promise;
+		PromiseState->AddContinuation(Thread, [Continuation = MoveTemp(Continuation), Promise](const FSharedVoidRef& Value)
 		{
 			Continuation(*ReinterpretCastRef<TSharedRef<T>>(Value));
+			Promise.Set();
 		});
+		return Promise.GetFuture();
 	}
 
 #define Define(Thread) \
@@ -295,9 +304,9 @@ public:
 			std::is_same_v<typename LambdaInfo::ArgTypes, TVoxelTypes<const T&>> || \
 			std::is_same_v<typename LambdaInfo::ArgTypes, TVoxelTypes<T>> || \
 			std::is_same_v<typename LambdaInfo::ArgTypes, TVoxelTypes<const T>>>> \
-	FORCEINLINE void Then_ ## Thread(LambdaType Continuation) const \
+	FORCEINLINE FVoxelFuture Then_ ## Thread(LambdaType Continuation) const \
 	{ \
-		Then(EVoxelFutureThread::Thread, MoveTemp(Continuation)); \
+		return Then(EVoxelFutureThread::Thread, MoveTemp(Continuation)); \
 	}
 
 	Define(AnyThread);

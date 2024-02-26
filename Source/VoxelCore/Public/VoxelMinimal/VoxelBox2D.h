@@ -4,6 +4,7 @@
 
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelBox.h"
+#include "Math/TransformCalculus2D.h"
 #include "VoxelBox2D.generated.h"
 
 USTRUCT()
@@ -18,6 +19,7 @@ struct VOXELCORE_API FVoxelBox2D
 	FVector2D Max = FVector2D(ForceInit);
 
 	static const FVoxelBox2D Infinite;
+	static const FVoxelBox2D InvertedInfinite;
 
 	FVoxelBox2D() = default;
 
@@ -131,7 +133,19 @@ struct VOXELCORE_API FVoxelBox2D
 
 	FORCEINLINE bool IsValid() const
 	{
-		return Min.X < Max.X && Min.Y < Max.Y;
+		return
+			ensure(FMath::IsFinite(Min.X)) &&
+			ensure(FMath::IsFinite(Min.Y)) &&
+			ensure(FMath::IsFinite(Max.X)) &&
+			ensure(FMath::IsFinite(Max.Y)) &&
+			Min.X <= Max.X &&
+			Min.Y <= Max.Y;
+	}
+	FORCEINLINE bool IsValidAndNotEmpty() const
+	{
+		return
+			IsValid() &&
+			*this != FVoxelBox2D();
 	}
 
 	FORCEINLINE bool Contains(const double X, const double Y) const
@@ -265,6 +279,8 @@ struct VOXELCORE_API FVoxelBox2D
 		return Translate(Offset);
 	}
 
+	FVoxelBox2D TransformBy(const FTransform2d& Transform) const;
+
 	FORCEINLINE FVoxelBox2D& operator*=(const double Scale)
 	{
 		Min *= Scale;
@@ -285,35 +301,6 @@ struct VOXELCORE_API FVoxelBox2D
 	FORCEINLINE bool operator!=(const FVoxelBox2D& Other) const
 	{
 		return Min != Other.Min || Max != Other.Max;
-	}
-
-	template<typename MatrixType>
-	FVoxelBox2D TransformBy(const MatrixType& Transform) const
-	{
-		FVector2D Vertices[4] =
-		{
-			FVector2D(Min.X, Min.Y),
-			FVector2D(Max.X, Min.Y),
-			FVector2D(Min.X, Max.Y),
-			FVector2D(Max.X, Max.Y),
-		};
-
-		for (int32 Index = 0; Index < 4; Index++)
-		{
-			Vertices[Index] = FVector2D(Transform.TransformPoint(FVector2D(Vertices[Index])));
-		}
-
-		FVoxelBox2D NewBox;
-		NewBox.Min = Vertices[0];
-		NewBox.Max = Vertices[0];
-
-		for (int32 Index = 1; Index < 4; Index++)
-		{
-			NewBox.Min = FVoxelUtilities::ComponentMin(NewBox.Min, Vertices[Index]);
-			NewBox.Max = FVoxelUtilities::ComponentMax(NewBox.Max, Vertices[Index]);
-		}
-
-		return NewBox;
 	}
 
 	FORCEINLINE FVoxelBox2D& operator+=(const FVoxelBox2D& Other)

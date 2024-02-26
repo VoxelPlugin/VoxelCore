@@ -5,6 +5,8 @@
 
 bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint8> Data, const uint8 Value)
 {
+	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
+
 	if (Data.Num() == 0)
 	{
 		return true;
@@ -15,6 +17,8 @@ bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint8> Data, const uin
 
 bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint16> Data, const uint16 Value)
 {
+	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
+
 	if (Data.Num() == 0)
 	{
 		return true;
@@ -25,6 +29,8 @@ bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint16> Data, const ui
 
 bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint32> Data, const uint32 Value)
 {
+	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
+
 	if (Data.Num() == 0)
 	{
 		return true;
@@ -35,6 +41,8 @@ bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint32> Data, const ui
 
 bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint64> Data, const uint64 Value)
 {
+	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
+
 	if (Data.Num() == 0)
 	{
 		return true;
@@ -49,6 +57,8 @@ bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint64> Data, const ui
 
 float FVoxelUtilities::GetMin(const TConstVoxelArrayView<float> Data)
 {
+	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
+
 	if (!ensure(Data.Num() > 0))
 	{
 		return 0.f;
@@ -59,6 +69,8 @@ float FVoxelUtilities::GetMin(const TConstVoxelArrayView<float> Data)
 
 float FVoxelUtilities::GetMax(const TConstVoxelArrayView<float> Data)
 {
+	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
+
 	if (!ensure(Data.Num() > 0))
 	{
 		return 0.f;
@@ -71,27 +83,59 @@ float FVoxelUtilities::GetMax(const TConstVoxelArrayView<float> Data)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FInt32Interval FVoxelUtilities::GetMinMax(const TConstVoxelArrayView<int32> Data)
+FInt32Interval FVoxelUtilities::GetMinMax(TConstVoxelArrayView<uint8> Data)
 {
+	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
+
 	if (!ensure(Data.Num() > 0))
 	{
 		return FInt32Interval(MAX_int32, -MAX_int32);
 	}
 
 	FInt32Interval Result;
-	ispc::ArrayUtilities_GetMinMax_Int32(Data.GetData(), Data.Num(), &Result.Min, &Result.Max);
+	ispc::ArrayUtilities_GetMinMax_uint8(Data.GetData(), Data.Num(), &Result.Min, &Result.Max);
+	return Result;
+}
+
+FInt32Interval FVoxelUtilities::GetMinMax(TConstVoxelArrayView<uint16> Data)
+{
+	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
+
+	if (!ensure(Data.Num() > 0))
+	{
+		return FInt32Interval(MAX_int32, -MAX_int32);
+	}
+
+	FInt32Interval Result;
+	ispc::ArrayUtilities_GetMinMax_uint16(Data.GetData(), Data.Num(), &Result.Min, &Result.Max);
+	return Result;
+}
+
+FInt32Interval FVoxelUtilities::GetMinMax(const TConstVoxelArrayView<int32> Data)
+{
+	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
+
+	if (!ensure(Data.Num() > 0))
+	{
+		return FInt32Interval(MAX_int32, -MAX_int32);
+	}
+
+	FInt32Interval Result;
+	ispc::ArrayUtilities_GetMinMax_int32(Data.GetData(), Data.Num(), &Result.Min, &Result.Max);
 	return Result;
 }
 
 FFloatInterval FVoxelUtilities::GetMinMax(const TConstVoxelArrayView<float> Data)
 {
+	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
+
 	if (!ensure(Data.Num() > 0))
 	{
 		return FFloatInterval(0.f, 0.f);
 	}
 
 	FFloatInterval Result;
-	ispc::ArrayUtilities_GetMinMax_Float(Data.GetData(), Data.Num(), &Result.Min, &Result.Max);
+	ispc::ArrayUtilities_GetMinMax_float(Data.GetData(), Data.Num(), &Result.Min, &Result.Max);
 	return Result;
 }
 
@@ -101,26 +145,42 @@ FFloatInterval FVoxelUtilities::GetMinMax(const TConstVoxelArrayView<float> Data
 
 FFloatInterval FVoxelUtilities::GetMinMaxSafe(const TConstVoxelArrayView<float> Data)
 {
+	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
+
 	if (!ensure(Data.Num() > 0))
 	{
 		return FFloatInterval(MAX_flt, -MAX_flt);
 	}
 
 	FFloatInterval Result;
-	ispc::ArrayUtilities_GetMinMaxSafe_Float(Data.GetData(), Data.Num(), &Result.Min, &Result.Max);
+	ispc::ArrayUtilities_GetMinMaxSafe_float(Data.GetData(), Data.Num(), &Result.Min, &Result.Max);
 	return Result;
 }
 
 FDoubleInterval FVoxelUtilities::GetMinMaxSafe(const TConstVoxelArrayView<double> Data)
 {
+	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
+
 	if (!ensure(Data.Num() > 0))
 	{
 		return FDoubleInterval(MAX_dbl, -MAX_dbl);
 	}
 
 	FDoubleInterval Result;
-	ispc::ArrayUtilities_GetMinMaxSafe_Double(Data.GetData(), Data.Num(), &Result.Min, &Result.Max);
+	ispc::ArrayUtilities_GetMinMaxSafe_double(Data.GetData(), Data.Num(), &Result.Min, &Result.Max);
 	return Result;
+}
+
+void FVoxelUtilities::FixupSignBit(const TVoxelArrayView<float> Data)
+{
+	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
+
+	if (Data.Num() == 0)
+	{
+		return;
+	}
+
+	ispc::ArrayUtilities_FixupSignBit(Data.GetData(), Data.Num());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
