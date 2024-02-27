@@ -16,9 +16,16 @@
 // Unreachable code, raises invalid warnings in templates when using if constexpr
 #pragma warning(disable : 4702)
 
-// Common includes
 #include "CoreMinimal.h"
+#include "Runtime/Launch/Resources/Version.h"
+
+#define VOXEL_ENGINE_VERSION (ENGINE_MAJOR_VERSION * 100 + ENGINE_MINOR_VERSION)
+
+// Common includes
 #include "EngineUtils.h"
+#if VOXEL_ENGINE_VERSION <= 502
+#include "RHI.h"
+#endif
 #include "RHIUtilities.h"
 #include "Engine/World.h"
 #include "UObject/Package.h"
@@ -30,7 +37,6 @@
 #include "Components/SceneComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "PhysicsEngine/BodyInstance.h"
-#include "Runtime/Launch/Resources/Version.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -43,8 +49,6 @@ VOXELCORE_API DECLARE_LOG_CATEGORY_EXTERN(LogVoxel, Log, All);
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-#define VOXEL_ENGINE_VERSION (ENGINE_MAJOR_VERSION * 100 + ENGINE_MINOR_VERSION)
 
 #if VOXEL_ENGINE_VERSION >= 503
 #define UE_503_SWITCH(Before, AfterOrEqual) AfterOrEqual
