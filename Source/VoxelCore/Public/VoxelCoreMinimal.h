@@ -19,6 +19,7 @@
 // Common includes
 #include "CoreMinimal.h"
 #include "EngineUtils.h"
+#include "RHIUtilities.h"
 #include "Engine/World.h"
 #include "UObject/Package.h"
 #include "UObject/UObjectIterator.h"

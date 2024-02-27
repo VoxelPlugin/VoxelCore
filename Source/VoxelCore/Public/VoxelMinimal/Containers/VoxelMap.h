@@ -7,6 +7,7 @@
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelChunkedArray.h"
 #include "VoxelMinimal/Utilities/VoxelTypeUtilities.h"
+#include "VoxelMinimal/Utilities/VoxelHashUtilities.h"
 
 template<typename Allocator = FVoxelAllocator>
 struct TVoxelMapArrayType

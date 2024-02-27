@@ -5,6 +5,7 @@
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelStaticArray.h"
+#include "VoxelMinimal/Utilities/VoxelMathUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelArrayUtilities.h"
 
 // Matches FVoxelBufferStorage's chunk size for float/int32

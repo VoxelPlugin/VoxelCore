@@ -3,8 +3,9 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
-#include "Utilities/VoxelObjectUtilities.h"
+#include "VoxelMinimal/VoxelAtomic.h"
 #include "VoxelMinimal/VoxelDuplicateTransient.h"
+#include "Utilities/VoxelObjectUtilities.h"
 #include "VoxelVirtualStruct.generated.h"
 
 USTRUCT()
