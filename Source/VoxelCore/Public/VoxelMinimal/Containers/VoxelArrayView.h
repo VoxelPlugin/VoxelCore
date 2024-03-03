@@ -158,7 +158,15 @@ template<typename InElementType, typename InSizeType> struct TIsTArrayView<const
 template<typename T>
 FORCEINLINE auto MakeVoxelArrayView(T&& Other)
 {
-	if constexpr (TIsContiguousContainer<T>::Value)
+	if constexpr (TIsArray<std::remove_reference_t<T>>::Value)
+	{
+		checkStatic(sizeof(Other) < sizeof(T) * MAX_int32);
+
+		return TVoxelArrayView<
+			std::remove_reference_t<decltype(*GetData(DeclVal<T>()))>,
+			int32>(Other);
+	}
+	else if constexpr (TIsContiguousContainer<T>::Value)
 	{
 		return TVoxelArrayView<
 			std::remove_reference_t<decltype(*GetData(DeclVal<T>()))>,
