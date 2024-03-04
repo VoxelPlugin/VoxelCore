@@ -20,7 +20,7 @@ namespace FVoxelUtilities
 	template<typename T, typename = std::enable_if_t<CanMakeSafe<T>>>
 	std::enable_if_t<!TModels<CForceInitializable, T>::Value, T> MakeSafe()
 	{
-		return T();
+		return T{};
 	}
 	template<typename T, typename = std::enable_if_t<CanMakeSafe<T>>>
 	std::enable_if_t<TModels<CForceInitializable, T>::Value, T> MakeSafe()

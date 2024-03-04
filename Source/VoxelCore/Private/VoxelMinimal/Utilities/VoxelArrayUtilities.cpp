@@ -93,7 +93,11 @@ FInt32Interval FVoxelUtilities::GetMinMax(TConstVoxelArrayView<uint8> Data)
 	}
 
 	FInt32Interval Result;
-	ispc::ArrayUtilities_GetMinMax_uint8(Data.GetData(), Data.Num(), &Result.Min, &Result.Max);
+	ispc::ArrayUtilities_GetMinMax_uint8(
+		Data.GetData(),
+		Data.Num(),
+		&Result.Min,
+		&Result.Max);
 	return Result;
 }
 
@@ -107,7 +111,11 @@ FInt32Interval FVoxelUtilities::GetMinMax(TConstVoxelArrayView<uint16> Data)
 	}
 
 	FInt32Interval Result;
-	ispc::ArrayUtilities_GetMinMax_uint16(Data.GetData(), Data.Num(), &Result.Min, &Result.Max);
+	ispc::ArrayUtilities_GetMinMax_uint16(
+		Data.GetData(),
+		Data.Num(),
+		&Result.Min,
+		&Result.Max);
 	return Result;
 }
 
@@ -121,7 +129,11 @@ FInt32Interval FVoxelUtilities::GetMinMax(const TConstVoxelArrayView<int32> Data
 	}
 
 	FInt32Interval Result;
-	ispc::ArrayUtilities_GetMinMax_int32(Data.GetData(), Data.Num(), &Result.Min, &Result.Max);
+	ispc::ArrayUtilities_GetMinMax_int32(
+		Data.GetData(),
+		Data.Num(),
+		&Result.Min,
+		&Result.Max);
 	return Result;
 }
 
@@ -135,8 +147,60 @@ FFloatInterval FVoxelUtilities::GetMinMax(const TConstVoxelArrayView<float> Data
 	}
 
 	FFloatInterval Result;
-	ispc::ArrayUtilities_GetMinMax_float(Data.GetData(), Data.Num(), &Result.Min, &Result.Max);
+	ispc::ArrayUtilities_GetMinMax_float(
+		Data.GetData(),
+		Data.Num(),
+		&Result.Min,
+		&Result.Max);
 	return Result;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void FVoxelUtilities::GetMinMax(
+	const TConstVoxelArrayView<FVector2f> Data,
+	FVector2f& OutMin,
+	FVector2f& OutMax)
+{
+	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
+
+	OutMin = FVector2f(ForceInit);
+	OutMax = FVector2f(ForceInit);
+
+	if (!ensure(Data.Num() > 0))
+	{
+		return;
+	}
+
+	ispc::ArrayUtilities_GetMinMax_float2(
+		ReinterpretCastPtr<ispc::float2>(Data.GetData()),
+		Data.Num(),
+		&ReinterpretCastRef<ispc::float2>(OutMin),
+		&ReinterpretCastRef<ispc::float2>(OutMax));
+}
+
+void FVoxelUtilities::GetMinMax(
+	TConstVoxelArrayView<FColor> Data,
+	FColor& OutMin,
+	FColor& OutMax)
+{
+	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
+
+	OutMin = FColor(ForceInit);
+	OutMax = FColor(ForceInit);
+
+	if (!ensure(Data.Num() > 0))
+	{
+		return;
+	}
+
+	ispc::ArrayUtilities_GetMinMax_Color(
+		ReinterpretCastPtr<ispc::FColor>(Data.GetData()),
+		Data.Num(),
+		&ReinterpretCastRef<ispc::FColor>(OutMin),
+		&ReinterpretCastRef<ispc::FColor>(OutMax));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

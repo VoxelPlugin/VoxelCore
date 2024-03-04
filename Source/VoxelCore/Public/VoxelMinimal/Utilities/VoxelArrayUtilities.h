@@ -428,6 +428,16 @@ namespace FVoxelUtilities
 	// Won't check for NaNs
 	VOXELCORE_API FFloatInterval GetMinMax(TConstVoxelArrayView<float> Data);
 
+	VOXELCORE_API void GetMinMax(
+		TConstVoxelArrayView<FVector2f> Data,
+		FVector2f& OutMin,
+		FVector2f& OutMax);
+
+	VOXELCORE_API void GetMinMax(
+		TConstVoxelArrayView<FColor> Data,
+		FColor& OutMin,
+		FColor& OutMax);
+
 	// Will return { MAX_flt, -MAX_flt } if no values are valid
 	// Will skip NaNs and infinite values
 	VOXELCORE_API FFloatInterval GetMinMaxSafe(TConstVoxelArrayView<float> Data);

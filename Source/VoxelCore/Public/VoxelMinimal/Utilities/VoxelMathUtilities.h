@@ -237,6 +237,27 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
+	FORCEINLINE uint32 ReadBits(uint32 Data, const int32 FirstBit, const int32 NumBits)
+	{
+		checkVoxelSlow(0 <= FirstBit && FirstBit + NumBits <= 32);
+		checkVoxelSlow(0 < NumBits);
+
+		Data <<= 32 - (FirstBit + NumBits);
+		Data >>= 32 - NumBits;
+		return Data;
+	}
+	FORCEINLINE uint64 ReadBits(uint64 Data, const int32 FirstBit, const int32 NumBits)
+	{
+		checkVoxelSlow(0 <= FirstBit && FirstBit + NumBits <= 64);
+		checkVoxelSlow(0 < NumBits);
+
+		Data <<= 64 - (FirstBit + NumBits);
+		Data >>= 64 - NumBits;
+		return Data;
+	}
+	template<typename A, typename B, typename C>
+	void ReadBits(A, B, C) = delete;
+
 	FORCEINLINE float& FloatBits(uint32& Value)
 	{
 		return reinterpret_cast<float&>(Value);
@@ -275,26 +296,10 @@ namespace FVoxelUtilities
 	template<typename T>
 	bool SignBit(const T&) = delete;
 
-	FORCEINLINE uint32 ReadBits(uint32 Data, const int32 FirstBit, const int32 NumBits)
+	FORCEINLINE int32 GetExponent(const float Value)
 	{
-		checkVoxelSlow(0 <= FirstBit && FirstBit + NumBits <= 32);
-		checkVoxelSlow(0 < NumBits);
-
-		Data <<= 32 - (FirstBit + NumBits);
-		Data >>= 32 - NumBits;
-		return Data;
+		return ReadBits(IntBits(Value), 23, 8);
 	}
-	FORCEINLINE uint64 ReadBits(uint64 Data, const int32 FirstBit, const int32 NumBits)
-	{
-		checkVoxelSlow(0 <= FirstBit && FirstBit + NumBits <= 64);
-		checkVoxelSlow(0 < NumBits);
-
-		Data <<= 64 - (FirstBit + NumBits);
-		Data >>= 64 - NumBits;
-		return Data;
-	}
-	template<typename A, typename B, typename C>
-	void ReadBits(A, B, C) = delete;
 
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////

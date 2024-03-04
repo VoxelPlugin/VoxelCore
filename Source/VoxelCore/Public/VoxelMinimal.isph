@@ -57,9 +57,11 @@ struct float16
 
 float min(float, float);
 double min(double, double);
+uint8 min(uint8, uint8);
 int32 min(int32, int32);
 float max(float, float);
 float max(double, double);
+uint8 max(uint8, uint8);
 int32 max(int32, int32);
 float clamp(float value, float a, float b);
 double clamp(double value, double a, double b);
@@ -1032,6 +1034,18 @@ FORCEINLINE float3 TransformPosition(const float4x4 Matrix, const float3 Positio
 		Matrix.M[1] * Position.x + Matrix.M[5] * Position.y + Matrix.M[9] * Position.z + Matrix.M[13],
 		Matrix.M[2] * Position.x + Matrix.M[6] * Position.y + Matrix.M[10] * Position.z + Matrix.M[14]);
 }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+struct FColor
+{
+	uint8 B;
+	uint8 G;
+	uint8 R;
+	uint8 A;
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

@@ -334,6 +334,150 @@ export void ArrayUtilities_GetMinMax_float(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+export void ArrayUtilities_GetMinMax_float2(
+	const uniform float2 Values[],
+	const uniform int32 Num,
+	float2* uniform OutMin,
+	float2* uniform OutMax)
+{
+	const uniform int32 AlignedNum = programCount * (Num / programCount);
+
+	uniform float MinResultX;
+	uniform float MaxResultX;
+	uniform float MinResultY;
+	uniform float MaxResultY;
+	if (AlignedNum != 0)
+	{
+		varying float MinValueX = Values[0].x;
+		varying float MaxValueX = Values[0].x;
+		varying float MinValueY = Values[0].y;
+		varying float MaxValueY = Values[0].y;
+		for (uniform int32 Index = 0; Index < AlignedNum; Index += programCount)
+		{
+			IGNORE_PERF_WARNING
+			const varying float2 Value = Values[Index + programIndex];
+
+			MinValueX = min(MinValueX, Value.x);
+			MaxValueX = max(MaxValueX, Value.x);
+			MinValueY = min(MinValueY, Value.y);
+			MaxValueY = max(MaxValueY, Value.y);
+		}
+		MinResultX = reduce_min(MinValueX);
+		MaxResultX = reduce_max(MaxValueX);
+		MinResultY = reduce_min(MinValueY);
+		MaxResultY = reduce_max(MaxValueY);
+	}
+	else
+	{
+		MinResultX = Values[0].x;
+		MaxResultX = Values[0].x;
+		MinResultY = Values[0].y;
+		MaxResultY = Values[0].y;
+	}
+
+	for (uniform int32 Index = AlignedNum; Index < Num; Index++)
+	{
+		const uniform float2 Value = Values[Index];
+		MinResultX = min(MinResultX, Value.x);
+		MaxResultX = max(MaxResultX, Value.x);
+		MinResultY = min(MinResultY, Value.y);
+		MaxResultY = max(MaxResultY, Value.y);
+	}
+
+	OutMin->x = MinResultX;
+	OutMax->x = MaxResultX;
+	OutMin->y = MinResultY;
+	OutMax->y = MaxResultY;
+}
+
+export void ArrayUtilities_GetMinMax_Color(
+	const uniform FColor Values[],
+	const uniform int32 Num,
+	FColor* uniform OutMin,
+	FColor* uniform OutMax)
+{
+	const uniform int32 AlignedNum = programCount * (Num / programCount);
+
+	uniform uint8 MinResultR;
+	uniform uint8 MaxResultR;
+	uniform uint8 MinResultG;
+	uniform uint8 MaxResultG;
+	uniform uint8 MinResultB;
+	uniform uint8 MaxResultB;
+	uniform uint8 MinResultA;
+	uniform uint8 MaxResultA;
+	if (AlignedNum != 0)
+	{
+		varying uint8 MinValueR = Values[0].R;
+		varying uint8 MaxValueR = Values[0].R;
+		varying uint8 MinValueG = Values[0].G;
+		varying uint8 MaxValueG = Values[0].G;
+		varying uint8 MinValueB = Values[0].B;
+		varying uint8 MaxValueB = Values[0].B;
+		varying uint8 MinValueA = Values[0].A;
+		varying uint8 MaxValueA = Values[0].A;
+		for (uniform int32 Index = 0; Index < AlignedNum; Index += programCount)
+		{
+			IGNORE_PERF_WARNING
+			const varying FColor Value = Values[Index + programIndex];
+
+			MinValueR = min(MinValueR, Value.R);
+			MaxValueR = max(MaxValueR, Value.R);
+			MinValueG = min(MinValueG, Value.G);
+			MaxValueG = max(MaxValueG, Value.G);
+			MinValueB = min(MinValueB, Value.B);
+			MaxValueB = max(MaxValueB, Value.B);
+			MinValueA = min(MinValueA, Value.A);
+			MaxValueA = max(MaxValueA, Value.A);
+		}
+		MinResultR = reduce_min((int32)MinValueR);
+		MaxResultR = reduce_max((int32)MaxValueR);
+		MinResultG = reduce_min((int32)MinValueG);
+		MaxResultG = reduce_max((int32)MaxValueG);
+		MinResultB = reduce_min((int32)MinValueB);
+		MaxResultB = reduce_max((int32)MaxValueB);
+		MinResultA = reduce_min((int32)MinValueA);
+		MaxResultA = reduce_max((int32)MaxValueA);
+	}
+	else
+	{
+		MinResultR = Values[0].R;
+		MaxResultR = Values[0].R;
+		MinResultG = Values[0].G;
+		MaxResultG = Values[0].G;
+		MinResultB = Values[0].B;
+		MaxResultB = Values[0].B;
+		MinResultA = Values[0].A;
+		MaxResultA = Values[0].A;
+	}
+
+	for (uniform int32 Index = AlignedNum; Index < Num; Index++)
+	{
+		const uniform FColor Value = Values[Index];
+		MinResultR = min(MinResultR, Value.R);
+		MaxResultR = max(MaxResultR, Value.R);
+		MinResultG = min(MinResultG, Value.G);
+		MaxResultG = max(MaxResultG, Value.G);
+		MinResultB = min(MinResultB, Value.B);
+		MaxResultB = max(MaxResultB, Value.B);
+		MinResultA = min(MinResultA, Value.A);
+		MaxResultA = max(MaxResultA, Value.A);
+	}
+
+	OutMin->R = MinResultR;
+	OutMax->R = MaxResultR;
+	OutMin->G = MinResultG;
+	OutMax->G = MaxResultG;
+	OutMin->B = MinResultB;
+	OutMax->B = MaxResultB;
+	OutMin->A = MinResultA;
+	OutMax->A = MaxResultA;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 export void ArrayUtilities_GetMinMaxSafe_float(
 	const uniform float Values[],
 	const uniform int32 Num,

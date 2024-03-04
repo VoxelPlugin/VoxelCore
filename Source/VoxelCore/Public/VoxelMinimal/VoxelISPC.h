@@ -20,6 +20,7 @@
 #define __ISPC_STRUCT_double2x2__
 #define __ISPC_STRUCT_FTransform2d__
 #define __ISPC_STRUCT_float4x4__
+#define __ISPC_STRUCT_FColor__
 
 namespace ispc
 {
@@ -95,6 +96,14 @@ namespace ispc
 	{
 		float M[16];
 	};
+
+	struct FColor
+	{
+		uint8 B;
+		uint8 G;
+		uint8 R;
+		uint8 A;
+	};
 }
 
 FORCEINLINE ispc::float2 GetISPCValue(const FVector2f& Vector)
@@ -149,4 +158,9 @@ FORCEINLINE ispc::FTransform2d GetISPCValue(const FTransform2d& Transform)
 FORCEINLINE ispc::float4x4 GetISPCValue(const FMatrix44f& Matrix)
 {
 	return ReinterpretCastRef<ispc::float4x4>(Matrix);
+}
+
+FORCEINLINE ispc::FColor GetISPCValue(const FColor& Color)
+{
+	return ReinterpretCastRef<ispc::FColor>(Color);
 }

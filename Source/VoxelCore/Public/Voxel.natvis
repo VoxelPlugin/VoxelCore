@@ -126,6 +126,18 @@
     </Expand>
   </Type>
 
+  <!-- TVoxelChunkedArray visualizer -->
+  <Type Name="TVoxelChunkedArray&lt;*&gt;">
+    <DisplayString>Num={ArrayNum}</DisplayString>
+    <Expand>
+      <IndexListItems>
+        <Size>ArrayNum</Size>
+        <ValueNode Condition="!PrivateChunks.AllocatorInstance.SecondaryData.Data">(($T1**)PrivateChunks.AllocatorInstance.InlineData)[$i / NumPerChunk][$i % NumPerChunk]</ValueNode>
+        <ValueNode Condition="PrivateChunks.AllocatorInstance.SecondaryData.Data">(($T1**)PrivateChunks.AllocatorInstance.SecondaryData.Data)[$i / NumPerChunk][$i % NumPerChunk]</ValueNode>
+      </IndexListItems>
+    </Expand>
+  </Type>
+
   <!-- TVoxelBufferStorage visualizer -->
   <Type Name="TVoxelBufferStorage&lt;*&gt;">
     <DisplayString>Num={ArrayNum}</DisplayString>
