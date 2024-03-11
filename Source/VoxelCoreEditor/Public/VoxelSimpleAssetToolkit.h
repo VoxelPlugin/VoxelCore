@@ -32,6 +32,7 @@ public:
 	virtual void PostEditChange(const FPropertyChangedEvent& PropertyChangedEvent) override;
 	//~ End FVoxelToolkit Interface
 
+public:
 	IDetailsView& GetDetailsView() const
 	{
 		return *PrivateDetailsView;
@@ -40,7 +41,9 @@ public:
 	{
 		return *PrivatePreviewScene;
 	}
+	TSharedRef<SWidget> GetViewport() const;
 
+public:
 	virtual void SetupPreview() {}
 	virtual void UpdatePreview() {}
 	virtual void DrawPreview(const FSceneView* View, FPrimitiveDrawInterface* PDI) {}
@@ -127,8 +130,8 @@ private:
 	TObjectPtr<USceneComponent> PrivateRootComponent;
 
 protected:
-	static const FName DetailsTabId;
-	static const FName ViewportTabId;
+	static constexpr const TCHAR* DetailsTabId = TEXT("FVoxelSimpleAssetToolkit_Details");
+	static constexpr const TCHAR* ViewportTabId = TEXT("FVoxelSimpleAssetToolkit_Viewport");
 
 private:
 	bool bPreviewQueued = false;

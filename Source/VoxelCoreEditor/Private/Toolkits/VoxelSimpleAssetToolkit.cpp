@@ -6,9 +6,6 @@
 #include "Engine/Texture2D.h"
 #include "Components/StaticMeshComponent.h"
 
-const FName FVoxelSimpleAssetToolkit::DetailsTabId = "VoxelSimpleAssetEditor_Details";
-const FName FVoxelSimpleAssetToolkit::ViewportTabId = "VoxelSimpleAssetEditor_Viewport";
-
 FVoxelSimpleAssetToolkit::~FVoxelSimpleAssetToolkit()
 {
 	VOXEL_FUNCTION_COUNTER();
@@ -94,7 +91,7 @@ void FVoxelSimpleAssetToolkit::Initialize()
 
 TSharedPtr<FTabManager::FLayout> FVoxelSimpleAssetToolkit::GetLayout() const
 {
-	return FTabManager::NewLayout("Standalone_VoxelSimpleAssetEditor_Layout_v0")
+	return FTabManager::NewLayout("FVoxelSimpleAssetToolkit_Layout_v0")
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea()
@@ -239,6 +236,15 @@ void FVoxelSimpleAssetToolkit::PostEditChange(const FPropertyChangedEvent& Prope
 	}
 
 	CaptureThumbnail();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+TSharedRef<SWidget> FVoxelSimpleAssetToolkit::GetViewport() const
+{
+	return Viewport.ToSharedRef();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
