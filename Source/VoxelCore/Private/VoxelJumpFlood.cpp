@@ -2,6 +2,10 @@
 
 #include "VoxelJumpFlood.h"
 
+#if WITH_EDITOR
+#include "Misc/ScopedSlowTask.h"
+#endif
+
 void FVoxelJumpFlood::JumpFlood2D(
 	const FIntPoint& Size,
 	const TVoxelArrayView<FIntPoint> InOutClosestPosition)
@@ -15,6 +19,12 @@ void FVoxelJumpFlood::JumpFlood2D(
 	bool bSourceIsTemp = false;
 
 	const int32 NumPasses = FMath::CeilLogTwo(Size.GetMax());
+
+#if WITH_EDITOR
+	FScopedSlowTask SlowTask(NumPasses + 1, INVTEXT("Performing Jump Flood"));
+	SlowTask.EnterProgressFrame();
+#endif
+
 	for (int32 Pass = 0; Pass < NumPasses; Pass++)
 	{
 		// -1: we want to start with half the size
@@ -27,6 +37,10 @@ void FVoxelJumpFlood::JumpFlood2D(
 			Step);
 
 		bSourceIsTemp = !bSourceIsTemp;
+
+#if WITH_EDITOR
+		SlowTask.EnterProgressFrame(1.f, FText::FromString("Performing Jump Flood " + LexToString(Pass + 1) + " of " + LexToString(NumPasses)));
+#endif
 	}
 
 	if (bSourceIsTemp)
@@ -47,8 +61,18 @@ void FVoxelJumpFlood::JumpFlood2DImpl(
 	checkVoxelSlow(InData.Num() == Size.X * Size.Y);
 	checkVoxelSlow(OutData.Num() == Size.X * Size.Y);
 
+#if WITH_EDITOR
+	FScopedSlowTask SlowTask(Size.Y);
+#endif
+
 	for (int32 Y = 0; Y < Size.Y; Y++)
 	{
+#if WITH_EDITOR
+		if (Y % 10 == 9)
+		{
+			SlowTask.EnterProgressFrame(10.f);
+		}
+#endif
 		int32 Index = Size.X * Y;
 		for (int32 X = 0; X < Size.X; X++)
 		{
