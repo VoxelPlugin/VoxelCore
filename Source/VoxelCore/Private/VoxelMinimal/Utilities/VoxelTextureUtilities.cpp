@@ -478,3 +478,326 @@ void FVoxelTextureUtilities::FullyLoadTextures(const TArray<UTexture*>& Textures
 	FTextureCompilingManager::Get().FinishCompilation(Textures);
 #endif
 }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#if WITH_EDITOR
+bool FVoxelTextureUtilities::ExtractTextureChannel(
+	const UTexture2D& Texture,
+	const EVoxelTextureChannel Channel,
+	int32& OutSizeX,
+	int32& OutSizeY,
+	TVoxelArray<float>& OutValues)
+{
+	VOXEL_FUNCTION_COUNTER();
+	check(IsInGameThread());
+
+	const FTextureSource& Source = Texture.Source;
+	if (!ensureVoxelSlow(Source.IsValid()))
+	{
+		return false;
+	}
+
+	OutSizeX = Source.GetSizeX();
+	OutSizeY = Source.GetSizeY();
+	FVoxelUtilities::SetNumFast(OutValues, OutSizeX * OutSizeY);
+
+	const int32 NumPixels = OutSizeX * OutSizeY;
+
+	const TConstVoxelArrayView64<uint8> SourceByteData(
+		ConstCast(Source).LockMipReadOnly(0, 0, 0),
+		Source.CalcMipSize(0, 0, 0));
+	ON_SCOPE_EXIT
+	{
+		ConstCast(Source).UnlockMip(0, 0, 0);
+	};
+
+	switch (Source.GetFormat())
+	{
+	default:
+	{
+		ensureVoxelSlow(false);
+		VOXEL_MESSAGE(Error, "Unsupported format: {0}", UEnum::GetValueAsString(Source.GetFormat()));
+		return false;
+	}
+	case TSF_G8:
+	{
+		if (!ensure(SourceByteData.Num() == NumPixels))
+		{
+			return false;
+		}
+
+		for (int32 Index = 0; Index < NumPixels; Index++)
+		{
+			OutValues[Index] = SourceByteData[Index] / float(MAX_uint8);
+		}
+
+		return true;
+	}
+	case TSF_BGRA8:
+	case TSF_BGRE8:
+	{
+		const TConstVoxelArrayView64<FColor> SourceData = ReinterpretCastVoxelArrayView<FColor>(SourceByteData);
+		if (!ensure(SourceData.Num() == NumPixels))
+		{
+			return false;
+		}
+
+		switch (Channel)
+		{
+		default:
+		{
+			ensure(false);
+			return false;
+		}
+		case EVoxelTextureChannel::R:
+		{
+			for (int32 Index = 0; Index < NumPixels; Index++)
+			{
+				OutValues[Index] = SourceData[Index].R / float(MAX_uint8);
+			}
+		}
+		break;
+		case EVoxelTextureChannel::G:
+		{
+			for (int32 Index = 0; Index < NumPixels; Index++)
+			{
+				OutValues[Index] = SourceData[Index].G / float(MAX_uint8);
+			}
+		}
+		break;
+		case EVoxelTextureChannel::B:
+		{
+			for (int32 Index = 0; Index < NumPixels; Index++)
+			{
+				OutValues[Index] = SourceData[Index].B / float(MAX_uint8);
+			}
+		}
+		break;
+		case EVoxelTextureChannel::A:
+		{
+			for (int32 Index = 0; Index < NumPixels; Index++)
+			{
+				OutValues[Index] = SourceData[Index].A / float(MAX_uint8);
+			}
+		}
+		break;
+		}
+
+		return true;
+	}
+	case TSF_RGBA16:
+	{
+		struct FColor16
+		{
+			uint16 R;
+			uint16 G;
+			uint16 B;
+			uint16 A;
+		};
+
+		const TConstVoxelArrayView64<FColor16> SourceData = ReinterpretCastVoxelArrayView<FColor16>(SourceByteData);
+		if (!ensure(SourceData.Num() == NumPixels))
+		{
+			return false;
+		}
+
+		switch (Channel)
+		{
+		default:
+		{
+			ensure(false);
+			return false;
+		}
+		case EVoxelTextureChannel::R:
+		{
+			for (int32 Index = 0; Index < NumPixels; Index++)
+			{
+				OutValues[Index] = SourceData[Index].R / float(MAX_uint16);
+			}
+		}
+		break;
+		case EVoxelTextureChannel::G:
+		{
+			for (int32 Index = 0; Index < NumPixels; Index++)
+			{
+				OutValues[Index] = SourceData[Index].G / float(MAX_uint16);
+			}
+		}
+		break;
+		case EVoxelTextureChannel::B:
+		{
+			for (int32 Index = 0; Index < NumPixels; Index++)
+			{
+				OutValues[Index] = SourceData[Index].B / float(MAX_uint16);
+			}
+		}
+		break;
+		case EVoxelTextureChannel::A:
+		{
+			for (int32 Index = 0; Index < NumPixels; Index++)
+			{
+				OutValues[Index] = SourceData[Index].A / float(MAX_uint16);
+			}
+		}
+		break;
+		}
+
+		return true;
+	}
+	case TSF_RGBA16F:
+	{
+		struct FColor16F
+		{
+			FFloat16 R;
+			FFloat16 G;
+			FFloat16 B;
+			FFloat16 A;
+		};
+
+		const TConstVoxelArrayView64<FColor16F> SourceData = ReinterpretCastVoxelArrayView<FColor16F>(SourceByteData);
+		if (!ensure(SourceData.Num() == NumPixels))
+		{
+			return false;
+		}
+
+		switch (Channel)
+		{
+		default:
+		{
+			ensure(false);
+			return false;
+		}
+		case EVoxelTextureChannel::R:
+		{
+			for (int32 Index = 0; Index < NumPixels; Index++)
+			{
+				OutValues[Index] = SourceData[Index].R;
+			}
+		}
+		break;
+		case EVoxelTextureChannel::G:
+		{
+			for (int32 Index = 0; Index < NumPixels; Index++)
+			{
+				OutValues[Index] = SourceData[Index].G;
+			}
+		}
+		break;
+		case EVoxelTextureChannel::B:
+		{
+			for (int32 Index = 0; Index < NumPixels; Index++)
+			{
+				OutValues[Index] = SourceData[Index].B;
+			}
+		}
+		break;
+		case EVoxelTextureChannel::A:
+		{
+			for (int32 Index = 0; Index < NumPixels; Index++)
+			{
+				OutValues[Index] = SourceData[Index].A;
+			}
+		}
+		break;
+		}
+
+		return true;
+	}
+	case TSF_G16:
+	{
+		const TConstVoxelArrayView64<uint16> SourceData = ReinterpretCastVoxelArrayView<uint16>(SourceByteData);
+		if (!ensure(SourceData.Num() == NumPixels))
+		{
+			return false;
+		}
+
+		for (int32 Index = 0; Index < NumPixels; Index++)
+		{
+			OutValues[Index] = SourceData[Index] / float(MAX_uint16);
+		}
+
+		return true;
+	}
+	case TSF_RGBA32F:
+	{
+		const TConstVoxelArrayView64<FLinearColor> SourceData = ReinterpretCastVoxelArrayView<FLinearColor>(SourceByteData);
+		if (!ensure(SourceData.Num() == NumPixels))
+		{
+			return false;
+		}
+
+		switch (Channel)
+		{
+		default:
+		{
+			ensure(false);
+			return false;
+		}
+		case EVoxelTextureChannel::R:
+		{
+			for (int32 Index = 0; Index < NumPixels; Index++)
+			{
+				OutValues[Index] = SourceData[Index].R;
+			}
+		}
+		break;
+		case EVoxelTextureChannel::G:
+		{
+			for (int32 Index = 0; Index < NumPixels; Index++)
+			{
+				OutValues[Index] = SourceData[Index].G;
+			}
+		}
+		break;
+		case EVoxelTextureChannel::B:
+		{
+			for (int32 Index = 0; Index < NumPixels; Index++)
+			{
+				OutValues[Index] = SourceData[Index].B;
+			}
+		}
+		break;
+		case EVoxelTextureChannel::A:
+		{
+			for (int32 Index = 0; Index < NumPixels; Index++)
+			{
+				OutValues[Index] = SourceData[Index].A;
+			}
+		}
+		break;
+		}
+
+		return true;
+	}
+	case TSF_R16F:
+	{
+		const TConstVoxelArrayView64<FFloat16> SourceData = ReinterpretCastVoxelArrayView<FFloat16>(SourceByteData);
+		if (!ensure(SourceData.Num() == NumPixels))
+		{
+			return false;
+		}
+
+		for (int32 Index = 0; Index < NumPixels; Index++)
+		{
+			OutValues[Index] = SourceData[Index];
+		}
+
+		return true;
+	}
+	case TSF_R32F:
+	{
+		const TConstVoxelArrayView64<float> SourceData = ReinterpretCastVoxelArrayView<float>(SourceByteData);
+		if (!ensure(SourceData.Num() == NumPixels))
+		{
+			return false;
+		}
+
+		FVoxelUtilities::Memcpy(OutValues, SourceData);
+		return true;
+	}
+	}
+}
+#endif

@@ -2,7 +2,7 @@
 
 #include "VoxelMinimal.h"
 
-FText FVoxelUtilities::ConvertToTimeText(double Value, const int32 NumExtraDigits)
+FText FVoxelUtilities::SecondsToText(double Value, const int32 NumExtraDigits)
 {
 	const TCHAR* Unit = TEXT("s");
 
@@ -51,7 +51,43 @@ FText FVoxelUtilities::ConvertToTimeText(double Value, const int32 NumExtraDigit
 	return FText::Format(INVTEXT("{0}{1}"), FText::AsNumber(Value, &Options), FText::FromString(Unit));
 }
 
-FText FVoxelUtilities::ConvertToNumberText(double Value)
+FText FVoxelUtilities::BytesToText(double Value)
+{
+	const TCHAR* Unit = TEXT("");
+
+	FNumberFormattingOptions Options;
+	Options.MaximumFractionalDigits = 1;
+
+	if (Value > 1024)
+	{
+		Options.MinimumFractionalDigits = 1;
+
+		Unit = TEXT("K");
+		Value /= 1024;
+
+		if (Value > 1024)
+		{
+			Unit = TEXT("M");
+			Value /= 1024;
+
+			if (Value > 1024)
+			{
+				Unit = TEXT("G");
+				Value /= 1024;
+
+				if (Value > 1024)
+				{
+					Unit = TEXT("T");
+					Value /= 1024;
+				}
+			}
+		}
+	}
+
+	return FText::Format(INVTEXT("{0}{1}B"), FText::AsNumber(Value, &Options), FText::FromString(Unit));
+}
+
+FText FVoxelUtilities::NumberToText(double Value)
 {
 	const TCHAR* Unit = TEXT("");
 
@@ -74,11 +110,36 @@ FText FVoxelUtilities::ConvertToNumberText(double Value)
 			{
 				Unit = TEXT("G");
 				Value /= 1000;
+
+				if (Value > 1000)
+				{
+					Unit = TEXT("T");
+					Value /= 1000;
+				}
 			}
 		}
 	}
 
 	return FText::Format(INVTEXT("{0}{1}"), FText::AsNumber(Value, &Options), FText::FromString(Unit));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FString FVoxelUtilities::SecondsToString(const double Value, const int32 NumExtraDigits)
+{
+	return SecondsToText(Value, NumExtraDigits).ToString();
+}
+
+FString FVoxelUtilities::BytesToString(const double Value)
+{
+	return BytesToText(Value).ToString();
+}
+
+FString FVoxelUtilities::NumberToString(const double Value)
+{
+	return NumberToText(Value).ToString();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

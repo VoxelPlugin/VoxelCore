@@ -545,9 +545,9 @@ void FVoxelCoreBenchmark::Run()
 				VoxelMap.Add_CheckNew(Index, Index);
 			}
 
-			LOG("TMap<uint16, uint16> with 1M elements: Engine: %sB Voxel: %sB",
-				*FVoxelUtilities::ConvertToNumberText(EngineMap.GetAllocatedSize()).ToString(),
-				*FVoxelUtilities::ConvertToNumberText(VoxelMap.GetAllocatedSize()).ToString());
+			LOG("TMap<uint16, uint16> with 1M elements: Engine: %s Voxel: %s",
+				*FVoxelUtilities::BytesToString(EngineMap.GetAllocatedSize()),
+				*FVoxelUtilities::BytesToString(VoxelMap.GetAllocatedSize()));
 		}
 
 		{
@@ -562,9 +562,9 @@ void FVoxelCoreBenchmark::Run()
 				VoxelMap.Add_CheckNew(Index, Index);
 			}
 
-			LOG("TMap<uint32, uint32> with 1M elements: Engine: %sB Voxel: %sB",
-				*FVoxelUtilities::ConvertToNumberText(EngineMap.GetAllocatedSize()).ToString(),
-				*FVoxelUtilities::ConvertToNumberText(VoxelMap.GetAllocatedSize()).ToString());
+			LOG("TMap<uint32, uint32> with 1M elements: Engine: %s Voxel: %s",
+				*FVoxelUtilities::BytesToString(EngineMap.GetAllocatedSize()),
+				*FVoxelUtilities::BytesToString(VoxelMap.GetAllocatedSize()));
 		}
 
 		FPlatformProcess::Sleep(1);
@@ -620,8 +620,8 @@ void FVoxelCoreBenchmark::RunBenchmark(
 		*Name,
 		EngineTime.Average / VoxelTime.Average,
 		VoxelTime.Average < EngineTime.Average ? TEXT("faster") : TEXT("slower"),
-		*FVoxelUtilities::ConvertToTimeText(EngineTime.Average, 1).ToString(),
-		*FVoxelUtilities::ConvertToTimeText(VoxelTime.Average, 1).ToString(),
+		*FVoxelUtilities::SecondsToString(EngineTime.Average, 1),
+		*FVoxelUtilities::SecondsToString(VoxelTime.Average, 1),
 		EngineTime.GetStd() / EngineTime.Average * 100,
 		VoxelTime.GetStd() / VoxelTime.Average * 100);
 }

@@ -1,7 +1,6 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelJumpFlood.h"
-
 #if WITH_EDITOR
 #include "Misc/ScopedSlowTask.h"
 #endif

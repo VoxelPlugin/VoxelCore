@@ -8,8 +8,13 @@
 
 namespace FVoxelUtilities
 {
-	VOXELCORE_API FText ConvertToTimeText(double Value, int32 NumExtraDigits = 0);
-	VOXELCORE_API FText ConvertToNumberText(double Value);
+	VOXELCORE_API FText SecondsToText(double Value, int32 NumExtraDigits = 0);
+	VOXELCORE_API FText BytesToText(double Value);
+	VOXELCORE_API FText NumberToText(double Value);
+
+	VOXELCORE_API FString SecondsToString(double Value, int32 NumExtraDigits = 0);
+	VOXELCORE_API FString BytesToString(double Value);
+	VOXELCORE_API FString NumberToString(double Value);
 
 	VOXELCORE_API bool IsInt(FStringView Text);
 	VOXELCORE_API bool IsFloat(FStringView Text);

@@ -6,9 +6,19 @@
 #include "Engine/TextureDefines.h"
 #include "VoxelMinimal/VoxelColor3.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
+#include "VoxelTextureUtilities.generated.h"
 
 class UTexture2D;
 class UTexture2DArray;
+
+UENUM(BlueprintType)
+enum class EVoxelTextureChannel : uint8
+{
+	R,
+	G,
+	B,
+	A
+};
 
 struct VOXELCORE_API FVoxelTextureUtilities
 {
@@ -77,4 +87,14 @@ public:
 		FullyLoadTextures({ Texture });
 	}
 	static void FullyLoadTextures(const TArray<UTexture*>& Textures);
+
+public:
+#if WITH_EDITOR
+	static bool ExtractTextureChannel(
+		const UTexture2D& Texture,
+		EVoxelTextureChannel Channel,
+		int32& OutSizeX,
+		int32& OutSizeY,
+		TVoxelArray<float>& OutValues);
+#endif
 };

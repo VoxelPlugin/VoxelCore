@@ -1151,6 +1151,25 @@ FORCEINLINE float UINT8ToFloat(const uint8 Int)
 	return Int / 255.f;
 }
 
+FORCEINLINE uint32 ReadBits(uint32 Data, const int32 FirstBit, const int32 NumBits)
+{
+	check(0 <= FirstBit && FirstBit + NumBits <= 32);
+	check(0 < NumBits);
+
+	Data <<= 32 - (FirstBit + NumBits);
+	Data >>= 32 - NumBits;
+	return Data;
+}
+FORCEINLINE uint64 ReadBits(uint64 Data, const int32 FirstBit, const int32 NumBits)
+{
+	check(0 <= FirstBit && FirstBit + NumBits <= 64);
+	check(0 < NumBits);
+
+	Data <<= 64 - (FirstBit + NumBits);
+	Data >>= 64 - NumBits;
+	return Data;
+}
+
 FORCEINLINE varying bool IsNearlyZero(const varying float Float)
 {
 	return abs(Float) < KINDA_SMALL_NUMBER;
