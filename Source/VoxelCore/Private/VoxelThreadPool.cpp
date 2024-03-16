@@ -37,7 +37,7 @@ FVoxelThreadPool* GVoxelThreadPool = new FVoxelThreadPool();
 
 void FVoxelThreadPool::AddTask(TVoxelUniqueFunction<void()> Lambda)
 {
-	VOXEL_SCOPE_LOCK(CriticalSection);
+	VOXEL_SCOPE_LOCK(Tasks_CriticalSection);
 
 	Tasks_RequiresLock.Add(MoveTemp(Lambda));
 
@@ -55,9 +55,15 @@ void FVoxelThreadPool::Initialize()
 	{
 		bIsExiting.Set(true);
 
-		VOXEL_SCOPE_LOCK(CriticalSection);
-		Threads_RequiresLock.Reset();
-		Tasks_RequiresLock.Reset();
+		{
+			VOXEL_SCOPE_LOCK(Threads_CriticalSection);
+			Threads_RequiresLock.Reset();
+		}
+
+		{
+			VOXEL_SCOPE_LOCK(Tasks_CriticalSection);
+			Tasks_RequiresLock.Reset();
+		}
 	};
 
 	FCoreDelegates::OnPreExit.AddLambda(Callback);
@@ -80,7 +86,7 @@ void FVoxelThreadPool::Tick()
 	{
 		AsyncBackgroundTask([this]
 		{
-			VOXEL_SCOPE_LOCK(CriticalSection);
+			VOXEL_SCOPE_LOCK(Threads_CriticalSection);
 
 			while (Threads_RequiresLock.Num() < GVoxelNumThreads)
 			{
@@ -178,7 +184,7 @@ GetNextTask:
 
 	TVoxelUniqueFunction<void()> Task;
 	{
-		VOXEL_SCOPE_LOCK(GVoxelThreadPool->CriticalSection);
+		VOXEL_SCOPE_LOCK(GVoxelThreadPool->Tasks_CriticalSection);
 
 		if (GVoxelThreadPool->Tasks_RequiresLock.Num() == 0)
 		{

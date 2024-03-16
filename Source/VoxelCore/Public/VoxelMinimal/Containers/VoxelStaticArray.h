@@ -4,6 +4,7 @@
 
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
+#include "VoxelMinimal/Utilities/VoxelArrayUtilities.h"
 
 template<typename T, int32 Size, int32 Alignment = alignof(T), bool bForceInitToZero = false>
 class alignas(Alignment) TVoxelStaticArray
@@ -227,11 +228,17 @@ using TVoxelStaticArray_ForceInit = TVoxelStaticArray<T, Size, Alignment, true>;
 template<typename T, int32 Size, int32 Alignment, bool bForceInitToZero>
 struct TIsContiguousContainer<TVoxelStaticArray<T, Size, Alignment, bForceInitToZero>>
 {
-	enum { Value = true };
+	static constexpr bool Value = true;
 };
 
 template<typename T, int32 Size, int32 Alignment, bool bForceInitToZero>
 struct TIsTriviallyDestructible<TVoxelStaticArray<T, Size, Alignment, bForceInitToZero>>
 {
-	enum { Value = TIsTriviallyDestructible<T>::Value };
+	static constexpr bool Value = TIsTriviallyDestructible<T>::Value;
+};
+
+template<typename T, int32 Size, int32 Alignment, bool bForceInitToZero>
+struct TCanBulkSerialize<TVoxelStaticArray<T, Size, Alignment, bForceInitToZero>>
+{
+	static constexpr bool Value = TVoxelCanBulkSerialize<T>::Value;
 };

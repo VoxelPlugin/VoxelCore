@@ -6,6 +6,7 @@
 #include "Serialization/MemoryArchive.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
+#include "VoxelMinimal/Utilities/VoxelArrayUtilities.h"
 
 class VOXELCORE_API FVoxelWriter
 {
@@ -38,8 +39,7 @@ public:
 	template<typename T>
 	FORCEINLINE FVoxelWriter& operator<<(const TConstVoxelArrayView64<T> Data)
 	{
-		if (std::is_arithmetic_v<T> ||
-			TCanBulkSerialize<T>::Value)
+		if (TVoxelCanBulkSerialize<T>::Value)
 		{
 			Impl.Serialize(ConstCast(Data.GetData()), Data.Num() * sizeof(T));
 		}
@@ -98,8 +98,7 @@ public:
 	template<typename T>
 	FORCEINLINE FVoxelReader& operator<<(const TVoxelArrayView64<T> Data)
 	{
-		if (std::is_arithmetic_v<T> ||
-			TCanBulkSerialize<T>::Value)
+		if (TVoxelCanBulkSerialize<T>::Value)
 		{
 			Impl.Serialize(Data.GetData(), Data.Num() * sizeof(T));
 		}

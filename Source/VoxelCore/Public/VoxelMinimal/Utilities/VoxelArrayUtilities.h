@@ -7,6 +7,18 @@
 #include "Compression/OodleDataCompression.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 
+template<typename T, typename = void>
+struct TVoxelCanBulkSerialize
+{
+	static constexpr bool Value = TCanBulkSerialize<T>::Value;
+};
+
+template<typename T>
+struct TVoxelCanBulkSerialize<T, std::enable_if_t<std::is_arithmetic_v<T>>>
+{
+	static constexpr bool Value = true;
+};
+
 namespace FVoxelUtilities
 {
 	FORCEINLINE bool MemoryEqual(const void* Buf1, const void* Buf2, const SIZE_T Count)

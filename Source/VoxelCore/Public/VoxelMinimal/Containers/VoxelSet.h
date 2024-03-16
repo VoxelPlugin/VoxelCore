@@ -190,7 +190,7 @@ public:
 		{
 			const uint32 Hash = this->HashValue(Value);
 
-			if (!Other->ContainsHashed(Hash, Value))
+			if (!Other.ContainsHashed(Hash, Value))
 			{
 				Result.AddHashed_CheckNew(Hash, Value);
 			}

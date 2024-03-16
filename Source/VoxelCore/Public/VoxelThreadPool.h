@@ -47,8 +47,11 @@ private:
 	FEvent& Event = *FPlatformProcess::GetSynchEventFromPool();
 	TVoxelAtomic<bool> bIsExiting = false;
 
-	FVoxelCriticalSection CriticalSection;
+	FVoxelCriticalSection Threads_CriticalSection;
 	TVoxelArray<TUniquePtr<FThread>> Threads_RequiresLock;
+
+	// Use two critical sections to avoid deadlocks on shutdown
+	FVoxelCriticalSection Tasks_CriticalSection;
 	TVoxelArray<TVoxelUniqueFunction<void()>> Tasks_RequiresLock;
 };
 extern FVoxelThreadPool* GVoxelThreadPool;

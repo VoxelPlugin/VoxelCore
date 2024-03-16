@@ -45,27 +45,69 @@ public:
 	TVoxelChunkedArray& operator=(const TVoxelChunkedArray&) = delete;
 
 public:
-	void SetNumUninitialized(const int32 Number)
+	void SetNumUninitialized(const int32 NewNum)
 	{
 		checkStatic(TIsTriviallyDestructible<Type>::Value);
 
-		ArrayNum = Number;
+		ArrayNum = NewNum;
 
 		const int32 NumChunks = FVoxelUtilities::DivideCeil_Positive(ArrayNum, NumPerChunk);
 		if (PrivateChunks.Num() > NumChunks)
 		{
 			PrivateChunks.SetNum(NumChunks);
+			return;
 		}
-		else
+
+		VOXEL_FUNCTION_COUNTER_NUM(NewNum, 16384);
+
+		PrivateChunks.Reserve(NumChunks);
+
+		while (PrivateChunks.Num() < NumChunks)
 		{
-			VOXEL_FUNCTION_COUNTER_NUM(Number, 16384);
+			AllocateNewChunk();
+		}
+	}
+	void SetNum(const int32 NewNum)
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(NewNum, 1024);
 
-			PrivateChunks.Reserve(NumChunks);
+		const int32 OldArrayNum = ArrayNum;
+		const int32 NewNumChunks = FVoxelUtilities::DivideCeil_Positive(NewNum, NumPerChunk);
 
-			while (PrivateChunks.Num() < NumChunks)
+		if (NewNum < ArrayNum)
+		{
+			if constexpr (!TIsTriviallyDestructible<Type>::Value)
+			{
+				for (int32 Index = NewNum; Index < ArrayNum; Index++)
+				{
+					(*this)[Index].~Type();
+				}
+			}
+
+			ArrayNum = NewNum;
+
+			checkVoxelSlow(PrivateChunks.Num() >= NewNumChunks);
+			PrivateChunks.SetNum(NewNumChunks);
+
+			return;
+		}
+
+		ArrayNum = NewNum;
+
+		// Allocate chunks
+		{
+			checkVoxelSlow(PrivateChunks.Num() <= NewNumChunks);
+			PrivateChunks.Reserve(NewNumChunks);
+
+			while (PrivateChunks.Num() < NewNumChunks)
 			{
 				AllocateNewChunk();
 			}
+		}
+
+		for (int32 Index = OldArrayNum; Index < ArrayNum; Index++)
+		{
+			new (&(*this)[Index]) Type();
 		}
 	}
 	void Reserve(const int32 Number)
@@ -75,7 +117,7 @@ public:
 	}
 	void Reset()
 	{
-		if (!TIsTriviallyDestructible<Type>::Value)
+		if constexpr (!TIsTriviallyDestructible<Type>::Value)
 		{
 			for (int32 Index = 0; Index < ArrayNum; Index++)
 			{
@@ -149,6 +191,42 @@ public:
 			}
 			return Result;
 		}
+	}
+
+	friend FArchive& operator<<(FArchive& Ar, TVoxelChunkedArray& Array)
+	{
+		int32 Num = Array.Num();
+		Ar << Num;
+
+		if constexpr (TVoxelCanBulkSerialize<Type>::Value)
+		{
+			if (Ar.IsLoading())
+			{
+				Array.SetNumUninitialized(Num);
+			}
+
+			for (int32 Index = 0; Index < Num; Index += NumPerChunk)
+			{
+				const int32 NumInChunk = FMath::Min(Num - Index, NumPerChunk);
+				checkVoxelSlow(&Array[Index + NumInChunk - 1] - &Array[Index] == (NumInChunk - 1));
+
+				Ar.Serialize(&Array[Index], NumInChunk * sizeof(Type));
+			}
+		}
+		else
+		{
+			if (Ar.IsLoading())
+			{
+				Array.SetNum(Num);
+			}
+
+			for (int32 Index = 0; Index < Num; Index++)
+			{
+				Ar << Array[Index];
+			}
+		}
+
+		return Ar;
 	}
 
 	FORCEINLINE int32 Num() const
