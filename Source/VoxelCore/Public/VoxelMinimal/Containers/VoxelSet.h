@@ -70,6 +70,11 @@ public:
 		return *this;
 	}
 
+	TVoxelSet(const std::initializer_list<Type> Initializer)
+	{
+		this->Append(MakeVoxelArrayView(Initializer));
+	}
+
 public:
 	FORCEINLINE int32 Num() const
 	{
