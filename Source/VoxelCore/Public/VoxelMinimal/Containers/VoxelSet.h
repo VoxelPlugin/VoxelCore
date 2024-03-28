@@ -288,11 +288,16 @@ public:
 	}
 
 public:
+	FORCEINLINE const Type& GetValue(const FVoxelSetIndex& Index) const
+	{
+		return Elements[Index].Value;
+	}
 	FORCEINLINE const Type& GetUniqueValue() const
 	{
 		checkVoxelSlow(Elements.Num() == 1);
 		return Elements[0].Value;
 	}
+
 	FORCEINLINE FVoxelSetIndex Find(const Type& Value) const
 	{
 		return this->FindHashed(this->HashValue(Value), Value);

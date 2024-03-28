@@ -392,6 +392,10 @@ public:
 		return ReinterpretCastRef<TVoxelFuture<T>>(FVoxelPromise::GetFuture());
 	}
 
+#if INTELLISENSE_PARSER
+	FORCEINLINE void Set(const decltype(nullptr)) const;
+#endif
+
 	FORCEINLINE void Set(const T& Value) const
 	{
 		PromiseState->Set(MakeSharedVoidRef(MakeSharedCopy(Value)));
