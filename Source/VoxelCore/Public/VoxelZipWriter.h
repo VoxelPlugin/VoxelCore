@@ -8,7 +8,7 @@
 class VOXELCORE_API FVoxelZipWriter : public FVoxelZipBase
 {
 public:
-	using FWriteLambda = TFunction<bool(int64 Offset, TConstVoxelArrayView<uint8> Data)>;
+	using FWriteLambda = TFunction<bool(int64 Offset, TConstVoxelArrayView64<uint8> Data)>;
 
 	static TSharedRef<FVoxelZipWriter> Create(const FWriteLambda& WriteLambda);
 	static TSharedRef<FVoxelZipWriter> Create(TVoxelArray64<uint8>& BulkData);

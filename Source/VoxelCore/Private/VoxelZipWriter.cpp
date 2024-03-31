@@ -13,7 +13,7 @@ TSharedRef<FVoxelZipWriter> FVoxelZipWriter::Create(const FWriteLambda& WriteLam
 		VOXEL_SCOPE_COUNTER_FORMAT("FVoxelZipWriter write %lldB", n);
 		if (!ensure(static_cast<FVoxelZipWriter*>(pOpaque)->WriteLambda(
 			file_ofs,
-			TConstVoxelArrayView<uint8>(static_cast<const uint8*>(pBuf), n))))
+			TConstVoxelArrayView64<uint8>(static_cast<const uint8*>(pBuf), n))))
 		{
 			return 0;
 		}
@@ -27,7 +27,7 @@ TSharedRef<FVoxelZipWriter> FVoxelZipWriter::Create(const FWriteLambda& WriteLam
 
 TSharedRef<FVoxelZipWriter> FVoxelZipWriter::Create(TVoxelArray64<uint8>& BulkData)
 {
-	return Create([&BulkData](const int64 Offset, const TConstVoxelArrayView<uint8> Data)
+	return Create([&BulkData](const int64 Offset, const TConstVoxelArrayView64<uint8> Data)
 	{
 		if (BulkData.Num() < Offset + Data.Num())
 		{

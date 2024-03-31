@@ -15,7 +15,7 @@ TSharedPtr<FVoxelZipReader> FVoxelZipReader::Create(
 		VOXEL_SCOPE_COUNTER_FORMAT("FVoxelZipReader read %lldB", n);
 		if (!ensure(static_cast<FVoxelZipReader*>(pOpaque)->ReadLambda(
 			file_ofs,
-			TVoxelArrayView<uint8>(static_cast<uint8*>(pBuf), n))))
+			TVoxelArrayView64<uint8>(static_cast<uint8*>(pBuf), n))))
 		{
 			return 0;
 		}
@@ -79,7 +79,7 @@ TSharedPtr<FVoxelZipReader> FVoxelZipReader::Create(
 
 TSharedPtr<FVoxelZipReader> FVoxelZipReader::Create(const TConstVoxelArrayView64<uint8> BulkData)
 {
-	return Create(BulkData.Num(), [=](const int64 Offset, const TVoxelArrayView<uint8> OutData)
+	return Create(BulkData.Num(), [=](const int64 Offset, const TVoxelArrayView64<uint8> OutData)
 	{
 		if (!ensure(BulkData.IsValidSlice(Offset, OutData.Num())))
 		{

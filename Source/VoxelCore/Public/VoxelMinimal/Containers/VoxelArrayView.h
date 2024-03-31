@@ -51,15 +51,18 @@ public:
 		};
 
 		const auto OtherNum = GetNum(Other);
-		checkVoxelSlow(0 <= OtherNum && OtherNum <= TNumericLimits<SizeType>::Max());
+		checkVoxelSlow(0 <= int64(OtherNum) && int64(OtherNum) <= int64(TNumericLimits<SizeType>::Max()));
 
 		reinterpret_cast<FDummy&>(*this).DataPtr = ReinterpretCastPtr<ElementType>(::GetData(Other));
 		reinterpret_cast<FDummy&>(*this).ArrayNum = SizeType(OtherNum);
 	}
 
-	template<typename OtherElementType, typename = std::enable_if_t<IsCompatibleElementType_V<OtherElementType>>>
-	FORCEINLINE TVoxelArrayView(OtherElementType* InData, SizeType InCount)
+	template<typename OtherElementType, typename OtherSizeType, typename = std::enable_if_t<IsCompatibleElementType_V<OtherElementType>>>
+	FORCEINLINE TVoxelArrayView(OtherElementType* InData, const OtherSizeType InCount)
 	{
+		checkVoxelSlow(0 <= int64(InCount) && int64(InCount) <= int64(TNumericLimits<SizeType>::Max()));
+		checkVoxelSlow(InCount >= 0);
+
 		struct FDummy
 		{
 			ElementType* DataPtr;
@@ -67,8 +70,6 @@ public:
 		};
 		reinterpret_cast<FDummy&>(*this).DataPtr = InData;
 		reinterpret_cast<FDummy&>(*this).ArrayNum = InCount;
-
-		checkVoxelSlow(InCount >= 0);
 	}
 
 	template<typename OtherElementType, typename = std::enable_if_t<IsCompatibleElementType_V<OtherElementType> && std::is_const_v<ElementType>>>

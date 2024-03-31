@@ -8,7 +8,7 @@
 class VOXELCORE_API FVoxelZipReader : public FVoxelZipBase
 {
 public:
-	using FReadLambda = TFunction<bool(int64 Offset, TVoxelArrayView<uint8> OutData)>;
+	using FReadLambda = TFunction<bool(int64 Offset, TVoxelArrayView64<uint8> OutData)>;
 
 	static TSharedPtr<FVoxelZipReader> Create(
 		int64 TotalSize,
