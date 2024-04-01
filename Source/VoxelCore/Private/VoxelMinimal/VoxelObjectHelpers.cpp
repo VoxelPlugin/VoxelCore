@@ -6,14 +6,23 @@
 
 void ForEachAssetOfClass(const UClass* ClassToLookFor, TFunctionRef<void(UObject*)> Operation)
 {
-	const FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	VOXEL_FUNCTION_COUNTER();
+
+	IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
+
+	if (!FPlatformProperties::RequiresCookedData() &&
+		!AssetRegistry.IsSearchAllAssets())
+	{
+		// Force search all assets in standalone
+		AssetRegistry.SearchAllAssets(true);
+	}
 
 	TArray<FAssetData> AssetDatas;
 
 	FARFilter Filter;
 	Filter.ClassPaths.Add(ClassToLookFor->GetClassPathName());
 	Filter.bRecursiveClasses = true;
-	AssetRegistryModule.Get().GetAssets(Filter, AssetDatas);
+	AssetRegistry.GetAssets(Filter, AssetDatas);
 
 	for (const FAssetData& AssetData : AssetDatas)
 	{
