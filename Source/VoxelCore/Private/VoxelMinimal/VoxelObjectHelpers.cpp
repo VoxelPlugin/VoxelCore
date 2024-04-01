@@ -1,4 +1,4 @@
-﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
 #include "AssetRegistry/AssetData.h"
@@ -12,6 +12,7 @@ void ForEachAssetOfClass(const UClass* ClassToLookFor, TFunctionRef<void(UObject
 
 	FARFilter Filter;
 	Filter.ClassPaths.Add(ClassToLookFor->GetClassPathName());
+	Filter.bRecursiveClasses = true;
 	AssetRegistryModule.Get().GetAssets(Filter, AssetDatas);
 
 	for (const FAssetData& AssetData : AssetDatas)
