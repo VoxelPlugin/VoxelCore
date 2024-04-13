@@ -30,6 +30,10 @@ void FVoxelSimpleAssetToolkit::Initialize()
 		Args.bHideSelectionTip = true;
 		Args.NotifyHook = GetNotifyHook();
 		Args.DefaultsOnlyVisibility = EEditDefaultsOnlyNodeVisibility::Hide;
+		if (DetailsViewScrollBar)
+		{
+			Args.ExternalScrollbar = DetailsViewScrollBar;
+		}
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PrivateDetailsView = PropertyModule.CreateDetailView(Args);
@@ -308,6 +312,11 @@ void FVoxelSimpleAssetToolkit::DrawThumbnail(FViewport& InViewport)
 	// Broadcast an object property changed event to update the content browser
 	FPropertyChangedEvent PropertyChangedEvent(nullptr);
 	FCoreUObjectDelegates::OnObjectPropertyChanged.Broadcast(Asset, PropertyChangedEvent);
+}
+
+void FVoxelSimpleAssetToolkit::SetDetailsViewScrollBar(const TSharedPtr<SScrollBar>& NewScrollBar)
+{
+	DetailsViewScrollBar = NewScrollBar;
 }
 
 void FVoxelSimpleAssetToolkit::UpdateStatsText(const FString& Message)

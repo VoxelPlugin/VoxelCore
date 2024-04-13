@@ -59,6 +59,7 @@ public:
 	virtual TOptional<float> GetInitialViewDistance() const { return {}; }
 
 	void DrawThumbnail(FViewport& InViewport);
+	void SetDetailsViewScrollBar(const TSharedPtr<SScrollBar>& NewScrollBar);
 
 public:
 	template<typename T>
@@ -142,6 +143,7 @@ private:
 	TSharedPtr<IDetailsView> PrivateDetailsView;
 	TSharedPtr<FAdvancedPreviewScene> PrivatePreviewScene;
 	TSharedPtr<SVoxelSimpleAssetEditorViewport> Viewport;
+	TSharedPtr<SScrollBar> DetailsViewScrollBar;
 
 protected:
 	void UpdateStatsText(const FString& Message);

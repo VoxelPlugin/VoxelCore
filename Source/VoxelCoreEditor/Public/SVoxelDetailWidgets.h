@@ -35,6 +35,11 @@ class VOXELCOREEDITOR_API SVoxelAlwaysEnabledWidget : public SCompoundWidget
 public:
 	VOXEL_SLATE_ARGS()
 	{
+		FArguments()
+			: _ForceEnable(true)
+		{}
+
+		SLATE_ARGUMENT(bool, ForceEnable)
 		SLATE_DEFAULT_SLOT(FArguments, Content)
 	};
 
@@ -48,4 +53,7 @@ public:
 		int32 LayerId,
 		const FWidgetStyle& InWidgetStyle,
 		bool bParentEnabled) const override;
+
+private:
+	bool bForceEnable = true;
 };

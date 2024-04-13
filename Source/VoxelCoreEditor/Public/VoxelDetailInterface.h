@@ -135,6 +135,17 @@ public:
 			return GetChildrenBuilder().AddGroup(GroupName, LocalizedDisplayName);
 		}
 	}
+	bool IsPropertyEditingEnabled() const
+	{
+		if (IsCategoryBuilder())
+		{
+			return GetCategoryBuilder().GetParentLayout().GetPropertyUtilities()->IsPropertyEditingEnabled();
+		}
+		else
+		{
+			return GetChildrenBuilder().GetParentCategory().GetParentLayout().GetPropertyUtilities()->IsPropertyEditingEnabled();
+		}
+	}
 
 private:
 	IDetailCategoryBuilder* CategoryBuilder = nullptr;

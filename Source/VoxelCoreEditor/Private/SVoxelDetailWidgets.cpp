@@ -41,6 +41,8 @@ void SVoxelDetailButton::Construct(const FArguments& Args)
 
 void SVoxelAlwaysEnabledWidget::Construct(const FArguments& Args)
 {
+	bForceEnable = Args._ForceEnable;
+
 	ChildSlot
 	[
 		Args._Content.Widget
@@ -56,7 +58,8 @@ int32 SVoxelAlwaysEnabledWidget::OnPaint(
 	const FWidgetStyle& InWidgetStyle,
 	const bool bParentEnabled) const
 {
-	if (!ShouldBeEnabled(bParentEnabled))
+	if (!ShouldBeEnabled(bParentEnabled) &&
+		bForceEnable)
 	{
 		for (TSharedPtr<SWidget> Widget = ConstCast(this)->AsShared(); Widget; Widget = Widget->GetParentWidget())
 		{
