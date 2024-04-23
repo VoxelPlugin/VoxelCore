@@ -6,6 +6,20 @@
 #include "Engine/Texture2D.h"
 #include "Components/StaticMeshComponent.h"
 
+class FVoxelToolkitPreviewScene : public FAdvancedPreviewScene
+{
+public:
+	FVoxelToolkitPreviewScene(const ConstructionValues& CVS, const float InFloorOffset = 0.0f)
+		: FAdvancedPreviewScene(CVS, InFloorOffset)
+	{
+	}
+
+	void SetSkyScale(const float Scale) const
+	{
+		SkyComponent->SetWorldScale3D(FVector(Scale));
+	}
+};
+
 FVoxelSimpleAssetToolkit::~FVoxelSimpleAssetToolkit()
 {
 	VOXEL_FUNCTION_COUNTER();
@@ -40,7 +54,7 @@ void FVoxelSimpleAssetToolkit::Initialize()
 		PrivateDetailsView->SetObject(GetAsset());
 	}
 
-	PrivatePreviewScene = MakeVoxelShared<FAdvancedPreviewScene>(FPreviewScene::ConstructionValues());
+	PrivatePreviewScene = MakeVoxelShared<FVoxelToolkitPreviewScene>(FPreviewScene::ConstructionValues());
 	PrivatePreviewScene->SetFloorVisibility(ShowFloor(), true);
 
 	CachedWorld = GetPreviewScene().GetWorld();
@@ -349,6 +363,11 @@ void FVoxelSimpleAssetToolkit::BindToggleCommand(const TSharedPtr<FUICommandInfo
 void FVoxelSimpleAssetToolkit::SetFloorScale(const FVector& Scale) const
 {
 	ConstCast(GetPreviewScene().GetFloorMeshComponent())->SetWorldScale3D(Scale);
+}
+
+void FVoxelSimpleAssetToolkit::SetSkyScale(const float Scale) const
+{
+	StaticCastSharedPtr<FVoxelToolkitPreviewScene>(PrivatePreviewScene)->SetSkyScale(Scale);
 }
 
 void FVoxelSimpleAssetToolkit::CaptureThumbnail()

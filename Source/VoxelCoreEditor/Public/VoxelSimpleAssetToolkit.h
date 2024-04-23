@@ -149,6 +149,7 @@ protected:
 	void UpdateStatsText(const FString& Message);
 	void BindToggleCommand(const TSharedPtr<FUICommandInfo>& UICommandInfo, bool& bValue);
 	void SetFloorScale(const FVector& Scale) const;
+	void SetSkyScale(float Scale) const;
 	void CaptureThumbnail();
 
 private:
