@@ -48,7 +48,7 @@ FORCEINLINE bool AreVoxelStatsEnabled()
 
 #define VOXEL_TRACE_ENABLED VOXEL_APPEND_LINE(__bTraceEnabled)
 
-#define VOXEL_SCOPE_COUNTER_IMPL(Condition, Description) \
+#define VOXEL_SCOPE_COUNTER_COND(Condition, Description) \
 	VOXEL_LLM_SCOPE(); \
 	const bool VOXEL_TRACE_ENABLED = AreVoxelStatsEnabled() && (Condition); \
 	if (VOXEL_TRACE_ENABLED) \
@@ -91,7 +91,7 @@ FORCEINLINE bool AreVoxelStatsEnabled()
 	return false;
 }
 
-#define VOXEL_SCOPE_COUNTER_IMPL(Condition, Description)
+#define VOXEL_SCOPE_COUNTER_COND(Condition, Description)
 #define VOXEL_SCOPE_COUNTER_FNAME_COND(Condition, Description)
 #endif
 
@@ -105,10 +105,9 @@ VOXELCORE_API FName VoxelStats_AddNum(const FString& Format, int32 Num);
 
 #define VOXEL_STATS_CLEAN_FUNCTION_NAME VoxelStats_CleanupFunctionName(__FUNCTION__)
 
-#define VOXEL_SCOPE_COUNTER_COND(Condition, Description) VOXEL_SCOPE_COUNTER_IMPL(Condition, VOXEL_STATS_CLEAN_FUNCTION_NAME + TEXT(".") + FString(Description))
 #define VOXEL_SCOPE_COUNTER_FORMAT_COND(Condition, Format, ...) VOXEL_SCOPE_COUNTER_FNAME_COND(Condition, VoxelStats_PrintfImpl(TEXT(Format), ##__VA_ARGS__))
-#define VOXEL_FUNCTION_COUNTER_COND(Condition) VOXEL_SCOPE_COUNTER_IMPL(Condition, VOXEL_STATS_CLEAN_FUNCTION_NAME)
-#define VOXEL_INLINE_COUNTER_COND(Condition, Name, ...) ([&]() -> decltype(auto) { VOXEL_SCOPE_COUNTER_IMPL(Condition, VOXEL_STATS_CLEAN_FUNCTION_NAME + TEXT(".") + FString(Name)); return __VA_ARGS__; }())
+#define VOXEL_FUNCTION_COUNTER_COND(Condition) VOXEL_SCOPE_COUNTER_COND(Condition, VOXEL_STATS_CLEAN_FUNCTION_NAME)
+#define VOXEL_INLINE_COUNTER_COND(Condition, Name, ...) ([&]() -> decltype(auto) { VOXEL_SCOPE_COUNTER_COND(Condition, VOXEL_STATS_CLEAN_FUNCTION_NAME + TEXT(".") + FString(Name)); return __VA_ARGS__; }())
 
 #define VOXEL_SCOPE_COUNTER(Description) VOXEL_SCOPE_COUNTER_COND(true, Description)
 #define VOXEL_SCOPE_COUNTER_FNAME(Description) VOXEL_SCOPE_COUNTER_FNAME_COND(true, Description)
@@ -301,7 +300,7 @@ VOXELCORE_API FName VoxelStats_AddNum(const FString& Format, int32 Num);
 		} \
 		FVoxelStatsRefHelper& operator=(const int64 NewAllocatedSize) \
 		{ \
-			const int64 OldAllocatedSize = AllocatedSize.Exchange(NewAllocatedSize); \
+			const int64 OldAllocatedSize = AllocatedSize.Exchange_ReturnOld(NewAllocatedSize); \
 			DEC_VOXEL_MEMORY_STAT_BY(StatName, OldAllocatedSize); \
 			INC_VOXEL_MEMORY_STAT_BY(StatName, NewAllocatedSize); \
 			return *this; \

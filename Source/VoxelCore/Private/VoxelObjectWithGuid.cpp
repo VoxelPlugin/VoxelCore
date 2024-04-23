@@ -42,7 +42,7 @@ void UVoxelObjectWithGuid::UpdateGuid()
 	}
 	PrivateGuid = FGuid::NewGuid();
 
-	FVoxelUtilities::DelayedCall(MakeWeakObjectPtrLambda(this, [=]
+	FVoxelUtilities::DelayedCall(MakeWeakObjectPtrLambda(this, [this]
 	{
 		LOG_VOXEL(Warning, "Marking %s as dirty", *GetPathName());
 		(void)MarkPackageDirty();

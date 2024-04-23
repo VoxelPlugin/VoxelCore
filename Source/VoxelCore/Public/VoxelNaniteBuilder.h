@@ -8,9 +8,9 @@
 struct VOXELCORE_API FVoxelNaniteBuilder
 {
 public:
+	// Triangle list
 	struct FMesh
 	{
-		TConstVoxelArrayView<int32> Indices;
 		TConstVoxelArrayView<FVector3f> Positions;
 		TConstVoxelArrayView<FVoxelOctahedron> Normals;
 		// Optional
@@ -22,7 +22,6 @@ public:
 
 	// Step is 2^(-PositionPrecision)
 	int32 PositionPrecision = 4;
-	int32 UVBits = 8;
 	static constexpr int32 NormalBits = 8;
 
 	TUniquePtr<FStaticMeshRenderData> CreateRenderData();

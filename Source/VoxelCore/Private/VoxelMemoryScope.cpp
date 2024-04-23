@@ -122,13 +122,13 @@ void FVoxelMemoryScope::Clear()
 using FVoxelMemoryStackFrames = TVoxelStaticArray_ForceInit<void*, 14>;
 FVoxelCriticalSection GVoxelValidAllocationsCriticalSection;
 TVoxelMap<void*, FVoxelMemoryStackFrames, TVoxelMapArrayType<FDefaultAllocator>> GVoxelValidAllocations;
-bool GVoxelCheckValidAllocations = true;
+bool GVoxelCheckValidAllocations = false;
 
 VOXEL_RUN_ON_STARTUP_GAME(InitializeCheckValidAllocations)
 {
-	if (FParse::Param(FCommandLine::Get(), TEXT("NoVoxelAllocCheck")))
+	if (FParse::Param(FCommandLine::Get(), TEXT("CheckVoxelAllocs")))
 	{
-		GVoxelCheckValidAllocations = false;
+		GVoxelCheckValidAllocations = true;
 	}
 }
 
@@ -226,7 +226,10 @@ void* FVoxelMemoryScope::StaticMalloc(const uint64 Count, uint32 Alignment)
 	INC_VOXEL_MEMORY_STAT_BY(STAT_VoxelMemoryTotal, Padding + AllocationSize);
 
 #if VOXEL_DEBUG
-	FMemory::Memset(UnalignedPtr, 0xDE, Padding + AllocationSize);
+	{
+		VOXEL_SCOPE_COUNTER_FORMAT_COND(Padding + AllocationSize > 1024, "Memset %lldB", Padding + AllocationSize);
+		FMemory::Memset(UnalignedPtr, 0xDE, Padding + AllocationSize);
+	}
 #endif
 
 	void* Result = static_cast<uint8*>(UnalignedPtr) + sizeof(FBlock);

@@ -23,7 +23,7 @@ public:
 
 			FHttpManager& HttpManager = FHttpModule::Get().GetHttpManager();
 
-			struct FHttpThreadHack : UE_503_SWITCH(FHttpThread, FLegacyHttpThread)
+			struct FHttpThreadHack : FLegacyHttpThread
 			{
 				void Fixup()
 				{

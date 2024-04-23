@@ -290,11 +290,27 @@ VOXELCORE_API FSharedVoidRef MakeShareableStruct(const UScriptStruct* Struct, vo
 template<typename T>
 TSharedRef<T> MakeSharedStruct(const UScriptStruct* Struct, const T* StructToCopyFrom = nullptr)
 {
-	check(Struct->IsChildOf(StaticStructFast<T>()));
+	checkVoxelSlow(Struct->IsChildOf(StaticStructFast<T>()));
 
 	const TSharedRef<T> SharedRef = ReinterpretCastRef<TSharedRef<T>>(MakeSharedStruct(Struct, static_cast<const void*>(StructToCopyFrom)));
 	SharedPointerInternals::EnableSharedFromThis(&SharedRef, &SharedRef.Get(), &SharedRef.Get());
 	return SharedRef;
+}
+
+template<typename T, typename = std::enable_if_t<std::has_virtual_destructor_v<T>>>
+TVoxelUniquePtr<T> MakeUniqueStruct(const UScriptStruct* Struct, const T* StructToCopyFrom = nullptr)
+{
+	checkVoxelSlow(Struct->IsChildOf(StaticStructFast<T>()));
+
+	void* Memory = FVoxelMemory::Malloc(FMath::Max(1, Struct->GetStructureSize()));
+	Struct->InitializeStruct(Memory);
+
+	if (StructToCopyFrom)
+	{
+		Struct->CopyScriptStruct(Memory, StructToCopyFrom);
+	}
+
+	return TVoxelUniquePtr<T>(static_cast<T*>(Memory));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

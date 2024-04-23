@@ -46,6 +46,7 @@
 #include "VoxelMinimal/VoxelChunkedRef.h"
 #include "VoxelMinimal/VoxelColor3.h"
 #include "VoxelMinimal/VoxelCriticalSection.h"
+#include "VoxelMinimal/VoxelSharedCriticalSection.h"
 #include "VoxelMinimal/VoxelDebugDrawer.h"
 #include "VoxelMinimal/VoxelDelegateHelpers.h"
 #include "VoxelMinimal/VoxelDereferencingIterator.h"

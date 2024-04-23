@@ -56,7 +56,6 @@ enum class EVoxelFutureThread : uint8
 	GameThread,
 	RenderThread,
 	AsyncThread,
-	VoxelThread,
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -66,8 +65,8 @@ enum class EVoxelFutureThread : uint8
 class VOXELCORE_API FVoxelPromiseState : public TSharedFromThis<FVoxelPromiseState>
 {
 public:
-	UE_NONCOPYABLE(FVoxelPromiseState);
 	~FVoxelPromiseState();
+	UE_NONCOPYABLE(FVoxelPromiseState);
 
 	VOXEL_COUNT_INSTANCES();
 
@@ -99,10 +98,10 @@ private:
 	FThreadToContinuation ThreadToContinuation_RequiresLock;
 	TSharedPtr<FVoxelPromiseState> ThisPtr_RequiresLock;
 
-	FVoxelPromiseState() = default;
+	FVoxelPromiseState();
 
 	template<typename LambdaType>
-	static void Dispatch(
+	static void StaticDispatch(
 		EVoxelFutureThread Thread,
 		LambdaType Lambda);
 
@@ -159,7 +158,6 @@ public:
 	Define(GameThread);
 	Define(RenderThread);
 	Define(AsyncThread);
-	Define(VoxelThread);
 
 #undef Define
 
@@ -194,7 +192,6 @@ public:
 	Define(GameThread);
 	Define(RenderThread);
 	Define(AsyncThread);
-	Define(VoxelThread);
 
 #undef Define
 
@@ -313,7 +310,6 @@ public:
 	Define(GameThread);
 	Define(RenderThread);
 	Define(AsyncThread);
-	Define(VoxelThread);
 
 #undef Define
 
@@ -372,7 +368,6 @@ public:
 	Define(GameThread);
 	Define(RenderThread);
 	Define(AsyncThread);
-	Define(VoxelThread);
 
 #undef Define
 };

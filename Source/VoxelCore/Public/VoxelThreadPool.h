@@ -6,22 +6,36 @@
 #include "HAL/Runnable.h"
 
 extern VOXELCORE_API int32 GVoxelNumThreads;
-extern VOXELCORE_API int32 GVoxelThreadPriority;
-extern VOXELCORE_API bool GVoxelHideTaskCount;
+
+class VOXELCORE_API IVoxelTaskExecutor
+{
+public:
+	IVoxelTaskExecutor() = default;
+	virtual ~IVoxelTaskExecutor() = default;
+
+	// Return number of executed tasks
+	virtual bool ExecuteTasks_AnyThread() = 0;
+	virtual int32 NumTasks() const = 0;
+
+public:
+	static void TriggerThreads();
+};
 
 class VOXELCORE_API FVoxelThreadPool : public FVoxelSingleton
 {
 public:
-	FORCEINLINE int32 NumTasks() const
-	{
-		// Just peeking num, no need to lock
-		return Tasks_RequiresLock.Num();
-	}
+	virtual ~FVoxelThreadPool() override;
+
 	FORCEINLINE bool IsExiting() const
 	{
 		return bIsExiting.Get();
 	}
-	void AddTask(TVoxelUniqueFunction<void()> Lambda);
+
+	int32 NumTasks() const;
+
+	void AddExecutor(IVoxelTaskExecutor* Executor);
+	void RemoveExecutor(IVoxelTaskExecutor* Executor);
+
 public:
 	//~ Begin FVoxelSingleton Interface
 	virtual void Initialize() override;
@@ -50,8 +64,9 @@ private:
 	FVoxelCriticalSection Threads_CriticalSection;
 	TVoxelArray<TUniquePtr<FThread>> Threads_RequiresLock;
 
-	// Use two critical sections to avoid deadlocks on shutdown
-	FVoxelCriticalSection Tasks_CriticalSection;
-	TVoxelArray<TVoxelUniqueFunction<void()>> Tasks_RequiresLock;
+	mutable FVoxelSharedCriticalSection Executors_CriticalSection;
+	TVoxelSet<IVoxelTaskExecutor*> Executors_RequiresLock;
+
+	friend IVoxelTaskExecutor;
 };
-extern FVoxelThreadPool* GVoxelThreadPool;
+extern VOXELCORE_API FVoxelThreadPool* GVoxelThreadPool;

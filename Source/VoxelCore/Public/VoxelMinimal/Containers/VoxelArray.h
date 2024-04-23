@@ -88,6 +88,11 @@ public:
 		new (Ptr) ElementType(Item);
 		return Index;
 	}
+	FORCEINLINE SizeType Add_EnsureNoGrow(const ElementType& Item)
+	{
+		ensureVoxelSlow(ArrayNum < ArrayMax);
+		return this->Add(Item);
+	}
 
 	FORCEINLINE SizeType Add(ElementType&& Item)
 	{
@@ -136,6 +141,12 @@ public:
 		ElementType* Ptr = GetData() + Index;
 		new (Ptr) ElementType(Forward<ArgsType>(Args)...);
 		return *Ptr;
+	}
+	template<typename... ArgsType>
+	FORCEINLINE ElementType& Emplace_GetRef_EnsureNoGrow(ArgsType&&... Args)
+	{
+		ensureVoxelSlow(ArrayNum < ArrayMax);
+		return this->Emplace_GetRef(Forward<ArgsType>(Args)...);
 	}
 
 	FORCEINLINE ElementType& Last(SizeType IndexFromTheEnd = 0)
@@ -421,29 +432,5 @@ template<typename InElementType, typename Allocator> struct TIsTArray<const vola
 template<typename T>
 using TVoxelArray64 = TVoxelArray<T, FVoxelAllocator64>;
 
-// No runtime checks, but same allocator as TArray
-template<typename T>
-using TCompatibleVoxelArray = TVoxelArray<T, FDefaultAllocator>;
-
 template<typename T, int32 NumInlineElements>
 using TVoxelInlineArray = TVoxelArray<T, TVoxelInlineAllocator<NumInlineElements>>;
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-template<typename ElementType>
-FORCEINLINE TCompatibleVoxelArray<ElementType>& ToCompatibleVoxelArray(TArray<ElementType>& Array)
-{
-	return static_cast<TCompatibleVoxelArray<ElementType>&>(Array);
-}
-template<typename ElementType>
-FORCEINLINE const TCompatibleVoxelArray<ElementType>& ToCompatibleVoxelArray(const TArray<ElementType>& Array)
-{
-	return static_cast<const TCompatibleVoxelArray<ElementType>&>(Array);
-}
-template<typename ElementType>
-FORCEINLINE TCompatibleVoxelArray<ElementType>&& ToCompatibleVoxelArray(TArray<ElementType>&& Array)
-{
-	return static_cast<TCompatibleVoxelArray<ElementType>&>(MoveTemp(Array));
-}

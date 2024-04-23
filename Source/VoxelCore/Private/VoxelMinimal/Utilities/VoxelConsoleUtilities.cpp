@@ -122,7 +122,7 @@ VOXEL_CONSOLE_COMMAND(
 
 	FVoxelUnrealInsightsLauncher::StartUnrealInsights(
 		FVoxelUnrealInsightsLauncher::GetInsightsApplicationPath(),
-		FTraceAuxiliary::UE_503_SWITCH(GetTraceDestination, GetTraceDestinationString)());
+		FTraceAuxiliary::GetTraceDestinationString());
 }
 
 VOXEL_CONSOLE_COMMAND(

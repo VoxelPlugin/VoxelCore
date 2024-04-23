@@ -71,7 +71,6 @@ VOXELCORE_API void FlushVoxelGameThreadTasks();
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-VOXELCORE_API void AsyncVoxelTaskImpl(TVoxelUniqueFunction<void()> Lambda);
 VOXELCORE_API void AsyncBackgroundTaskImpl(TVoxelUniqueFunction<void()> Lambda);
 VOXELCORE_API void AsyncThreadPoolTaskImpl(TVoxelUniqueFunction<void()> Lambda);
 
@@ -95,24 +94,6 @@ FORCEINLINE void RunOnGameThreadImpl(LambdaType Lambda)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename LambdaType, typename FutureType = TVoxelFutureType<typename TVoxelLambdaInfo<LambdaType>::ReturnType>>
-FORCEINLINE FutureType AsyncVoxelTask(LambdaType Lambda)
-{
-	const typename FutureType::PromiseType Promise;
-	AsyncVoxelTaskImpl([Lambda = MoveTemp(Lambda), Promise]
-	{
-		if constexpr (std::is_void_v<typename TVoxelLambdaInfo<LambdaType>::ReturnType>)
-		{
-			Lambda();
-			Promise.Set();
-		}
-		else
-		{
-			Promise.Set(Lambda());
-		}
-	});
-	return Promise.GetFuture();
-}
 template<typename LambdaType, typename FutureType = TVoxelFutureType<typename TVoxelLambdaInfo<LambdaType>::ReturnType>>
 FORCEINLINE FutureType AsyncBackgroundTask(LambdaType Lambda)
 {

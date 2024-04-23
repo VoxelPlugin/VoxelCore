@@ -68,11 +68,6 @@ void FlushVoxelGameThreadTasks()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void AsyncVoxelTaskImpl(TVoxelUniqueFunction<void()> Lambda)
-{
-	GVoxelThreadPool->AddTask(MoveTemp(Lambda));
-}
-
 void AsyncBackgroundTaskImpl(TVoxelUniqueFunction<void()> Lambda)
 {
 	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [Lambda = MoveTemp(Lambda)]

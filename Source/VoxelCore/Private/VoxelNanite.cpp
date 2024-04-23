@@ -5,6 +5,78 @@
 
 namespace Voxel::Nanite
 {
+#if VOXEL_ENGINE_VERSION >= 504
+FORCEINLINE uint32 EncodeZigZag(const int32 Value)
+{
+	return uint32((Value << 1) ^ (Value >> 31));
+}
+template<typename T>
+uint32 EncodeZigZag(T) = delete;
+
+FORCEINLINE int32 ShortestWrap(int32 Value, const int32 NumBits)
+{
+	if (NumBits == 0)
+	{
+		checkVoxelSlow(Value == 0);
+		return 0;
+	}
+
+	const int32 Shift = 32 - NumBits;
+	const int32 NumValues = (1 << NumBits);
+	const int32 MinValue = -(NumValues >> 1);
+	const int32 MaxValue = (NumValues >> 1) - 1;
+
+	Value = (Value << Shift) >> Shift;
+	checkVoxelSlow(Value >= MinValue && Value <= MaxValue);
+
+	return Value;
+}
+
+FORCEINLINE uint32 EncodeUVFloat(const float Value, const uint32 NumMantissaBits)
+{
+	// Encode UV floats as a custom float type where [0,1] is denormal, so it gets uniform precision.
+	// As UVs are encoded in clusters as ranges of encoded values, a few modifications to the usual
+	// float encoding are made to preserve the original float order when the encoded values are interpreted as uints:
+	// 1. Positive values use 1 as sign bit.
+	// 2. Negative values use 0 as sign bit and have their exponent and mantissa bits inverted.
+
+	checkVoxelSlow(FMath::IsFinite(Value));
+
+	const uint32 SignBitPosition = NANITE_UV_FLOAT_NUM_EXPONENT_BITS + NumMantissaBits;
+	const uint32 FloatUInt = FVoxelUtilities::IntBits(Value);
+	const uint32 AbsFloatUInt = FloatUInt & 0x7FFFFFFFu;
+
+	uint32 Result;
+	if (AbsFloatUInt < 0x3F800000u)
+	{
+		// Denormal encoding
+		// Note: Mantissa can overflow into first non-denormal value (1.0f),
+		// but that is desirable to get correct round-to-nearest behavior.
+		const float AbsFloat = FVoxelUtilities::FloatBits(AbsFloatUInt);
+		Result = uint32(double(AbsFloat * float(1u << NumMantissaBits)) + 0.5);	// Cast to double to make sure +0.5 is lossless
+	}
+	else
+	{
+		// Normal encoding
+		// Extract exponent and mantissa bits from 32-bit float
+		const uint32 Shift = 23 - NumMantissaBits;
+		const uint32 Tmp = (AbsFloatUInt - 0x3F000000u) + (1u << (Shift - 1));	// Bias to round to nearest
+		Result = FMath::Min(Tmp >> Shift, (1u << SignBitPosition) - 1u);		// Clamp to largest UV float value
+	}
+
+	// Produce a mask that for positive values only flips the sign bit
+	// and for negative values only flips the exponent and mantissa bits.
+	const uint32 SignMask = (1u << SignBitPosition) - (FloatUInt >> 31u);
+	Result ^= SignMask;
+
+	return Result;
+}
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 FCluster::FCluster()
 {
 	Positions.Reserve(128);
@@ -85,9 +157,14 @@ FEncodingInfo FCluster::ComputeEncodingInfo(const FEncodingSettings& Settings) c
 
 	for (int32 UVIndex = 0; UVIndex < TextureCoordinates.Num(); UVIndex++)
 	{
-		Info.BitsPerAttribute += 2 * Settings.UVBits;
+		VOXEL_SCOPE_COUNTER("UVs");
 
 		FUVRange& UVRange = Info.UVRanges.Emplace_GetRef();
+#if VOXEL_ENGINE_VERSION < 504
+		constexpr int32 UVBits = 8;
+
+		Info.BitsPerAttribute += 2 * UVBits;
+
 		UVRange.GapStart = FIntPoint(MAX_int32);
 
 		FVector2f Min{ ForceInit };
@@ -95,7 +172,7 @@ FEncodingInfo FCluster::ComputeEncodingInfo(const FEncodingSettings& Settings) c
 		FVoxelUtilities::GetMinMax(TextureCoordinates[UVIndex], Min, Max);
 
 		const float Size = (Max - Min).GetMax();
-		const float PerfectStep = Size / ((1 << Settings.UVBits) - 1);
+		const float PerfectStep = Size / ((1 << UVBits) - 1);
 		const int32 InversePrecision = FMath::CeilToInt(FMath::Log2(PerfectStep));
 		const float Step = FMath::Exp2(float(InversePrecision));
 
@@ -103,6 +180,29 @@ FEncodingInfo FCluster::ComputeEncodingInfo(const FEncodingSettings& Settings) c
 		UVRange.Precision = -InversePrecision;
 
 		Info.UVQuantizationScales.Add(FMath::Exp2(float(UVRange.Precision)));
+#else
+		FUintVector2 UVMin = FUintVector2(0xFFFFFFFFu, 0xFFFFFFFFu);
+		FUintVector2 UVMax = FUintVector2(0u, 0u);
+
+		for (const FVector2f& UV : TextureCoordinates[UVIndex])
+		{
+			const uint32 EncodedU = EncodeUVFloat(UV.X, NANITE_UV_FLOAT_NUM_MANTISSA_BITS);
+			const uint32 EncodedV = EncodeUVFloat(UV.Y, NANITE_UV_FLOAT_NUM_MANTISSA_BITS);
+
+			UVMin.X = FMath::Min(UVMin.X, EncodedU);
+			UVMin.Y = FMath::Min(UVMin.Y, EncodedV);
+			UVMax.X = FMath::Max(UVMax.X, EncodedU);
+			UVMax.Y = FMath::Max(UVMax.Y, EncodedV);
+		}
+
+		const FUintVector2 UVDelta = UVMax - UVMin;
+
+		UVRange.Min = UVMin;
+		UVRange.NumBits.X = FMath::CeilLogTwo(UVDelta.X + 1u);
+		UVRange.NumBits.Y = FMath::CeilLogTwo(UVDelta.Y + 1u);
+
+		Info.BitsPerAttribute += UVRange.NumBits.X + UVRange.NumBits.Y;
+#endif
 		Info.UVMins.Add(UVRange.Min);
 	}
 
@@ -110,7 +210,7 @@ FEncodingInfo FCluster::ComputeEncodingInfo(const FEncodingSettings& Settings) c
 	GpuSizes.Cluster = sizeof(FPackedCluster);
 	GpuSizes.MaterialTable = 0;
 	GpuSizes.VertReuseBatchInfo = 0;
-	GpuSizes.DecodeInfo = TextureCoordinates.Num() * sizeof(FUVRange);
+	GpuSizes.DecodeInfo = TextureCoordinates.Num() * sizeof(UE_504_SWITCH(FUVRange, FPackedUVRange));
 
 	// TODO Not true if we don't reuse vertices?
 	const int32 BitsPerTriangle = Info.BitsPerIndex + 2 * 5; // Base index + two 5-bit offsets
@@ -139,7 +239,8 @@ FPackedCluster FCluster::Pack(const FEncodingInfo& Info) const
 
 	if (Colors.Num() == 0)
 	{
-		Result.SetColorMode(NANITE_VERTEX_COLOR_MODE_WHITE);
+		Result.SetColorMode(NANITE_VERTEX_COLOR_MODE_CONSTANT);
+		Result.ColorMin = FColor::White.ToPackedABGR();
 	}
 	else if (Info.ColorBits == FIntVector4(0))
 	{
@@ -178,19 +279,32 @@ FPackedCluster FCluster::Pack(const FEncodingInfo& Info) const
 		(uint32(FFloat16(MaxEdgeLength).Encoded) << 16);
 
 	Result.BoxBoundsExtent = FVector3f(Bounds.GetExtent());
-	Result.Flags = UE_503_SWITCH(NANITE_CLUSTER_FLAG_LEAF, NANITE_CLUSTER_FLAG_STREAMING_LEAF | NANITE_CLUSTER_FLAG_ROOT_LEAF);
+	Result.Flags = NANITE_CLUSTER_FLAG_STREAMING_LEAF | NANITE_CLUSTER_FLAG_ROOT_LEAF;
 
 	Result.SetBitsPerAttribute(Info.BitsPerAttribute);
 	Result.SetNormalPrecision(Info.Settings.NormalBits);
 	Result.SetNumUVs(TextureCoordinates.Num());
 
-	const int32 UVBits = Info.Settings.UVBits;
-	check(UVBits < 16);
+#if VOXEL_ENGINE_VERSION < 504
+	constexpr int32 UVBits = 8;
 
 	for (int32 UVIndex = 0; UVIndex < TextureCoordinates.Num(); UVIndex++)
 	{
 		Result.UV_Prec |= ((UVBits << 4) | UVBits) << (UVIndex * 8);
 	}
+#else
+	check(TextureCoordinates.Num() <= NANITE_MAX_UVS);
+
+	uint32 BitOffset = 0;
+	for (int32 UVIndex = 0; UVIndex < TextureCoordinates.Num(); UVIndex++)
+	{
+		checkVoxelSlow(BitOffset < 256);
+		Result.UVBitOffsets |= BitOffset << (UVIndex * 8);
+
+		const FUVRange& UVRange = Info.UVRanges[UVIndex];
+		BitOffset += UVRange.NumBits.X + UVRange.NumBits.Y;
+	}
+#endif
 
 	return Result;
 }
@@ -298,14 +412,17 @@ void CreatePageData(
 
 	TVoxelChunkedRef<FPageDiskHeader> PageDiskHeader = AllocateChunkedRef(PageData);
 	PageDiskHeader->NumClusters = Clusters.Num();
+#if VOXEL_ENGINE_VERSION < 504
 	PageDiskHeader->GpuSize = PageGpuSizes.GetTotal();
 	PageDiskHeader->NumRawFloat4s =
 		sizeof(FPageGPUHeader) / 16 +
 		Clusters.Num() * (sizeof(FPackedCluster) + NumUVs * sizeof(FUVRange)) / 16;
-
 	PageDiskHeader->NumTexCoords = NumUVs;
+#endif
 
 	TVoxelChunkedArrayRef<FClusterDiskHeader> ClusterDiskHeaders = AllocateChunkedArrayRef(PageData, Clusters.Num());
+
+	const int32 RawFloat4StartOffset = GetPageOffset();
 
 	{
 		TVoxelChunkedRef<FPageGPUHeader> GPUPageHeader = AllocateChunkedRef(PageData);
@@ -335,10 +452,31 @@ void CreatePageData(
 
 			for (int32 UVIndex = 0; UVIndex < NumUVs; UVIndex++)
 			{
-				PageData.Append(MakeByteVoxelArrayView(Info.UVRanges[UVIndex]));
+				const FUVRange UVRange = Info.UVRanges[UVIndex];
+
+#if VOXEL_ENGINE_VERSION < 504
+				PageData.Append(MakeByteVoxelArrayView(UVRange));
+#else
+				checkVoxelSlow(UVRange.NumBits.X <= NANITE_UV_FLOAT_MAX_BITS && UVRange.NumBits.Y <= NANITE_UV_FLOAT_MAX_BITS);
+				checkVoxelSlow(UVRange.Min.X < (1u << NANITE_UV_FLOAT_MAX_BITS) && UVRange.Min.Y < (1u << NANITE_UV_FLOAT_MAX_BITS));
+
+				FPackedUVRange PackedUVRange;
+				PackedUVRange.Data.X = (UVRange.Min.X << 5) | UVRange.NumBits.X;
+				PackedUVRange.Data.Y = (UVRange.Min.Y << 5) | UVRange.NumBits.Y;
+				PageData.Append(MakeByteVoxelArrayView(PackedUVRange));
+#endif
 			}
 		}
+
+		while ((GetPageOffset() - PageDiskHeader->DecodeInfoOffset) % 16 != 0)
+		{
+			PageData.Add(0);
+		}
 	}
+
+	const int32 RawFloat4EndOffset = GetPageOffset();
+
+	PageDiskHeader->NumRawFloat4s = RawFloat4EndOffset - RawFloat4StartOffset;
 
 	// Index data
 	{
@@ -447,6 +585,7 @@ void CreatePageData(
 		}
 	}
 
+#if VOXEL_ENGINE_VERSION < 504
 	{
 		VOXEL_SCOPE_COUNTER("Write Positions");
 
@@ -520,8 +659,10 @@ void CreatePageData(
 					const int32 U = FMath::RoundToInt(UV.X * Info.UVQuantizationScales[UVIndex]) - Info.UVMins[UVIndex].X;
 					const int32 V = FMath::RoundToInt(UV.Y * Info.UVQuantizationScales[UVIndex]) - Info.UVMins[UVIndex].Y;
 
-					BitWriter_Attribute.Append(U, EncodingSettings.UVBits);
-					BitWriter_Attribute.Append(V, EncodingSettings.UVBits);
+					constexpr int32 UVBits = 8;
+
+					BitWriter_Attribute.Append(U, UVBits);
+					BitWriter_Attribute.Append(V, UVBits);
 				}
 				BitWriter_Attribute.Flush(1);
 			}
@@ -531,7 +672,210 @@ void CreatePageData(
 			PageData.Append(BitWriter_Attribute.GetByteData());
 		}
 	}
+#else
+	{
+		VOXEL_SCOPE_COUNTER("Write Attributes");
 
-	check(PageData.Num() < NANITE_MAX_PAGE_DISK_SIZE);
+		struct FByteStreamCounters
+		{
+			int32 Low = 0;
+			int32 Mid = 0;
+			int32 High = 0;
+		};
+		TVoxelArray<FByteStreamCounters> ByteStreamCounters;
+		ByteStreamCounters.SetNum(Clusters.Num());
+
+		TVoxelChunkedArray<uint8> LowByteStream;
+		TVoxelChunkedArray<uint8> MidByteStream;
+		TVoxelChunkedArray<uint8> HighByteStream;
+
+		for (int32 ClusterIndex = 0; ClusterIndex < Clusters.Num(); ClusterIndex++)
+		{
+			const FCluster& Cluster = Clusters[ClusterIndex];
+			const FEncodingInfo& Info = EncodingInfos[ClusterIndex];
+
+			const int32 PrevLow = LowByteStream.Num();
+			const int32 PrevMid = MidByteStream.Num();
+			const int32 PrevHigh = HighByteStream.Num();
+			ON_SCOPE_EXIT
+			{
+				ByteStreamCounters[ClusterIndex].Low = LowByteStream.Num() - PrevLow;
+				ByteStreamCounters[ClusterIndex].Mid = MidByteStream.Num() - PrevMid;
+				ByteStreamCounters[ClusterIndex].High = HighByteStream.Num() - PrevHigh;
+			};
+
+			const auto WriteZigZagDelta = [&](const int32 Delta, const int32 NumBytes)
+			{
+				const uint32 Value = EncodeZigZag(Delta);
+
+				checkVoxelSlow(NumBytes <= 3);
+				checkVoxelSlow(Value < (1u << (NumBytes * 8)));
+
+				if (NumBytes >= 3)
+				{
+					HighByteStream.Add((Value >> 16) & 0xFFu);
+				}
+
+				if (NumBytes >= 2)
+				{
+					MidByteStream.Add((Value >> 8) & 0xFFu);
+				}
+
+				if (NumBytes >= 1)
+				{
+					LowByteStream.Add(Value & 0xFFu);
+				}
+			};
+
+			const int32 BytesPerPositionComponent = FMath::DivideAndRoundUp(Info.PositionBits.GetMax(), 8);
+			const int32 BytesPerNormalComponent = FMath::DivideAndRoundUp(EncodingSettings.NormalBits, 8);
+
+			{
+				const float QuantizationScale = FMath::Exp2(float(EncodingSettings.PositionPrecision));
+
+				FIntVector PrevPosition = FIntVector(
+					(1 << Info.PositionBits.X) / 2,
+					(1 << Info.PositionBits.Y) / 2,
+					(1 << Info.PositionBits.Z) / 2);
+
+				for (const FVector3f& FloatPosition : Cluster.Positions)
+				{
+					const FIntVector Position = FVoxelUtilities::RoundToInt(FloatPosition * QuantizationScale) - Info.PositionMin;
+					FIntVector PositionDelta = Position - PrevPosition;
+
+					PositionDelta.X = ShortestWrap(PositionDelta.X, Info.PositionBits.X);
+					PositionDelta.Y = ShortestWrap(PositionDelta.Y, Info.PositionBits.Y);
+					PositionDelta.Z = ShortestWrap(PositionDelta.Z, Info.PositionBits.Z);
+
+					WriteZigZagDelta(PositionDelta.X, BytesPerPositionComponent);
+					WriteZigZagDelta(PositionDelta.Y, BytesPerPositionComponent);
+					WriteZigZagDelta(PositionDelta.Z, BytesPerPositionComponent);
+
+					PrevPosition = Position;
+				}
+			}
+
+			{
+				FIntPoint PrevNormal = FIntPoint::ZeroValue;
+				for (const FVoxelOctahedron& PackedNormal : Cluster.Normals)
+				{
+					const FIntPoint Normal = FIntPoint(PackedNormal.X, PackedNormal.Y);
+					FIntPoint NormalDelta = Normal - PrevNormal;
+
+					NormalDelta.X = ShortestWrap(NormalDelta.X, EncodingSettings.NormalBits);
+					NormalDelta.Y = ShortestWrap(NormalDelta.Y, EncodingSettings.NormalBits);
+
+					WriteZigZagDelta(NormalDelta.X, BytesPerNormalComponent);
+					WriteZigZagDelta(NormalDelta.Y, BytesPerNormalComponent);
+
+					PrevNormal = Normal;
+				}
+			}
+
+			if (Cluster.Colors.Num() > 0 &&
+				Info.ColorBits != FIntVector4(0))
+			{
+				FIntVector4 PrevColor = FIntVector4(0);
+				for (const FColor& UnpackedColor : Cluster.Colors)
+				{
+					const FIntVector4 Color
+					{
+						UnpackedColor.R - Info.ColorMin.R,
+						UnpackedColor.G - Info.ColorMin.G,
+						UnpackedColor.B - Info.ColorMin.B,
+						UnpackedColor.A - Info.ColorMin.A
+					};
+					FIntVector4 ColorDelta = Color - PrevColor;
+
+					ColorDelta.X = ShortestWrap(ColorDelta.X, Info.ColorBits.X);
+					ColorDelta.Y = ShortestWrap(ColorDelta.Y, Info.ColorBits.Y);
+					ColorDelta.Z = ShortestWrap(ColorDelta.Z, Info.ColorBits.Z);
+					ColorDelta.W = ShortestWrap(ColorDelta.W, Info.ColorBits.W);
+
+					WriteZigZagDelta(ColorDelta.X, 1);
+					WriteZigZagDelta(ColorDelta.Y, 1);
+					WriteZigZagDelta(ColorDelta.Z, 1);
+					WriteZigZagDelta(ColorDelta.W, 1);
+
+					PrevColor = Color;
+				}
+			}
+
+			for (int32 UVIndex = 0; UVIndex < NumUVs; UVIndex++)
+			{
+				const FUVRange& UVRange = Info.UVRanges[UVIndex];
+				const int32 BytesPerTexCoordComponent = FMath::DivideAndRoundUp(FMath::Max<int32>(UVRange.NumBits.X, UVRange.NumBits.Y), 8);
+
+				FIntVector2 PrevUV = FIntVector2::ZeroValue;
+				for (const FVector2f& UnpackedUV : Cluster.TextureCoordinates[UVIndex])
+				{
+					uint32 EncodedU = EncodeUVFloat(UnpackedUV.X, NANITE_UV_FLOAT_NUM_MANTISSA_BITS);
+					uint32 EncodedV = EncodeUVFloat(UnpackedUV.Y, NANITE_UV_FLOAT_NUM_MANTISSA_BITS);
+
+					checkVoxelSlow(EncodedU >= UVRange.Min.X);
+					checkVoxelSlow(EncodedV >= UVRange.Min.Y);
+					EncodedU -= UVRange.Min.X;
+					EncodedV -= UVRange.Min.Y;
+
+					checkVoxelSlow(EncodedU < (1u << UVRange.NumBits.X));
+					checkVoxelSlow(EncodedV < (1u << UVRange.NumBits.Y));
+
+					const FIntVector2 UV
+					{
+						int32(EncodedU),
+						int32(EncodedV)
+					};
+					FIntVector2 UVDelta = UV - PrevUV;
+
+					UVDelta.X = ShortestWrap(UVDelta.X, UVRange.NumBits.X);
+					UVDelta.Y = ShortestWrap(UVDelta.Y, UVRange.NumBits.Y);
+
+					WriteZigZagDelta(UVDelta.X, BytesPerTexCoordComponent);
+					WriteZigZagDelta(UVDelta.Y, BytesPerTexCoordComponent);
+
+					PrevUV = UV;
+				}
+			}
+		}
+
+		// Write low/mid/high byte streams
+		{
+			{
+				FClusterDiskHeader& Header = ClusterDiskHeaders[0];
+
+				Header.LowBytesOffset = GetPageOffset();
+				PageData.Append(LowByteStream);
+
+				Header.MidBytesOffset = GetPageOffset();
+				PageData.Append(MidByteStream);
+
+				Header.HighBytesOffset = GetPageOffset();
+				PageData.Append(HighByteStream);
+			}
+
+			for (int32 ClusterIndex = 1; ClusterIndex < Clusters.Num(); ClusterIndex++)
+			{
+				const FClusterDiskHeader& PrevHeader = ClusterDiskHeaders[ClusterIndex - 1];
+				const FByteStreamCounters& PrevCounters = ByteStreamCounters[ClusterIndex - 1];
+
+				FClusterDiskHeader& Header = ClusterDiskHeaders[ClusterIndex];
+				Header.LowBytesOffset = PrevHeader.LowBytesOffset + PrevCounters.Low;
+				Header.MidBytesOffset = PrevHeader.MidBytesOffset + PrevCounters.Mid;
+				Header.HighBytesOffset = PrevHeader.HighBytesOffset + PrevCounters.High;
+			}
+
+			ensure(ClusterDiskHeaders[Clusters.Num() - 1].LowBytesOffset + ByteStreamCounters[Clusters.Num() - 1].Low == ClusterDiskHeaders[0].MidBytesOffset);
+			ensure(ClusterDiskHeaders[Clusters.Num() - 1].MidBytesOffset + ByteStreamCounters[Clusters.Num() - 1].Mid == ClusterDiskHeaders[0].HighBytesOffset);
+			ensure(ClusterDiskHeaders[Clusters.Num() - 1].HighBytesOffset + ByteStreamCounters[Clusters.Num() - 1].High == GetPageOffset());
+
+			while (PageData.Num() % sizeof(uint32) != 0)
+			{
+				PageData.Add(0);
+			}
+		}
+	}
+#endif
+
+	ensure(GetPageOffset() <= NANITE_ROOT_PAGE_GPU_SIZE);
 }
 }

@@ -10,15 +10,13 @@
 
 USTRUCT()
 struct VOXELCORE_API FVoxelVirtualStruct
-#if CPP
-	: public FVirtualDestructor
-#endif
 {
 	GENERATED_BODY()
 	VOXEL_COUNT_INSTANCES()
 
 public:
 	FVoxelVirtualStruct() = default;
+	virtual ~FVoxelVirtualStruct() = default;
 
 	virtual FString Internal_GetMacroName() const;
 	virtual UScriptStruct* Internal_GetStruct() const

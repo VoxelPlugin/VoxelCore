@@ -20,9 +20,7 @@ struct VOXELCORE_API FVoxelDynamicMaterialParameter : public FVoxelVirtualStruct
 	virtual void AddOnChanged(const FSimpleDelegate& OnChanged) {}
 };
 
-class VOXELCORE_API FVoxelMaterialRef
-	: public FVirtualDestructor
-	, public TSharedFromThis<FVoxelMaterialRef>
+class VOXELCORE_API FVoxelMaterialRef : public TSharedFromThis<FVoxelMaterialRef>
 {
 public:
 	static TSharedRef<FVoxelMaterialRef> Default();
@@ -33,7 +31,7 @@ public:
 	static void RefreshInstance(UMaterialInstanceDynamic& Instance);
 
 public:
-	virtual ~FVoxelMaterialRef() override;
+	~FVoxelMaterialRef();
 	UE_NONCOPYABLE(FVoxelMaterialRef);
 
 	VOXEL_COUNT_INSTANCES();
@@ -55,7 +53,11 @@ public:
 		return MaterialInstanceRef.IsValid();
 	}
 
-	void AddResource(const TSharedPtr<FVirtualDestructor>& Resource);
+	template<typename T>
+	void AddResource(const TSharedPtr<T>& Resource)
+	{
+		Resources.Enqueue(MakeSharedVoidPtr(Resource));
+	}
 
 	void SetScalarParameter_GameThread(FName Name, float Value);
 	void SetVectorParameter_GameThread(FName Name, FVector4 Value);
@@ -79,7 +81,7 @@ private:
 	TVoxelMap<FName, TWeakObjectPtr<UTexture>> TextureParameters;
 	TVoxelMap<FName, TSharedPtr<FVoxelDynamicMaterialParameter>> DynamicParameters;
 
-	TQueue<TSharedPtr<FVirtualDestructor>, EQueueMode::Mpsc> Resources;
+	TQueue<FSharedVoidPtr, EQueueMode::Mpsc> Resources;
 
 	friend class FVoxelMaterialRefManager;
 };

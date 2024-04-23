@@ -60,7 +60,6 @@ private:
 		}
 	};
 
-
 public:
 	using FElement = typename TChooseClass<sizeof(FElementKeyValue) <= sizeof(FElementValueKey), FElementKeyValue, FElementValueKey>::Result;
 };
@@ -325,7 +324,9 @@ public:
 		checkStatic(
 			TIsTriviallyDestructible<ValueType>::Value ||
 			TIsTWeakPtr_V<ValueType> ||
-			TIsTSharedPtr_V<ValueType>);
+			TIsTSharedPtr_V<ValueType> ||
+			// Hack to detect TSharedPtr wrappers like FVoxelFuture
+			sizeof(ValueType) == sizeof(FSharedVoidPtr));
 
 		if (const ValueType* Value = this->Find(Key))
 		{
@@ -344,6 +345,7 @@ public:
 
 	FORCEINLINE ValueType& FindChecked(const KeyType& Key)
 	{
+		checkVoxelSlow(this->Contains(Key));
 		CheckInvariants();
 
 		int32 ElementIndex = this->GetElementIndex(this->HashValue(Key));

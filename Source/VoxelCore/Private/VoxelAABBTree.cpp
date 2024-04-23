@@ -89,7 +89,7 @@ void FVoxelAABBTree::Initialize(TVoxelArray<FElement>&& InElements)
 		const int32 CurrentNodesMax = Nodes.Max();
 		ON_SCOPE_EXIT
 		{
-			check(CurrentNodesMax == Nodes.Max());
+			checkVoxelSlow(CurrentNodesMax == Nodes.Max());
 		};
 
 		FNode& Node = Nodes[NodeToProcess->NodeIndex];

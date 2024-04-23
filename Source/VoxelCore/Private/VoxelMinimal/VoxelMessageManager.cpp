@@ -85,7 +85,7 @@ void FVoxelMessageManager::LogMessage(const TSharedRef<FVoxelMessage>& Message) 
 		}
 		else
 		{
-			LogMessage_GameThread(Message);
+			GVoxelMessageManager->LogMessage_GameThread(Message);
 		}
 	});
 }
@@ -107,7 +107,7 @@ void FVoxelMessageManager::LogMessage_GameThread(const TSharedRef<FVoxelMessage>
 			uint64 Hash = 0;
 			double Time = 0;
 		};
-		static TCompatibleVoxelArray<FRecentMessage> RecentMessages;
+		static TVoxelArray<FRecentMessage, FDefaultAllocator> RecentMessages;
 
 		const uint64 Hash = Message->GetHash();
 		const double Time = FPlatformTime::Seconds();
@@ -171,7 +171,7 @@ void FVoxelMessageManager::LogMessage_GameThread(const TSharedRef<FVoxelMessage>
 #if WITH_EDITOR
 	const auto LogMessage = [=]
 	{
-		OnMessageLogged.Broadcast(Message);
+		GVoxelMessageManager->OnMessageLogged.Broadcast(Message);
 
 		const TSharedRef<FTokenizedMessage> TokenizedMessage = Message->CreateTokenizedMessage();
 

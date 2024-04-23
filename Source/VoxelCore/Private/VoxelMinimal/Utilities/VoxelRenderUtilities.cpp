@@ -15,10 +15,8 @@
 #include "PrimitiveSceneProxy.h"
 #include "Materials/MaterialRenderProxy.h"
 
-#if VOXEL_ENGINE_VERSION < 504
 // Needed to cancel motion blur when reusing proxies
 #include "ScenePrivate.h"
-#endif
 
 FRDGBuilder* FVoxelRDGBuilderScope::StaticBuilder = nullptr;
 
@@ -123,7 +121,7 @@ TSharedRef<FVoxelRDGExternalBuffer> FVoxelRDGExternalBuffer::CreateStructured(
 	Result->NumElements = NumElements;
 
 	FRHIResourceCreateInfo CreateInfo(Name, ResourceArray);
-	const FBufferRHIRef Buffer = UE_503_SWITCH(RHICreateStructuredBuffer, RHICmdList.CreateStructuredBuffer)(BytesPerElement, Desc.GetSize(), Desc.Usage, CreateInfo);
+	const FBufferRHIRef Buffer = RHICmdList.CreateStructuredBuffer(BytesPerElement, Desc.GetSize(), Desc.Usage, CreateInfo);
 	Result->PooledBuffer = new FRDGPooledBuffer(Buffer, Desc, Desc.GetSize(), Name);
 
 	return Result;
@@ -159,18 +157,15 @@ FBufferRHIRef FVoxelRDGExternalBuffer::GetBuffer() const
 FRHIShaderResourceView* FVoxelRDGExternalBuffer::GetSRV(FRHICommandListBase& RHICmdList) const
 {
 	FRDGBufferSRVDesc Desc;
-#if VOXEL_ENGINE_VERSION < 503
-	Desc.BytesPerElement = BytesPerElement;
-#endif
 	Desc.Format = Format;
-	return PooledBuffer->GetOrCreateSRV(UE_503_ONLY(RHICmdList,) Desc);
+	return PooledBuffer->GetOrCreateSRV(RHICmdList, Desc);
 }
 
 FRHIUnorderedAccessView* FVoxelRDGExternalBuffer::GetUAV(FRHICommandListBase& RHICmdList) const
 {
 	FRDGBufferUAVDesc Desc;
 	Desc.Format = Format;
-	return PooledBuffer->GetOrCreateUAV(UE_503_ONLY(RHICmdList,) Desc);
+	return PooledBuffer->GetOrCreateUAV(RHICmdList, Desc);
 }
 
 void FVoxelRDGExternalBuffer::Resize(
@@ -466,7 +461,7 @@ void FVoxelRenderUtilities::UpdateBuffer(
 	const int64 ArrayTypeSize,
 	const int64 ArrayNum,
 	const int64 Offset,
-	TSharedPtr<FVirtualDestructor> KeepAlive)
+	const FSharedVoidPtr KeepAlive)
 {
 	using namespace Voxel::RenderUtilities;
 
@@ -681,9 +676,11 @@ void FVoxelRenderUtilities::AsyncCopyTexture(
 			Format,
 			1,
 			TexCreate_ShaderResource,
+			UE_504_ONLY(ERHIAccess::Unknown,)
 			MipData.GetData(),
-			1
-			UE_503_ONLY(, CompletionEvent));
+			1,
+			UE_504_ONLY(TEXT("AsyncCopyTexture"),)
+			CompletionEvent);
 
 		if (CompletionEvent.IsValid())
 		{
@@ -1086,7 +1083,6 @@ void FVoxelRenderUtilities::ResetPreviousLocalToWorld(
 	const UPrimitiveComponent& Component,
 	const FPrimitiveSceneProxy& SceneProxy)
 {
-#if VOXEL_ENGINE_VERSION < 504
 	// Hack to cancel motion blur when mesh components are reused in the same frame
 	VOXEL_ENQUEUE_RENDER_COMMAND(UpdateTransformCommand)(
 		[&SceneProxy, PreviousLocalToWorld = Component.GetRenderMatrix()](FRHICommandListImmediate& RHICmdList)
@@ -1094,7 +1090,4 @@ void FVoxelRenderUtilities::ResetPreviousLocalToWorld(
 			FScene& Scene = static_cast<FScene&>(SceneProxy.GetScene());
 			Scene.VelocityData.OverridePreviousTransform(SceneProxy.GetPrimitiveComponentId(), PreviousLocalToWorld);
 		});
-#else
-	EMIT_CUSTOM_WARNING("Fix ScenePrivate.h");
-#endif
 }

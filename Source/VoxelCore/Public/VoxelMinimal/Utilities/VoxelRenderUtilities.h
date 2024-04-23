@@ -802,7 +802,7 @@ public:
 		int64 ArrayTypeSize,
 		int64 ArrayNum,
 		int64 Offset,
-		TSharedPtr<FVirtualDestructor> KeepAlive);
+		FSharedVoidPtr KeepAlive);
 
 	template<typename ArrayType>
 	static void UpdateBuffer(
@@ -821,34 +821,40 @@ public:
 	}
 
 	template<typename ArrayType, typename KeepAliveType>
-	static void UpdateBuffer(FRDGBuilder& GraphBuilder, FRDGBufferRef Buffer, const TSharedRef<KeepAliveType>& KeepAlive, const ArrayType& Array, int64 Offset = 0)
+	static void UpdateBuffer(
+		FRDGBuilder& GraphBuilder,
+		const FRDGBufferRef Buffer,
+		const TSharedRef<KeepAliveType>& KeepAlive,
+		const ArrayType& Array,
+		const int64 Offset = 0)
 	{
-		struct FKeepAlive : FVirtualDestructor
-		{
-			TSharedPtr<KeepAliveType> KeepAlive;
-		};
-		const TSharedRef<FKeepAlive> KeepAlivePtr = MakeVoxelShared<FKeepAlive>();
-		KeepAlivePtr->KeepAlive = KeepAlive;
-		FVoxelRenderUtilities::UpdateBuffer(GraphBuilder, Buffer, Array.GetData(), Array.GetTypeSize(), Array.Num(), Offset, KeepAlivePtr);
-	}
-
-	template<typename ArrayType>
-	static void UpdateBuffer(FRDGBuilder& GraphBuilder, FRDGBufferRef Buffer, ArrayType&& InArray, int64 Offset = 0)
-	{
-		struct FArrayWrapper : FVirtualDestructor
-		{
-			ArrayType Array;
-		};
-		const TSharedRef<FArrayWrapper> ArrayWrapper = MakeVoxelShared<FArrayWrapper>();
-		ArrayWrapper->Array = MoveTemp(InArray);
 		FVoxelRenderUtilities::UpdateBuffer(
 			GraphBuilder,
 			Buffer,
-			ArrayWrapper->Array.GetData(),
-			ArrayWrapper->Array.GetTypeSize(),
-			ArrayWrapper->Array.Num(),
+			Array.GetData(),
+			Array.GetTypeSize(),
+			Array.Num(),
 			Offset,
-			ArrayWrapper);
+			MakeSharedVoidPtr(KeepAlive));
+	}
+
+	template<typename ArrayType>
+	static void UpdateBuffer(
+		FRDGBuilder& GraphBuilder,
+		const FRDGBufferRef Buffer,
+		ArrayType&& InArray,
+		const int64 Offset = 0)
+	{
+		const TSharedRef<ArrayType> Array = MakeSharedCopy(MoveTemp(InArray));
+
+		FVoxelRenderUtilities::UpdateBuffer(
+			GraphBuilder,
+			Buffer,
+			Array->GetData(),
+			Array->GetTypeSize(),
+			Array->Num(),
+			Offset,
+			MakeSharedVoidPtr(Array));
 	}
 
 	static void CopyBuffer(FRDGBuilder& GraphBuilder, TSharedPtr<FVoxelGPUBufferReadback>& Readback, FRDGBufferRef Buffer);

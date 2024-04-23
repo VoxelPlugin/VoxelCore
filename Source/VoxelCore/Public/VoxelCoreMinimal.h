@@ -13,19 +13,16 @@
 
 // ReSharper disable CppUnusedIncludeDirective
 
-// Unreachable code, raises invalid warnings in templates when using if constexpr
-#pragma warning(disable : 4702)
-
 #include "CoreMinimal.h"
 #include "Runtime/Launch/Resources/Version.h"
+
+// Unreachable code, raises invalid warnings in templates when using if constexpr
+#pragma warning(disable : 4702)
 
 #define VOXEL_ENGINE_VERSION (ENGINE_MAJOR_VERSION * 100 + ENGINE_MINOR_VERSION)
 
 // Common includes
 #include "EngineUtils.h"
-#if VOXEL_ENGINE_VERSION <= 502
-#include "RHI.h"
-#endif
 #include "RHIUtilities.h"
 #include "Engine/World.h"
 #include "UObject/Package.h"
@@ -49,14 +46,6 @@ VOXELCORE_API DECLARE_LOG_CATEGORY_EXTERN(LogVoxel, Log, All);
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-#if VOXEL_ENGINE_VERSION >= 503
-#define UE_503_SWITCH(Before, AfterOrEqual) AfterOrEqual
-#define UE_503_ONLY(...) __VA_ARGS__
-#else
-#define UE_503_SWITCH(Before, AfterOrEqual) Before
-#define UE_503_ONLY(...)
-#endif
 
 #if VOXEL_ENGINE_VERSION >= 504
 #define UE_504_SWITCH(Before, AfterOrEqual) AfterOrEqual
@@ -105,25 +94,6 @@ FORCEINLINE void Swap(T* RESTRICT& A, T* RESTRICT& B)
 	A = B;
 	B = Temp;
 }
-
-// Fix FMessageDialog::Open in 5.2 to match 5.3's signature
-#if VOXEL_ENGINE_VERSION <= 502
-struct FMessageDialogCompat : public FMessageDialog
-{
-	using FMessageDialog::Open;
-
-	static EAppReturnType::Type Open(
-		const EAppMsgType::Type MessageType,
-		const EAppReturnType::Type DefaultValue,
-		const FText& Message,
-		const FText& Title)
-	{
-		return Open(MessageType, DefaultValue, Message, &Title);
-	}
-};
-
-#define FMessageDialog FMessageDialogCompat
-#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

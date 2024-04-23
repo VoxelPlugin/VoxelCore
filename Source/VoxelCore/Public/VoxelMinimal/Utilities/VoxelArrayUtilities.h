@@ -134,7 +134,7 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	template<typename ArrayType, typename = std::enable_if_t<!std::is_const_v<std::remove_reference_t<decltype(*GetData(DeclVal<ArrayType>()))>>>>
+	template<typename ArrayType, typename = std::enable_if_t<!std::is_const_v<std::remove_reference_t<decltype(*GetData(DeclVal<ArrayType&>()))>>>>
 	FORCENOINLINE void SetAll(ArrayType&& Array, const VOXEL_GET_TYPE(*GetData(DeclVal<ArrayType>())) Value)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(GetNum(Array), 1024);

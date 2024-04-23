@@ -35,19 +35,54 @@ FVoxelThreadPool* GVoxelThreadPool = new FVoxelThreadPool();
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void FVoxelThreadPool::AddTask(TVoxelUniqueFunction<void()> Lambda)
+void IVoxelTaskExecutor::TriggerThreads()
 {
-	VOXEL_SCOPE_LOCK(Tasks_CriticalSection);
+	VOXEL_FUNCTION_COUNTER();
 
-	Tasks_RequiresLock.Add(MoveTemp(Lambda));
-
-	if (Tasks_RequiresLock.Num() < 32)
-	{
-		// Ensure a thread is awake if we don't have many tasks left
-		// Over-conservative, but that's fine
-		Event.Trigger();
-	}
+	GVoxelThreadPool->Event.Trigger();
 }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FVoxelThreadPool::~FVoxelThreadPool()
+{
+	ensure(Executors_RequiresLock.Num() == 0);
+}
+
+int32 FVoxelThreadPool::NumTasks() const
+{
+	VOXEL_FUNCTION_COUNTER();
+	VOXEL_SCOPE_READ_LOCK(Executors_CriticalSection);
+
+	int32 Result = 0;
+	for (const IVoxelTaskExecutor* Executor : Executors_RequiresLock)
+	{
+		Result += Executor->NumTasks();
+	}
+	return Result;
+}
+
+void FVoxelThreadPool::AddExecutor(IVoxelTaskExecutor* Executor)
+{
+	VOXEL_FUNCTION_COUNTER();
+	VOXEL_SCOPE_WRITE_LOCK(Executors_CriticalSection);
+
+	Executors_RequiresLock.Add_CheckNew(Executor);
+}
+
+void FVoxelThreadPool::RemoveExecutor(IVoxelTaskExecutor* Executor)
+{
+	VOXEL_FUNCTION_COUNTER();
+	VOXEL_SCOPE_WRITE_LOCK(Executors_CriticalSection);
+
+	Executors_RequiresLock.RemoveChecked(Executor);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 void FVoxelThreadPool::Initialize()
 {
@@ -58,11 +93,6 @@ void FVoxelThreadPool::Initialize()
 		{
 			VOXEL_SCOPE_LOCK(Threads_CriticalSection);
 			Threads_RequiresLock.Reset();
-		}
-
-		{
-			VOXEL_SCOPE_LOCK(Tasks_CriticalSection);
-			Tasks_RequiresLock.Reset();
 		}
 	};
 
@@ -174,27 +204,24 @@ Wait:
 		goto Wait;
 	}
 
-	VOXEL_SCOPE_COUNTER_IMPL(true, "Process Tasks");
-
 GetNextTask:
 	if (bTimeToDie.Get())
 	{
 		return 0;
 	}
 
-	TVoxelUniqueFunction<void()> Task;
+	VOXEL_SCOPE_READ_LOCK(GVoxelThreadPool->Executors_CriticalSection);
+
+	bool bAnyExecuted = false;
+	for (IVoxelTaskExecutor* Executor : GVoxelThreadPool->Executors_RequiresLock)
 	{
-		VOXEL_SCOPE_LOCK(GVoxelThreadPool->Tasks_CriticalSection);
-
-		if (GVoxelThreadPool->Tasks_RequiresLock.Num() == 0)
-		{
-			goto Wait;
-		}
-
-		Task = GVoxelThreadPool->Tasks_RequiresLock.Pop();
+		bAnyExecuted |= Executor->ExecuteTasks_AnyThread();
 	}
 
-	Task();
+	if (!bAnyExecuted)
+	{
+		goto Wait;
+	}
 
 	goto GetNextTask;
 }

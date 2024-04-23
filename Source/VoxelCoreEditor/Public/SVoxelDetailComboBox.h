@@ -107,7 +107,7 @@ public:
 		if (bCanEnterCustomOption)
 		{
 			SAssignNew(CustomOptionTextBox, SEditableTextBox)
-			.Text_Lambda([=]() -> FText
+			.Text_Lambda([=, this]() -> FText
 			{
 				if (!GetOptionTextDelegate.IsBound())
 				{
@@ -248,7 +248,7 @@ private:
 
 		return SNew(SVoxelDetailText)
 			.Clipping(EWidgetClipping::ClipToBounds)
-			.Text_Lambda([=]() -> FText
+			.Text_Lambda([=, this]() -> FText
 			{
 				if (!GetOptionTextDelegate.IsBound())
 				{
@@ -257,7 +257,7 @@ private:
 
 				return FText::FromString(GetOptionTextDelegate.Execute(*Option));
 			})
-			.ToolTipText_Lambda([=]() -> FText
+			.ToolTipText_Lambda([=, this]() -> FText
 			{
 				if (!GetOptionToolTipDelegate.IsBound())
 				{
@@ -266,7 +266,7 @@ private:
 
 				return GetOptionToolTipDelegate.Execute(*Option);
 			})
-			.ColorAndOpacity_Lambda([=]() -> FSlateColor
+			.ColorAndOpacity_Lambda([=, this]() -> FSlateColor
 			{
 				if (!Options.Contains(Option))
 				{

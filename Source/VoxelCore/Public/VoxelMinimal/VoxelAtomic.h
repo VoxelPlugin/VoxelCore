@@ -60,14 +60,13 @@ public:
 		Atomic.store(NewValue, MemoryOrder);
 	}
 
-	// Return previous value
-	FORCEINLINE T Exchange(const T NewValue, const std::memory_order MemoryOrder = std::memory_order_seq_cst)
+	FORCEINLINE T Exchange_ReturnOld(const T NewValue, const std::memory_order MemoryOrder = std::memory_order_seq_cst)
 	{
 		CheckValue(NewValue);
 		return Atomic.exchange(NewValue, MemoryOrder);
 	}
 	// Return true if exchange was successful
-	// Expected will hold the old value (only useful if fails, if succeeds Expected == NewValue)
+	// Expected will hold the old value (only useful if fails, if succeeds Expected isn't changed)
 	FORCEINLINE bool CompareExchangeStrong(T& Expected, const T NewValue, const std::memory_order MemoryOrder = std::memory_order_seq_cst)
 	{
 		CheckValue(NewValue);
@@ -78,6 +77,44 @@ public:
 	{
 		CheckValue(NewValue);
 		return Atomic.compare_exchange_weak(Expected, NewValue, MemoryOrder);
+	}
+
+	template<typename LambdaType>
+	FORCEINLINE T Apply_ReturnOld(const LambdaType Lambda, const std::memory_order MemoryOrder = std::memory_order_seq_cst)
+	{
+		T OldValue = Get(std::memory_order_relaxed);
+
+		while (true)
+		{
+			const T NewValue = Lambda(static_cast<const T&>(OldValue));
+
+			const T OldValueCopy = OldValue;
+			if (this->CompareExchangeStrong(OldValue, NewValue, MemoryOrder))
+			{
+				checkVoxelSlow(FVoxelUtilities::Equal(MakeByteVoxelArrayView(OldValue), MakeByteVoxelArrayView(OldValueCopy)));
+				return OldValue;
+			}
+		}
+	}
+	template<typename LambdaType>
+	FORCEINLINE T Apply_ReturnNew(const LambdaType Lambda, const std::memory_order MemoryOrder = std::memory_order_seq_cst)
+	{
+		T OldValue = Get(std::memory_order_relaxed);
+
+		while (true)
+		{
+			const T NewValue = Lambda(static_cast<const T&>(OldValue));
+
+			if (this->CompareExchangeStrong(OldValue, NewValue, MemoryOrder))
+			{
+				return NewValue;
+			}
+		}
+	}
+	template<typename LambdaType>
+	FORCEINLINE void Apply(const LambdaType Lambda, const std::memory_order MemoryOrder = std::memory_order_seq_cst)
+	{
+		this->Apply_ReturnOld(Lambda, MemoryOrder);
 	}
 
 public:
@@ -93,12 +130,11 @@ public:
 		}
 		else
 		{
-			T OldValue = Get(std::memory_order_relaxed);
-			while (!this->CompareExchangeStrong(OldValue, OldValue + Operand, MemoryOrder))
+			return this->Apply_ReturnOld([&](const T OldValue)
 			{
-			}
-			CheckValue(OldValue + Operand);
-			return OldValue;
+				CheckValue(OldValue + Operand);
+				return OldValue + Operand;
+			});
 		}
 	}
 	FORCEINLINE T Add_ReturnNew(const T Operand, const std::memory_order MemoryOrder = std::memory_order_seq_cst)

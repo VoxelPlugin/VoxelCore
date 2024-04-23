@@ -302,7 +302,7 @@ TVoxelArray64<uint8> FVoxelUtilities::Compress(
 			ECompressorToString(Compressor),
 			ECompressionLevelToString(CompressionLevel));
 
-		CompressedSize = FOodleDataCompression::UE_503_SWITCH(Compress, CompressParallel)(
+		CompressedSize = FOodleDataCompression::CompressParallel(
 			CompressedData.GetData() + sizeof(FVoxelOodleHeader),
 			WorkingSizeNeeded,
 			Data.GetData(),
@@ -373,7 +373,6 @@ bool FVoxelUtilities::Decompress(
 	TVoxelArray64<uint8> UncompressedData;
 	FVoxelUtilities::SetNumFast(UncompressedData, Header.UncompressedSize);
 
-#if VOXEL_ENGINE_VERSION >= 503
 	if (bAllowParallel)
 	{
 		VOXEL_SCOPE_COUNTER_FORMAT("DecompressParallel %lldB", Header.UncompressedSize);
@@ -388,7 +387,6 @@ bool FVoxelUtilities::Decompress(
 		}
 	}
 	else
-#endif
 	{
 		VOXEL_SCOPE_COUNTER_FORMAT("Decompress %lldB", Header.UncompressedSize);
 

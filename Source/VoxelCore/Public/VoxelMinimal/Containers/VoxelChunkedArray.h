@@ -193,6 +193,36 @@ public:
 		}
 	}
 
+	bool operator==(const TVoxelChunkedArray& Other) const
+	{
+		if (Num() != Other.Num())
+		{
+			return false;
+		}
+
+		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
+
+		int32 Index = 0;
+		while (Index < Num())
+		{
+			const int32 ChunkIndex = FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index);
+			const int32 NumInChunk = FMath::Min(NumPerChunk, Num() - Index);
+
+			if (!CompareItems(
+				GetChunkView(ChunkIndex).GetData(),
+				Other.GetChunkView(ChunkIndex).GetData(),
+				NumInChunk))
+			{
+				return false;
+			}
+
+			Index += NumInChunk;
+		}
+		checkVoxelSlow(Index == Num());
+
+		return true;
+	}
+
 	friend FArchive& operator<<(FArchive& Ar, TVoxelChunkedArray& Array)
 	{
 		int32 Num = Array.Num();
@@ -317,6 +347,8 @@ public:
 
 	FORCEINLINE int32 Append(const TConstVoxelArrayView<Type> Other)
 	{
+		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 1024);
+
 		const int32 StartIndex = this->AddUninitialized(Other.Num());
 		if constexpr (TIsTriviallyDestructible<Type>::Value)
 		{
@@ -345,6 +377,27 @@ public:
 		}
 		return StartIndex;
 	}
+	int32 Append(const TVoxelChunkedArray& Other)
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 1024);
+
+		const int32 StartIndex = Num();
+
+		int32 Index = 0;
+		while (Index < Other.Num())
+		{
+			const int32 ChunkIndex = FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index);
+			const int32 NumInChunk = FMath::Min(NumPerChunk, Other.Num() - Index);
+
+			this->Append(Other.GetChunkView(ChunkIndex).LeftOf(NumInChunk));
+
+			Index += NumInChunk;
+		}
+		checkVoxelSlow(Index == Other.Num());
+		checkVoxelSlow(Num() == StartIndex + Other.Num());
+
+		return StartIndex;
+	}
 
 	FORCEINLINE Type& Add_GetRef(Type&& Value)
 	{
@@ -367,6 +420,19 @@ public:
 	FORCEINLINE int32 Emplace_NoGrow(ArgsType&&... Args)
 	{
 		return this->Emplace(Forward<ArgsType>(Args)...);
+	}
+
+	FORCEINLINE Type Pop()
+	{
+		Type Value = MoveTemp((*this)[ArrayNum - 1]);
+		ArrayNum--;
+
+		if (ArrayNum % NumPerChunk == 0)
+		{
+			PrivateChunks.Pop();
+		}
+
+		return Value;
 	}
 
 	FORCEINLINE void CopyTo(const int32 StartIndex, const Type& Value)

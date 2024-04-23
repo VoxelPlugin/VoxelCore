@@ -4,7 +4,7 @@
 
 #include "VoxelCoreMinimal.h"
 
-class VOXELCORE_API FVoxelSingleton : public TSharedFromThis<FVoxelSingleton>
+class VOXELCORE_API FVoxelSingleton
 {
 public:
 	FVoxelSingleton();

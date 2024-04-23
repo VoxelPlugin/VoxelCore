@@ -9,6 +9,12 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
 {
 	VOXEL_FUNCTION_COUNTER();
 	check(Mesh.Positions.Num() == Mesh.Normals.Num());
+	check(Mesh.Positions.Num() % 3 == 0);
+
+	if (!ensure(Mesh.Positions.Num() > 0))
+	{
+		return nullptr;
+	}
 
 	using namespace Voxel::Nanite;
 
@@ -17,7 +23,7 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
 	Nanite::FResources Resources;
 
 	TVoxelArray<FCluster> AllClusters;
-	for (int32 TriangleIndex = 0; TriangleIndex < Mesh.Indices.Num() / 3; TriangleIndex++)
+	for (int32 TriangleIndex = 0; TriangleIndex < Mesh.Positions.Num() / 3; TriangleIndex++)
 	{
 		if (AllClusters.Num() == 0 ||
 			AllClusters.Last().NumTriangles() == NANITE_MAX_CLUSTER_TRIANGLES ||
@@ -34,9 +40,9 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
 
 		FCluster& Cluster = AllClusters.Last();
 
-		const int32 IndexA = Mesh.Indices[3 * TriangleIndex + 0];
-		const int32 IndexB = Mesh.Indices[3 * TriangleIndex + 1];
-		const int32 IndexC = Mesh.Indices[3 * TriangleIndex + 2];
+		const int32 IndexA = 3 * TriangleIndex + 0;
+		const int32 IndexB = 3 * TriangleIndex + 1;
+		const int32 IndexC = 3 * TriangleIndex + 2;
 
 		Cluster.Positions.Add(Mesh.Positions[IndexA]);
 		Cluster.Positions.Add(Mesh.Positions[IndexB]);
@@ -61,72 +67,86 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
 		}
 	}
 
-	for (int32 ClusterIndex = 0; ClusterIndex < AllClusters.Num(); ClusterIndex++)
+	const int32 TreeDepth = FMath::CeilToInt(FMath::LogX(4.f, AllClusters.Num()));
+	ensure(TreeDepth < NANITE_MAX_CLUSTER_HIERARCHY_DEPTH);
+
+	const auto MakeHierarchyNode = [&]
 	{
-		if (Resources.HierarchyNodes.Num() == 0 ||
-			Resources.HierarchyNodes.Last().Misc1[2].ChildStartReference != 0xFFFFFFFF)
+		Nanite::FPackedHierarchyNode HierarchyNode;
+
+		for (int32 Index = 0; Index < 4; Index++)
 		{
-			if (Resources.HierarchyNodes.Num() > 0)
-			{
-				Resources.HierarchyNodes.Last().Misc1[3].ChildStartReference = Resources.HierarchyNodes.Num();
-				Resources.HierarchyNodes.Last().Misc2[3].ResourcePageIndex_NumPages_GroupPartSize = 0xFFFFFFFF;
-			}
+			HierarchyNode.LODBounds[Index] = FVector4f(
+				Bounds.GetCenter().X,
+				Bounds.GetCenter().Y,
+				Bounds.GetCenter().Z,
+				Bounds.Size().Length());
 
-			Nanite::FPackedHierarchyNode& HierarchyNode = Resources.HierarchyNodes.Emplace_GetRef();
+			HierarchyNode.Misc0[Index].MinLODError_MaxParentLODError = FFloat16(-1).Encoded | (FFloat16(1e10f).Encoded << 16);
+			HierarchyNode.Misc0[Index].BoxBoundsCenter = FVector3f(Bounds.GetCenter());
+			HierarchyNode.Misc1[Index].BoxBoundsExtent = FVector3f(Bounds.GetExtent());
+			HierarchyNode.Misc1[Index].ChildStartReference = 0xFFFFFFFF;
+			HierarchyNode.Misc2[Index].ResourcePageIndex_NumPages_GroupPartSize = 0;
+		}
 
+		return HierarchyNode;
+	};
+
+	TVoxelArray<int32> LeafNodes;
+	for (int32 Depth = 0; Depth <= TreeDepth; Depth++)
+	{
+		if (Depth == 0)
+		{
+			Resources.HierarchyNodes.Add(MakeHierarchyNode());
+			LeafNodes.Add(0);
+			continue;
+		}
+
+		Resources.HierarchyNodes.Reserve(Resources.HierarchyNodes.Num() + 4 * LeafNodes.Num());
+
+		TVoxelArray<int32> NewLeafNodes;
+		for (const int32 ParentIndex : LeafNodes)
+		{
+			Nanite::FPackedHierarchyNode& ParentNode = Resources.HierarchyNodes[ParentIndex];
 			for (int32 Index = 0; Index < 4; Index++)
 			{
-				HierarchyNode.LODBounds[Index] = FVector4f(
-					Bounds.GetCenter().X,
-					Bounds.GetCenter().Y,
-					Bounds.GetCenter().Z,
-					Bounds.Size().Length());
+				const int32 ChildIndex = Resources.HierarchyNodes.Add(MakeHierarchyNode());
 
-				HierarchyNode.Misc0[Index].MinLODError_MaxParentLODError = FFloat16(-1).Encoded | (FFloat16(1e10f).Encoded << 16);
-				HierarchyNode.Misc0[Index].BoxBoundsCenter = FVector3f(Bounds.GetCenter());
-				HierarchyNode.Misc1[Index].BoxBoundsExtent = FVector3f(Bounds.GetExtent());
-				HierarchyNode.Misc1[Index].ChildStartReference = 0xFFFFFFFF;
-				HierarchyNode.Misc2[Index].ResourcePageIndex_NumPages_GroupPartSize = 0;
+				ensure(ParentNode.Misc1[Index].ChildStartReference == 0xFFFFFFFF);
+				ensure(ParentNode.Misc2[Index].ResourcePageIndex_NumPages_GroupPartSize == 0);
+
+				ParentNode.Misc1[Index].ChildStartReference = ChildIndex;
+				ParentNode.Misc2[Index].ResourcePageIndex_NumPages_GroupPartSize = 0xFFFFFFFF;
+
+				NewLeafNodes.Add(ChildIndex);
 			}
 		}
 
-		Nanite::FPackedHierarchyNode& HierarchyNode = Resources.HierarchyNodes.Last();
-
-		for (int32 Index = 0; Index < 3; Index++)
-		{
-			if (HierarchyNode.Misc1[Index].ChildStartReference != 0xFFFFFFFF)
-			{
-				continue;
-			}
-
-			HierarchyNode.Misc1[Index].ChildStartReference = ClusterIndex;
-			HierarchyNode.Misc2[Index].ResourcePageIndex_NumPages_GroupPartSize = 0xFFFFFFFF;
-			break;
-		}
+		LeafNodes = MoveTemp(NewLeafNodes);
 	}
+	check(AllClusters.Num() <= LeafNodes.Num());
 
-	for (Nanite::FPackedHierarchyNode& HierarchyNode : Resources.HierarchyNodes)
+	for (int32 ClusterIndex = 0; ClusterIndex < AllClusters.Num(); ClusterIndex++)
 	{
-		for (int32 Index = 0; Index < 3; Index++)
-		{
-			if (HierarchyNode.Misc1[Index].ChildStartReference == 0xFFFFFFFF)
-			{
-				continue;
-			}
+		Nanite::FPackedHierarchyNode& HierarchyNode = Resources.HierarchyNodes[LeafNodes[ClusterIndex]];
 
-			HierarchyNode.Misc1[Index].ChildStartReference += Resources.HierarchyNodes.Num();
-		}
+		ensure(HierarchyNode.Misc1[0].ChildStartReference == 0xFFFFFFFF);
+		ensure(HierarchyNode.Misc2[0].ResourcePageIndex_NumPages_GroupPartSize == 0);
+
+		HierarchyNode.Misc1[0].ChildStartReference = Resources.HierarchyNodes.Num() + ClusterIndex;
+		HierarchyNode.Misc2[0].ResourcePageIndex_NumPages_GroupPartSize = 0xFFFFFFFF;
 	}
+
+	constexpr int32 ClustersPerPage = 5;
 
 	TVoxelArray<TVoxelArray<FCluster>> Pages;
-	Pages.Emplace();
-	for (FCluster& Cluster : AllClusters)
+	for (int32 PageIndex = 0; PageIndex < FMath::DivideAndRoundUp(AllClusters.Num(), ClustersPerPage); PageIndex++)
 	{
-		if (Pages.Last().Num() == 14) // TODO should be MAX_CLUSTER_PER_PAGE but something is broken
+		TVoxelArray<FCluster>& Page = Pages.Emplace_GetRef();
+		for (int32 ClusterIndex = ClustersPerPage * PageIndex; ClusterIndex < FMath::Min(AllClusters.Num(), ClustersPerPage * (PageIndex + 1)); ClusterIndex++)
 		{
-			Pages.Emplace();
+			Page.Add(MoveTemp(AllClusters[ClusterIndex]));
 		}
-		Pages.Last().Add(MoveTemp(Cluster));
 	}
 
 	TVoxelChunkedArray<uint8> RootData;
@@ -144,6 +164,7 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
 		PageStreamingState.BulkOffset = RootData.Num();
 
 		Nanite::FFixupChunk FixupChunk;
+		FixupChunk.Header.Magic = NANITE_FIXUP_MAGIC;
 		FixupChunk.Header.NumClusters = Clusters.Num();
 		FixupChunk.Header.NumHierachyFixups = Clusters.Num();
 		FixupChunk.Header.NumClusterFixups = Clusters.Num();
@@ -174,7 +195,6 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
 
 		FEncodingSettings EncodingSettings;
 		EncodingSettings.PositionPrecision = PositionPrecision;
-		EncodingSettings.UVBits = UVBits;
 		checkStatic(FEncodingSettings::NormalBits == NormalBits);
 
 		const int32 PageStartIndex = RootData.Num();
@@ -185,6 +205,7 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
 
 		PageStreamingState.BulkSize = RootData.Num() - PageStreamingState.BulkOffset;
 		PageStreamingState.PageSize = RootData.Num() - PageStartIndex;
+		PageStreamingState.MaxHierarchyDepth = NANITE_MAX_CLUSTER_HIERARCHY_DEPTH;
 		Resources.PageStreamingStates.Add(PageStreamingState);
 	}
 
@@ -213,7 +234,7 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
 	Resources.RootData = RootData.Array<FDefaultAllocator>();
 	Resources.PositionPrecision = -1;
 	Resources.NormalPrecision = -1;
-	Resources.NumInputTriangles = Mesh.Indices.Num() / 3;
+	Resources.NumInputTriangles = 0;
 	Resources.NumInputVertices = Mesh.Positions.Num();
 	Resources.NumInputMeshes = 1;
 	Resources.NumInputTexCoords = Mesh.TextureCoordinates.Num();
@@ -223,11 +244,7 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
 
 	TUniquePtr<FStaticMeshRenderData> RenderData = MakeUnique<FStaticMeshRenderData>();
 	RenderData->Bounds = Bounds.ToFBox();
-#if VOXEL_ENGINE_VERSION < 503
-	RenderData->NaniteResources = MoveTemp(Resources);
-#else
 	RenderData->NaniteResourcesPtr = MakePimpl<Nanite::FResources>(MoveTemp(Resources));
-#endif
 
 	FStaticMeshLODResources* LODResource = new FStaticMeshLODResources();
 	LODResource->bBuffersInlined = true;

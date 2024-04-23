@@ -255,7 +255,7 @@ void FVoxelEditorToolkitImpl::InitVoxelEditor(const TSharedPtr<IToolkitHost>& Ed
 				"Asset",
 				EExtensionHook::After,
 				GetToolkitCommands(),
-				MakeWeakPtrDelegate(this, [=](FToolBarBuilder& ToolbarBuilder)
+				MakeWeakPtrDelegate(this, [=, this](FToolBarBuilder& ToolbarBuilder)
 				{
 					AddToolbarWidget(SNew(SSpacer).Size(FVector2D(4.0f, 1.0f)));
 

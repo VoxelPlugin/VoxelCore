@@ -1,6 +1,7 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
+#include "VoxelTaskDispatcher.h"
 
 DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelPromiseState);
 
@@ -8,10 +9,16 @@ DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelPromiseState);
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+FVoxelPromiseState::FVoxelPromiseState()
+{
+	if (const TSharedPtr<IVoxelTaskDispatcher> Dispatcher = FVoxelTaskDispatcherScope::Get())
+	{
+		Dispatcher->PrivateNumPromises.Increment();
+	}
+}
+
 FVoxelPromiseState::~FVoxelPromiseState()
 {
-	ensure(IsComplete());
-	ensure(ThreadToContinuation_RequiresLock.Num() == 0);
 }
 
 void FVoxelPromiseState::Set(const FSharedVoidRef& Value)
@@ -32,12 +39,27 @@ void FVoxelPromiseState::Set(const FSharedVoidRef& Value)
 		ThisPtr_RequiresLock.Reset();
 	}
 
-	for (auto& It : ThreadToContinuation)
+	if (const TSharedPtr<IVoxelTaskDispatcher> Dispatcher = FVoxelTaskDispatcherScope::Get())
 	{
-		Dispatch(It.Key, [Continuation = MoveTemp(It.Value), Value]
+		for (auto& It : ThreadToContinuation)
 		{
-			Continuation(Value);
-		});
+			Dispatcher->Dispatch(It.Key, [Continuation = MoveTemp(It.Value), Value]
+			{
+				Continuation(Value);
+			});
+		}
+
+		Dispatcher->PrivateNumPromises.Decrement();
+	}
+	else
+	{
+		for (auto& It : ThreadToContinuation)
+		{
+			StaticDispatch(It.Key, [Continuation = MoveTemp(It.Value), Value]
+			{
+				Continuation(Value);
+			});
+		}
 	}
 }
 
@@ -78,10 +100,20 @@ void FVoxelPromiseState::AddContinuation(
 	checkVoxelSlow(IsComplete());
 	checkVoxelSlow(Value_RequiresLock.IsValid());
 
-	Dispatch(Thread, [Continuation = MoveTemp(Continuation), Value = Value_RequiresLock.ToSharedRef()]
+	if (const TSharedPtr<IVoxelTaskDispatcher> Dispatcher = FVoxelTaskDispatcherScope::Get())
 	{
-		Continuation(Value);
-	});
+		Dispatcher->Dispatch(Thread, [Continuation = MoveTemp(Continuation), Value = Value_RequiresLock.ToSharedRef()]
+		{
+			Continuation(Value);
+		});
+	}
+	else
+	{
+		StaticDispatch(Thread, [Continuation = MoveTemp(Continuation), Value = Value_RequiresLock.ToSharedRef()]
+		{
+			Continuation(Value);
+		});
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -89,7 +121,7 @@ void FVoxelPromiseState::AddContinuation(
 ///////////////////////////////////////////////////////////////////////////////
 
 template<typename LambdaType>
-FORCEINLINE void FVoxelPromiseState::Dispatch(
+FORCEINLINE void FVoxelPromiseState::StaticDispatch(
 	const EVoxelFutureThread Thread,
 	LambdaType Lambda)
 {
@@ -117,11 +149,6 @@ FORCEINLINE void FVoxelPromiseState::Dispatch(
 	case EVoxelFutureThread::AsyncThread:
 	{
 		AsyncBackgroundTaskImpl(MoveTemp(Lambda));
-	}
-	break;
-	case EVoxelFutureThread::VoxelThread:
-	{
-		AsyncVoxelTaskImpl(MoveTemp(Lambda));
 	}
 	break;
 	}

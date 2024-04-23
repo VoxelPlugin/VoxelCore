@@ -49,21 +49,6 @@ FORCEINLINE TWeakPtr<T> MakeWeakPtr(const TSharedRef<T>& Ptr)
 ///////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-FORCEINLINE std::enable_if_t<!TIsReferenceType<T>::Value, T> MakeCopy(T&& Data)
-{
-	return MoveTemp(Data);
-}
-template<typename T>
-FORCEINLINE T MakeCopy(const T& Data)
-{
-	return Data;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-template<typename T>
 FORCEINLINE SharedPointerInternals::TRawPtrProxy<T> MakeShareable(TUniquePtr<T> UniquePtr)
 {
 	checkVoxelSlow(UniquePtr.IsValid());

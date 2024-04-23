@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "Templates/ChooseClass.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 
 template<typename Type>

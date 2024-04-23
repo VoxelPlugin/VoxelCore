@@ -377,6 +377,12 @@ FORCEINLINE float Square(const float X)
 {
 	return X * X;
 }
+#if !INTELLISENSE_PARSER
+FORCEINLINE uniform float Square(const uniform float X)
+{
+	return X * X;
+}
+#endif
 
 FORCEINLINE float SmoothStep(const float A, const float B, const float Alpha)
 {
@@ -1537,3 +1543,135 @@ FORCEINLINE uniform int32 FastDivide32(const uniform int32 Dividend, const unifo
 	return Result;
 }
 #endif
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+struct FVoxelWelfordVariance
+{
+	varying float Average;
+	varying float ScaledVariance;
+	uniform float Num;
+};
+
+FORCEINLINE void InitializeVariance(FVoxelWelfordVariance& Variance)
+{
+	Variance.Average = 0.f;
+	Variance.ScaledVariance = 0.f;
+	Variance.Num = 0.f;
+}
+
+FORCEINLINE void AddVariance(
+	FVoxelWelfordVariance& Variance,
+	const varying float Value)
+{
+	Variance.Num += 1.f;
+
+	const varying float Delta = Value - Variance.Average;
+	Variance.Average += Delta / Variance.Num;
+	Variance.ScaledVariance += Delta * (Value - Variance.Average);
+}
+
+FORCEINLINE uniform float GetUniformAverage(const FVoxelWelfordVariance Variance)
+{
+	return reduce_add(Variance.Average) / programCount;
+}
+FORCEINLINE uniform float GetUniformVariance(const FVoxelWelfordVariance Variance)
+{
+	// Variance is the mean of the variances + the variance of the means
+	// https://en.wikipedia.org/wiki/Law_of_total_variance
+
+	if (Variance.Num <= 1)
+	{
+		return 0.f;
+	}
+
+	const varying float VaryingVariance = Variance.ScaledVariance / (Variance.Num - 1);
+
+#if TARGET_WIDTH == 8
+	const uniform float Variance0 = extract(VaryingVariance, 0);
+	const uniform float Variance1 = extract(VaryingVariance, 1);
+	const uniform float Variance2 = extract(VaryingVariance, 2);
+	const uniform float Variance3 = extract(VaryingVariance, 3);
+	const uniform float Variance4 = extract(VaryingVariance, 4);
+	const uniform float Variance5 = extract(VaryingVariance, 5);
+	const uniform float Variance6 = extract(VaryingVariance, 6);
+	const uniform float Variance7 = extract(VaryingVariance, 7);
+
+	uniform float VarianceMean = (
+		Variance0 +
+		Variance1 +
+		Variance2 +
+		Variance3 +
+		Variance4 +
+		Variance5 +
+		Variance6 +
+		Variance7) / 8.f;
+
+	const uniform float Average0 = extract(Variance.Average, 0);
+	const uniform float Average1 = extract(Variance.Average, 1);
+	const uniform float Average2 = extract(Variance.Average, 2);
+	const uniform float Average3 = extract(Variance.Average, 3);
+	const uniform float Average4 = extract(Variance.Average, 4);
+	const uniform float Average5 = extract(Variance.Average, 5);
+	const uniform float Average6 = extract(Variance.Average, 6);
+	const uniform float Average7 = extract(Variance.Average, 7);
+
+	const uniform float AverageMean = (
+		Average0 +
+		Average1 +
+		Average2 +
+		Average3 +
+		Average4 +
+		Average5 +
+		Average6 +
+		Average7) / 8.f;
+
+	const uniform float AverageVariance = (
+		Square(Average0 - AverageMean) +
+		Square(Average1 - AverageMean) +
+		Square(Average2 - AverageMean) +
+		Square(Average3 - AverageMean) +
+		Square(Average4 - AverageMean) +
+		Square(Average5 - AverageMean) +
+		Square(Average6 - AverageMean) +
+		Square(Average7 - AverageMean)) / 8.f;
+
+	return VarianceMean + AverageVariance;
+#elif TARGET_WIDTH == 4
+	const uniform float Variance0 = extract(VaryingVariance, 0);
+	const uniform float Variance1 = extract(VaryingVariance, 1);
+	const uniform float Variance2 = extract(VaryingVariance, 2);
+	const uniform float Variance3 = extract(VaryingVariance, 3);
+
+	uniform float VarianceMean = (
+		Variance0 +
+		Variance1 +
+		Variance2 +
+		Variance3) / 4.f;
+
+	const uniform float Average0 = extract(Variance.Average, 0);
+	const uniform float Average1 = extract(Variance.Average, 1);
+	const uniform float Average2 = extract(Variance.Average, 2);
+	const uniform float Average3 = extract(Variance.Average, 3);
+
+	const uniform float AverageMean = (
+		Average0 +
+		Average1 +
+		Average2 +
+		Average3) / 4.f;
+
+	const uniform float AverageVariance = (
+		Square(Average0 - AverageMean) +
+		Square(Average1 - AverageMean) +
+		Square(Average2 - AverageMean) +
+		Square(Average3 - AverageMean)) / 4.f;
+
+	return VarianceMean + AverageVariance;
+#else
+#error "Unsupported TARGET_WIDTH"
+	unsupportedTargetWidth();
+	return 0.f;
+#endif
+}

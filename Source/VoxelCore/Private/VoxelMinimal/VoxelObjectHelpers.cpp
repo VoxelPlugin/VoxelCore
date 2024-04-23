@@ -163,7 +163,7 @@ TVoxelDereferencingRange<TFieldRange<FProperty>> GetFunctionProperties(const UFu
 
 FSharedVoidRef MakeSharedStruct(const UScriptStruct* Struct, const void* StructToCopyFrom)
 {
-	check(Struct);
+	checkVoxelSlow(Struct);
 	checkVoxelSlow(UObjectInitialized());
 
 	void* Memory = FVoxelMemory::Malloc(FMath::Max(1, Struct->GetStructureSize()));
