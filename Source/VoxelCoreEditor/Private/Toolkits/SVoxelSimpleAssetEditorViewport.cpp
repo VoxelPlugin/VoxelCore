@@ -1,16 +1,20 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "Toolkits/SVoxelSimpleAssetEditorViewport.h"
+#include "EditorModeManager.h"
+#include "AssetEditorModeManager.h"
 #include "VoxelSimpleAssetToolkit.h"
 #include "PreviewProfileController.h"
 #include "SEditorViewportToolBarMenu.h"
 
 FVoxelSimpleAssetEditorViewportClient::FVoxelSimpleAssetEditorViewportClient(
+	FEditorModeTools* EditorModeTools,
 	FAdvancedPreviewScene* PreviewScene,
 	const TWeakPtr<SVoxelSimpleAssetEditorViewport>& Viewport)
-	: FEditorViewportClient(nullptr, PreviewScene, Viewport)
+	: FEditorViewportClient(EditorModeTools, PreviewScene, Viewport)
 	, PreviewScene(*PreviewScene)
 {
+	StaticCastSharedPtr<FAssetEditorModeManager>(ModeTools)->SetPreviewScene(PreviewScene);
 }
 
 void FVoxelSimpleAssetEditorViewportClient::Tick(const float DeltaSeconds)
@@ -343,7 +347,13 @@ TSharedRef<FEditorViewportClient> SVoxelSimpleAssetEditorViewport::MakeEditorVie
 
 	const FBox Bounds = GetComponentBounds();
 
-	const TSharedRef<FVoxelSimpleAssetEditorViewportClient> ViewportClient = MakeVoxelShared<FVoxelSimpleAssetEditorViewportClient>(PreviewScene.Get(), SharedThis(this));
+	FEditorModeTools* EditorModeTools = nullptr;
+	if (const TSharedPtr<FVoxelSimpleAssetToolkit> Toolkit = WeakToolkit.Pin())
+	{
+		EditorModeTools = Toolkit->GetEditorModeTools().Get();
+	}
+
+	const TSharedRef<FVoxelSimpleAssetEditorViewportClient> ViewportClient = MakeVoxelShared<FVoxelSimpleAssetEditorViewportClient>(EditorModeTools, PreviewScene.Get(), SharedThis(this));
 	ViewportClient->SetRealtime(true);
 	ViewportClient->SetViewRotation(InitialViewRotation);
 	ViewportClient->SetViewLocationForOrbiting(Bounds.GetCenter(), InitialViewDistance.Get(Bounds.GetExtent().GetMax() * 2));

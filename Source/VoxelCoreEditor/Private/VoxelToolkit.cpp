@@ -30,6 +30,11 @@ void FVoxelToolkit::InitializeInternal(const TSharedRef<FUICommandList>& Command
 	Initialize();
 }
 
+void FVoxelToolkit::SetEditorModeManager(const TSharedPtr<FEditorModeTools>& EditorModeManager)
+{
+	WeakEditorModeManager = EditorModeManager;
+}
+
 const FObjectProperty* FVoxelToolkit::GetObjectProperty() const
 {
 	return CastField<FObjectProperty>(GetStruct()->FindPropertyByName("Asset"));

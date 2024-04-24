@@ -18,6 +18,7 @@ public:
 	FAdvancedPreviewScene& PreviewScene;
 
 	FVoxelSimpleAssetEditorViewportClient(
+		FEditorModeTools* EditorModeTools,
 		FAdvancedPreviewScene* PreviewScene,
 		const TWeakPtr<SVoxelSimpleAssetEditorViewport>& Viewport);
 

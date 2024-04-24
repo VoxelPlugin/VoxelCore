@@ -23,6 +23,8 @@ public:
 	virtual ~FVoxelToolkit() override;
 
 	void InitializeInternal(const TSharedRef<FUICommandList>& Commands, UObject* Asset);
+	void SetEditorModeManager(const TSharedPtr<FEditorModeTools>& EditorModeManager);
+	TSharedPtr<FEditorModeTools> GetEditorModeTools() const { return WeakEditorModeManager.Pin(); }
 
 	const FObjectProperty* GetObjectProperty() const;
 
@@ -69,6 +71,7 @@ public:
 	};
 	virtual TArray<FMode> GetModes() const { return {}; }
 	virtual UScriptStruct* GetDefaultMode() const { return nullptr; }
+	virtual FName GetDefaultEditorModeId() const { return {}; }
 
 public:
 	static FVoxelToolkit* OpenToolkit(const UObject& Asset, const UScriptStruct* ToolkitStruct);
@@ -110,6 +113,7 @@ private:
 	};
 	TSharedPtr<FTicker> PrivateTicker;
 	TWeakPtr<FTabManager> WeakTabManager;
+	TWeakPtr<FEditorModeTools> WeakEditorModeManager;
 
 	//~ Begin FNotifyHook Interface
 	virtual void NotifyPreChange(FProperty* PropertyAboutToChange) override;

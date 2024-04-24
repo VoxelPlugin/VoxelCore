@@ -70,10 +70,12 @@ public:
 	virtual FName GetToolkitFName() const override { return ToolkitStruct->GetFName(); }
 	virtual FString GetWorldCentricTabPrefix() const override { return ToolkitStruct->GetName(); }
 	virtual FLinearColor GetWorldCentricTabColorScale() const override { return FLinearColor(0.3f, 0.2f, 0.5f, 0.5f); }
+	virtual void PostInitAssetEditor() override;
 	virtual void PostRegenerateMenusAndToolbars() override;
 	virtual bool ProcessCommandBindings(const FKeyEvent& InKeyEvent) const override;
 	virtual void SaveAsset_Execute() override;
 	virtual void OnClose() override;
+	virtual void CreateEditorModeManager() override;
 	//~ End IToolkit Interface
 
 	//~ Begin FGCObject Interface

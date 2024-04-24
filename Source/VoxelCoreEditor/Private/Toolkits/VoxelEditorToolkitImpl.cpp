@@ -1,6 +1,7 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "Toolkits/VoxelEditorToolkitImpl.h"
+#include "AssetEditorModeManager.h"
 #include "Toolkits/ToolkitManager.h"
 #include "WorkflowOrientedApp/SModeWidget.h"
 
@@ -136,6 +137,14 @@ void FVoxelEditorToolkitImpl::InitVoxelEditor(const TSharedPtr<IToolkitHost>& Ed
 	Asset = ObjectToEdit;
 
 	Toolkit = MakeSharedStruct<FVoxelToolkit>(ToolkitStruct);
+
+	if (!EditorModeManager)
+	{
+		CreateEditorModeManager();
+	}
+
+	Toolkit->SetEditorModeManager(EditorModeManager);
+
 	Toolkit->InitializeInternal(ToolkitCommands, ObjectToEdit);
 
 	const TArray<FVoxelToolkit::FMode> Modes = Toolkit->GetModes();
@@ -363,6 +372,17 @@ void FVoxelEditorToolkitImpl::UnregisterTabSpawners(const TSharedRef<class FTabM
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+void FVoxelEditorToolkitImpl::PostInitAssetEditor()
+{
+	FWorkflowCentricApplication::PostInitAssetEditor();
+
+	if (Toolkit &&
+		!Toolkit->GetDefaultEditorModeId().IsNone())
+	{
+		EditorModeManager->ActivateMode(Toolkit->GetDefaultEditorModeId());
+	}
+}
+
 void FVoxelEditorToolkitImpl::PostRegenerateMenusAndToolbars()
 {
 	const TSharedPtr<FVoxelToolkit> ActiveToolkit = GetActiveToolkit();
@@ -435,6 +455,11 @@ void FVoxelEditorToolkitImpl::OnClose()
 	}
 
 	FWorkflowCentricApplication::OnClose();
+}
+
+void FVoxelEditorToolkitImpl::CreateEditorModeManager()
+{
+	EditorModeManager = MakeShared<FAssetEditorModeManager>();
 }
 
 void FVoxelEditorToolkitImpl::AddReferencedObjects(FReferenceCollector& Collector)
