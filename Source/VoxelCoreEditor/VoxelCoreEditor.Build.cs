@@ -8,7 +8,7 @@ public class VoxelCoreEditor : ModuleRules
     public VoxelCoreEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		DefaultBuildSettings = BuildSettingsVersion.Latest;
-		CppStandard = CppStandardVersion.Cpp17;
+		CppStandard = CppStandardVersion.Cpp20;
 		IWYUSupport = IWYUSupport.None;
 		bUseUnity = false;
 		PrivatePCHHeaderFile = "Public/VoxelEditorMinimal.h";
