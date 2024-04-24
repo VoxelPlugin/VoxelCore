@@ -8,7 +8,7 @@ public class VoxelCore : ModuleRules
 	public VoxelCore(ReadOnlyTargetRules Target) : base(Target)
 	{
 		DefaultBuildSettings = BuildSettingsVersion.Latest;
-		CppStandard = CppStandardVersion.Cpp17;
+		CppStandard = CppStandardVersion.Cpp20;
 		IWYUSupport = IWYUSupport.None;
 		bUseUnity = false;
 		PrivatePCHHeaderFile = "Public/VoxelMinimal.h";
