@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/Utilities/VoxelHashUtilities.h"
 
 struct FVoxelLinearColor3;
 

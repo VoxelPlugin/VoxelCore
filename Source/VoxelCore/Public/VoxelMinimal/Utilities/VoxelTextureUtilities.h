@@ -5,6 +5,7 @@
 #include "VoxelCoreMinimal.h"
 #include "Engine/TextureDefines.h"
 #include "VoxelMinimal/VoxelColor3.h"
+#include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 #include "VoxelTextureUtilities.generated.h"
 

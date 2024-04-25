@@ -5,6 +5,7 @@
 #include "VoxelCoreMinimal.h"
 #include "Algo/IsSorted.h"
 #include "Compression/OodleDataCompression.h"
+#include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 
 template<typename T, typename = void>
