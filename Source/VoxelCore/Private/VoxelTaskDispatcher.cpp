@@ -26,3 +26,47 @@ TSharedPtr<IVoxelTaskDispatcher> FVoxelTaskDispatcherScope::Get()
 	}
 	return Scope->Dispatcher;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void FVoxelDefaultTaskDispatcher::Dispatch(
+	const EVoxelFutureThread Thread,
+	TVoxelUniqueFunction<void()> Lambda)
+{
+	StaticDispatch(Thread, MoveTemp(Lambda));
+}
+
+void FVoxelDefaultTaskDispatcher::StaticDispatch(
+	const EVoxelFutureThread Thread,
+	TVoxelUniqueFunction<void()> Lambda)
+{
+	switch (Thread)
+	{
+	default: VOXEL_ASSUME(false);
+	case EVoxelFutureThread::AnyThread:
+	{
+		Lambda();
+	}
+	break;
+	case EVoxelFutureThread::GameThread:
+	{
+		RunOnGameThread(MoveTemp(Lambda));
+	}
+	break;
+	case EVoxelFutureThread::RenderThread:
+	{
+		VOXEL_ENQUEUE_RENDER_COMMAND(Future)([Lambda = MoveTemp(Lambda)](FRHICommandListImmediate& RHICmdList)
+		{
+			Lambda();
+		});
+	}
+	break;
+	case EVoxelFutureThread::AsyncThread:
+	{
+		AsyncBackgroundTaskImpl(MoveTemp(Lambda));
+	}
+	break;
+	}
+}

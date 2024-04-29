@@ -4,8 +4,9 @@
 
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelMemory.h"
+#include "VoxelMinimal/Utilities/VoxelLambdaUtilities.h"
 
-template<typename FuncType>
+template<typename>
 class TVoxelUniqueFunction;
 
 template<typename>
@@ -31,7 +32,7 @@ private:
 	template<typename FunctorType>
 	struct HasValidReturnType
 	{
-		using FunctorReturnType = decltype(DeclVal<FunctorType>()(DeclVal<ArgTypes>()...));
+		using FunctorReturnType = LambdaReturnType_T<FunctorType>;
 
 		static constexpr bool Value =
 			std::is_same_v<ReturnType, FunctorReturnType> ||

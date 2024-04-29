@@ -191,7 +191,7 @@ void ForEachObjectOfClass_Copy(LambdaType&& Operation, bool bIncludeDerivedClass
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename T = void, typename ArrayType = typename TChooseClass<std::is_same_v<T, void>, UClass*, TSubclassOf<T>>::Result>
+template<typename T = void, typename ArrayType = typename TChooseClass<std::is_void_v<T>, UClass*, TSubclassOf<T>>::Result>
 TArray<ArrayType> GetDerivedClasses(const UClass* BaseClass = T::StaticClass(), const bool bRecursive = true, const bool bRemoveDeprecated = true)
 {
 	VOXEL_FUNCTION_COUNTER();

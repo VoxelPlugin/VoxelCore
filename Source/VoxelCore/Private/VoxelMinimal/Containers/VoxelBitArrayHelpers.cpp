@@ -612,3 +612,127 @@ int64 FVoxelBitArrayHelpers::CountSetBits_UpperBound(const uint32* RESTRICT Data
 
 	return Count;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+TVoxelArray<FVoxelIntBox> FVoxelBitArrayHelpers::GreedyMeshing3D(
+	const TVoxelArrayView<uint32> Data,
+	const FIntVector& Size)
+{
+	VOXEL_FUNCTION_COUNTER_NUM(Size.X * Size.Y * Size.Z, 1024);
+	checkVoxelSlow(Size.X * Size.Y * Size.Z <= Data.Num() * NumBitsPerWord);
+
+	TVoxelArray<FVoxelIntBox> Result;
+	Result.Reserve(128);
+
+	const auto TestAndClear = [&](
+		const int32 X,
+		const int32 Y,
+		const int32 Z)
+	{
+		const int32 Index = FVoxelUtilities::Get3DIndex<int32>(Size, X, Y, Z);
+
+		const uint32 Mask = 1u << (Index % NumBitsPerWord);
+		uint32& Value = Data[Index / NumBitsPerWord];
+
+		const bool bResult = Value & Mask;
+		Value &= ~Mask;
+		return bResult;
+	};
+	const auto TestAndClearLine = [&](
+		const int32 X,
+		const int32 SizeX,
+		const int32 Y,
+		const int32 Z)
+	{
+		checkVoxelSlow(0 <= X && X + SizeX <= Size.X);
+		checkVoxelSlow(0 <= Y && Y < Size.Y);
+		checkVoxelSlow(0 <= Z && Z < Size.Z);
+
+		return TestAndClearRangeImpl(
+			Data.GetData(),
+			FVoxelUtilities::Get3DIndex<int32>(Size, X, Y, Z),
+			SizeX);
+	};
+	const auto TestAndClearBlock = [&](
+		const int32 X,
+		const int32 SizeX,
+		const int32 Y,
+		const int32 SizeY,
+		const int32 Z)
+	{
+		checkVoxelSlow(0 <= X && X + SizeX <= Size.X);
+		checkVoxelSlow(0 <= Y && Y + SizeY <= Size.Y);
+		checkVoxelSlow(0 <= Z && Z < Size.Z);
+
+		for (int32 Index = 0; Index < SizeY; Index++)
+		{
+			if (!TestRangeImpl(
+				Data.GetData(),
+				FVoxelUtilities::Get3DIndex<int32>(Size, X, Y + Index, Z),
+				SizeX))
+			{
+				return false;
+			}
+		}
+
+		for (int32 Index = 0; Index < SizeY; Index++)
+		{
+			SetRange(
+				Data.GetData(),
+				FVoxelUtilities::Get3DIndex<int32>(Size, X, Y + Index, Z),
+				SizeX,
+				false);
+		}
+		return true;
+	};
+
+	for (int32 X = 0; X < Size.X; X++)
+	{
+		for (int32 Y = 0; Y < Size.Y; Y++)
+		{
+			for (int32 Z = 0; Z < Size.Z;)
+			{
+				if (!Get(Data, FVoxelUtilities::Get3DIndex<int32>(Size, X, Y, Z)))
+				{
+					Z++;
+					continue;
+				}
+
+				int32 SizeX = 1;
+				while (
+					X + SizeX < Size.X &&
+					TestAndClear(X + SizeX, Y, Z))
+				{
+					SizeX++;
+				}
+
+				int32 SizeY = 1;
+				while (
+					Y + SizeY < Size.Y &&
+					TestAndClearLine(X, SizeX, Y + SizeY, Z))
+				{
+					SizeY++;
+				}
+
+				int32 SizeZ = 1;
+				while (
+					Z + SizeZ < Size.Z &&
+					TestAndClearBlock(X, SizeX, Y, SizeY, Z + SizeZ))
+				{
+					SizeZ++;
+				}
+
+				Result.Add(FVoxelIntBox(
+					FIntVector(X, Y, Z),
+					FIntVector(X + SizeX, Y + SizeY, Z + SizeZ)));
+
+				Z += SizeZ;
+			}
+		}
+	}
+
+	return Result;
+}

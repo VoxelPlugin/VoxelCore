@@ -7,6 +7,7 @@
 #include "VoxelMinimal/VoxelFuture.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
+#include "VoxelMinimal/Utilities/VoxelLambdaUtilities.h"
 
 template<ENamedThreads::Type Thread, ESubsequentsMode::Type SubsequentsMode = ESubsequentsMode::FireAndForget>
 class TVoxelGraphTask
@@ -94,13 +95,16 @@ FORCEINLINE void RunOnGameThreadImpl(LambdaType Lambda)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename LambdaType, typename FutureType = TVoxelFutureType<typename TVoxelLambdaInfo<LambdaType>::ReturnType>>
-FORCEINLINE FutureType AsyncBackgroundTask(LambdaType Lambda)
+template<
+	typename LambdaType,
+	typename ReturnType = LambdaReturnType_T<LambdaType>,
+	typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+FORCEINLINE TVoxelFutureType<ReturnType> AsyncBackgroundTask(LambdaType Lambda)
 {
-	const typename FutureType::PromiseType Promise;
+	const TVoxelPromiseType<ReturnType> Promise;
 	AsyncBackgroundTaskImpl([Lambda = MoveTemp(Lambda), Promise]
 	{
-		if constexpr (std::is_void_v<typename TVoxelLambdaInfo<LambdaType>::ReturnType>)
+		if constexpr (std::is_void_v<ReturnType>)
 		{
 			Lambda();
 			Promise.Set();
@@ -112,13 +116,17 @@ FORCEINLINE FutureType AsyncBackgroundTask(LambdaType Lambda)
 	});
 	return Promise.GetFuture();
 }
-template<typename LambdaType, typename FutureType = TVoxelFutureType<typename TVoxelLambdaInfo<LambdaType>::ReturnType>>
-FORCEINLINE FutureType AsyncThreadPoolTask(LambdaType Lambda)
+
+template<
+	typename LambdaType,
+	typename ReturnType = LambdaReturnType_T<LambdaType>,
+	typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+FORCEINLINE TVoxelFutureType<ReturnType> AsyncThreadPoolTask(LambdaType Lambda)
 {
-	const typename FutureType::PromiseType Promise;
+	const TVoxelPromiseType<ReturnType> Promise;
 	AsyncThreadPoolTaskImpl([Lambda = MoveTemp(Lambda), Promise]
 	{
-		if constexpr (std::is_void_v<typename TVoxelLambdaInfo<LambdaType>::ReturnType>)
+		if constexpr (std::is_void_v<ReturnType>)
 		{
 			Lambda();
 			Promise.Set();
@@ -130,13 +138,17 @@ FORCEINLINE FutureType AsyncThreadPoolTask(LambdaType Lambda)
 	});
 	return Promise.GetFuture();
 }
-template<typename LambdaType, typename FutureType = TVoxelFutureType<typename TVoxelLambdaInfo<LambdaType>::ReturnType>>
-FORCEINLINE FutureType RunOnGameThread(LambdaType Lambda)
+
+template<
+	typename LambdaType,
+	typename ReturnType = LambdaReturnType_T<LambdaType>,
+	typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+FORCEINLINE TVoxelFutureType<ReturnType> RunOnGameThread(LambdaType Lambda)
 {
-	const typename FutureType::PromiseType Promise;
+	const TVoxelPromiseType<ReturnType> Promise;
 	RunOnGameThreadImpl([Lambda = MoveTemp(Lambda), Promise]
 	{
-		if constexpr (std::is_void_v<typename TVoxelLambdaInfo<LambdaType>::ReturnType>)
+		if constexpr (std::is_void_v<ReturnType>)
 		{
 			Lambda();
 			Promise.Set();
@@ -148,35 +160,47 @@ FORCEINLINE FutureType RunOnGameThread(LambdaType Lambda)
 	});
 	return Promise.GetFuture();
 }
-template<typename LambdaType, typename FutureType = TVoxelFutureType<typename TVoxelLambdaInfo<LambdaType>::ReturnType>>
-FORCEINLINE FutureType RunOnRenderThread(LambdaType Lambda)
+
+template<
+	typename LambdaType,
+	typename ReturnType = LambdaReturnType_T<LambdaType>,
+	typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+FORCEINLINE TVoxelFutureType<ReturnType> RunOnRenderThread(LambdaType Lambda)
 {
-	const typename FutureType::PromiseType Promise;
-	VOXEL_ENQUEUE_RENDER_COMMAND(RunOnRenderThread)([Lambda = MoveTemp(Lambda), Promise](FRHICommandList& RHICmdList)
+	const TVoxelPromiseType<ReturnType> Promise;
+	VOXEL_ENQUEUE_RENDER_COMMAND(RunOnRenderThread)([Lambda = MoveTemp(Lambda), Promise](FRHICommandList&)
 	{
-		if constexpr (std::is_void_v<typename TVoxelLambdaInfo<LambdaType>::ReturnType>)
+		if constexpr (std::is_void_v<ReturnType>)
 		{
-			if constexpr (std::is_same_v<typename TVoxelLambdaInfo<LambdaType>::ArgTypes, TVoxelTypes<>>)
-			{
-				Lambda();
-				Promise.Set();
-			}
-			else
-			{
-				Lambda(RHICmdList);
-				Promise.Set();
-			}
+			Lambda();
+			Promise.Set();
 		}
 		else
 		{
-			if constexpr (std::is_same_v<typename TVoxelLambdaInfo<LambdaType>::ArgTypes, TVoxelTypes<>>)
-			{
-				Promise.Set(Lambda());
-			}
-			else
-			{
-				Promise.Set(Lambda(RHICmdList));
-			}
+			Promise.Set(Lambda());
+		}
+	});
+	return Promise.GetFuture();
+}
+
+template<
+	typename LambdaType,
+	typename ReturnType = LambdaReturnType_T<LambdaType>,
+	typename = LambdaHasSignature_T<LambdaType, ReturnType(FRHICommandList&)>,
+	typename = void>
+FORCEINLINE TVoxelFutureType<ReturnType> RunOnRenderThread(LambdaType Lambda)
+{
+	const TVoxelPromiseType<ReturnType> Promise;
+	VOXEL_ENQUEUE_RENDER_COMMAND(RunOnRenderThread)([Lambda = MoveTemp(Lambda), Promise](FRHICommandList& RHICmdList)
+	{
+		if constexpr (std::is_void_v<ReturnType>)
+		{
+			Lambda(RHICmdList);
+			Promise.Set();
+		}
+		else
+		{
+			Promise.Set(Lambda(RHICmdList));
 		}
 	});
 	return Promise.GetFuture();

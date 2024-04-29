@@ -251,6 +251,13 @@ public:
 		return FVoxelBitArrayHelpers::ForAllSetBits(GetWordData(), NumWords(), Num(), Lambda);
 	}
 
+	// Will clear bits
+	FORCEINLINE TVoxelArray<FVoxelIntBox> GreedyMeshing3D(const FIntVector& Size)
+	{
+		checkVoxelSlow(Num() == Size.X * Size.Y * Size.Z);
+		return FVoxelBitArrayHelpers::GreedyMeshing3D(GetWordView(), Size);
+	}
+
 public:
 	FORCEINLINE int64 GetAllocatedSize() const
 	{

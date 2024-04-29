@@ -103,13 +103,6 @@ UTexture2D* FVoxelTextureUtilities::CreateTexture2D(
 	}
 	Mip->BulkData.Unlock();
 
-	if (const FTexturePlatformData* ExistingPlatformData = Texture->GetPlatformData())
-	{
-		delete ExistingPlatformData;
-		Texture->SetPlatformData(nullptr);
-	}
-
-	check(!Texture->GetPlatformData());
 	Texture->SetPlatformData(PlatformData);
 
 	VOXEL_SCOPE_COUNTER("UpdateResource");

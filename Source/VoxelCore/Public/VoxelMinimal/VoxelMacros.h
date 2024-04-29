@@ -317,10 +317,10 @@ namespace VoxelInternal
 {
 	struct FVoxelOnConstruct
 	{
-		template<typename FuncType>
-		FVoxelOnConstruct operator+(FuncType&& InFunc)
+		template<typename LambdaType>
+		FVoxelOnConstruct operator+(LambdaType&& Lambda)
 		{
-			InFunc();
+			Lambda();
 			return {};
 		}
 	};

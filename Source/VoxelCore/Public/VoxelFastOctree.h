@@ -2,10 +2,7 @@
 
 #pragma once
 
-#include "VoxelCoreMinimal.h"
-#include "VoxelMinimal/VoxelIntBox.h"
-#include "VoxelMinimal/Containers/VoxelArray.h"
-#include "VoxelMinimal/Containers/VoxelSparseArray.h"
+#include "VoxelMinimal.h"
 
 struct FVoxelFastOctreeNodeDummy {};
 
@@ -256,7 +253,11 @@ public:
 	}
 
 public:
-	template<typename LambdaType>
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterate>>,
+		typename = LambdaHasSignature_T<LambdaType, ReturnType(const FNodeRef&)>>
 	FORCENOINLINE void Traverse(const FNodeRef InNodeRef, LambdaType Lambda) const
 	{
 		TVoxelStaticArray<FNodeRef, 8 * MaxDepth> NodesToTraverse{ NoInit };
@@ -268,15 +269,18 @@ public:
 		{
 			const FNodeRef NodeRef = NodesToTraverse[--NumNodesToTraverse];
 
-			if constexpr (std::is_same_v<decltype(Lambda(DeclVal<FNodeRef>())), void>)
+			if constexpr (std::is_void_v<ReturnType>)
 			{
 				Lambda(NodeRef);
 			}
 			else
 			{
-				if (!Lambda(NodeRef))
+				switch (Lambda(NodeRef))
 				{
-					continue;
+				default: VOXEL_ASSUME(false);
+				case EVoxelIterate::Continue: break;
+				case EVoxelIterate::SkipChildren: continue;
+				case EVoxelIterate::Stop: return;
 				}
 			}
 
@@ -297,13 +301,23 @@ public:
 			if (Children[7] != -1) { NodesToTraverse[NumNodesToTraverse++] = FNodeRef(Children[7], NodeRef.Height - 1, NodeRef.GetChildCenter(7)); }
 		}
 	}
-	template<typename LambdaType>
+
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterate>>,
+		typename = LambdaHasSignature_T<LambdaType, ReturnType(const FNodeRef&)>>
 	FORCEINLINE void Traverse(LambdaType Lambda) const
 	{
 		this->Traverse(Root(), Lambda);
 	}
-	template<typename LambdaType>
-	FORCEINLINE void TraverseChildren(const FNodeRef NodeRef, LambdaType Lambda) const
+
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterate>>,
+		typename = LambdaHasSignature_T<LambdaType, ReturnType(const FNodeRef&)>>
+	FORCEINLINE void TraverseChildren(const FNodeRef& NodeRef, LambdaType Lambda) const
 	{
 		const FChildren Children = IndexToChildren[NodeRef.Index];
 
@@ -316,7 +330,12 @@ public:
 		if (Children[6] != -1) { this->Traverse(FNodeRef(Children[6], NodeRef.Height - 1, NodeRef.GetChildCenter(6)), Lambda); }
 		if (Children[7] != -1) { this->Traverse(FNodeRef(Children[7], NodeRef.Height - 1, NodeRef.GetChildCenter(7)), Lambda); }
 	}
-	template<typename LambdaType>
+
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterate>>,
+		typename = LambdaHasSignature_T<LambdaType, ReturnType(const FNodeRef&)>>
 	FORCENOINLINE void TraverseBounds(const FVoxelIntBox& Bounds, LambdaType Lambda) const
 	{
 		TVoxelStaticArray<FNodeRef, 8 * MaxDepth> NodesToTraverse{ NoInit };
@@ -332,15 +351,18 @@ public:
 				continue;
 			}
 
-			if constexpr (std::is_same_v<decltype(Lambda(DeclVal<FNodeRef>())), void>)
+			if constexpr (std::is_void_v<ReturnType>)
 			{
 				Lambda(NodeRef);
 			}
 			else
 			{
-				if (!Lambda(NodeRef))
+				switch (Lambda(NodeRef))
 				{
-					continue;
+				default: VOXEL_ASSUME(false);
+				case EVoxelIterate::Continue: break;
+				case EVoxelIterate::SkipChildren: continue;
+				case EVoxelIterate::Stop: return;
 				}
 			}
 

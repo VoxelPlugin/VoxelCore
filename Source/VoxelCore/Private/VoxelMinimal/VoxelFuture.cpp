@@ -55,7 +55,7 @@ void FVoxelPromiseState::Set(const FSharedVoidRef& Value)
 	{
 		for (auto& It : ThreadToContinuation)
 		{
-			StaticDispatch(It.Key, [Continuation = MoveTemp(It.Value), Value]
+			FVoxelDefaultTaskDispatcher::StaticDispatch(It.Key, [Continuation = MoveTemp(It.Value), Value]
 			{
 				Continuation(Value);
 			});
@@ -109,48 +109,10 @@ void FVoxelPromiseState::AddContinuation(
 	}
 	else
 	{
-		StaticDispatch(Thread, [Continuation = MoveTemp(Continuation), Value = Value_RequiresLock.ToSharedRef()]
+		FVoxelDefaultTaskDispatcher::StaticDispatch(Thread, [Continuation = MoveTemp(Continuation), Value = Value_RequiresLock.ToSharedRef()]
 		{
 			Continuation(Value);
 		});
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-template<typename LambdaType>
-FORCEINLINE void FVoxelPromiseState::StaticDispatch(
-	const EVoxelFutureThread Thread,
-	LambdaType Lambda)
-{
-	switch (Thread)
-	{
-	default: VOXEL_ASSUME(false);
-	case EVoxelFutureThread::AnyThread:
-	{
-		Lambda();
-	}
-	break;
-	case EVoxelFutureThread::GameThread:
-	{
-		RunOnGameThread(MoveTemp(Lambda));
-	}
-	break;
-	case EVoxelFutureThread::RenderThread:
-	{
-		VOXEL_ENQUEUE_RENDER_COMMAND(Future)([Lambda = MoveTemp(Lambda)](FRHICommandListImmediate& RHICmdList)
-		{
-			Lambda();
-		});
-	}
-	break;
-	case EVoxelFutureThread::AsyncThread:
-	{
-		AsyncBackgroundTaskImpl(MoveTemp(Lambda));
-	}
-	break;
 	}
 }
 
@@ -177,7 +139,7 @@ FVoxelFuture::FVoxelFuture(const TConstVoxelArrayView<FVoxelFuture> Futures)
 
 	for (const FVoxelFuture& Future : Futures)
 	{
-		Future.Then_AnyThread([=]
+		Future.PromiseState->AddContinuation(EVoxelFutureThread::AnyThread, [=](const FSharedVoidRef&)
 		{
 			if (Counter->Decrement_ReturnNew() == 0)
 			{

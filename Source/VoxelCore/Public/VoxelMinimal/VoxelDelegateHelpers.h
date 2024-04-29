@@ -6,49 +6,7 @@
 #include "Delegates/IDelegateInstance.h"
 #include "VoxelMinimal/VoxelSharedPtr.h"
 #include "VoxelMinimal/Utilities/VoxelTypeUtilities.h"
-
-template<typename...>
-struct TVoxelTypes;
-
-template<typename>
-struct TVoxelFunctionInfo;
-
-template<typename InReturnType, typename... InArgTypes>
-struct TVoxelFunctionInfo<InReturnType(InArgTypes...)>
-{
-	using ReturnType = InReturnType;
-	using ArgTypes = TVoxelTypes<InArgTypes...>;
-	using FuncType = InReturnType(InArgTypes...);
-};
-
-template<typename ReturnType, typename Class, typename... ArgTypes>
-struct TVoxelFunctionInfo<ReturnType(Class::*)(ArgTypes...) const> : TVoxelFunctionInfo<ReturnType(ArgTypes...)>
-{
-};
-
-template<typename ReturnType, typename Class, typename... ArgTypes>
-struct TVoxelFunctionInfo<ReturnType(Class::*)(ArgTypes...)> : TVoxelFunctionInfo<ReturnType(ArgTypes...)>
-{
-};
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-template<typename LambdaType, typename = void>
-struct TVoxelLambdaInfo : TVoxelFunctionInfo<void()>
-{
-	static_assert(sizeof(LambdaType) == -1, "Generic lambdas (eg [](auto)) are not supported");
-};
-
-template<typename LambdaType>
-struct TVoxelLambdaInfo<LambdaType, std::enable_if_t<sizeof(decltype(&LambdaType::operator())) != 0>> : TVoxelFunctionInfo<decltype(&LambdaType::operator())>
-{
-};
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
+#include "VoxelMinimal/Utilities/VoxelLambdaUtilities.h"
 
 struct FVoxelDelegateUtilities
 	: public TDelegateBase<FThreadSafeDelegateMode>
@@ -177,18 +135,19 @@ public:
 template<typename LambdaType>
 FORCEINLINE auto MakeLambdaDelegate(LambdaType Lambda)
 {
-	return TDelegate<typename TVoxelLambdaInfo<LambdaType>::FuncType>::CreateLambda(MoveTemp(Lambda));
+	return TDelegate<LambdaSignature_T<LambdaType>>::CreateLambda(MoveTemp(Lambda));
 }
 
 template<typename UserPolicy = FDefaultDelegateUserPolicy, typename T, typename LambdaType>
 FORCEINLINE auto MakeWeakPtrDelegate(const T& Ptr, LambdaType Lambda)
 {
-	using Info = TVoxelLambdaInfo<LambdaType>;
-	TDelegate<typename Info::FuncType, UserPolicy> Delegate;
-	TSharedPtrLambdaDelegateInstance<
-		UserPolicy,
-		typename Info::ReturnType,
-		typename Info::ArgTypes>::Create(Delegate, MakeWeakVoidPtr(MakeWeakPtr(Ptr)), MoveTemp(Lambda));
+	TDelegate<LambdaSignature_T<LambdaType>, UserPolicy> Delegate;
+
+	TSharedPtrLambdaDelegateInstance<UserPolicy, LambdaReturnType_T<LambdaType>, LambdaArgTypes_T<LambdaType>>::Create(
+		Delegate,
+		MakeWeakVoidPtr(MakeWeakPtr(Ptr)),
+		MoveTemp(Lambda));
+
 	return Delegate;
 }
 
@@ -239,32 +198,36 @@ struct TMakeWeakPtrLambdaHelper<TVoxelTypes<ArgTypes...>>
 template<
 	typename T,
 	typename LambdaType,
-	typename Info = TVoxelLambdaInfo<LambdaType>,
-	typename = std::enable_if_t<std::is_same_v<typename Info::ReturnType, void>>>
+	typename = std::enable_if_t<std::is_void_v<LambdaReturnType_T<LambdaType>>>>
 FORCEINLINE auto MakeWeakPtrLambda(const T& Ptr, LambdaType Lambda)
 {
-	return TMakeWeakPtrLambdaHelper<typename Info::ArgTypes>::Make(Ptr, MoveTemp(Lambda));
+	return TMakeWeakPtrLambdaHelper<LambdaArgTypes_T<LambdaType>>::Make(Ptr, MoveTemp(Lambda));
 }
 
 template<
 	typename T,
 	typename LambdaType,
-	typename Info = TVoxelLambdaInfo<LambdaType>,
-	typename = std::enable_if_t<!std::is_same_v<typename Info::ReturnType, void>>,
-	typename = std::enable_if_t<FVoxelUtilities::CanMakeSafe<typename Info::ReturnType>>>
+	typename ReturnType = LambdaReturnType_T<LambdaType>,
+	typename = std::enable_if_t<!std::is_void_v<ReturnType> && FVoxelUtilities::CanMakeSafe<ReturnType>>>
 FORCEINLINE auto MakeWeakPtrLambda(const T& Ptr, LambdaType Lambda)
 {
-	return TMakeWeakPtrLambdaHelper<typename Info::ArgTypes>::Make(Ptr, MoveTemp(Lambda), FVoxelUtilities::MakeSafe<typename Info::ReturnType>());
+	return TMakeWeakPtrLambdaHelper<LambdaArgTypes_T<LambdaType>>::Make(
+		Ptr,
+		MoveTemp(Lambda),
+		FVoxelUtilities::MakeSafe<ReturnType>());
 }
 
 template<
 	typename T,
 	typename LambdaType,
-	typename Info = TVoxelLambdaInfo<LambdaType>,
-	typename = std::enable_if_t<!std::is_same_v<typename Info::ReturnType, void>>>
-FORCEINLINE auto MakeWeakPtrLambda(const T& Ptr, LambdaType Lambda, typename Info::ReturnType&& Default)
+	typename ReturnType = LambdaReturnType_T<LambdaType>,
+	typename = std::enable_if_t<!std::is_void_v<ReturnType>>>
+FORCEINLINE auto MakeWeakPtrLambda(const T& Ptr, LambdaType Lambda, ReturnType&& Default)
 {
-	return TMakeWeakPtrLambdaHelper<typename Info::ArgTypes>::Make(Ptr, MoveTemp(Lambda), MoveTemp(Default));
+	return TMakeWeakPtrLambdaHelper<LambdaArgTypes_T<LambdaType>>::Make(
+		Ptr,
+		MoveTemp(Lambda),
+		MoveTemp(Default));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -309,20 +272,28 @@ struct TMakeWeakObjectPtrLambdaHelper<TVoxelTypes<ArgTypes...>>
 	}
 };
 
-template<typename T, typename LambdaType, typename Info = TVoxelLambdaInfo<LambdaType>, typename = std::enable_if_t<
-	(TIsDerivedFrom<T, UObject>::Value || TIsDerivedFrom<T, IInterface>::Value) &&
-	std::is_same_v<typename Info::ReturnType, void>>>
+template<
+	typename T,
+	typename LambdaType,
+	typename ReturnType = LambdaReturnType_T<LambdaType>,
+	typename = std::enable_if_t<
+		(TIsDerivedFrom<T, UObject>::Value || TIsDerivedFrom<T, IInterface>::Value) &&
+		std::is_void_v<ReturnType>>>
 FORCEINLINE auto MakeWeakObjectPtrLambda(T* Ptr, LambdaType Lambda)
 {
-	return TMakeWeakObjectPtrLambdaHelper<typename Info::ArgTypes>::Make(Ptr, MoveTemp(Lambda));
+	return TMakeWeakObjectPtrLambdaHelper<LambdaArgTypes_T<LambdaType>>::Make(Ptr, MoveTemp(Lambda));
 }
 
-template<typename T, typename LambdaType, typename Info = TVoxelLambdaInfo<LambdaType>, typename = std::enable_if_t<
-	(TIsDerivedFrom<T, UObject>::Value || TIsDerivedFrom<T, IInterface>::Value) &&
-	!std::is_same_v<typename Info::ReturnType, void>>>
-FORCEINLINE auto MakeWeakObjectPtrLambda(T* Ptr, LambdaType Lambda, typename Info::ReturnType&& Default = {})
+template<
+	typename T,
+	typename LambdaType,
+	typename ReturnType = LambdaReturnType_T<LambdaType>,
+	typename = std::enable_if_t<
+		(TIsDerivedFrom<T, UObject>::Value || TIsDerivedFrom<T, IInterface>::Value) &&
+		!std::is_void_v<ReturnType>>>
+FORCEINLINE auto MakeWeakObjectPtrLambda(T* Ptr, LambdaType Lambda, ReturnType&& Default = {})
 {
-	return TMakeWeakObjectPtrLambdaHelper<typename Info::ArgTypes>::Make(Ptr, MoveTemp(Lambda), MoveTemp(Default));
+	return TMakeWeakObjectPtrLambdaHelper<LambdaArgTypes_T<LambdaType>>::Make(Ptr, MoveTemp(Lambda), MoveTemp(Default));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -346,10 +317,10 @@ struct TMakeStrongPtrLambdaHelper<TVoxelTypes<ArgTypes...>, ReturnType>
 	}
 };
 
-template<typename T, typename LambdaType, typename Info = TVoxelLambdaInfo<LambdaType>>
+template<typename T, typename LambdaType>
 FORCEINLINE auto MakeStrongPtrLambda(const T& Ptr, LambdaType Lambda)
 {
-	return TMakeStrongPtrLambdaHelper<typename Info::ArgTypes, typename Info::ReturnType>::Make(Ptr, MoveTemp(Lambda));
+	return TMakeStrongPtrLambdaHelper<LambdaArgTypes_T<LambdaType>, LambdaReturnType_T<LambdaType>>::Make(Ptr, MoveTemp(Lambda));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -455,9 +426,13 @@ public:
 template<typename DelegateType, typename LambdaType>
 FORCEINLINE auto MakeWeakDelegateDelegate(const DelegateType& WeakDelegate, LambdaType Lambda)
 {
-	using Info = TVoxelLambdaInfo<LambdaType>;
-	TDelegate<typename Info::FuncType> Delegate;
-	TForwardDelegateInstance<DelegateType, typename Info::ReturnType, typename Info::ArgTypes>::Create(Delegate, MakeSharedCopy(WeakDelegate), MoveTemp(Lambda));
+	TDelegate<LambdaSignature_T<LambdaType>> Delegate;
+
+	TForwardDelegateInstance<DelegateType, LambdaReturnType_T<LambdaType>, LambdaArgTypes_T<LambdaType>>::Create(
+		Delegate,
+		MakeSharedCopy(WeakDelegate),
+		MoveTemp(Lambda));
+
 	return Delegate;
 }
 

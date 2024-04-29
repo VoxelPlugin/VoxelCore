@@ -97,7 +97,17 @@ public:
 
 		return *this;
 	}
-	FORCEINLINE TVoxelStaticArray& operator=(T Value)
+	FORCEINLINE TVoxelStaticArray& operator=(TVoxelStaticArray&& Other)
+	{
+		for (int32 Index = 0; Index < Size; Index++)
+		{
+			GetData()[Index] = MoveTemp(Other[Index]);
+		}
+
+		return *this;
+	}
+
+	FORCEINLINE TVoxelStaticArray& operator=(const T Value)
 	{
 		// Always safe even with non-pod
 		for (int32 Index = 0; Index < Size; Index++)

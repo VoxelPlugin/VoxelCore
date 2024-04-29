@@ -69,7 +69,7 @@ public:
 		}
 		else
 		{
-			static_assert(std::is_same_v<T, void>, "Invalid arg passed to VOXEL_MESSAGE");
+			static_assert(std::is_void_v<T>, "Invalid arg passed to VOXEL_MESSAGE");
 		}
 	}
 

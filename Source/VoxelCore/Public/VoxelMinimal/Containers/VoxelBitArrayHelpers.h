@@ -476,7 +476,7 @@ public:
 					// Last word should be masked properly
 					checkVoxelSlow(Index < Num);
 
-					if constexpr (std::is_same_v<decltype(Lambda(DeclVal<int32>())), void>)
+					if constexpr (std::is_void_v<LambdaReturnType_T<LambdaType>>)
 					{
 						Lambda(Index);
 					}
@@ -497,7 +497,7 @@ public:
 			// Last word should be masked properly
 			checkVoxelSlow(Index < Num);
 
-			if constexpr (std::is_same_v<decltype(Lambda(DeclVal<int32>())), void>)
+			if constexpr (std::is_void_v<LambdaReturnType_T<LambdaType>>)
 			{
 				Lambda(Index);
 			}
@@ -546,4 +546,9 @@ public:
 
 	static int64 CountSetBits(const uint32* RESTRICT Data, int32 NumWords);
 	static int64 CountSetBits_UpperBound(const uint32* RESTRICT Data, int32 NumBits);
+
+public:
+	static TVoxelArray<FVoxelIntBox> GreedyMeshing3D(
+		TVoxelArrayView<uint32> Data,
+		const FIntVector& Size);
 };

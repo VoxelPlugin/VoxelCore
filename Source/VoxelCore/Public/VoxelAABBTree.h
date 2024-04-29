@@ -204,16 +204,9 @@ public:
 						continue;
 					}
 
-					if constexpr (std::is_void_v<decltype(Lambda(int32()))>)
+					if (Lambda(Element.Payload))
 					{
-						Lambda(Element.Payload);
-					}
-					else
-					{
-						if (Lambda(Element.Payload))
-						{
-							return true;
-						}
+						return true;
 					}
 				}
 			}

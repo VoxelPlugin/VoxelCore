@@ -37,3 +37,20 @@ private:
 	const TSharedRef<IVoxelTaskDispatcher>& Dispatcher;
 	void* const PreviousTLS;
 };
+
+class VOXELCORE_API FVoxelDefaultTaskDispatcher : public IVoxelTaskDispatcher
+{
+public:
+	FVoxelDefaultTaskDispatcher() = default;
+
+	//~ Begin IVoxelTaskDispatcher Interface
+	virtual void Dispatch(
+		EVoxelFutureThread Thread,
+		TVoxelUniqueFunction<void()> Lambda) override;
+	//~ End IVoxelTaskDispatcher Interface
+
+public:
+	static void StaticDispatch(
+		EVoxelFutureThread Thread,
+		TVoxelUniqueFunction<void()> Lambda);
+};

@@ -105,3 +105,44 @@ TArray<FVoxelIntBox, TFixedAllocator<6>> FVoxelIntBox::Difference(const FVoxelIn
 
     return OutBoxes;
 }
+
+bool FVoxelIntBox::Subdivide(
+    const int32 ChildrenSize,
+    TVoxelArray<FVoxelIntBox>& OutChildren,
+    const bool bUseOverlap,
+    const int32 MaxChildren) const
+{
+	OutChildren.Reset();
+
+	const FIntVector LowerBound = FVoxelUtilities::DivideFloor(Min, ChildrenSize) * ChildrenSize;
+	const FIntVector UpperBound = FVoxelUtilities::DivideCeil(Max, ChildrenSize) * ChildrenSize;
+
+	const FIntVector EstimatedSize = (UpperBound - LowerBound) / ChildrenSize;
+
+	VOXEL_FUNCTION_COUNTER_NUM(EstimatedSize.X * EstimatedSize.Y * EstimatedSize.Z, 128);
+
+	OutChildren.Reserve(EstimatedSize.X * EstimatedSize.Y * EstimatedSize.Z);
+
+	for (int32 X = LowerBound.X; X < UpperBound.X; X += ChildrenSize)
+	{
+		for (int32 Y = LowerBound.Y; Y < UpperBound.Y; Y += ChildrenSize)
+		{
+			for (int32 Z = LowerBound.Z; Z < UpperBound.Z; Z += ChildrenSize)
+			{
+				FVoxelIntBox Child(FIntVector(X, Y, Z), FIntVector(X + ChildrenSize, Y + ChildrenSize, Z + ChildrenSize));
+				if (bUseOverlap)
+				{
+					Child = Child.Overlap(*this);
+				}
+				OutChildren.Add(Child);
+
+				if (MaxChildren != -1 &&
+					OutChildren.Num() > MaxChildren)
+				{
+					return false;
+				}
+			}
+		}
+	}
+	return true;
+}

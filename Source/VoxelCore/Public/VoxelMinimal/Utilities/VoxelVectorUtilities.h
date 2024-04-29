@@ -174,22 +174,6 @@ namespace FVoxelUtilities
 	}
 
 	template<typename VectorType>
-	FORCEINLINE TEnableIfAnyVector2<VectorType> ComponentMax(const VectorType& A, const VectorType& B)
-	{
-		return VectorType(
-			FMath::Max(A.X, B.X),
-			FMath::Max(A.Y, B.Y));
-	}
-	template<typename VectorType>
-	FORCEINLINE TEnableIfAnyVector3<VectorType> ComponentMax(const VectorType& A, const VectorType& B)
-	{
-		return VectorType(
-			FMath::Max(A.X, B.X),
-			FMath::Max(A.Y, B.Y),
-			FMath::Max(A.Z, B.Z));
-	}
-
-	template<typename VectorType>
 	FORCEINLINE TEnableIfAnyVector2<VectorType> ComponentMin(const VectorType& A, const VectorType& B)
 	{
 		return VectorType(
@@ -203,6 +187,22 @@ namespace FVoxelUtilities
 			FMath::Min(A.X, B.X),
 			FMath::Min(A.Y, B.Y),
 			FMath::Min(A.Z, B.Z));
+	}
+
+	template<typename VectorType>
+	FORCEINLINE TEnableIfAnyVector2<VectorType> ComponentMax(const VectorType& A, const VectorType& B)
+	{
+		return VectorType(
+			FMath::Max(A.X, B.X),
+			FMath::Max(A.Y, B.Y));
+	}
+	template<typename VectorType>
+	FORCEINLINE TEnableIfAnyVector3<VectorType> ComponentMax(const VectorType& A, const VectorType& B)
+	{
+		return VectorType(
+			FMath::Max(A.X, B.X),
+			FMath::Max(A.Y, B.Y),
+			FMath::Max(A.Z, B.Z));
 	}
 
 	template<typename VectorType>
@@ -237,10 +237,10 @@ namespace FVoxelUtilities
 	{
 		return FVoxelUtilities::Clamp(V, VectorType(Min), VectorType(Max));
 	}
-	template<typename TVector, typename ScalarTypeA, typename ScalarTypeB>
-	FORCEINLINE TEnableIfAnyVector3<TVector> Clamp(const TVector& V, const ScalarTypeA& Min, const ScalarTypeB& Max)
+	template<typename VectorType, typename ScalarTypeA, typename ScalarTypeB>
+	FORCEINLINE TEnableIfAnyVector3<VectorType> Clamp(const VectorType& V, const ScalarTypeA& Min, const ScalarTypeB& Max)
 	{
-		return FVoxelUtilities::Clamp(V, TVector(Min), TVector(Max));
+		return FVoxelUtilities::Clamp(V, VectorType(Min), VectorType(Max));
 	}
 
 	template<typename VectorType>

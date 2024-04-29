@@ -151,22 +151,28 @@ struct VOXELCORE_API FVoxelIntBox
 	{
 		return (Min + Max) / 2;
 	}
-	FORCEINLINE double Count_LargeBox() const
+	FORCEINLINE double Count_double() const
 	{
 		return
 			(double(Max.X) - double(Min.X)) *
 			(double(Max.Y) - double(Min.Y)) *
 			(double(Max.Z) - double(Min.Z));
 	}
-	FORCEINLINE uint64 Count_SmallBox() const
+	FORCEINLINE uint64 Count_uint64() const
 	{
 		checkVoxelSlow(uint64(Max.X - Min.X) < (1llu << 21));
 		checkVoxelSlow(uint64(Max.Y - Min.Y) < (1llu << 21));
 		checkVoxelSlow(uint64(Max.Z - Min.Z) < (1llu << 21));
+
 		return
 			uint64(Max.X - Min.X) *
 			uint64(Max.Y - Min.Y) *
 			uint64(Max.Z - Min.Z);
+	}
+	FORCEINLINE int32 Count_int32() const
+	{
+		checkVoxelSlow(Count_uint64() <= MAX_int32);
+		return int32(Count_uint64());
 	}
 
 	FORCEINLINE bool SizeIs32Bit() const
@@ -498,40 +504,17 @@ struct VOXELCORE_API FVoxelIntBox
 	}
 
 	// Guarantee: union(OutChilds).Contains(this)
-	template<typename T>
-	bool Subdivide(const int32 ChildrenSize, TArray<FVoxelIntBox, T>& OutChildren, const bool bUseOverlap, int32 MaxChildren = -1) const
-	{
-		OutChildren.Reset();
+	bool Subdivide(
+		int32 ChildrenSize,
+		TVoxelArray<FVoxelIntBox>& OutChildren,
+		bool bUseOverlap,
+		int32 MaxChildren = -1) const;
 
-		const FIntVector LowerBound = FVoxelUtilities::DivideFloor(Min, ChildrenSize) * ChildrenSize;
-		const FIntVector UpperBound = FVoxelUtilities::DivideCeil(Max, ChildrenSize) * ChildrenSize;
-
-		const FIntVector EstimatedSize = (UpperBound - LowerBound) / ChildrenSize;
-		OutChildren.Reserve(EstimatedSize.X * EstimatedSize.Y * EstimatedSize.Z);
-
-		for (int32 X = LowerBound.X; X < UpperBound.X; X += ChildrenSize)
-		{
-			for (int32 Y = LowerBound.Y; Y < UpperBound.Y; Y += ChildrenSize)
-			{
-				for (int32 Z = LowerBound.Z; Z < UpperBound.Z; Z += ChildrenSize)
-				{
-					FVoxelIntBox Child(FIntVector(X, Y, Z), FIntVector(X + ChildrenSize, Y + ChildrenSize, Z + ChildrenSize));
-					if (bUseOverlap)
-					{
-						Child = Child.Overlap(*this);
-					}
-					OutChildren.Add(Child);
-
-					if (MaxChildren != -1 && OutChildren.Num() > MaxChildren)
-					{
-						return false;
-					}
-				}
-			}
-		}
-		return true;
-	}
-	template<typename LambdaType>
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, bool>>,
+		typename = LambdaHasSignature_T<LambdaType, ReturnType(const FVoxelIntBox&)>>
 	void IterateChunks(const int32 ChunkSize, LambdaType&& Lambda) const
 	{
 		const FIntVector KeyMin = FVoxelUtilities::DivideFloor(Min, ChunkSize);
@@ -549,7 +532,7 @@ struct VOXELCORE_API FVoxelIntBox
 
 					Chunk = Chunk.Overlap(*this);
 
-					if constexpr (std::is_same_v<decltype(Lambda(DeclVal<FVoxelIntBox>())), void>)
+					if constexpr (std::is_void_v<ReturnType>)
 					{
 						Lambda(Chunk);
 					}
@@ -626,7 +609,11 @@ struct VOXELCORE_API FVoxelIntBox
 		return Min != Other.Min || Max != Other.Max;
 	}
 
-	template<typename LambdaType>
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, bool>>,
+		typename = LambdaHasSignature_T<LambdaType, ReturnType(const FIntVector&)>>
 	FORCEINLINE void Iterate(LambdaType&& Lambda) const
 	{
 		for (int32 X = Min.X; X < Max.X; X++)
@@ -635,7 +622,7 @@ struct VOXELCORE_API FVoxelIntBox
 			{
 				for (int32 Z = Min.Z; Z < Max.Z; Z++)
 				{
-					if constexpr (std::is_same_v<decltype(Lambda(DeclVal<FIntVector>())), void>)
+					if constexpr (std::is_void_v<ReturnType>)
 					{
 						Lambda(FIntVector(X, Y, Z));
 					}
