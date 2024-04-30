@@ -166,3 +166,37 @@ using FVoxelSharedCriticalSection_NoPadding = TVoxelSharedCriticalSectionImpl<Im
 	{ \
 		(__VA_ARGS__).WriteUnlock(); \
 	};
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#define VOXEL_SCOPE_READ_LOCK_COND(Cond, ...) \
+	const bool VOXEL_APPEND_LINE(__bShouldLock) = Cond; \
+	if (VOXEL_APPEND_LINE(__bShouldLock)) \
+	{ \
+		VOXEL_SCOPE_COUNTER_COND((__VA_ARGS__).ShouldRecordStats_Read(), "ReadLock " #__VA_ARGS__); \
+		(__VA_ARGS__).ReadLock(); \
+	} \
+	ON_SCOPE_EXIT \
+	{ \
+		if (VOXEL_APPEND_LINE(__bShouldLock)) \
+		{ \
+			(__VA_ARGS__).ReadUnlock(); \
+		} \
+	};
+
+#define VOXEL_SCOPE_WRITE_LOCK_COND(Cond, ...) \
+	const bool VOXEL_APPEND_LINE(__bShouldLock) = Cond; \
+	if (VOXEL_APPEND_LINE(__bShouldLock)) \
+	{ \
+		VOXEL_SCOPE_COUNTER_COND((__VA_ARGS__).ShouldRecordStats_Write(), "WriteLock " #__VA_ARGS__); \
+		(__VA_ARGS__).WriteLock(); \
+	} \
+	ON_SCOPE_EXIT \
+	{ \
+		if (VOXEL_APPEND_LINE(__bShouldLock)) \
+		{ \
+			(__VA_ARGS__).WriteUnlock(); \
+		} \
+	};

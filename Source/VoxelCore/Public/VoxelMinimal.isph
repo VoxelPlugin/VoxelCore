@@ -210,10 +210,6 @@ uniform int8 select(uniform bool cond, uniform int8 t, uniform int8 f);
 int16 select(bool cond, int16 t, int16 f);
 int32 select(bool cond, int32 t, int32 f);
 int64 select(bool cond, int64 t, int64 f);
-uint8 select(bool cond, uint8 t, uint8 f);
-uint16 select(bool cond, uint16 t, uint16 f);
-uint32 select(bool cond, uint32 t, uint32 f);
-uint64 select(bool cond, uint64 t, uint64 f);
 float select(bool cond, float t, float f);
 double select(bool cond, double t, double f);
 
@@ -330,6 +326,23 @@ extern "C" void VoxelISPC_UnsupportedTargetWidth(uniform int Width);
 
 #define PREPROCESSOR_JOIN_INNER(X, Y) X ## Y
 #define PREPROCESSOR_JOIN(X, Y) PREPROCESSOR_JOIN_INNER(X, Y)
+
+FORCEINLINE uint8 select(bool cond, uint8 t, uint8 f)
+{
+	return (uint8)select(cond, (int8)t, (int8)f);
+}
+FORCEINLINE uint16 select(bool cond, uint16 t, uint16 f)
+{
+	return (uint16)select(cond, (int16)t, (int16)f);
+}
+FORCEINLINE uint32 select(bool cond, uint32 t, uint32 f)
+{
+	return (uint32)select(cond, (int32)t, (int32)f);
+}
+FORCEINLINE uint64 select(bool cond, uint64 t, uint64 f)
+{
+	return (uint64)select(cond, (int64)t, (int64)f);
+}
 
 #if !INTELLISENSE_PARSER
 FORCEINLINE uniform float lerp(const uniform float A, const uniform float B, const uniform float Alpha)

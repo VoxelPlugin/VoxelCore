@@ -31,6 +31,12 @@ struct TVoxelFutureTypeImpl<TSharedRef<T>>
 	using Type = TVoxelFuture<T>;
 };
 
+template<>
+struct TVoxelFutureTypeImpl<FVoxelFuture>
+{
+	using Type = FVoxelFuture;
+};
+
 template<typename T>
 struct TVoxelFutureTypeImpl<TVoxelFuture<T>>
 {
@@ -142,7 +148,7 @@ public:
 		const TVoxelPromiseType<ReturnType> Promise;
 		PromiseState->AddContinuation(Thread, [Promise, Continuation = MoveTemp(Continuation)](const FSharedVoidRef&)
 		{
-			if constexpr (std::is_void_v<ReturnType>)
+			if constexpr (std::is_same_v<TVoxelPromiseType<ReturnType>, FVoxelPromise>)
 			{
 				Continuation();
 				Promise.Set();
@@ -182,6 +188,61 @@ protected:
 
 	friend FVoxelPromise;
 	friend FVoxelPromiseState;
+
+public:
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+	static FORCEINLINE TVoxelFutureType<ReturnType> GameTask(LambdaType Lambda)
+	{
+		return FVoxelFuture::Execute(EVoxelFutureThread::GameThread, MoveTemp(Lambda));
+	}
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+	static FORCEINLINE TVoxelFutureType<ReturnType> RenderTask(LambdaType Lambda)
+	{
+		return FVoxelFuture::Execute(EVoxelFutureThread::RenderThread, MoveTemp(Lambda));
+	}
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+	static FORCEINLINE TVoxelFutureType<ReturnType> AsyncTask(LambdaType Lambda)
+	{
+		return FVoxelFuture::Execute(EVoxelFutureThread::AsyncThread, MoveTemp(Lambda));
+	}
+
+public:
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+	static FORCEINLINE TVoxelFutureType<ReturnType> Execute(
+		const EVoxelFutureThread Thread,
+		LambdaType Lambda)
+	{
+		const TVoxelPromiseType<ReturnType> Promise;
+		FVoxelFuture::ExecuteImpl(Thread, [Lambda = MoveTemp(Lambda), Promise]
+		{
+			if constexpr (std::is_same_v<TVoxelPromiseType<ReturnType>, FVoxelPromise>)
+			{
+				Lambda();
+				Promise.Set();
+			}
+			else
+			{
+				Promise.Set(Lambda());
+			}
+		});
+		return Promise.GetFuture();
+	}
+
+	static void ExecuteImpl(
+		EVoxelFutureThread Thread,
+		TVoxelUniqueFunction<void()> Lambda);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -252,7 +313,7 @@ public:
 		const TVoxelPromiseType<ReturnType> Promise;
 		PromiseState->AddContinuation(Thread, [Promise, Continuation = MoveTemp(Continuation)](const FSharedVoidRef& Value)
 		{
-			if constexpr (std::is_void_v<ReturnType>)
+			if constexpr (std::is_same_v<TVoxelPromiseType<ReturnType>, FVoxelPromise>)
 			{
 				Continuation(ReinterpretCastRef<TSharedRef<T>>(Value));
 				Promise.Set();
@@ -269,7 +330,7 @@ public:
 		typename ReturnType = LambdaReturnType_T<LambdaType>,
 		typename = std::enable_if_t<
 			LambdaHasSignature_V<LambdaType, ReturnType(const T&)> ||
-			(LambdaHasSignature_V<LambdaType, ReturnType(T)> && TIsTriviallyDestructible<LambdaDependentType_T<LambdaType, T>>::Value)>,
+			LambdaHasSignature_V<LambdaType, ReturnType(T)>>,
 		typename = void>
 	FORCEINLINE TVoxelFutureType<ReturnType> Then(
 		const EVoxelFutureThread Thread,
@@ -278,7 +339,7 @@ public:
 		const TVoxelPromiseType<ReturnType> Promise;
 		PromiseState->AddContinuation(Thread, [Promise, Continuation = MoveTemp(Continuation)](const FSharedVoidRef& Value)
 		{
-			if constexpr (std::is_void_v<ReturnType>)
+			if constexpr (std::is_same_v<TVoxelPromiseType<ReturnType>, FVoxelPromise>)
 			{
 				Continuation(*ReinterpretCastRef<TSharedRef<T>>(Value));
 				Promise.Set();
@@ -298,7 +359,7 @@ public:
 		typename = std::enable_if_t< \
 			LambdaHasSignature_V<LambdaType, ReturnType(const TSharedRef<T>&)> || \
 			LambdaHasSignature_V<LambdaType, ReturnType(const T&)> || \
-			(LambdaHasSignature_V<LambdaType, ReturnType(T)> && TIsTriviallyDestructible<LambdaDependentType_T<LambdaType, T>>::Value)>, \
+			LambdaHasSignature_V<LambdaType, ReturnType(T)>>, \
 		typename = void> \
 	FORCEINLINE TVoxelFutureType<ReturnType> Then_ ## Thread(LambdaType Continuation) const \
 	{ \
