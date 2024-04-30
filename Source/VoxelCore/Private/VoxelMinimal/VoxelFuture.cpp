@@ -184,3 +184,8 @@ void FVoxelPromise::Set() const
 {
 	PromiseState->Set(MakeSharedVoid());
 }
+
+void FVoxelPromise::Set(const FVoxelFuture& Future) const
+{
+	PromiseState->Set(Future);
+}

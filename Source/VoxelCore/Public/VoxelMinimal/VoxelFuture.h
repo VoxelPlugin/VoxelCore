@@ -148,7 +148,7 @@ public:
 		const TVoxelPromiseType<ReturnType> Promise;
 		PromiseState->AddContinuation(Thread, [Promise, Continuation = MoveTemp(Continuation)](const FSharedVoidRef&)
 		{
-			if constexpr (std::is_same_v<TVoxelPromiseType<ReturnType>, FVoxelPromise>)
+			if constexpr (std::is_void_v<ReturnType>)
 			{
 				Continuation();
 				Promise.Set();
@@ -227,7 +227,7 @@ public:
 		const TVoxelPromiseType<ReturnType> Promise;
 		FVoxelFuture::ExecuteImpl(Thread, [Lambda = MoveTemp(Lambda), Promise]
 		{
-			if constexpr (std::is_same_v<TVoxelPromiseType<ReturnType>, FVoxelPromise>)
+			if constexpr (std::is_void_v<ReturnType>)
 			{
 				Lambda();
 				Promise.Set();
@@ -260,6 +260,7 @@ public:
 	}
 
 	void Set() const;
+	void Set(const FVoxelFuture& Future) const;
 
 protected:
 	TSharedRef<FVoxelPromiseState> PromiseState = MakeVoxelShareable(new (GVoxelMemory) FVoxelPromiseState());
@@ -313,7 +314,7 @@ public:
 		const TVoxelPromiseType<ReturnType> Promise;
 		PromiseState->AddContinuation(Thread, [Promise, Continuation = MoveTemp(Continuation)](const FSharedVoidRef& Value)
 		{
-			if constexpr (std::is_same_v<TVoxelPromiseType<ReturnType>, FVoxelPromise>)
+			if constexpr (std::is_void_v<ReturnType>)
 			{
 				Continuation(ReinterpretCastRef<TSharedRef<T>>(Value));
 				Promise.Set();
@@ -339,7 +340,7 @@ public:
 		const TVoxelPromiseType<ReturnType> Promise;
 		PromiseState->AddContinuation(Thread, [Promise, Continuation = MoveTemp(Continuation)](const FSharedVoidRef& Value)
 		{
-			if constexpr (std::is_same_v<TVoxelPromiseType<ReturnType>, FVoxelPromise>)
+			if constexpr (std::is_void_v<ReturnType>)
 			{
 				Continuation(*ReinterpretCastRef<TSharedRef<T>>(Value));
 				Promise.Set();

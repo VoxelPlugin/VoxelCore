@@ -1161,16 +1161,25 @@ struct FVoxelOctahedron
 	uint8 Y;
 };
 
-FORCEINLINE uint8 FloatToUINT8(const float Float)
+FORCEINLINE int32 FloatToUINT8_int32(const float Float)
 {
 	return clamp((int32)floor(Float * 255.999f), 0, 255);
 }
-FORCEINLINE float UINT8ToFloat(const uint8 Int)
+FORCEINLINE float UINT8ToFloat_int32(const int32 Int)
 {
 	return Int / 255.f;
 }
 
-FORCEINLINE uint32 ReadBits(uint32 Data, const int32 FirstBit, const int32 NumBits)
+FORCEINLINE uint8 FloatToUINT8(const float Float)
+{
+	return FloatToUINT8_int32(Float);
+}
+FORCEINLINE float UINT8ToFloat(const uint8 Int)
+{
+	return UINT8ToFloat_int32(Int);
+}
+
+FORCEINLINE int32 ReadBits(uint32 Data, const int32 FirstBit, const int32 NumBits)
 {
 	check(0 <= FirstBit && FirstBit + NumBits <= 32);
 	check(0 < NumBits);
