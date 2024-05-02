@@ -22,6 +22,11 @@ void FVoxelInstancedStruct::InitializeAs(UScriptStruct* NewScriptStruct, const v
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+void FVoxelInstancedStruct::Reset()
+{
+	*this = FVoxelInstancedStruct();
+}
+
 uint64 FVoxelInstancedStruct::GetPropertyHash() const
 {
 	if (!IsValid())

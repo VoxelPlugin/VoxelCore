@@ -88,6 +88,7 @@ public:
 	}
 
 public:
+	void Reset();
 	uint64 GetPropertyHash() const;
 	bool NetSerialize(FArchive& Ar, UPackageMap& Map);
 
@@ -213,7 +214,7 @@ public:
 		return !Identical(&Other, PPF_None);
 	}
 
-private:
+protected:
 	UScriptStruct* PrivateScriptStruct = nullptr;
 	FSharedVoidPtr PrivateStructMemory;
 };
@@ -303,11 +304,41 @@ public:
 		return *this;
 	}
 
+	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
+	FORCEINLINE TVoxelInstancedStruct& operator=(const TSharedPtr<OtherType>& Other)
+	{
+		if (Other)
+		{
+			*this = Other.ToSharedRef();
+		}
+		else
+		{
+			Reset();
+		}
+		return *this;
+	}
+	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
+	FORCEINLINE TVoxelInstancedStruct& operator=(const TSharedRef<OtherType>& Other)
+	{
+		if constexpr (TIsDerivedFrom<OtherType, FVoxelVirtualStruct>::Value)
+		{
+			PrivateScriptStruct = Other->GetStruct();
+		}
+		else
+		{
+			PrivateScriptStruct = StaticStructFast<OtherType>();
+		}
+
+		PrivateStructMemory = MakeSharedVoidRef(Other);
+		return *this;
+	}
+
 public:
 	using FVoxelInstancedStruct::GetScriptStruct;
 	using FVoxelInstancedStruct::IsValid;
 	using FVoxelInstancedStruct::IsA;
 	using FVoxelInstancedStruct::AddStructReferencedObjects;
+	using FVoxelInstancedStruct::Reset;
 
 	FORCEINLINE TSharedRef<T> AsShared()
 	{
