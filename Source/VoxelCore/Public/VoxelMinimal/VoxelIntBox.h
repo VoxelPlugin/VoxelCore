@@ -502,6 +502,16 @@ struct VOXELCORE_API FVoxelIntBox
 		NewBox.Max = FVoxelUtilities::DivideCeil(Max, Step);
 		return NewBox;
 	}
+	FORCEINLINE FVoxelIntBox DivideExact(const int32 Step) const
+	{
+		checkVoxelSlow(Min % Step == 0);
+		checkVoxelSlow(Max % Step == 0);
+
+		FVoxelIntBox NewBox;
+		NewBox.Min = Min / Step;
+		NewBox.Max = Max / Step;
+		return NewBox;
+	}
 
 	// Guarantee: union(OutChilds).Contains(this)
 	bool Subdivide(
