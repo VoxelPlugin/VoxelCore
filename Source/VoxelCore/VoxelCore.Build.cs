@@ -45,6 +45,7 @@ public class VoxelCore : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
+				"Chaos",
 				"zlib",
 				"UElibPNG",
 				"HTTP",
