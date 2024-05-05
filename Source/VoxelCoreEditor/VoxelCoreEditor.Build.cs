@@ -39,6 +39,7 @@ public class VoxelCoreEditor : ModuleRules
         PrivateDependencyModuleNames.AddRange(
             new string[]
             {
+				"GraphEditor",
                 "PlacementMode",
                 "MessageLog",
                 "WorkspaceMenuStructure",
