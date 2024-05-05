@@ -11,7 +11,7 @@
 #undef private
 
 DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelDetailCustomization);
-DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelPropertyTypeCustomization);
+DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelPropertyTypeCustomizationBase);
 
 TSet<TWeakPtr<IPropertyHandle>> GVoxelWeakPropertyHandles;
 

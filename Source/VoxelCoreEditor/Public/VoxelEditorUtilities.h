@@ -506,7 +506,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-class VOXELCOREEDITOR_API FVoxelPropertyTypeCustomization : public IPropertyTypeCustomization
+class VOXELCOREEDITOR_API FVoxelPropertyTypeCustomizationBase : public IPropertyTypeCustomization
 {
 public:
 	VOXEL_COUNT_INSTANCES();
@@ -590,7 +590,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 
 #define VOXEL_CUSTOMIZE_STRUCT_HEADER_IMPL(Macro, Struct) \
-	class F ## Struct ## Customization : public FVoxelPropertyTypeCustomization \
+	class F ## Struct ## Customization : public FVoxelPropertyTypeCustomizationBase \
 	{ \
 	public: \
 		virtual void CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils) override; \
@@ -610,7 +610,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 
 #define VOXEL_CUSTOMIZE_STRUCT_CHILDREN_IMPL(Macro, Struct) \
-	class F ## Struct ## Customization : public FVoxelPropertyTypeCustomization \
+	class F ## Struct ## Customization : public FVoxelPropertyTypeCustomizationBase \
 	{ \
 	public: \
 		virtual void CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils) override {} \
