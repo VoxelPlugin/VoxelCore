@@ -3,7 +3,7 @@
 #include "VoxelPropertyCustomizationUtilities.h"
 #include "VoxelPropertyValue.h"
 
-TSharedPtr<FVoxelInstancedStructDetailsWrapper> FVoxelPropertyCustomizationUtilities::CreateValueCustomization(
+TSharedPtr<FVoxelInstancedStructDetailsWrapper> FVoxelPropertyCustomizationUtilities::CreateCustomization(
 	const TSharedRef<IPropertyHandle>& PropertyHandle,
 	const FVoxelDetailInterface& DetailInterface,
 	const FSimpleDelegate& RefreshDelegate,
@@ -254,6 +254,244 @@ TSharedPtr<FVoxelInstancedStructDetailsWrapper> FVoxelPropertyCustomizationUtili
 	return nullptr;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void FVoxelPropertyCustomizationUtilities::CreateRangeSetter(
+	FDetailWidgetRow& Row,
+	const TSharedRef<IPropertyHandle>& PropertyHandle,
+	const FText& Name,
+	const FText& ToolTip,
+	const FName Min,
+	const FName Max,
+	const TFunction<bool(const FVoxelPropertyType&)>& IsVisible,
+	const TFunction<TMap<FName, FString>(const TSharedPtr<IPropertyHandle>&)>& GetMetaData,
+	const TFunction<void(const TSharedPtr<IPropertyHandle>&, const TMap<FName, FString>&)>& SetMetaData)
+{
+	const auto RangeVisibility = [IsVisible, WeakHandle = MakeWeakPtr(PropertyHandle)]() -> EVisibility
+	{
+		const TSharedPtr<IPropertyHandle> Handle = WeakHandle.Pin();
+		if (!Handle)
+		{
+			return EVisibility::Collapsed;
+		}
+
+		const TSharedRef<IPropertyHandle> TypeHandle = Handle->GetChildHandle("Type", false).ToSharedRef();
+		const FVoxelPropertyType Type = FVoxelEditorUtilities::GetStructPropertyValue<FVoxelPropertyType>(TypeHandle).GetInnerType();
+		if (IsVisible(Type))
+		{
+			return EVisibility::Visible;
+		}
+
+		return EVisibility::Collapsed;
+	};
+
+	FText MinValue;
+	FText MaxValue;
+	{
+		TMap<FName, FString> MetaData = GetMetaData(PropertyHandle);
+		if (const FString* Value = MetaData.Find(Min))
+		{
+			MinValue = FText::FromString(*Value);
+		}
+		if (const FString* Value = MetaData.Find(Max))
+		{
+			MaxValue = FText::FromString(*Value);
+		}
+	}
+
+	Row
+	.Visibility(MakeAttributeLambda(RangeVisibility))
+	.NameContent()
+	[
+		SNew(SVoxelDetailText)
+		.Text(Name)
+		.ToolTipText(ToolTip)
+	]
+	.ValueContent()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.FillWidth(1.f)
+		[
+			SNew(SEditableTextBox)
+			.Text(MinValue)
+			.OnTextCommitted_Lambda([Min, GetMetaData, SetMetaData, WeakHandle = MakeWeakPtr(PropertyHandle)](const FText& NewValue, const ETextCommit::Type ActionType)
+			{
+				const TSharedPtr<IPropertyHandle> Handle = WeakHandle.Pin();
+				if (!ensure(Handle))
+				{
+					return;
+				}
+
+				if (ActionType != ETextCommit::OnEnter &&
+					ActionType != ETextCommit::OnUserMovedFocus)
+				{
+					return;
+				}
+
+				TMap<FName, FString> MetaData = GetMetaData(Handle);
+				if (!NewValue.IsEmpty())
+				{
+					MetaData.Add(Min, NewValue.ToString());
+				}
+				else
+				{
+					MetaData.Remove(Min);
+				}
+				SetMetaData(Handle, MetaData);
+			})
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(SVoxelDetailText)
+			.Text(INVTEXT(" .. "))
+		]
+		+ SHorizontalBox::Slot()
+		.FillWidth(1)
+		[
+			SNew(SEditableTextBox)
+			.Text(MaxValue)
+			.OnTextCommitted_Lambda([Max, GetMetaData, SetMetaData, WeakHandle = MakeWeakPtr(PropertyHandle)](const FText& NewValue, const ETextCommit::Type ActionType)
+			{
+				const TSharedPtr<IPropertyHandle> Handle = WeakHandle.Pin();
+				if (!ensure(Handle))
+				{
+					return;
+				}
+
+				if (ActionType != ETextCommit::OnEnter &&
+					ActionType != ETextCommit::OnUserMovedFocus)
+				{
+					return;
+				}
+
+				TMap<FName, FString> MetaData = GetMetaData(Handle);
+				if (!NewValue.IsEmpty())
+				{
+					MetaData.Add(Max, NewValue.ToString());
+				}
+				else
+				{
+					MetaData.Remove(Max);
+				}
+				SetMetaData(Handle, MetaData);
+			})
+		]
+	];
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void FVoxelPropertyCustomizationUtilities::CreateUnitSetter(
+	FDetailWidgetRow& Row,
+	const TSharedRef<IPropertyHandle>& PropertyHandle,
+	const TFunction<TMap<FName, FString>(const TSharedPtr<IPropertyHandle>&)>& GetMetaData,
+	const TFunction<void(const TSharedPtr<IPropertyHandle>&, const TMap<FName, FString>&)>& SetMetaData)
+{
+	const auto UnitsVisibility = [WeakHandle = MakeWeakPtr(PropertyHandle)]() -> EVisibility
+	{
+		const TSharedPtr<IPropertyHandle> Handle = WeakHandle.Pin();
+		if (!Handle)
+		{
+			return EVisibility::Collapsed;
+		}
+
+		const TSharedRef<IPropertyHandle> TypeHandle = Handle->GetChildHandle("Type", false).ToSharedRef();
+		const FVoxelPropertyType Type = FVoxelEditorUtilities::GetStructPropertyValue<FVoxelPropertyType>(TypeHandle).GetInnerType();
+		return IsNumericType(Type) ? EVisibility::Visible : EVisibility::Collapsed;
+	};
+
+	TOptional<EUnit> Unit;
+	{
+		TMap<FName, FString> MetaData = GetMetaData(PropertyHandle);
+		if (const FString* Value = MetaData.Find(STATIC_FNAME("Units")))
+		{
+			Unit = FUnitConversion::UnitFromString(**Value);
+		}
+	}
+
+	Row
+	.Visibility(MakeAttributeLambda(UnitsVisibility))
+	.NameContent()
+	[
+		SNew(SVoxelDetailText)
+		.Text(INVTEXT("Units"))
+		.ToolTipText(INVTEXT("Units type to appear near the value"))
+	]
+	.ValueContent()
+	[
+		SNew(SVoxelDetailComboBox<EUnit>)
+		.NoRefreshDelegate()
+		.CurrentOption(Unit.Get(EUnit::Unspecified))
+		.Options_Lambda([]
+		{
+			static TArray<EUnit> Result;
+			if (Result.Num() == 0)
+			{
+				const UEnum* Enum = StaticEnumFast<EUnit>();
+				Result.SetNum(Enum->NumEnums() - 1);
+				Result[0] = EUnit::Unspecified;
+				// -2 for MAX and Unspecified, since Unspecified is last entry
+				for (uint8 Index = 0; Index < Enum->NumEnums() - 2; Index++)
+				{
+					Result[Index + 1] = EUnit(Enum->GetValueByIndex(Index));
+				}
+			}
+			return Result;
+		})
+		.OnSelection_Lambda([GetMetaData, SetMetaData, WeakHandle = MakeWeakPtr(PropertyHandle)](const EUnit NewUnitType)
+		{
+			const TSharedPtr<IPropertyHandle> Handle = WeakHandle.Pin();
+			if (!ensure(Handle))
+			{
+				return;
+			}
+
+			TMap<FName, FString> MetaData = GetMetaData(Handle);
+			if (NewUnitType == EUnit::Unspecified)
+			{
+				MetaData.Remove(STATIC_FNAME("Units"));
+			}
+			else
+			{
+				const UEnum* Enum = StaticEnumFast<EUnit>();
+				FString NewValue = Enum->GetValueAsName(NewUnitType).ToString();
+				NewValue.RemoveFromStart("EUnit::");
+
+				// These types have different parse candidates
+				switch (NewUnitType)
+				{
+				case EUnit::Multiplier: NewValue = "times"; break;
+				case EUnit::KilogramCentimetersPerSecondSquared: NewValue = "KilogramsCentimetersPerSecondSquared"; break;
+				case EUnit::KilogramCentimetersSquaredPerSecondSquared: NewValue = "KilogramsCentimetersSquaredPerSecondSquared"; break;
+				case EUnit::CandelaPerMeter2: NewValue = "CandelaPerMeterSquared"; break;
+				case EUnit::ExposureValue: NewValue = "EV"; break;
+				case EUnit::PixelsPerInch: NewValue = "ppi"; break;
+				case EUnit::Percentage: NewValue = "Percent"; break;
+				default: break;
+				}
+
+				MetaData.Add(STATIC_FNAME("Units"), FUnitConversion::GetUnitDisplayString(NewUnitType));
+			}
+			SetMetaData(Handle, MetaData);
+		})
+		.OptionText_Lambda([](const EUnit UnitType)
+		{
+			const UEnum* Enum = StaticEnumFast<EUnit>();
+			return Enum->GetDisplayNameTextByValue(int64(UnitType)).ToString();
+		})
+	];
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 float FVoxelPropertyCustomizationUtilities::GetValueWidgetWidthByType(
 	const TSharedPtr<IPropertyHandle>& PropertyHandle,
 	const FVoxelPropertyType& Type)
@@ -297,6 +535,25 @@ float FVoxelPropertyCustomizationUtilities::GetValueWidgetWidthByType(
 	}
 
 	return FDetailWidgetRow::DefaultValueMaxWidth + ExtendByArray;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+bool FVoxelPropertyCustomizationUtilities::IsNumericType(const FVoxelPropertyType& Type)
+{
+	return
+		Type.Is<int32>() ||
+		Type.Is<float>() ||
+		Type.Is<double>() ||
+		Type.Is<FIntPoint>() ||
+		Type.Is<FIntVector>() ||
+		Type.Is<FIntVector4>() ||
+		Type.Is<FVector2D>() ||
+		Type.Is<FVector>() ||
+		Type.Is<FVoxelInt32Range>() ||
+		Type.Is<FVoxelFloatRange>();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

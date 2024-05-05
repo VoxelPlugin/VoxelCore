@@ -51,7 +51,7 @@ public:
 			}
 		}
 
-		Wrapper = FVoxelPropertyCustomizationUtilities::CreateValueCustomization(
+		Wrapper = FVoxelPropertyCustomizationUtilities::CreateCustomization(
 			PropertyHandle,
 			ChildBuilder,
 			FVoxelEditorUtilities::MakeRefreshDelegate(this, CustomizationUtils),
