@@ -23,7 +23,6 @@ public:
 	{
 		FArguments()
 		{
-			_CurrentOption = T{};
 			_CanEnterCustomOption = false;
 
 			if constexpr (std::is_same_v<T, FName> || std::is_same_v<T, FString>)
@@ -64,7 +63,8 @@ public:
 		}
 
 		SLATE_ATTRIBUTE(TArray<T>, Options);
-		SLATE_ATTRIBUTE(T, CurrentOption);
+		// CurrentOption must always return the "live" option, so force it to be a lambda
+		SLATE_ARGUMENT(TFunction<T()>, CurrentOption_Lambda);
 
 		SLATE_ARGUMENT(bool, CanEnterCustomOption);
 		SLATE_EVENT(FOnMakeOptionFromText, OnMakeOptionFromText);
@@ -80,7 +80,7 @@ public:
 	void Construct(const FArguments& Args)
 	{
 		OptionsAttribute = Args._Options;
-		CurrentOptionAttribute = Args._CurrentOption;
+		CurrentOptionAttribute = MakeAttributeLambda(Args._CurrentOption_Lambda);
 
 		for (T Option : OptionsAttribute.Get())
 		{

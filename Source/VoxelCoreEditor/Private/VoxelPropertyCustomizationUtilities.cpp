@@ -156,8 +156,8 @@ TSharedPtr<FVoxelInstancedStructDetailsWrapper> FVoxelPropertyCustomizationUtili
 				return ValueHandle->CreatePropertyValueWidget();
 			}
 
-			uint8 Byte = 0;
-			switch (ValueHandle->GetValue(Byte))
+			uint8 Dummy = 0;
+			switch (ValueHandle->GetValue(Dummy))
 			{
 			default:
 			{
@@ -167,11 +167,6 @@ TSharedPtr<FVoxelInstancedStructDetailsWrapper> FVoxelPropertyCustomizationUtili
 			case FPropertyAccess::MultipleValues:
 			{
 				return SNew(SVoxelDetailText).Text(INVTEXT("Multiple Values"));
-			}
-			case FPropertyAccess::Fail:
-			{
-				ensure(false);
-				return nullptr;
 			}
 			case FPropertyAccess::Success: break;
 			}
@@ -198,7 +193,12 @@ TSharedPtr<FVoxelInstancedStructDetailsWrapper> FVoxelPropertyCustomizationUtili
 
 						return Enumerators;
 					})
-					.CurrentOption(Byte)
+					.CurrentOption_Lambda([ValueHandle]
+					{
+						uint8 Byte = 0;
+						ensure(ValueHandle->GetValue(Byte) == FPropertyAccess::Success);
+						return Byte;
+					})
 					.OptionText(MakeLambdaDelegate([=](const uint8 Value)
 					{
 						FString EnumDisplayName = Enum->GetDisplayNameTextByValue(Value).ToString();
@@ -406,15 +406,6 @@ void FVoxelPropertyCustomizationUtilities::CreateUnitSetter(
 		return IsNumericType(Type) ? EVisibility::Visible : EVisibility::Collapsed;
 	};
 
-	TOptional<EUnit> Unit;
-	{
-		TMap<FName, FString> MetaData = GetMetaData(PropertyHandle);
-		if (const FString* Value = MetaData.Find(STATIC_FNAME("Units")))
-		{
-			Unit = FUnitConversion::UnitFromString(**Value);
-		}
-	}
-
 	Row
 	.Visibility(MakeAttributeLambda(UnitsVisibility))
 	.NameContent()
@@ -427,7 +418,18 @@ void FVoxelPropertyCustomizationUtilities::CreateUnitSetter(
 	[
 		SNew(SVoxelDetailComboBox<EUnit>)
 		.NoRefreshDelegate()
-		.CurrentOption(Unit.Get(EUnit::Unspecified))
+		.CurrentOption_Lambda([GetMetaData, PropertyHandle]
+		{
+			TMap<FName, FString> MetaData = GetMetaData(PropertyHandle);
+
+			const FString* Value = MetaData.Find(STATIC_FNAME("Units"));
+			if (!Value)
+			{
+				return EUnit::Unspecified;
+			}
+
+			return FUnitConversion::UnitFromString(**Value).Get(EUnit::Unspecified);
+		})
 		.Options_Lambda([]
 		{
 			static TArray<EUnit> Result;
