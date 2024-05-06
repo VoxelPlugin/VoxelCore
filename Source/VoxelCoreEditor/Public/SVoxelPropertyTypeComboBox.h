@@ -7,7 +7,7 @@
 
 class SVoxelPropertyTypeSelector;
 
-class SVoxelPropertyTypeComboBox : public SCompoundWidget
+class VOXELCOREEDITOR_API SVoxelPropertyTypeComboBox : public SCompoundWidget
 {
 public:
 	DECLARE_DELEGATE_OneParam(FOnTypeChanged, FVoxelPropertyType)

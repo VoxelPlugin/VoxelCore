@@ -28,13 +28,11 @@ public:
 
 	// Copy constructors are inherited on MSVC, but implementing them manually deletes all the other inherited constructors
 #if !defined(_MSC_VER) || _MSC_VER > 1929 || PLATFORM_COMPILER_CLANG
-#ifndef __RESHARPER__
 	template<typename OtherElementType, typename OtherAllocator>
 	FORCEINLINE explicit TVoxelArray(const TArray<OtherElementType, OtherAllocator>& Other)
 		: Super(Other)
 	{
 	}
-#endif
 #endif
 
 	template<typename OtherAllocator>

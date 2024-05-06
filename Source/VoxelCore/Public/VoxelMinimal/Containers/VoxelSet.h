@@ -125,20 +125,26 @@ public:
 
 		Rehash();
 	}
-	FORCENOINLINE void Append(const TConstVoxelArrayView<Type> Array)
+	FORCEINLINE void Append(const TConstVoxelArrayView<Type> Array)
+	{
+		this->Append<Type>(Array);
+	}
+	template<typename OtherType, typename = std::enable_if_t<TIsConstructible<Type, OtherType>::Value>>
+	FORCENOINLINE void Append(const TConstVoxelArrayView<OtherType> Array)
 	{
 		this->Reserve(Num() + Array.Num());
 
-		for (const Type& Value : Array)
+		for (const OtherType& Value : Array)
 		{
 			this->Add(Value);
 		}
 	}
-	FORCENOINLINE void Append(const TVoxelSet<Type>& Set)
+	template<typename OtherType, typename = std::enable_if_t<TIsConstructible<Type, OtherType>::Value>>
+	FORCENOINLINE void Append(const TVoxelSet<OtherType>& Set)
 	{
 		this->Reserve(Num() + Set.Num());
 
-		for (const Type& Value : Set)
+		for (const OtherType& Value : Set)
 		{
 			this->Add(Value);
 		}

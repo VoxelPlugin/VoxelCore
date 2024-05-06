@@ -1,6 +1,81 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 
+  <!-- FVoxelPropertyType visualizer -->
+  <Type Name="FVoxelPropertyType">
+    <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 0">null</DisplayString>
+    <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 1">bool</DisplayString>
+    <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 2">float</DisplayString>
+    <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 3">double</DisplayString>
+    <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 4">int32</DisplayString>
+    <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 5">int64</DisplayString>
+    <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 6">name</DisplayString>
+    <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 7 &amp;&amp; !PrivateInternalField.DebugPtr">uint8</DisplayString>
+    <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 8 &amp;&amp; PrivateInternalField.DebugPtr">{PrivateInternalField.DebugPtr->NamePrivate,sb}</DisplayString>
+    <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 8">{PrivateInternalField.DebugPtr->NamePrivate,sb} (class)</DisplayString>
+    <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 9">{PrivateInternalField.DebugPtr->NamePrivate,sb}</DisplayString>
+    <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 10">F{PrivateInternalField.DebugPtr->NamePrivate,sb}</DisplayString>
+
+    <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 0">null (array)</DisplayString>
+    <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 1">bool (array)</DisplayString>
+    <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 2">float (array)</DisplayString>
+    <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 3">double (array)</DisplayString>
+    <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 4">int32 (array)</DisplayString>
+    <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 5">int64 (array)</DisplayString>
+    <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 6">name (array)</DisplayString>
+    <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 7 &amp;&amp; !PrivateInternalField.DebugPtr">uint8 (array)</DisplayString>
+    <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 8 &amp;&amp; PrivateInternalField.DebugPtr">{PrivateInternalField.DebugPtr->NamePrivate,sb} (array)</DisplayString>
+    <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 8">{PrivateInternalField.DebugPtr->NamePrivate,sb} (class array)</DisplayString>
+    <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 9">{PrivateInternalField.DebugPtr->NamePrivate,sb} (array)</DisplayString>
+    <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 10">F{PrivateInternalField.DebugPtr->NamePrivate,sb} (array)</DisplayString>
+  </Type>
+
+  <!-- FVoxelPropertyTerminalValue visualizer -->
+  <Type Name="FVoxelPropertyTerminalValue">
+    <DisplayString Condition="Type.InternalType == 0">null</DisplayString>
+    <DisplayString Condition="Type.InternalType == 1">({Type}) {bBool}</DisplayString>
+    <DisplayString Condition="Type.InternalType == 2">({Type}) {Float}</DisplayString>
+    <DisplayString Condition="Type.InternalType == 3">({Type}) {Double}</DisplayString>
+    <DisplayString Condition="Type.InternalType == 4">({Type}) {Int32}</DisplayString>
+    <DisplayString Condition="Type.InternalType == 5">({Type}) {Int64}</DisplayString>
+    <DisplayString Condition="Type.InternalType == 6">({Type}) {Name} </DisplayString>
+    <DisplayString Condition="Type.InternalType == 7">({Type}) {Byte}</DisplayString>
+    <DisplayString Condition="Type.InternalType == 8">({Type}) {Class.Class}</DisplayString>
+    <DisplayString Condition="Type.InternalType == 9">({Type}) {Object}</DisplayString>
+    <DisplayString Condition="Type.InternalType == 10">({Type}) {*(FVoxelVirtualStruct*)Struct.PrivateStructMemory.Object}</DisplayString>
+    <Expand>
+      <Item Name="Type">Type</Item>
+      <Item Name="Class" Condition="Type.InternalType == 8">Class.Class</Item>
+      <Item Name="Object" Condition="Type.InternalType == 9">Object</Item>
+      <Item Name="Value" Condition="Type.InternalType == 10">*(FVoxelVirtualStruct*)Struct.PrivateStructMemory.Object</Item>
+      <Item Name="Memory" Condition="Type.InternalType == 10">(void*)Struct.PrivateStructMemory.Object</Item>
+    </Expand>
+  </Type>
+
+  <!-- FVoxelPropertyValue visualizer -->
+  <Type Name="FVoxelPropertyValue">
+    <DisplayString Condition="Type.InternalType == 0">null</DisplayString>
+    <DisplayString Condition="Type.ContainerType == 1">{Type} {Array}</DisplayString>
+    <DisplayString Condition="Type.ContainerType == 0 &amp;&amp; Type.InternalType == 1">({Type}) {bBool}</DisplayString>
+    <DisplayString Condition="Type.ContainerType == 0 &amp;&amp; Type.InternalType == 2">({Type}) {Float}</DisplayString>
+    <DisplayString Condition="Type.ContainerType == 0 &amp;&amp; Type.InternalType == 3">({Type}) {Double}</DisplayString>
+    <DisplayString Condition="Type.ContainerType == 0 &amp;&amp; Type.InternalType == 4">({Type}) {Int32}</DisplayString>
+    <DisplayString Condition="Type.ContainerType == 0 &amp;&amp; Type.InternalType == 5">({Type}) {Int64}</DisplayString>
+    <DisplayString Condition="Type.ContainerType == 0 &amp;&amp; Type.InternalType == 6">({Type}) {Name} </DisplayString>
+    <DisplayString Condition="Type.ContainerType == 0 &amp;&amp; Type.InternalType == 7">({Type}) {Byte}</DisplayString>
+    <DisplayString Condition="Type.ContainerType == 0 &amp;&amp; Type.InternalType == 8">({Type}) {Class.Class}</DisplayString>
+    <DisplayString Condition="Type.ContainerType == 0 &amp;&amp; Type.InternalType == 9">({Type}) {Object}</DisplayString>
+    <DisplayString Condition="Type.ContainerType == 0 &amp;&amp; Type.InternalType == 10">({Type}) {*(FVoxelVirtualStruct*)Struct.PrivateStructMemory.Object}</DisplayString>
+    <Expand>
+      <Item Name="Type">Type</Item>
+      <Item Name="Array" Condition="Type.ContainerType == 1">Array</Item>
+      <Item Name="Class" Condition="Type.ContainerType == 0 &amp;&amp; Type.InternalType == 8">Class.Class</Item>
+      <Item Name="Object" Condition="Type.ContainerType == 0 &amp;&amp; Type.InternalType == 9">Object</Item>
+      <Item Name="Value" Condition="Type.ContainerType == 0 &amp;&amp; Type.InternalType == 10">*(FVoxelVirtualStruct*)Struct.PrivateStructMemory.Object</Item>
+      <Item Name="Memory" Condition="Type.ContainerType == 0 &amp;&amp; Type.InternalType == 10">(void*)Struct.PrivateStructMemory.Object</Item>
+    </Expand>
+  </Type>
+
   <!-- FVoxelGraphNodeRef visualizer -->
   <Type Name="FVoxelGraphNodeRef">
     <DisplayString>{EdGraphNodeTitle,sb} - {NodeId}</DisplayString>
@@ -62,13 +137,13 @@
     <DisplayString Condition="Type.InternalType == 8">({Type}) {Byte}</DisplayString>
     <DisplayString Condition="Type.InternalType == 9">({Type}) {Class.Class}</DisplayString>
     <DisplayString Condition="Type.InternalType == 10">({Type}) {Object}</DisplayString>
-    <DisplayString Condition="Type.InternalType == 11">({Type}) {*(FVoxelVirtualStruct*)Struct.StructMemory}</DisplayString>
+    <DisplayString Condition="Type.InternalType == 11">({Type}) {*(FVoxelVirtualStruct*)Struct.PrivateStructMemory.Object}</DisplayString>
     <Expand>
       <Item Name="Type">Type</Item>
       <Item Name="Class" Condition="Type.InternalType == 9">Class.Class</Item>
       <Item Name="Object" Condition="Type.InternalType == 10">Object</Item>
-      <Item Name="Value" Condition="Type.InternalType == 11">*(FVoxelVirtualStruct*)Struct.StructMemory</Item>
-      <Item Name="Memory" Condition="Type.InternalType == 11">(void*)Struct.StructMemory</Item>
+      <Item Name="Value" Condition="Type.InternalType == 11">*(FVoxelVirtualStruct*)Struct.PrivateStructMemory.Object</Item>
+      <Item Name="Memory" Condition="Type.InternalType == 11">(void*)Struct.PrivateStructMemory.Object</Item>
     </Expand>
   </Type>
 
@@ -84,14 +159,14 @@
     <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 8">({Type}) {Byte}</DisplayString>
     <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 9">({Type}) {Class.Class}</DisplayString>
     <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 10">({Type}) {Object}</DisplayString>
-    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 11">({Type}) {*(FVoxelVirtualStruct*)Struct.StructMemory}</DisplayString>
+    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 11">({Type}) {*(FVoxelVirtualStruct*)Struct.PrivateStructMemory.Object}</DisplayString>
     <Expand>
       <Item Name="Type">Type</Item>
       <Item Name="Array" Condition="Type.bIsBuffer">Array</Item>
       <Item Name="Class" Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 9">Class.Class</Item>
       <Item Name="Object" Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 10">Object</Item>
-      <Item Name="Value" Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 11">*(FVoxelVirtualStruct*)Struct.StructMemory</Item>
-      <Item Name="Memory" Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 11">(void*)Struct.StructMemory</Item>
+      <Item Name="Value" Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 11">*(FVoxelVirtualStruct*)Struct.PrivateStructMemory.Object</Item>
+      <Item Name="Memory" Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 11">(void*)Struct.PrivateStructMemory.Object</Item>
     </Expand>
   </Type>
 
@@ -346,7 +421,7 @@
     <DisplayString Condition = "ScriptStruct == nullptr">Unset</DisplayString>
     <DisplayString Condition = "ScriptStruct != nullptr">Type=F{ScriptStruct->NamePrivate,sb}</DisplayString>
     <Expand>
-      <ExpandedItem Condition="ScriptStruct != nullptr">*(FVoxelVirtualStruct*)StructMemory</ExpandedItem>
+      <ExpandedItem Condition="ScriptStruct != nullptr">*(FVoxelVirtualStruct*)PrivateStructMemory.Object</ExpandedItem>
     </Expand>
   </Type>
 
@@ -355,7 +430,7 @@
     <DisplayString Condition = "ScriptStruct == nullptr">Unset</DisplayString>
     <DisplayString Condition = "ScriptStruct != nullptr">Type=F{ScriptStruct->NamePrivate}</DisplayString>
     <Expand>
-      <ExpandedItem Condition="ScriptStruct != nullptr">*($T1*)StructMemory</ExpandedItem>
+      <ExpandedItem Condition="ScriptStruct != nullptr">*($T1*)PrivateStructMemory.Object</ExpandedItem>
     </Expand>
   </Type>
 
