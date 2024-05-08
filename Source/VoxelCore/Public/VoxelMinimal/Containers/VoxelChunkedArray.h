@@ -42,7 +42,20 @@ public:
 		Other.ArrayNum = 0;
 		return *this;
 	}
-	TVoxelChunkedArray& operator=(const TVoxelChunkedArray&) = delete;
+	TVoxelChunkedArray& operator=(const TVoxelChunkedArray& Other)
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 1024);
+
+		Reset();
+		SetNum(Other.Num());
+
+		for (int32 Index = 0; Index < Num(); Index++)
+		{
+			(*this)[Index] = Other[Index];
+		}
+
+		return *this;
+	}
 
 public:
 	void SetNumUninitialized(const int32 NewNum)
@@ -227,6 +240,8 @@ public:
 	{
 		int32 Num = Array.Num();
 		Ar << Num;
+
+		VOXEL_FUNCTION_COUNTER_NUM(Num, 1024);
 
 		if constexpr (TVoxelCanBulkSerialize<Type>::Value)
 		{

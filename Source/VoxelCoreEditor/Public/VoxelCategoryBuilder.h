@@ -45,6 +45,7 @@ private:
 		virtual void GenerateHeaderRowContent(FDetailWidgetRow& NodeRow) override;
 		virtual void GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder) override;
 		virtual FName GetName() const override;
+		virtual bool InitiallyCollapsed() const override;
 		//~ End IDetailCustomNodeBuilder Interface
 	};
 

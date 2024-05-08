@@ -37,9 +37,12 @@ void FVoxelCategoryBuilder::Apply(IDetailLayoutBuilder& DetailLayout) const
 
 	for (const auto& It : RootCategory->NameToChild)
 	{
-		IDetailCategoryBuilder& Category = DetailLayout.EditCategory(FName(It.Key));
+		IDetailCategoryBuilder& Category = DetailLayout.EditCategory(It.Key);
 		It.Value->Apply(
-			BaseNameForExpansionState.ToString() + ".",
+			(BaseNameForExpansionState.IsNone() ? "FVoxelCategoryBuilder" : BaseNameForExpansionState.ToString()) +
+			"." +
+			It.Key.ToString() +
+			".",
 			Category);
 	}
 }
@@ -119,4 +122,10 @@ void FVoxelCategoryBuilder::FCustomNodeBuilder::GenerateChildContent(IDetailChil
 FName FVoxelCategoryBuilder::FCustomNodeBuilder::GetName() const
 {
 	return FName(CategoryPath);
+}
+
+bool FVoxelCategoryBuilder::FCustomNodeBuilder::InitiallyCollapsed() const
+{
+	// Match categories' behavior
+	return false;
 }
