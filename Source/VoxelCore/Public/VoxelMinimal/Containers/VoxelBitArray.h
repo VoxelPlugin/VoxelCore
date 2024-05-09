@@ -212,16 +212,16 @@ public:
 	{
 		FVoxelBitArrayHelpers::SetRange(*this, Index, Num, Value);
 	}
-	FORCEINLINE bool TestAndClear(uint32 Index)
+	FORCEINLINE bool TestAndClear(SizeType Index)
 	{
 		return FVoxelBitArrayHelpers::TestAndClear(*this, Index);
 	}
-	FORCEINLINE bool TestRange(uint32 Index, uint32 Num) const
+	FORCEINLINE bool TestRange(SizeType Index, SizeType Num) const
 	{
 		return FVoxelBitArrayHelpers::TestRange(*this, Index, Num);
 	}
 	// Test a range, and clears it if all true
-	FORCEINLINE bool TestAndClearRange(uint32 Index, uint32 Num)
+	FORCEINLINE bool TestAndClearRange(SizeType Index, SizeType Num)
 	{
 		return FVoxelBitArrayHelpers::TestAndClearRange(*this, Index, Num);
 	}

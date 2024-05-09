@@ -37,13 +37,18 @@ struct TVoxelFunctionInfo<ReturnType(Class::*)(ArgTypes...)> : TVoxelFunctionInf
 ///////////////////////////////////////////////////////////////////////////////
 
 template<typename LambdaType, typename = void>
-struct TVoxelLambdaInfo : TVoxelFunctionInfo<void()>
+struct TVoxelLambdaInfo
 {
 	static_assert(sizeof(LambdaType) == -1, "LambdaType is not a lambda. Note that generic lambdas (eg [](auto)) are not supported.");
 };
 
 template<typename LambdaType>
 struct TVoxelLambdaInfo<LambdaType, std::enable_if_t<sizeof(decltype(&LambdaType::operator())) != 0>> : TVoxelFunctionInfo<decltype(&LambdaType::operator())>
+{
+};
+
+template<typename LambdaType>
+struct TVoxelLambdaInfo<LambdaType&> : TVoxelLambdaInfo<LambdaType>
 {
 };
 
