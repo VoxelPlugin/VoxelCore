@@ -82,6 +82,14 @@ extern UNREALED_API UEditorEngine* GEditor;
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <cstdint>
+
+namespace std
+{
+	using uint64 = uint64_t;
+	using int64 = int64_t;
+}
+
 // Fix clang errors due to long long vs long issues
 #define int64_t int64
 #define uint64_t uint64
