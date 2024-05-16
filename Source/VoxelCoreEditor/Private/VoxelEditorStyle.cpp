@@ -142,7 +142,7 @@ void FVoxelEditorStyle::ReinitializeStyle()
 ///////////////////////////////////////////////////////////////////////////////
 
 // Run this last, after all styles are registered
-VOXEL_RUN_ON_STARTUP(RegisterVoxelEditorStyle, EditorCommandlet, -999)
+VOXEL_RUN_ON_STARTUP(EditorCommandlet, -999)
 {
 	FVoxelEditorStyle::Register();
 }

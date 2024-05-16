@@ -11,7 +11,7 @@ public:
 };
 
 #define DEFINE_VOXEL_PLACEABLE_ITEM_FACTORY(ActorFactory) \
-	VOXEL_RUN_ON_STARTUP_EDITOR(Register ## ActorFactory) \
+	VOXEL_RUN_ON_STARTUP_EDITOR() \
 	{ \
 		FVoxelPlaceableItemUtilities::RegisterActorFactory(ActorFactory::StaticClass()); \
 	}

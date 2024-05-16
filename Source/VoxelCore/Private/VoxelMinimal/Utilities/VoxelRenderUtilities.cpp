@@ -333,7 +333,7 @@ void ProcessVoxelShaderStatsScopes(FRDGBuilder& GraphBuilder)
 	}
 }
 
-VOXEL_RUN_ON_STARTUP_GAME(RegisterProcessVoxelShaderStatsScopes)
+VOXEL_RUN_ON_STARTUP_GAME()
 {
 	FVoxelRenderUtilities::OnPreRender().AddStatic(ProcessVoxelShaderStatsScopes);
 }
@@ -885,7 +885,7 @@ void FVoxelRenderUtilities::CopyToTextureArray(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-VOXEL_RUN_ON_STARTUP(RegisterOnPreRender, FirstTick, 0)
+VOXEL_RUN_ON_STARTUP(FirstTick, 0)
 {
 	GEngine->GetPreRenderDelegateEx().AddLambda([](FRDGBuilder& GraphBuilder)
 	{
@@ -921,7 +921,7 @@ void FlushVoxelGraphBuilderQueue(FRDGBuilder& GraphBuilder)
 	}
 }
 
-VOXEL_RUN_ON_STARTUP_GAME(RegisterFlushVoxelGraphBuilderQueue)
+VOXEL_RUN_ON_STARTUP_GAME()
 {
 	FVoxelRenderUtilities::OnPreRender().AddStatic(FlushVoxelGraphBuilderQueue);
 }
@@ -966,7 +966,7 @@ void ProcessQueuedVoxelReadbacks()
 	}
 }
 
-VOXEL_RUN_ON_STARTUP_GAME(RegisterProcessQueuedVoxelReadbacks)
+VOXEL_RUN_ON_STARTUP_GAME()
 {
 	FCoreDelegates::OnEndFrameRT.AddStatic(ProcessQueuedVoxelReadbacks);
 }
@@ -1036,7 +1036,7 @@ void FVoxelRenderUtilities::KeepAlive(FRDGBuilder& GraphBuilder, const void* Key
 
 TMap<void*, TFunction<void()>> GVoxelKeepAliveThisFrame;
 
-VOXEL_RUN_ON_STARTUP_GAME(RegisterKeepAliveThisFrame)
+VOXEL_RUN_ON_STARTUP_GAME()
 {
 	FCoreDelegates::OnEndFrameRT.AddLambda([]
 	{

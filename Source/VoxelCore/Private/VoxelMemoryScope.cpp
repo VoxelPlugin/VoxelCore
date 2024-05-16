@@ -19,7 +19,7 @@ DECLARE_VOXEL_MEMORY_STAT(VOXELCORE_API, STAT_VoxelMemoryTotal, "Total Memory Al
 DEFINE_VOXEL_MEMORY_STAT(STAT_VoxelMemoryTotal);
 
 #if VOXEL_DEBUG
-VOXEL_RUN_ON_STARTUP_GAME(TestVoxelMemory)
+VOXEL_RUN_ON_STARTUP_GAME()
 {
 	for (int32 AlignmentLog2 = 0; AlignmentLog2 < 15; AlignmentLog2++)
 	{
@@ -124,7 +124,7 @@ FVoxelCriticalSection GVoxelValidAllocationsCriticalSection;
 TVoxelMap<void*, FVoxelMemoryStackFrames, TVoxelMapArrayType<FDefaultAllocator>> GVoxelValidAllocations;
 bool GVoxelCheckValidAllocations = false;
 
-VOXEL_RUN_ON_STARTUP_GAME(InitializeCheckValidAllocations)
+VOXEL_RUN_ON_STARTUP_GAME()
 {
 	if (FParse::Param(FCommandLine::Get(), TEXT("CheckVoxelAllocs")))
 	{
@@ -170,7 +170,7 @@ void UpdateVoxelAllocationStackFrames(void* Result, const bool bIsAdd)
 		MakeVoxelArrayView(TmpStackFrames).RightOf(NumFramesToIgnore));
 }
 
-VOXEL_RUN_ON_STARTUP_GAME(CheckVoxelAllocations)
+VOXEL_RUN_ON_STARTUP_GAME()
 {
 	GOnVoxelModuleUnloaded.AddLambda([]
 	{

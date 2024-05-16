@@ -100,7 +100,7 @@ void DestroyVoxelSingletonManager()
 	GVoxelSingletonManager = nullptr;
 }
 
-VOXEL_RUN_ON_STARTUP_GAME(RegisterVoxelSingletonManager )
+VOXEL_RUN_ON_STARTUP_GAME()
 {
 	VOXEL_FUNCTION_COUNTER();
 

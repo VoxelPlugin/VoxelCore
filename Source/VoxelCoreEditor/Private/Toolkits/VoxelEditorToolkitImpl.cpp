@@ -7,7 +7,7 @@
 
 TMap<UClass*, UScriptStruct*> GVoxelToolkits;
 
-VOXEL_RUN_ON_STARTUP_EDITOR(RegisterToolkits)
+VOXEL_RUN_ON_STARTUP_EDITOR()
 {
 	for (UScriptStruct* Struct : GetDerivedStructs<FVoxelToolkit>())
 	{

@@ -41,7 +41,7 @@ public:
 
 FVoxelTickerManager* GVoxelTickerManager = nullptr;
 
-VOXEL_RUN_ON_STARTUP(RegisterVoxelTickerManager, Game, 999)
+VOXEL_RUN_ON_STARTUP(Game, 999)
 {
 	GVoxelTickerManager = new FVoxelTickerManager();
 

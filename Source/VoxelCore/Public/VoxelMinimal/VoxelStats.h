@@ -482,7 +482,7 @@ private:
 	} \
 	\
 	class FVoxelTicker_TrackInstancesSlow_ ## Struct : public FVoxelTicker { virtual void Tick() override {} }; \
-	VOXEL_RUN_ON_STARTUP_GAME(Make_ ## FVoxelTicker_TrackInstancesSlow_ ## Struct) \
+	VOXEL_RUN_ON_STARTUP_GAME() \
 	{ \
 		new FVoxelTicker_TrackInstancesSlow_ ## Struct(); \
 	}
@@ -527,7 +527,7 @@ private:
 	DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num " #Struct), STAT_Num ## Struct, STATGROUP_VoxelCounters); \
 	FVoxelCounter64 Struct::VoxelInstanceCount; \
 	\
-	VOXEL_RUN_ON_STARTUP_GAME(RegisterInstanceCounter_ ## Struct) \
+	VOXEL_RUN_ON_STARTUP_GAME() \
 	{ \
 		VOXELCORE_API void RegisterVoxelInstanceCounter(FName StatName, const FVoxelCounter64& Counter); \
 		RegisterVoxelInstanceCounter(GET_STATFNAME(STAT_Num ## Struct), Struct::VoxelInstanceCount); \

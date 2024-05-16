@@ -270,7 +270,7 @@ public:
 	//~ End FVoxelTicker Interface
 };
 
-VOXEL_RUN_ON_STARTUP_GAME(RegisterVoxelInstanceCounters)
+VOXEL_RUN_ON_STARTUP_GAME()
 {
 	new FVoxelInstanceCounterTicker();
 

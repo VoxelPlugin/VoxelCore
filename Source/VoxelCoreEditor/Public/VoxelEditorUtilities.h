@@ -28,7 +28,7 @@ VOXELCOREEDITOR_API FString Voxel_GetCommandsName(FString Name);
 #define DEFINE_VOXEL_COMMANDS(InName) \
 	template<> \
 	FString TVoxelCommands<InName>::Name = Voxel_GetCommandsName(#InName); \
-	VOXEL_RUN_ON_STARTUP_EDITOR(Register ## InName) \
+	VOXEL_RUN_ON_STARTUP_EDITOR() \
 	{ \
 		InName::Register(); \
 	}
@@ -531,31 +531,31 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 
 #define DEFINE_VOXEL_CLASS_LAYOUT(Class, Customization) \
-	VOXEL_RUN_ON_STARTUP_EDITOR(RegisterVoxelClassLayout_ ## Class) \
+	VOXEL_RUN_ON_STARTUP_EDITOR() \
 	{ \
 		RegisterVoxelClassLayout<Class, Customization>(); \
 	}
 
 #define DEFINE_VOXEL_STRUCT_LAYOUT(Struct, Customization) \
-	VOXEL_RUN_ON_STARTUP_EDITOR(RegisterVoxelStructLayout_ ## Struct) \
+	VOXEL_RUN_ON_STARTUP_EDITOR() \
 	{ \
 		RegisterVoxelStructLayout<Struct, Customization, false>(); \
 	}
 
 #define DEFINE_VOXEL_STRUCT_LAYOUT_IDENTIFIER(Struct, Customization, Identifier) \
-	VOXEL_RUN_ON_STARTUP_EDITOR(RegisterVoxelStructLayout_ ## Struct) \
+	VOXEL_RUN_ON_STARTUP_EDITOR() \
 	{ \
 		RegisterVoxelStructLayout<Struct, Customization, false, Identifier>(); \
 	}
 
 #define DEFINE_VOXEL_STRUCT_LAYOUT_RECURSIVE(Struct, Customization) \
-	VOXEL_RUN_ON_STARTUP_EDITOR(RegisterVoxelStructLayout_ ## Struct) \
+	VOXEL_RUN_ON_STARTUP_EDITOR() \
 	{ \
 		RegisterVoxelStructLayout<Struct, Customization, true>(); \
 	}
 
 #define DEFINE_VOXEL_STRUCT_LAYOUT_RECURSIVE_IDENTIFIER(Struct, Customization, Identifier) \
-	VOXEL_RUN_ON_STARTUP_EDITOR(RegisterVoxelStructLayout_ ## Struct) \
+	VOXEL_RUN_ON_STARTUP_EDITOR() \
 	{ \
 		RegisterVoxelStructLayout<Struct, Customization, true, Identifier>(); \
 	}

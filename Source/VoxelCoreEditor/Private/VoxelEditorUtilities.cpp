@@ -15,7 +15,7 @@ DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelPropertyTypeCustomizationBase);
 
 TSet<TWeakPtr<IPropertyHandle>> GVoxelWeakPropertyHandles;
 
-VOXEL_RUN_ON_STARTUP_EDITOR(RegisterVoxelWeakPropertyHandles)
+VOXEL_RUN_ON_STARTUP_EDITOR()
 {
 	GOnVoxelModuleUnloaded.AddLambda([]
 	{

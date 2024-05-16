@@ -293,21 +293,26 @@ struct VOXELCORE_API FVoxelRunOnStartupPhaseHelper
 	FVoxelRunOnStartupPhaseHelper(EVoxelRunOnStartupPhase Phase, int32 Priority, TFunction<void()> Lambda);
 };
 
-#define VOXEL_RUN_ON_STARTUP(UniqueId, Phase, Priority) \
-	INTELLISENSE_ONLY(void UniqueId();) \
-	void VOXEL_APPEND_LINE(PREPROCESSOR_JOIN(VoxelStartupFunction, UniqueId))(); \
-	static const FVoxelRunOnStartupPhaseHelper PREPROCESSOR_JOIN(VoxelRunOnStartupPhaseHelper, UniqueId)(EVoxelRunOnStartupPhase::Phase, Priority, [] \
-	{ \
-		VOXEL_APPEND_LINE(PREPROCESSOR_JOIN(VoxelStartupFunction, UniqueId))(); \
-	}); \
-	void VOXEL_APPEND_LINE(PREPROCESSOR_JOIN(VoxelStartupFunction, UniqueId))()
+template<int32>
+struct TVoxelCounterDummy
+{
+	TVoxelCounterDummy() = default;
+};
 
-#define VOXEL_RUN_ON_STARTUP_GAME(UniqueId) VOXEL_RUN_ON_STARTUP(UniqueId, Game, 0)
+#define VOXEL_RUN_ON_STARTUP(Phase, Priority) \
+	static void VoxelStartupFunction(TVoxelCounterDummy<__COUNTER__>); \
+	static const FVoxelRunOnStartupPhaseHelper PREPROCESSOR_JOIN(VoxelRunOnStartupPhaseHelper, __COUNTER__)(EVoxelRunOnStartupPhase::Phase, Priority, [] \
+	{ \
+		VoxelStartupFunction(TVoxelCounterDummy<__COUNTER__ - 2>()); \
+	}); \
+	static void VoxelStartupFunction(TVoxelCounterDummy<__COUNTER__ - 3>)
+
+#define VOXEL_RUN_ON_STARTUP_GAME() VOXEL_RUN_ON_STARTUP(Game, 0)
 // Will only run if GIsEditor is true
-#define VOXEL_RUN_ON_STARTUP_EDITOR(UniqueId) VOXEL_RUN_ON_STARTUP(UniqueId, Editor, 0)
+#define VOXEL_RUN_ON_STARTUP_EDITOR() VOXEL_RUN_ON_STARTUP(Editor, 0)
 // Will run before any package PostLoad to work for cooker
 // Also useful to register editor styles for doc commandlet
-#define VOXEL_RUN_ON_STARTUP_EDITOR_COMMANDLET(UniqueId) VOXEL_RUN_ON_STARTUP(UniqueId, EditorCommandlet, 0)
+#define VOXEL_RUN_ON_STARTUP_EDITOR_COMMANDLET() VOXEL_RUN_ON_STARTUP(EditorCommandlet, 0)
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

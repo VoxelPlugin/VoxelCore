@@ -54,7 +54,7 @@ void GatherBlueprintCallstack(const TSharedRef<FVoxelMessage>& Message)
 	Message->AddToken(FVoxelMessageTokenFactory::CreateObjectToken(BlueprintNode));
 }
 
-VOXEL_RUN_ON_STARTUP_GAME(RegisterGatherBlueprintCallstack)
+VOXEL_RUN_ON_STARTUP_GAME()
 {
 	GVoxelMessageManager->GatherCallstacks.Add([](const TSharedRef<FVoxelMessage>& Message)
 	{

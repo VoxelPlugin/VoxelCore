@@ -38,7 +38,7 @@ public:
 	//~ End FVoxelTicker Interface
 };
 
-VOXEL_RUN_ON_STARTUP_GAME(RegisterVoxelGameThreadTaskTicker)
+VOXEL_RUN_ON_STARTUP_GAME()
 {
 	new FVoxelGameThreadTaskTicker();
 

@@ -175,7 +175,7 @@ void FVoxelAutoFactoryImpl::RegisterFactoryImpl(UClass* Class, const int32 Index
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-VOXEL_RUN_ON_STARTUP_EDITOR(RegisterAutoFactory)
+VOXEL_RUN_ON_STARTUP_EDITOR()
 {
 	// Disable all dummies until they're used
 

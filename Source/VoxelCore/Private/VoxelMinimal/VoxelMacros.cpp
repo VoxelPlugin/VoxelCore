@@ -38,7 +38,7 @@ FVoxelConsoleSinkHelper::FVoxelConsoleSinkHelper(TFunction<void()> Lambda)
 	GetVoxelConsoleSinks().Add(MoveTemp(Lambda));
 }
 
-VOXEL_RUN_ON_STARTUP_GAME(BindVoxelConsoleSinks)
+VOXEL_RUN_ON_STARTUP_GAME()
 {
 	IConsoleManager::Get().RegisterConsoleVariableSink_Handle(MakeLambdaDelegate([]
 	{

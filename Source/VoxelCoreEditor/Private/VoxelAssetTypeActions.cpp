@@ -7,7 +7,7 @@
 
 EAssetTypeCategories::Type GVoxelAssetCategory;
 
-VOXEL_RUN_ON_STARTUP(RegisterVoxelAssetTypes, Editor, 999)
+VOXEL_RUN_ON_STARTUP(Editor, 999)
 {
 	VOXEL_FUNCTION_COUNTER();
 

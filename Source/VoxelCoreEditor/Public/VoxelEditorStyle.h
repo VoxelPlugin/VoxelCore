@@ -26,7 +26,7 @@ public:
 		} \
 		void Init(); \
 	}; \
-	VOXEL_RUN_ON_STARTUP_EDITOR_COMMANDLET(Register ## Name ## Style) \
+	VOXEL_RUN_ON_STARTUP_EDITOR_COMMANDLET() \
 	{ \
 		FVoxelEditorStyle::AddFactory([] \
 		{ \

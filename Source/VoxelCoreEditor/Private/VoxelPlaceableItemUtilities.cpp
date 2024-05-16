@@ -39,7 +39,7 @@ void FVoxelPlaceableItemUtilities::RegisterActorFactory(const UClass* ActorFacto
 	PlacementModeModule.RegenerateItemsForCategory(FBuiltInPlacementCategories::AllClasses());
 }
 
-VOXEL_RUN_ON_STARTUP_EDITOR(RegisterVoxelPlaceableItems)
+VOXEL_RUN_ON_STARTUP_EDITOR()
 {
 	VOXEL_FUNCTION_COUNTER();
 
@@ -65,7 +65,7 @@ VOXEL_RUN_ON_STARTUP_EDITOR(RegisterVoxelPlaceableItems)
 	PlacementModeModule.RegenerateItemsForCategory(FBuiltInPlacementCategories::AllClasses());
 }
 
-VOXEL_RUN_ON_STARTUP_EDITOR(UpdateVoxelPlaceableItemsSubMenus)
+VOXEL_RUN_ON_STARTUP_EDITOR()
 {
 	UToolMenu* MainMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar.AddQuickMenu");
 	if (!ensure(MainMenu))

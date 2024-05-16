@@ -28,7 +28,7 @@ bool GVoxelDoNotCreateSubobjects = false;
 #if WITH_EDITOR
 TArray<TFunction<bool(const UObject&)>> GVoxelTryFocusObjectFunctions;
 
-VOXEL_RUN_ON_STARTUP_EDITOR(RegisterTryFocusKismet)
+VOXEL_RUN_ON_STARTUP_EDITOR()
 {
 	GVoxelTryFocusObjectFunctions.Add([](const UObject& Object)
 	{
@@ -620,7 +620,7 @@ uint32 FVoxelUtilities::HashProperty(const FProperty& Property, const void* Data
 #if !UE_BUILD_SHIPPING
 TMap<const UScriptStruct*, UScriptStruct::ICppStructOps*> GVoxelCachedStructOps;
 
-VOXEL_RUN_ON_STARTUP_GAME(RegisterVoxelCachedStructOps)
+VOXEL_RUN_ON_STARTUP_GAME()
 {
 	GVoxelCachedStructOps.Reserve(8192);
 

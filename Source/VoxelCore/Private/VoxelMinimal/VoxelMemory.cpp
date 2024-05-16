@@ -130,7 +130,7 @@ public:
 	virtual void OnPostFork() override { Base.OnPostFork(); }
 };
 
-VOXEL_RUN_ON_STARTUP_GAME(RegisterDebugMalloc)
+VOXEL_RUN_ON_STARTUP_GAME()
 {
 	if (!FParse::Param(FCommandLine::Get(), TEXT("TestVoxelAlloc")))
 	{

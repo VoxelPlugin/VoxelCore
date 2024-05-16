@@ -92,7 +92,7 @@ protected:
 };
 
 #define DEFINE_VOXEL_THUMBNAIL_RENDERER(RendererClass, Class) \
-	VOXEL_RUN_ON_STARTUP_EDITOR(Register ## RendererClass) \
+	VOXEL_RUN_ON_STARTUP_EDITOR() \
 	{ \
 		UThumbnailManager::Get().RegisterCustomRenderer(Class::StaticClass(), RendererClass::StaticClass()); \
 	}

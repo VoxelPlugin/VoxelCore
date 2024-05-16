@@ -46,19 +46,19 @@ public:
 };
 
 #define DEFINE_VOXEL_FACTORY(Class) \
-	VOXEL_RUN_ON_STARTUP_GAME(Register ## Class ## Factory) \
+	VOXEL_RUN_ON_STARTUP_GAME() \
 	{ \
 		IVoxelAutoFactoryInterface::GetInterface().RegisterFactory(Class::StaticClass()); \
 	}
 
 #define DEFINE_VOXEL_BLUEPRINT_FACTORY(Class) \
-	VOXEL_RUN_ON_STARTUP_GAME(Register ## Class ## Factory) \
+	VOXEL_RUN_ON_STARTUP_GAME() \
 	{ \
 		IVoxelAutoFactoryInterface::GetInterface().RegisterBlueprintFactory(Class::StaticClass()); \
 	}
 
 #define DEFINE_VOXEL_IMPORT_FACTORY(Class, Extension, FormatName) \
-	VOXEL_RUN_ON_STARTUP_GAME(Register ## Class ## Factory) \
+	VOXEL_RUN_ON_STARTUP_GAME() \
 	{ \
 		IVoxelAutoFactoryInterface::GetInterface().RegisterImportFactory( \
 			{ \

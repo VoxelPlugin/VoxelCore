@@ -5,7 +5,7 @@
 VOXEL_DEFAULT_MODULE(VoxelCoreEditor);
 
 #if 0
-VOXEL_RUN_ON_STARTUP_EDITOR(LogRedirects)
+VOXEL_RUN_ON_STARTUP_EDITOR()
 {
 	FString String;
 	for (TObjectIterator<UField> ClassIt; ClassIt; ++ClassIt)
