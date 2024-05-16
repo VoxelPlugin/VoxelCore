@@ -422,7 +422,7 @@ Run code on app startup. See `VOXEL_RUN_ON_STARTUP_GAME`, `VOXEL_RUN_ON_STARTUP_
 
 ```cpp
 
-VOXEL_RUN_ON_STARTUP_GAME(InitializeSmthg)
+VOXEL_RUN_ON_STARTUP_GAME()
 {
     // Initialize something
 }
