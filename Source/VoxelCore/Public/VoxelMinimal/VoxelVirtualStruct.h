@@ -8,6 +8,8 @@
 #include "Utilities/VoxelObjectUtilities.h"
 #include "VoxelVirtualStruct.generated.h"
 
+class FJsonObject;
+
 USTRUCT()
 struct VOXELCORE_API FVoxelVirtualStruct
 {
@@ -95,6 +97,18 @@ public:
 	TSharedRef<FVoxelVirtualStruct> MakeSharedCopy() const;
 	void AddStructReferencedObjects(FReferenceCollector& Collector);
 
+public:
+	TSharedRef<FJsonObject> SaveToJson(
+		EPropertyFlags CheckFlags = CPF_None,
+		EPropertyFlags SkipFlags = CPF_None) const;
+
+	bool LoadFromJson(
+		const TSharedRef<FJsonObject>& JsonObject,
+		bool bStrictMode = false,
+		EPropertyFlags CheckFlags = CPF_None,
+		EPropertyFlags SkipFlags = CPF_None);
+
+public:
 	bool Equals_UPropertyOnly(
 		const FVoxelVirtualStruct& Other,
 		bool bIgnoreTransient = true) const;

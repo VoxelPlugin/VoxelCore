@@ -1,8 +1,68 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
+#include "Serialization/JsonSerializer.h"
+#include "Policies/CondensedJsonPrintPolicy.h"
 
-FText FVoxelUtilities::SecondsToText(double Value, const int32 NumExtraDigits)
+FString FVoxelUtilities::JsonToString(
+	const TSharedRef<FJsonObject>& JsonObject,
+	const bool bPrettyPrint)
+{
+	VOXEL_FUNCTION_COUNTER()
+
+	FString Result;
+
+	if (bPrettyPrint)
+	{
+		const TSharedRef<TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR>>> JsonWriter = TJsonWriterFactory<TCHAR, TPrettyJsonPrintPolicy<TCHAR>>::Create(&Result);
+		verify(FJsonSerializer::Serialize(JsonObject, JsonWriter));
+	}
+	else
+	{
+		const TSharedRef<TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>> JsonWriter = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>::Create(&Result);
+		verify(FJsonSerializer::Serialize(JsonObject, JsonWriter));
+	}
+
+	return Result;
+}
+
+TSharedPtr<FJsonObject> FVoxelUtilities::StringToJson(const FString& String)
+{
+	VOXEL_FUNCTION_COUNTER()
+
+	TSharedPtr<FJsonObject> JsonObject;
+	if (!FJsonSerializer::Deserialize(
+		TJsonReaderFactory<>::Create(String),
+		JsonObject))
+	{
+		return nullptr;
+	}
+
+	return JsonObject;
+}
+
+TSharedPtr<FJsonValue> FVoxelUtilities::StringToJsonValue(const FString& String)
+{
+	VOXEL_FUNCTION_COUNTER()
+
+	TSharedPtr<FJsonValue> JsonValue;
+	if (!FJsonSerializer::Deserialize(
+		TJsonReaderFactory<>::Create(String),
+		JsonValue))
+	{
+		return nullptr;
+	}
+
+	return JsonValue;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FText FVoxelUtilities::SecondsToText(
+	double Value,
+	const int32 NumExtraDigits)
 {
 	const TCHAR* Unit = TEXT("s");
 

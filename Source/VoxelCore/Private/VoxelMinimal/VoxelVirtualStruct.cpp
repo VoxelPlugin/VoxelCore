@@ -1,6 +1,7 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
+#include "JsonObjectConverter.h"
 
 DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelVirtualStruct);
 
@@ -37,6 +38,47 @@ TSharedRef<FVoxelVirtualStruct> FVoxelVirtualStruct::MakeSharedCopy() const
 {
 	return MakeSharedStruct(GetStruct(), this);
 }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+TSharedRef<FJsonObject> FVoxelVirtualStruct::SaveToJson(
+	const EPropertyFlags CheckFlags,
+	const EPropertyFlags SkipFlags) const
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	const TSharedRef<FJsonObject> JsonObject = MakeShared<FJsonObject>();
+	verify(FJsonObjectConverter::UStructToJsonObject(
+		GetStruct(),
+		this,
+		JsonObject,
+		CheckFlags,
+		SkipFlags));
+	return JsonObject;
+}
+
+bool FVoxelVirtualStruct::LoadFromJson(
+	const TSharedRef<FJsonObject>& JsonObject,
+	const bool bStrictMode,
+	const EPropertyFlags CheckFlags,
+	const EPropertyFlags SkipFlags)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	return FJsonObjectConverter::JsonObjectToUStruct(
+		JsonObject,
+		GetStruct(),
+		this,
+		CheckFlags,
+		SkipFlags,
+		bStrictMode);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 void FVoxelVirtualStruct::AddStructReferencedObjects(FReferenceCollector& Collector)
 {

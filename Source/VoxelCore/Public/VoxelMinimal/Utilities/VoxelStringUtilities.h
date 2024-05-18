@@ -6,8 +6,17 @@
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 #include "VoxelMinimal/Utilities/VoxelMathUtilities.h"
 
+class FJsonValue;
+
 namespace FVoxelUtilities
 {
+	VOXELCORE_API FString JsonToString(
+		const TSharedRef<FJsonObject>& JsonObject,
+		bool bPrettyPrint = false);
+
+	VOXELCORE_API TSharedPtr<FJsonObject> StringToJson(const FString& String);
+	VOXELCORE_API TSharedPtr<FJsonValue> StringToJsonValue(const FString& String);
+
 	VOXELCORE_API FText SecondsToText(double Value, int32 NumExtraDigits = 0);
 	VOXELCORE_API FText BytesToText(double Value);
 	VOXELCORE_API FText NumberToText(double Value);
