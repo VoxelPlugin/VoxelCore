@@ -278,10 +278,16 @@ void FVoxelInstancedStructDetails::CustomizeHeader(const TSharedRef<IPropertyHan
 {
 	static const FName NAME_BaseStruct = "BaseStruct";
 	static const FName NAME_StructTypeConst = "StructTypeConst";
+	static const FName NAME_ShowOnlyInnerProperties = "ShowOnlyInnerProperties";
 
 	StructProperty = StructPropertyHandle;
 
 	const FProperty* MetaDataProperty = StructProperty->GetMetaDataProperty();
+
+	if (StructProperty->HasMetaData(NAME_ShowOnlyInnerProperties))
+	{
+		return;
+	}
 
 	const bool bEnableStructSelection = !MetaDataProperty->HasMetaData(NAME_StructTypeConst);
 

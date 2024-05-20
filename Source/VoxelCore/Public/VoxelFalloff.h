@@ -8,10 +8,24 @@
 UENUM(BlueprintType)
 enum class EVoxelFalloff : uint8
 {
-	Linear,
-	Smooth,
-	Spherical,
-	Tip
+	Linear UMETA(ToolTip = "Sharp, linear falloff", Icon = "LandscapeEditor.CircleBrush_Linear"),
+	Smooth UMETA(ToolTip = "Smooth falloff", Icon = "LandscapeEditor.CircleBrush_Smooth"),
+	Spherical UMETA(ToolTip = "Spherical falloff, smooth at the center and sharp at the edge", Icon = "LandscapeEditor.CircleBrush_Spherical"),
+	Tip UMETA(ToolTip = "Tip falloff, sharp at the center and smooth at the edge", Icon = "LandscapeEditor.CircleBrush_Tip")
+};
+
+USTRUCT()
+struct FVoxelFalloffWrapper
+{
+	GENERATED_BODY()
+
+	FVoxelFalloffWrapper() = default;
+	FVoxelFalloffWrapper(const EVoxelFalloff Falloff)
+		: Falloff(Falloff)
+	{}
+
+	UPROPERTY(EditAnywhere, Category = "Config")
+	EVoxelFalloff Falloff = EVoxelFalloff::Smooth;
 };
 
 struct FVoxelFalloff
