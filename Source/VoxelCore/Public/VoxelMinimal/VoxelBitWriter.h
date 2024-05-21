@@ -30,7 +30,7 @@ public:
 	{
 		checkVoxelSlow(NumPendingBits == 0);
 		checkVoxelSlow(Buffer.Num() % 4 == 0);
-		return ReinterpretCastVoxelArrayView<uint32>(Buffer);
+		return MakeVoxelArrayView(Buffer).ReinterpretAs<uint32>();
 	}
 
 	FORCEINLINE void Append(const uint32 Bits, const uint32 NumBits)

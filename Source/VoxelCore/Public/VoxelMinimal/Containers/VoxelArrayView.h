@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "Templates/ChooseClass.h"
 
 template<typename ElementType, typename SizeType = int32>
 class TVoxelArrayView;
@@ -126,6 +127,14 @@ public:
 		return GetData()[Num() - IndexFromTheEnd - 1];
 	}
 
+	template<typename T, typename ToType = typename TChooseClass<std::is_const_v<ElementType>, const T, T>::Result>
+	FORCEINLINE TVoxelArrayView<ToType, SizeType> ReinterpretAs() const
+	{
+		const int64 NumBytes = Num() * sizeof(ElementType);
+		checkVoxelSlow(NumBytes % sizeof(ToType) == 0);
+		return TVoxelArrayView<ToType, SizeType>(reinterpret_cast<ToType*>(GetData()), NumBytes / sizeof(T));
+	}
+
 private:
 	using Super::Left;
 	using Super::LeftChop;
@@ -185,34 +194,10 @@ FORCEINLINE auto MakeVoxelArrayView(ElementType* Pointer, const SizeType Size)
 	return TVoxelArrayView<ElementType, SizeType>(Pointer, Size);
 }
 
-template<typename ToType, typename FromType, typename SizeType>
-FORCEINLINE TVoxelArrayView<ToType, SizeType> ReinterpretCastVoxelArrayView(TVoxelArrayView<FromType, SizeType> ArrayView)
-{
-	const int64 NumBytes = ArrayView.Num() * sizeof(FromType);
-	checkVoxelSlow(NumBytes % sizeof(ToType) == 0);
-	return TVoxelArrayView<ToType, SizeType>(reinterpret_cast<ToType*>(ArrayView.GetData()), NumBytes / sizeof(ToType));
-}
-template<typename ToType, typename FromType, typename SizeType, typename = std::enable_if_t<!std::is_const_v<ToType>>>
-FORCEINLINE TVoxelArrayView<const ToType, SizeType> ReinterpretCastVoxelArrayView(TVoxelArrayView<const FromType, SizeType> ArrayView)
-{
-	return ReinterpretCastVoxelArrayView<const ToType>(ArrayView);
-}
-
-template<typename ToType, typename FromType, typename AllocatorType>
-FORCEINLINE TVoxelArrayView<ToType, typename AllocatorType::SizeType> ReinterpretCastVoxelArrayView(TArray<FromType, AllocatorType>& Array)
-{
-	return ReinterpretCastVoxelArrayView<ToType>(MakeVoxelArrayView(Array));
-}
-template<typename ToType, typename FromType, typename AllocatorType>
-FORCEINLINE TVoxelArrayView<const ToType, typename AllocatorType::SizeType> ReinterpretCastVoxelArrayView(const TArray<FromType, AllocatorType>& Array)
-{
-	return ReinterpretCastVoxelArrayView<const ToType>(MakeVoxelArrayView(Array));
-}
-
 template<typename T>
 FORCEINLINE auto MakeByteVoxelArrayView(T&& Value)
 {
-	return ReinterpretCastVoxelArrayView<uint8>(MakeVoxelArrayView(Value));
+	return MakeVoxelArrayView(Value).template ReinterpretAs<uint8>();
 }
 
 template<typename T, typename SizeType>

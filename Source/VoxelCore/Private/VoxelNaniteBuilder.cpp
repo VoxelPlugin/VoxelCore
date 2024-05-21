@@ -171,8 +171,8 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
 
 		const TVoxelArrayView<uint8> HierarchyFixupsData = MakeVoxelArrayView(FixupChunk.Data).LeftOf(sizeof(Nanite::FHierarchyFixup) * Clusters.Num());
 		const TVoxelArrayView<uint8> ClusterFixupsData = MakeVoxelArrayView(FixupChunk.Data).RightOf(sizeof(Nanite::FHierarchyFixup) * Clusters.Num());
-		const TVoxelArrayView<Nanite::FHierarchyFixup> HierarchyFixups = ReinterpretCastVoxelArrayView<Nanite::FHierarchyFixup>(HierarchyFixupsData);
-		const TVoxelArrayView<Nanite::FClusterFixup> ClusterFixups = ReinterpretCastVoxelArrayView<Nanite::FClusterFixup>(ClusterFixupsData).LeftOf(Clusters.Num());
+		const TVoxelArrayView<Nanite::FHierarchyFixup> HierarchyFixups = HierarchyFixupsData.ReinterpretAs<Nanite::FHierarchyFixup>();
+		const TVoxelArrayView<Nanite::FClusterFixup> ClusterFixups = ClusterFixupsData.ReinterpretAs<Nanite::FClusterFixup>().LeftOf(Clusters.Num());
 
 		for (int32 Index = 0; Index < Clusters.Num(); Index++)
 		{

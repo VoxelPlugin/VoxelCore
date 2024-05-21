@@ -433,7 +433,7 @@ void CreatePageData(
 		checkStatic(sizeof(FPackedCluster) % 16 == 0);
 		constexpr int32 VectorPerCluster = sizeof(FPackedCluster) / 16;
 
-		const TConstVoxelArrayView<FVector4f> VectorArray = ReinterpretCastVoxelArrayView<FVector4f>(PackedClusters);
+		const TConstVoxelArrayView<FVector4f> VectorArray = MakeVoxelArrayView(PackedClusters).ReinterpretAs<FVector4f>();
 		for (int32 VectorIndex = 0; VectorIndex < VectorPerCluster; VectorIndex++)
 		{
 			for (int32 ClusterIndex = 0; ClusterIndex < PackedClusters.Num(); ClusterIndex++)

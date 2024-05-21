@@ -42,12 +42,15 @@ namespace FVoxelUtilities
 		FMemory::Memset(GetData(Array), Value, GetNum(Array) * sizeof(decltype(*GetData(Array))));
 	}
 
-	template<typename DstArrayType, typename SrcArrayType, typename = std::enable_if_t<
-		!std::is_const_v<std::remove_reference_t<decltype(*GetData(DeclVal<DstArrayType>()))>> &&
-		std::is_same_v<
-			VOXEL_GET_TYPE(*GetData(DeclVal<DstArrayType>())),
-			VOXEL_GET_TYPE(*GetData(DeclVal<SrcArrayType>()))
-		>>>
+	template<
+		typename DstArrayType,
+		typename SrcArrayType,
+		typename = std::enable_if_t<
+			!std::is_const_v<std::remove_reference_t<decltype(*GetData(DeclVal<DstArrayType>()))>> &&
+			std::is_same_v<
+				VOXEL_GET_TYPE(*GetData(DeclVal<DstArrayType>())),
+				VOXEL_GET_TYPE(*GetData(DeclVal<SrcArrayType>()))
+			>>>
 	FORCEINLINE void Memcpy(DstArrayType&& Dest, SrcArrayType&& Src)
 	{
 		checkVoxelSlow(GetNum(Dest) == GetNum(Src));
@@ -83,6 +86,16 @@ namespace FVoxelUtilities
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(GetNum(Array), 4096);
 		FVoxelUtilities::Memset(Array, Value);
+	}
+
+	template<
+		typename DstArrayType,
+		typename SrcArrayType,
+		typename = std::enable_if_t<std::is_void_v<decltype(FVoxelUtilities::Memcpy(DeclVal<DstArrayType>(), DeclVal<SrcArrayType>()))>>>
+	FORCEINLINE void LargeMemcpy(DstArrayType&& Dest, SrcArrayType&& Src)
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(GetNum(Dest), 4096);
+		FVoxelUtilities::Memcpy(Dest, Src);
 	}
 
 	//////////////////////////////////////////////////////////////////////////////

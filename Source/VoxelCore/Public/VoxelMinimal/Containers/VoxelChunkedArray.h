@@ -581,10 +581,10 @@ private:
 	}
 	FORCEINLINE TVoxelArrayView<Type> GetChunkView(const int32 ChunkIndex)
 	{
-		return ReinterpretCastVoxelArrayView<Type>(MakeVoxelArrayView(*PrivateChunks[ChunkIndex]));
+		return MakeVoxelArrayView(*PrivateChunks[ChunkIndex]).template ReinterpretAs<Type>();
 	}
 	FORCEINLINE TConstVoxelArrayView<Type> GetChunkView(const int32 ChunkIndex) const
 	{
-		return ReinterpretCastVoxelArrayView<Type>(MakeVoxelArrayView(*PrivateChunks[ChunkIndex]));
+		return MakeVoxelArrayView(*PrivateChunks[ChunkIndex]).template ReinterpretAs<Type>();
 	}
 };

@@ -537,7 +537,7 @@ bool FVoxelTextureUtilities::ExtractTextureChannel(
 	case TSF_BGRA8:
 	case TSF_BGRE8:
 	{
-		const TConstVoxelArrayView64<FColor> SourceData = ReinterpretCastVoxelArrayView<FColor>(SourceByteData);
+		const TConstVoxelArrayView64<FColor> SourceData = SourceByteData.ReinterpretAs<FColor>();
 		if (!ensure(SourceData.Num() == NumPixels))
 		{
 			return false;
@@ -596,7 +596,7 @@ bool FVoxelTextureUtilities::ExtractTextureChannel(
 			uint16 A;
 		};
 
-		const TConstVoxelArrayView64<FColor16> SourceData = ReinterpretCastVoxelArrayView<FColor16>(SourceByteData);
+		const TConstVoxelArrayView64<FColor16> SourceData = SourceByteData.ReinterpretAs<FColor16>();
 		if (!ensure(SourceData.Num() == NumPixels))
 		{
 			return false;
@@ -655,7 +655,7 @@ bool FVoxelTextureUtilities::ExtractTextureChannel(
 			FFloat16 A;
 		};
 
-		const TConstVoxelArrayView64<FColor16F> SourceData = ReinterpretCastVoxelArrayView<FColor16F>(SourceByteData);
+		const TConstVoxelArrayView64<FColor16F> SourceData = SourceByteData.ReinterpretAs<FColor16F>();
 		if (!ensure(SourceData.Num() == NumPixels))
 		{
 			return false;
@@ -706,7 +706,7 @@ bool FVoxelTextureUtilities::ExtractTextureChannel(
 	}
 	case TSF_G16:
 	{
-		const TConstVoxelArrayView64<uint16> SourceData = ReinterpretCastVoxelArrayView<uint16>(SourceByteData);
+		const TConstVoxelArrayView64<uint16> SourceData = SourceByteData.ReinterpretAs<uint16>();
 		if (!ensure(SourceData.Num() == NumPixels))
 		{
 			return false;
@@ -721,7 +721,7 @@ bool FVoxelTextureUtilities::ExtractTextureChannel(
 	}
 	case TSF_RGBA32F:
 	{
-		const TConstVoxelArrayView64<FLinearColor> SourceData = ReinterpretCastVoxelArrayView<FLinearColor>(SourceByteData);
+		const TConstVoxelArrayView64<FLinearColor> SourceData = SourceByteData.ReinterpretAs<FLinearColor>();
 		if (!ensure(SourceData.Num() == NumPixels))
 		{
 			return false;
@@ -772,7 +772,7 @@ bool FVoxelTextureUtilities::ExtractTextureChannel(
 	}
 	case TSF_R16F:
 	{
-		const TConstVoxelArrayView64<FFloat16> SourceData = ReinterpretCastVoxelArrayView<FFloat16>(SourceByteData);
+		const TConstVoxelArrayView64<FFloat16> SourceData = SourceByteData.ReinterpretAs<FFloat16>();
 		if (!ensure(SourceData.Num() == NumPixels))
 		{
 			return false;
@@ -787,7 +787,7 @@ bool FVoxelTextureUtilities::ExtractTextureChannel(
 	}
 	case TSF_R32F:
 	{
-		const TConstVoxelArrayView64<float> SourceData = ReinterpretCastVoxelArrayView<float>(SourceByteData);
+		const TConstVoxelArrayView64<float> SourceData = SourceByteData.ReinterpretAs<float>();
 		if (!ensure(SourceData.Num() == NumPixels))
 		{
 			return false;

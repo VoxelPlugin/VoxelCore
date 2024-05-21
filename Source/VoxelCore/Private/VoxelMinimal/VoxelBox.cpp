@@ -106,7 +106,7 @@ FVoxelBox FVoxelBox::FromPositions(const TConstVoxelArrayView<FVector4f> Positio
 		return FVoxelBox(Positions[0]);
 	}
 
-	const TConstVoxelArrayView<VectorRegister4Float> VectorPositions = ReinterpretCastVoxelArrayView<VectorRegister4Float>(Positions);
+	const TConstVoxelArrayView<VectorRegister4Float> VectorPositions = Positions.ReinterpretAs<VectorRegister4Float>();
 
 	VectorRegister4Float Min = VectorPositions[0];
 	VectorRegister4Float Max = VectorPositions[0];
