@@ -306,6 +306,7 @@ VOXEL_RUN_ON_STARTUP_GAME()
 		{
 			Error += FString::Printf(TEXT("\n%s: %d instances"), *It.Key, It.Value);
 		}
+
 		if (!IsRunningCookCommandlet())
 		{
 			ensureMsgf(false, TEXT("%s"), *Error);
