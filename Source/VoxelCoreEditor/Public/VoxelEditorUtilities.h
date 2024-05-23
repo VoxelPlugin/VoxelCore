@@ -364,6 +364,7 @@ public:
 	static void RegisterClassLayout(const UClass* Class, FOnGetDetailCustomizationInstance Delegate);
 	static void RegisterStructLayout(const UScriptStruct* Struct, FOnGetPropertyTypeCustomizationInstance Delegate, bool bRecursive);
 	static void RegisterStructLayout(const UScriptStruct* Struct, FOnGetPropertyTypeCustomizationInstance Delegate, bool bRecursive, const TSharedPtr<IPropertyTypeIdentifier>& Identifier);
+	static void RegisterEnumLayout(const UEnum* Enum, FOnGetPropertyTypeCustomizationInstance Delegate, const TSharedPtr<IPropertyTypeIdentifier>& Identifier);
 
 public:
 	static bool GetRayInfo(FEditorViewportClient* ViewportClient, FVector& OutStart, FVector& OutEnd);
@@ -478,6 +479,24 @@ void RegisterVoxelStructLayout()
 	}), bRecursive, MakeShared<Identifier>());
 }
 
+template<typename Enum, typename Customization>
+void RegisterVoxelEnumLayout()
+{
+	FVoxelEditorUtilities::RegisterEnumLayout(StaticEnum<Enum>(), FOnGetPropertyTypeCustomizationInstance::CreateLambda([]
+	{
+		return MakeShared<TVoxelPropertyTypeCustomizationWrapper<Customization>>();
+	}), nullptr);
+}
+
+template<typename Enum, typename Customization, typename Identifier>
+void RegisterVoxelEnumLayout()
+{
+	FVoxelEditorUtilities::RegisterEnumLayout(StaticEnum<Enum>(), FOnGetPropertyTypeCustomizationInstance::CreateLambda([]
+	{
+		return MakeShared<TVoxelPropertyTypeCustomizationWrapper<Customization>>();
+	}), MakeShared<Identifier>());
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -560,6 +579,18 @@ private:
 		RegisterVoxelStructLayout<Struct, Customization, true, Identifier>(); \
 	}
 
+#define DEFINE_VOXEL_ENUM_LAYOUT(Enum, Customization) \
+	VOXEL_RUN_ON_STARTUP_EDITOR() \
+	{ \
+		RegisterVoxelEnumLayout<Enum, Customization>(); \
+	}
+
+#define DEFINE_VOXEL_ENUM_LAYOUT_IDENTIFIER(Enum, Customization, Identifier) \
+	VOXEL_RUN_ON_STARTUP_EDITOR() \
+	{ \
+		RegisterVoxelEnumLayout<Enum, Customization, Identifier>(); \
+	}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -624,3 +655,31 @@ private:
 
 #define VOXEL_CUSTOMIZE_STRUCT_CHILDREN_RECURSIVE(Struct) \
 	VOXEL_CUSTOMIZE_STRUCT_CHILDREN_IMPL(DEFINE_VOXEL_STRUCT_LAYOUT_RECURSIVE, Struct)
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#define VOXEL_CUSTOMIZE_ENUM_HEADER(Enum) \
+	class F ## Enum ## Customization : public FVoxelPropertyTypeCustomizationBase \
+	{ \
+	public: \
+		virtual void CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils) override; \
+		virtual void CustomizeChildren(TSharedRef<IPropertyHandle> PropertyHandle, IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils) override {} \
+	}; \
+	DEFINE_VOXEL_ENUM_LAYOUT(Enum, F ## Enum ## Customization); \
+	void F ## Enum ## Customization::CustomizeHeader
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#define VOXEL_CUSTOMIZE_ENUM_CHILDREN(Enum) \
+	class F ## Enum ## Customization : public FVoxelPropertyTypeCustomizationBase \
+	{ \
+	public: \
+		virtual void CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils) override {} \
+		virtual void CustomizeChildren(TSharedRef<IPropertyHandle> PropertyHandle, IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils) override; \
+	}; \
+	DEFINE_VOXEL_ENUM_LAYOUT(Enum, F ## Enum ## Customization); \
+	void F ## Enum ## Customization::CustomizeChildren

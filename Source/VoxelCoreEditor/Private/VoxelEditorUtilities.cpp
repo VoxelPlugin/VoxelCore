@@ -465,6 +465,13 @@ void FVoxelEditorUtilities::RegisterStructLayout(const UScriptStruct* Struct, FO
 	PropertyModule.NotifyCustomizationModuleChanged();
 }
 
+void FVoxelEditorUtilities::RegisterEnumLayout(const UEnum* Enum, FOnGetPropertyTypeCustomizationInstance Delegate, const TSharedPtr<IPropertyTypeIdentifier>& Identifier)
+{
+	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	PropertyModule.RegisterCustomPropertyTypeLayout(Enum->GetFName(), Delegate, Identifier);
+	PropertyModule.NotifyCustomizationModuleChanged();
+}
+
 bool FVoxelEditorUtilities::GetRayInfo(FEditorViewportClient* ViewportClient, FVector& OutStart, FVector& OutEnd)
 {
 	if (!ensure(ViewportClient))
