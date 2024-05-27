@@ -198,9 +198,16 @@ namespace FVoxelUtilities
 	// Returns in [Min, Max]
 	FORCEINLINE int32 RandRange(const uint32 Seed, const int32 Min, const int32 Max)
 	{
-		checkVoxelSlow(Min <= Max);
+		ensureVoxelSlow(Min <= Max);
 		const int32 Result = Min + FMath::FloorToInt(GetFraction(Seed) * float((Max - Min) + 1));
-		checkVoxelSlow(Min <= Result && Result <= Max);
+		ensureVoxelSlow(Min <= Result && Result <= Max);
+		return Result;
+	}
+	FORCEINLINE float RandRange(const uint32 Seed, const float Min, const float Max)
+	{
+		ensureVoxelSlow(Min <= Max);
+		const float Result = Min + GetFraction(Seed) * float((Max - Min) + 1);
+		ensureVoxelSlow(Min <= Result && Result <= Max);
 		return Result;
 	}
 

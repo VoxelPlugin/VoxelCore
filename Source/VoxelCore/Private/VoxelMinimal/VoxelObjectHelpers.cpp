@@ -4,6 +4,14 @@
 #include "AssetRegistry/AssetData.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 
+UScriptStruct* FindCoreStruct(const TCHAR* Name)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	static UPackage* Package = FindObjectChecked<UPackage>(nullptr, TEXT("/Script/CoreUObject"));
+	return FindObjectChecked<UScriptStruct>(Package, Name);
+}
+
 void ForEachAssetOfClass(const UClass* ClassToLookFor, TFunctionRef<void(UObject*)> Operation)
 {
 	VOXEL_FUNCTION_COUNTER();

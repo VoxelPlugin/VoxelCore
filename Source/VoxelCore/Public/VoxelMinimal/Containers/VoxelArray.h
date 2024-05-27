@@ -26,6 +26,7 @@ public:
 
 	using USizeType = typename TMakeUnsigned<SizeType>::Type;
 
+#if !INTELLISENSE_PARSER
 	// Copy constructors are inherited on MSVC, but implementing them manually deletes all the other inherited constructors
 #if !defined(_MSC_VER) || _MSC_VER > 1929 || PLATFORM_COMPILER_CLANG
 	template<typename OtherElementType, typename OtherAllocator>
@@ -33,6 +34,7 @@ public:
 		: Super(Other)
 	{
 	}
+#endif
 #endif
 
 	template<typename OtherAllocator>

@@ -42,7 +42,7 @@ public:
 	}
 	FORCEINLINE ~TVoxelChunkedRef()
 	{
-		ByteArray.CopyTo(ByteIndex, MakeByteVoxelArrayView(Value));
+		ByteArray.CopyFrom(ByteIndex, MakeByteVoxelArrayView(Value));
 	}
 
 	FORCEINLINE T& operator*()
@@ -123,7 +123,7 @@ public:
 	}
 	FORCEINLINE ~TVoxelChunkedArrayRef()
 	{
-		ByteArray.CopyTo(ByteIndex, MakeByteVoxelArrayView(Values));
+		ByteArray.CopyFrom(ByteIndex, MakeByteVoxelArrayView(Values));
 	}
 
 	FORCEINLINE TVoxelArrayView<T> operator*()

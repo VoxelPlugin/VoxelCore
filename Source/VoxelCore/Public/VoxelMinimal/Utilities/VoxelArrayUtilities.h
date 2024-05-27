@@ -401,6 +401,40 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 
 	template<typename T>
+	FORCEINLINE FIntPoint Break2DIndex_Log2(const int32 SizeLog2, const T Index)
+	{
+		const int32 X = (Index >> (0 * SizeLog2)) & ((1 << SizeLog2) - 1);
+		const int32 Y = (Index >> (1 * SizeLog2)) & ((1 << SizeLog2) - 1);
+		checkVoxelSlow(Get2DIndex<T>(1 << SizeLog2, X, Y) == Index);
+		return { X, Y };
+	}
+	template<typename T>
+	FORCEINLINE FIntPoint Break2DIndex(const FIntPoint& Size, T Index)
+	{
+		const T OriginalIndex = Index;
+
+		const int32 Y = Index / Size.X;
+		checkVoxelSlow(0 <= Y && Y < Size.Y);
+		Index -= Y * Size.X;
+
+		const int32 X = Index;
+		checkVoxelSlow(0 <= X && X < Size.X);
+
+		checkVoxelSlow(Get2DIndex<T>(Size, X, Y) == OriginalIndex);
+
+		return { X, Y };
+	}
+	template<typename T>
+	FORCEINLINE FIntPoint Break2DIndex(const int32 Size, const T Index)
+	{
+		return FVoxelUtilities::Break2DIndex<T>(FIntPoint(Size), Index);
+	}
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	template<typename T>
 	FORCEINLINE FIntVector Break3DIndex_Log2(const int32 SizeLog2, const T Index)
 	{
 		const int32 X = (Index >> (0 * SizeLog2)) & ((1 << SizeLog2) - 1);
@@ -434,6 +468,14 @@ namespace FVoxelUtilities
 	{
 		return FVoxelUtilities::Break3DIndex<T>(FIntVector(Size), Index);
 	}
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	
+	VOXELCORE_API void Memcpy_Convert(
+		TVoxelArrayView<double> Dest, 
+		TConstVoxelArrayView<float> Src);
 
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////

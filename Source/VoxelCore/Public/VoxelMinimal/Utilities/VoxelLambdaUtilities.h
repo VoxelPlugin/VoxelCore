@@ -4,8 +4,14 @@
 
 #include "VoxelCoreMinimal.h"
 
-template<typename...>
-struct TVoxelTypes;
+template<typename... ArgTypes>
+struct TVoxelTypes
+{
+	static constexpr int32 Num = sizeof...(ArgTypes);
+
+	template<int32 Index>
+	using Get = typename TTupleElement<Index, TTuple<ArgTypes...>>::Type;
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

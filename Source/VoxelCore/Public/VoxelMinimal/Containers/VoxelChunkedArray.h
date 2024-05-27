@@ -178,19 +178,15 @@ public:
 			TVoxelArray<Type, Allocator> Result;
 			FVoxelUtilities::SetNumFast(Result, Num());
 
-			int32 Index = 0;
-			while (Index < ArrayNum)
-			{
-				const int32 ChunkIndex = FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index);
-				const int32 NumInChunk = FMath::Min(NumPerChunk, ArrayNum - Index);
-
-				FVoxelUtilities::Memcpy(
-					MakeVoxelArrayView(Result).Slice(Index, NumInChunk),
-					GetChunkView(ChunkIndex).LeftOf(NumInChunk));
-
-				Index += NumInChunk;
-			}
-			checkVoxelSlow(Index == ArrayNum);
+			this->ForeachView(
+				0,
+				Num(),
+				[&](const int32 ViewIndex, const TConstVoxelArrayView<Type> View)
+				{
+					FVoxelUtilities::Memcpy(
+						MakeVoxelArrayView(Result).Slice(ViewIndex, View.Num()),
+						View);
+				});
 
 			return Result;
 		}
@@ -288,6 +284,66 @@ public:
 	}
 
 public:
+	FORCEINLINE TVoxelArrayView<Type> MakeView(
+		const int32 Index,
+		const int32 Count)
+	{
+		checkVoxelSlow(FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index) == FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index + Count - 1));
+
+		const int32 ChunkIndex = FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index);
+		const int32 ChunkOffset = FVoxelUtilities::GetChunkOffset<NumPerChunk>(Index);
+
+		return this->GetChunkView(ChunkIndex).Slice(ChunkOffset, Count);
+	}
+	FORCEINLINE TConstVoxelArrayView<Type> MakeView(
+		const int32 Index,
+		const int32 Count) const
+	{
+		checkVoxelSlow(FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index) == FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index + Count - 1));
+
+		return this->GetChunkView(FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index)).LeftOf(Count);
+	}
+
+	template<typename LambdaType>
+	FORCEINLINE void ForeachView(
+		const int32 StartIndex,
+		const int32 Count,
+		LambdaType Lambda)
+	{
+		const int32 EndIndex = StartIndex + Count;
+		int32 Index = StartIndex;
+		while (Index < EndIndex)
+		{
+			const int32 ChunkIndex = FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index);
+			const int32 ChunkOffset = FVoxelUtilities::GetChunkOffset<NumPerChunk>(Index);
+			const int32 NumInChunk = FMath::Min(NumPerChunk - ChunkOffset, EndIndex - Index);
+
+			Lambda(Index, GetChunkView(ChunkIndex).Slice(ChunkOffset, NumInChunk));
+			Index += NumInChunk;
+		}
+		checkVoxelSlow(Index == EndIndex);
+	}
+	template<typename LambdaType>
+	FORCEINLINE void ForeachView(
+		const int32 StartIndex,
+		const int32 Count,
+		LambdaType Lambda) const
+	{
+		const int32 EndIndex = StartIndex + Count;
+		int32 Index = StartIndex;
+		while (Index < EndIndex)
+		{
+			const int32 ChunkIndex = FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index);
+			const int32 ChunkOffset = FVoxelUtilities::GetChunkOffset<NumPerChunk>(Index);
+			const int32 NumInChunk = FMath::Min(NumPerChunk - ChunkOffset, EndIndex - Index);
+
+			Lambda(Index, GetChunkView(ChunkIndex).Slice(ChunkOffset, NumInChunk));
+			Index += NumInChunk;
+		}
+		checkVoxelSlow(Index == EndIndex);
+	}
+
+public:
 	FORCEINLINE int32 AddUninitialized()
 	{
 		if (ArrayNum % NumPerChunk == 0)
@@ -322,22 +378,43 @@ public:
 		checkStatic(TIsTriviallyDestructible<Type>::Value);
 		checkVoxelSlow(Count >= 0);
 
-		const int32 StartIndex = AddUninitialized(Count);
+		const int32 Index = AddUninitialized(Count);
 
-		const int32 EndIndex = StartIndex + Count;
-		int32 Index = StartIndex;
-		while (Index < EndIndex)
-		{
-			const int32 ChunkIndex = FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index);
-			const int32 ChunkOffset = FVoxelUtilities::GetChunkOffset<NumPerChunk>(Index);
-			const int32 NumInChunk = FMath::Min(NumPerChunk - ChunkOffset, EndIndex - Index);
+		this->ForeachView(
+			Index,
+			Count,
+			[&](const int32 ViewIndex, const TVoxelArrayView<Type> View)
+			{
+				FVoxelUtilities::Memzero(View);
+			});
 
-			FVoxelUtilities::Memzero(GetChunkView(ChunkIndex).Slice(ChunkOffset, NumInChunk));
-			Index += NumInChunk;
-		}
-		checkVoxelSlow(Index == EndIndex);
+		return Index;
+	}
+	FORCEINLINE int32 Add(const Type& Value, const int32 Count)
+	{
+		checkVoxelSlow(Count >= 0);
 
-		return StartIndex;
+		const int32 Index = AddUninitialized(Count);
+
+		this->ForeachView(
+			Index,
+			Count,
+			[&](const int32 ViewIndex, const TVoxelArrayView<Type> View)
+			{
+				if constexpr (TIsTriviallyDestructible<Type>::Value)
+				{
+					FVoxelUtilities::SetAll(View, Value);
+				}
+				else
+				{
+					for (Type& It : View)
+					{
+						new (&It) Type(Value);
+					}
+				}
+			});
+
+		return Index;
 	}
 
 	FORCEINLINE int32 Add(const Type& Value)
@@ -365,53 +442,44 @@ public:
 		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 1024);
 
 		const int32 StartIndex = this->AddUninitialized(Other.Num());
+
 		if constexpr (TIsTriviallyDestructible<Type>::Value)
 		{
-			const int32 EndIndex = StartIndex + Other.Num();
-			int32 Index = StartIndex;
-			while (Index < EndIndex)
-			{
-				const int32 ChunkIndex = FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index);
-				const int32 ChunkOffset = FVoxelUtilities::GetChunkOffset<NumPerChunk>(Index);
-				const int32 NumInChunk = FMath::Min(NumPerChunk - ChunkOffset, EndIndex - Index);
-
-				FVoxelUtilities::Memcpy(
-					GetChunkView(ChunkIndex).Slice(ChunkOffset, NumInChunk),
-					Other.Slice(Index - StartIndex, NumInChunk));
-
-				Index += NumInChunk;
-			}
-			checkVoxelSlow(Index == EndIndex);
+			this->ForeachView(
+				StartIndex,
+				Other.Num(),
+				[&](const int32 ViewIndex, const TVoxelArrayView<Type> View)
+				{
+					FVoxelUtilities::Memcpy(
+						View,
+						Other.Slice(ViewIndex - StartIndex, View.Num()));
+				});
 		}
 		else
 		{
-			for (int32 OtherIndex = 0; OtherIndex < Other.Num(); OtherIndex++)
+			for (int32 Index = 0; Index < Other.Num(); Index++)
 			{
-				new (&(*this)[StartIndex + OtherIndex]) Type(Other[OtherIndex]);
+				new (&(*this)[StartIndex + Index]) Type(Other[Index]);
 			}
 		}
+
 		return StartIndex;
 	}
 	int32 Append(const TVoxelChunkedArray& Other)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 1024);
 
-		const int32 StartIndex = Num();
+		const int32 Index = Num();
 
-		int32 Index = 0;
-		while (Index < Other.Num())
-		{
-			const int32 ChunkIndex = FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index);
-			const int32 NumInChunk = FMath::Min(NumPerChunk, Other.Num() - Index);
+		Other.ForeachView(
+			0,
+			Other.Num(),
+			[&](const int32 ViewIndex, const TConstVoxelArrayView<Type> View)
+			{
+				this->Append(View);
+			});
 
-			this->Append(Other.GetChunkView(ChunkIndex).LeftOf(NumInChunk));
-
-			Index += NumInChunk;
-		}
-		checkVoxelSlow(Index == Other.Num());
-		checkVoxelSlow(Num() == StartIndex + Other.Num());
-
-		return StartIndex;
+		return Index;
 	}
 
 	FORCEINLINE Type& Add_GetRef(Type&& Value)
@@ -450,38 +518,28 @@ public:
 		return Value;
 	}
 
-	FORCEINLINE void CopyTo(const int32 StartIndex, const Type& Value)
-	{
-		this->CopyTo(StartIndex, MakeVoxelArrayView(Value));
-	}
-	FORCEINLINE void CopyTo(const int32 StartIndex, const TConstVoxelArrayView<Type> Other)
+	FORCEINLINE void CopyFrom(const int32 StartIndex, const TConstVoxelArrayView<Type> Other)
 	{
 		checkVoxelSlow(IsValidIndex(StartIndex));
 		checkVoxelSlow(IsValidIndex(StartIndex + Other.Num() - 1));
 
 		if constexpr (TIsTriviallyDestructible<Type>::Value)
 		{
-			const int32 EndIndex = StartIndex + Other.Num();
-			int32 Index = StartIndex;
-			while (Index < EndIndex)
-			{
-				const int32 ChunkIndex = FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index);
-				const int32 ChunkOffset = FVoxelUtilities::GetChunkOffset<NumPerChunk>(Index);
-				const int32 NumInChunk = FMath::Min(NumPerChunk - ChunkOffset, EndIndex - Index);
-
-				FVoxelUtilities::Memcpy(
-					GetChunkView(ChunkIndex).Slice(ChunkOffset, NumInChunk),
-					Other.Slice(Index - StartIndex, NumInChunk));
-
-				Index += NumInChunk;
-			}
-			checkVoxelSlow(Index == EndIndex);
+			this->ForeachView(
+				StartIndex,
+				Other.Num(),
+				[&](const int32 ViewIndex, const TVoxelArrayView<Type> View)
+				{
+					FVoxelUtilities::Memcpy(
+						View,
+						Other.Slice(ViewIndex - StartIndex, View.Num()));
+				});
 		}
 		else
 		{
-			for (int32 OtherIndex = 0; OtherIndex < Other.Num(); OtherIndex++)
+			for (int32 Index = 0; Index < Other.Num(); Index++)
 			{
-				(*this)[StartIndex + OtherIndex] = Type(Other[OtherIndex]);
+				(*this)[StartIndex + Index] = Type(Other[Index]);
 			}
 		}
 	}

@@ -251,6 +251,12 @@ public: \
 		(void)Temp; \
 	}
 
+#define VOXEL_FOLD_EXPRESSION_COND(Condition, ...) \
+	{ \
+		int32 Temp[] = { 0, ((Condition ? ((__VA_ARGS__), 0) : 0), 0)... }; \
+		(void)Temp; \
+	}
+
 #if !IS_MONOLITHIC
 #define VOXEL_ISPC_ASSERT() \
 	extern "C" void VoxelISPC_Assert(const int32 Line) \

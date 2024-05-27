@@ -2,6 +2,21 @@
 
 #include "VoxelMinimal.isph"
 
+export void ArrayUtilities_FloatToDouble(
+	uniform double Dest[],
+	const uniform float Src[],
+	const uniform int32 Num)
+{
+	FOREACH(Index, 0, Num)
+	{
+		Dest[Index] = Src[Index];
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 export uniform bool ArrayUtilities_AllEqual_uint8(
 	const uniform uint8 Data[],
 	const uniform int32 Num,

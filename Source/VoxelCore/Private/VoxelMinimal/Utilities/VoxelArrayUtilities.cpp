@@ -3,6 +3,28 @@
 #include "VoxelMinimal.h"
 #include "VoxelArrayUtilitiesImpl.ispc.generated.h"
 
+void FVoxelUtilities::Memcpy_Convert(
+	const TVoxelArrayView<double> Dest,
+	const TConstVoxelArrayView<float> Src)
+{
+	VOXEL_FUNCTION_COUNTER_NUM(Dest.Num(), 4096);
+	checkVoxelSlow(Dest.Num() == Src.Num());
+
+	if (Dest.Num() == 0)
+	{
+		return;
+	}
+
+	return ispc::ArrayUtilities_FloatToDouble(
+		Dest.GetData(),
+		Src.GetData(),
+		Dest.Num());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint8> Data, const uint8 Value)
 {
 	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
@@ -12,7 +34,10 @@ bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint8> Data, const uin
 		return true;
 	}
 
-	return ispc::ArrayUtilities_AllEqual_uint8(Data.GetData(), Data.Num(), Value);
+	return ispc::ArrayUtilities_AllEqual_uint8(
+		Data.GetData(),
+		Data.Num(),
+		Value);
 }
 
 bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint16> Data, const uint16 Value)
@@ -24,7 +49,10 @@ bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint16> Data, const ui
 		return true;
 	}
 
-	return ispc::ArrayUtilities_AllEqual_uint16(Data.GetData(), Data.Num(), Value);
+	return ispc::ArrayUtilities_AllEqual_uint16(
+		Data.GetData(),
+		Data.Num(),
+		Value);
 }
 
 bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint32> Data, const uint32 Value)
@@ -36,7 +64,10 @@ bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint32> Data, const ui
 		return true;
 	}
 
-	return ispc::ArrayUtilities_AllEqual_uint32(Data.GetData(), Data.Num(), Value);
+	return ispc::ArrayUtilities_AllEqual_uint32(
+		Data.GetData(),
+		Data.Num(),
+		Value);
 }
 
 bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint64> Data, const uint64 Value)
@@ -48,7 +79,10 @@ bool FVoxelUtilities::AllEqual(const TConstVoxelArrayView<uint64> Data, const ui
 		return true;
 	}
 
-	return ispc::ArrayUtilities_AllEqual_uint64(Data.GetData(), Data.Num(), Value);
+	return ispc::ArrayUtilities_AllEqual_uint64(
+		Data.GetData(),
+		Data.Num(),
+		Value);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

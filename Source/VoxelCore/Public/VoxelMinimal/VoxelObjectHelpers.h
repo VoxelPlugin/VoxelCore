@@ -117,6 +117,8 @@ FORCEINLINE FString GetClassName()
 	return Class::StaticClass()->GetName();
 }
 
+VOXELCORE_API UScriptStruct* FindCoreStruct(const TCHAR* Name);
+
 template<typename Enum>
 FORCEINLINE UEnum* StaticEnumFast()
 {
@@ -131,7 +133,30 @@ FORCEINLINE UScriptStruct* StaticStructFast()
 {
 	VOXEL_STATIC_HELPER(UScriptStruct*)
 	{
-		StaticValue = TBaseStructure<std::decay_t<Struct>>::Get();
+		if constexpr (std::is_same_v<Struct, FVector2f>)
+		{
+			StaticValue = FindCoreStruct(TEXT("Vector2f"));
+		}
+		else if constexpr (std::is_same_v<Struct, FVector3f>)
+		{
+			StaticValue = FindCoreStruct(TEXT("Vector3f"));
+		}
+		else if constexpr (std::is_same_v<Struct, FVector4f>)
+		{
+			StaticValue = FindCoreStruct(TEXT("Vector4f"));
+		}
+		else if constexpr (std::is_same_v<Struct, FLinearColor>)
+		{
+			StaticValue = FindCoreStruct(TEXT("LinearColor"));
+		}
+		else if constexpr (std::is_same_v<Struct, FQuat4f>)
+		{
+			StaticValue = FindCoreStruct(TEXT("Quat4f"));
+		}
+		else
+		{
+			StaticValue = TBaseStructure<std::decay_t<Struct>>::Get();
+		}
 	}
 	return StaticValue;
 }
