@@ -130,9 +130,9 @@ public:
 		{
 			return FVoxelPropertyType::MakeImpl(EVoxelPropertyInternalType::Class, StaticClassFast<typename TSubclassOfType<T>::Type>());
 		}
-		else if constexpr (TIsDerivedFrom<T, UObject>::Value)
+		else if constexpr (IsObjectPtr<T>)
 		{
-			return FVoxelPropertyType::MakeImpl(EVoxelPropertyInternalType::Object, StaticClassFast<T>());
+			return FVoxelPropertyType::MakeImpl(EVoxelPropertyInternalType::Object, StaticClassFast<ObjectPtrInnerType<T>>());
 		}
 		else
 		{
@@ -231,11 +231,11 @@ public:
 				InternalType == EVoxelPropertyInternalType::Class &&
 				GetInternalField() == StaticClassFast<typename TSubclassOfType<T>::Type>();
 		}
-		else if constexpr (TIsDerivedFrom<T, UObject>::Value)
+		else if constexpr (IsObjectPtr<T>)
 		{
 			return
 				InternalType == EVoxelPropertyInternalType::Object &&
-				GetInternalField() == StaticClassFast<T>();
+				GetInternalField() == StaticClassFast<ObjectPtrInnerType<T>>();
 		}
 		else
 		{

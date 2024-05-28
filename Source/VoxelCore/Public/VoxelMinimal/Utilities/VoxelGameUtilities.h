@@ -27,5 +27,11 @@ namespace FVoxelUtilities
 	VOXELCORE_API bool IsActorSelected_AnyThread(FObjectKey Actor);
 #endif
 
-	VOXELCORE_API void CopyBodyInstance(FBodyInstance& Dest, const FBodyInstance& Source);
+	VOXELCORE_API void CopyBodyInstance(
+		FBodyInstance& Dest,
+		const FBodyInstance& Source);
+
+	VOXELCORE_API bool BodyInstanceEqual(
+		const FBodyInstance& A,
+		const FBodyInstance& B);
 }

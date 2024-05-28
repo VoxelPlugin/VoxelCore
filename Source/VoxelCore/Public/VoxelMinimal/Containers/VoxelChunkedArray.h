@@ -202,6 +202,28 @@ public:
 		}
 	}
 
+	void GatherInline(const TConstVoxelArrayView<int32> Indices)
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Num(), 128);
+		checkVoxelSlow(Algo::IsSorted(Indices));
+
+		int32 WriteIndex = 0;
+		for (const int32 Index : Indices)
+		{
+			checkVoxelSlow(WriteIndex <= Index);
+
+			if (WriteIndex != Index)
+			{
+				(*this)[WriteIndex] = (*this)[Index];
+			}
+
+			WriteIndex++;
+		}
+
+		checkVoxelSlow(WriteIndex <= Num());
+		SetNum(WriteIndex);
+	}
+
 	bool operator==(const TVoxelChunkedArray& Other) const
 	{
 		if (Num() != Other.Num())
@@ -288,6 +310,8 @@ public:
 		const int32 Index,
 		const int32 Count)
 	{
+		checkVoxelSlow(IsValidIndex(Index));
+		checkVoxelSlow(IsValidIndex(Index + Count - 1));
 		checkVoxelSlow(FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index) == FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index + Count - 1));
 
 		const int32 ChunkIndex = FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index);
@@ -299,6 +323,8 @@ public:
 		const int32 Index,
 		const int32 Count) const
 	{
+		checkVoxelSlow(IsValidIndex(Index));
+		checkVoxelSlow(IsValidIndex(Index + Count - 1));
 		checkVoxelSlow(FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index) == FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index + Count - 1));
 
 		return this->GetChunkView(FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index)).LeftOf(Count);
@@ -375,6 +401,7 @@ public:
 
 	FORCEINLINE int32 AddZeroed(const int32 Count)
 	{
+		VOXEL_FUNCTION_COUNTER_NUM(Count, 1024);
 		checkStatic(TIsTriviallyDestructible<Type>::Value);
 		checkVoxelSlow(Count >= 0);
 

@@ -238,11 +238,38 @@ bool FVoxelUtilities::IsActorSelected_AnyThread(const FObjectKey Actor)
 }
 #endif
 
-void FVoxelUtilities::CopyBodyInstance(FBodyInstance& Dest, const FBodyInstance& Source)
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void FVoxelUtilities::CopyBodyInstance(
+	FBodyInstance& Dest,
+	const FBodyInstance& Source)
 {
 	VOXEL_FUNCTION_COUNTER();
 	check(IsInGameThread());
 
 	Dest.CopyRuntimeBodyInstancePropertiesFrom(&Source);
 	Dest.SetObjectType(Source.GetObjectType());
+}
+
+bool FVoxelUtilities::BodyInstanceEqual(
+	const FBodyInstance& A,
+	const FBodyInstance& B)
+{
+	VOXEL_FUNCTION_COUNTER();
+	check(IsInGameThread());
+
+	if (A.GetObjectType() != B.GetObjectType() ||
+		A.GetOverrideWalkableSlopeOnInstance() != B.GetOverrideWalkableSlopeOnInstance() ||
+		A.GetWalkableSlopeOverride().GetWalkableSlopeBehavior() != B.GetWalkableSlopeOverride().GetWalkableSlopeBehavior() ||
+		A.GetWalkableSlopeOverride().GetWalkableSlopeAngle() != B.GetWalkableSlopeOverride().GetWalkableSlopeAngle() ||
+		A.GetResponseToChannels() != B.GetResponseToChannels() ||
+		A.GetCollisionProfileName() != B.GetCollisionProfileName() ||
+		A.GetCollisionEnabled() != B.GetCollisionEnabled())
+	{
+		return false;
+	}
+
+	return true;
 }

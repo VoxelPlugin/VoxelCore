@@ -206,7 +206,7 @@ namespace FVoxelUtilities
 	FORCEINLINE float RandRange(const uint32 Seed, const float Min, const float Max)
 	{
 		ensureVoxelSlow(Min <= Max);
-		const float Result = Min + GetFraction(Seed) * float((Max - Min) + 1);
+		const float Result = Min + GetFraction(Seed) * (Max - Min);
 		ensureVoxelSlow(Min <= Result && Result <= Max);
 		return Result;
 	}

@@ -4,6 +4,11 @@
 
 #include "VoxelCoreMinimal.h"
 
+FORCEINLINE uint64 operator ""_u64(const uint64 Value)
+{
+	return Value;
+}
+
 namespace FVoxelUtilities
 {
 	// Unlike DivideAndRoundDown, actually floors the result even if Dividend < 0
@@ -258,36 +263,83 @@ namespace FVoxelUtilities
 	template<typename A, typename B, typename C>
 	void ReadBits(A, B, C) = delete;
 
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
 	FORCEINLINE float& FloatBits(uint32& Value)
 	{
 		return reinterpret_cast<float&>(Value);
 	}
+	FORCEINLINE double& FloatBits(uint64& Value)
+	{
+		return reinterpret_cast<double&>(Value);
+	}
+
 	FORCEINLINE uint32& IntBits(float& Value)
 	{
 		return reinterpret_cast<uint32&>(Value);
+	}
+	FORCEINLINE uint64& IntBits(double& Value)
+	{
+		return reinterpret_cast<uint64&>(Value);
 	}
 
 	FORCEINLINE const float& FloatBits(const uint32& Value)
 	{
 		return reinterpret_cast<const float&>(Value);
 	}
+	FORCEINLINE const double& FloatBits(const uint64& Value)
+	{
+		return reinterpret_cast<const double&>(Value);
+	}
+
 	FORCEINLINE const uint32& IntBits(const float& Value)
 	{
 		return reinterpret_cast<const uint32&>(Value);
 	}
+	FORCEINLINE const uint64& IntBits(const double& Value)
+	{
+		return reinterpret_cast<const uint64&>(Value);
+	}
 
-	FORCEINLINE float NaN()
+	template<typename T>
+	void FloatBits(T) = delete;
+	template<typename T>
+	void IntBits(T) = delete;
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	FORCEINLINE float NaNf()
 	{
 		return FloatBits(0xFFFFFFFF);
 	}
+	FORCEINLINE double NaNd()
+	{
+		return FloatBits(0xFFFFFFFFFFFFFFFF_u64);
+	}
+
 	FORCEINLINE bool IsNaN(const float Value)
 	{
 		const bool bIsNaN = (IntBits(Value) & 0x7FFFFFFF) > 0x7F800000;
 		checkVoxelSlow(bIsNaN == FMath::IsNaN(Value));
 		return bIsNaN;
 	}
+	FORCEINLINE bool IsNaN(const double Value)
+	{
+		const bool bIsNaN = (IntBits(Value) & 0x7FFFFFFFFFFFFFFF_u64) > 0x7FF0000000000000_u64;
+		checkVoxelSlow(bIsNaN == FMath::IsNaN(Value));
+		return bIsNaN;
+	}
+
 	template<typename T>
 	bool IsNaN(T) = delete;
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
 
 	FORCEINLINE bool SignBit(const float Value)
 	{

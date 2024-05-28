@@ -32,6 +32,77 @@ struct TIsSoftObjectPtr<TSoftObjectPtr<T>>
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+template<typename, typename = void>
+struct TIsObjectPtr
+{
+	static constexpr bool Value = false;
+};
+
+template<typename T>
+struct TIsObjectPtr<T, std::enable_if_t<TIsDerivedFrom<T, UObject>::Value>>
+{
+	static constexpr bool Value = true;
+};
+
+template<typename T>
+struct TIsObjectPtr<T*, std::enable_if_t<TIsDerivedFrom<T, UObject>::Value>>
+{
+	static constexpr bool Value = true;
+};
+
+template<typename T>
+struct TIsObjectPtr<TObjectPtr<T>>
+{
+	static constexpr bool Value = true;
+};
+
+template<typename T>
+struct TIsObjectPtr<TWeakObjectPtr<T>>
+{
+	static constexpr bool Value = true;
+};
+
+template<typename T>
+static constexpr bool IsObjectPtr = TIsObjectPtr<T>::Value;
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template<typename, typename = void>
+struct TObjectPtrInnerType;
+
+template<typename T>
+struct TObjectPtrInnerType<T, std::enable_if_t<TIsDerivedFrom<T, UObject>::Value>>
+{
+	using Type = T;
+};
+
+template<typename T>
+struct TObjectPtrInnerType<T*, std::enable_if_t<TIsDerivedFrom<T, UObject>::Value>>
+{
+	using Type = T;
+};
+
+template<typename T>
+struct TObjectPtrInnerType<TObjectPtr<T>>
+{
+	using Type = T;
+};
+
+template<typename T>
+struct TObjectPtrInnerType<TWeakObjectPtr<T>>
+{
+	using Type = T;
+};
+
+template<typename T>
+using ObjectPtrInnerType = typename TObjectPtrInnerType<T>::Type;
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 template<typename>
 struct TSubclassOfType;
 
