@@ -66,7 +66,9 @@ public:
 	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
 	virtual void Destroyed() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
+	virtual void PostLoad() override;
 	virtual void PostEditImport() override;
+	virtual void PostInitProperties() override;
 
 #if WITH_EDITOR
 	virtual bool Modify(bool bAlwaysMarkDirty = true) override;
@@ -107,6 +109,7 @@ public:
 public:
 	virtual bool CanBeCreated() const { return true; }
 	virtual void NotifyTransformChanged() {}
+	virtual void FixupProperties() {}
 	virtual bool ShouldDestroyWhenHidden() const { return false; }
 	virtual FVoxelBox GetLocalBounds() const { return {}; }
 

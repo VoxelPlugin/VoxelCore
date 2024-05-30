@@ -1,6 +1,7 @@
 ﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelActorBase.h"
+#include "VoxelTransformRef.h"
 #include "Application/ThrottleManager.h"
 
 #if WITH_EDITOR
@@ -47,6 +48,8 @@ void UVoxelActorBaseRootComponent::UpdateBounds()
 	VOXEL_FUNCTION_COUNTER();
 
 	Super::UpdateBounds();
+
+	FVoxelTransformRef::NotifyTransformChanged(*this);
 
 	GetOuterAVoxelActorBase()->NotifyTransformChanged();
 }
@@ -152,16 +155,36 @@ void AVoxelActorBase::OnConstruction(const FTransform& Transform)
 #endif
 }
 
+void AVoxelActorBase::PostLoad()
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	Super::PostLoad();
+
+	FixupProperties();
+}
+
 void AVoxelActorBase::PostEditImport()
 {
 	VOXEL_FUNCTION_COUNTER();
 
 	Super::PostEditImport();
 
+	FixupProperties();
+
 	if (IsRuntimeCreated())
 	{
 		QueueRecreate();
 	}
+}
+
+void AVoxelActorBase::PostInitProperties()
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	Super::PostInitProperties();
+
+	FixupProperties();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -184,6 +207,8 @@ void AVoxelActorBase::PostEditUndo()
 	VOXEL_FUNCTION_COUNTER();
 
 	Super::PostEditUndo();
+
+	FixupProperties();
 
 	if (IsValid(this))
 	{
