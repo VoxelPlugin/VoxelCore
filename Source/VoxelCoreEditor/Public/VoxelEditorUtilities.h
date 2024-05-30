@@ -46,7 +46,22 @@ public:
 	static void EnableRealtime();
 	static void TrackHandle(const TSharedPtr<IPropertyHandle>& PropertyHandle);
 	static FSlateFontInfo Font();
-	static void SetSortOrder(IDetailLayoutBuilder& DetailLayout, FName Name, ECategoryPriority::Type Priority, int32 PriorityOffset);
+
+public:
+	static void HideComponentProperties(const IDetailLayoutBuilder& DetailLayout);
+
+	static void SetSortOrder(
+		IDetailLayoutBuilder& DetailLayout,
+		FName Name,
+		ECategoryPriority::Type Priority,
+		int32 PriorityOffset);
+
+	static void HideAndMoveToCategory(
+		IDetailLayoutBuilder& DetailLayout,
+		FName SourceCategory,
+		FName DestCategory,
+		const TSet<FName>& ExplicitProperties = {},
+		bool bCreateGroup = true);
 
 public:
 	static FSimpleDelegate MakeRefreshDelegate(IDetailCustomization* DetailCustomization, const FVoxelDetailInterface& DetailInterface);

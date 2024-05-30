@@ -119,9 +119,67 @@ FSlateFontInfo FVoxelEditorUtilities::Font()
 	return FAppStyle::GetFontStyle("PropertyWindow.NormalFont");
 }
 
-void FVoxelEditorUtilities::SetSortOrder(IDetailLayoutBuilder& DetailLayout, const FName Name, const ECategoryPriority::Type Priority, const int32 PriorityOffset)
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void FVoxelEditorUtilities::HideComponentProperties(const IDetailLayoutBuilder& DetailLayout)
+{
+	for (const FProperty& Property : GetClassProperties<UActorComponent>())
+	{
+		if (const TSharedPtr<IPropertyHandle> PropertyHandle = DetailLayout.GetProperty(Property.GetFName(), UActorComponent::StaticClass()))
+		{
+			PropertyHandle->MarkHiddenByCustomization();
+		}
+	}
+}
+
+void FVoxelEditorUtilities::SetSortOrder(
+	IDetailLayoutBuilder& DetailLayout,
+	const FName Name,
+	const ECategoryPriority::Type Priority,
+	const int32 PriorityOffset)
 {
 	static_cast<FDetailCategoryImpl&>(DetailLayout.EditCategory(Name)).SetSortOrder(int32(Priority) * 1000 + PriorityOffset);
+}
+
+void FVoxelEditorUtilities::HideAndMoveToCategory(
+	IDetailLayoutBuilder& DetailLayout,
+	const FName SourceCategory,
+	const FName DestCategory,
+	const TSet<FName>& ExplicitProperties,
+	const bool bCreateGroup)
+{
+	IDetailCategoryBuilder& SourceCategoryBuilder = DetailLayout.EditCategory(SourceCategory);
+	TArray<TSharedRef<IPropertyHandle>> Properties;
+	SourceCategoryBuilder.GetDefaultProperties(Properties);
+
+	IDetailCategoryBuilder& DestCategoryBuilder = DetailLayout.EditCategory(DestCategory, {}, ECategoryPriority::Uncommon);
+
+	DetailLayout.HideCategory(SourceCategory);
+
+	if (!bCreateGroup)
+	{
+		for (const TSharedRef<IPropertyHandle>& Property : Properties)
+		{
+			if (ExplicitProperties.Num() == 0 ||
+				ExplicitProperties.Contains(Property->GetProperty()->GetFName()))
+			{
+				DestCategoryBuilder.AddProperty(Property);
+			}
+		}
+		return;
+	}
+
+	IDetailGroup& Group = DestCategoryBuilder.AddGroup(SourceCategory, SourceCategoryBuilder.GetDisplayName());
+	for (const TSharedRef<IPropertyHandle>& Property : Properties)
+	{
+		if (ExplicitProperties.Num() == 0 ||
+			ExplicitProperties.Contains(Property->GetProperty()->GetFName()))
+		{
+			Group.AddPropertyRow(Property);
+		}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
