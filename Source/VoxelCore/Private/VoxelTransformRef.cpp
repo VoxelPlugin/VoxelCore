@@ -39,7 +39,7 @@ FMatrix FVoxelTransformRef::Get(FVoxelDependencyTracker& DependencyTracker) cons
 
 	// Make sure to keep the Impl alive so the dependency can be invalided
 	DependencyTracker.AddDependency(Impl->Dependency);
-	DependencyTracker.AddObjectToKeepAlive(Impl);
+	DependencyTracker.AddObjectToKeepAlive(MakeSharedVoidPtr(Impl));
 
 	FMatrix Transform = Impl->GetTransform();
 	if (bIsInverted)

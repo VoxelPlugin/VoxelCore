@@ -48,6 +48,7 @@ public:
 		TOptional<uint64> LessOrEqualTag;
 	};
 	void Invalidate(FInvalidationParameters Parameters = {});
+	void Invalidate(const FVoxelBox& Bounds);
 
 private:
 	FVoxelCriticalSection CriticalSection;

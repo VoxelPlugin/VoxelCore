@@ -151,7 +151,6 @@ VOXELCORE_API FName VoxelStats_AddNum(const FString& Format, int32 Num);
 
 #define DEC_VOXEL_COUNTER_BY(StatName, Amount) \
 	VOXEL_DEBUG_ONLY(StatName.Subtract(Amount);) \
-	VOXEL_DEBUG_ONLY(ensure(StatName.Get() >= 0);) \
 	VOXEL_ALLOW_MALLOC_INLINE(FThreadStats::AddMessage(GET_STATFNAME(StatName ## _Stat), EStatOperation::Subtract, int64(Amount)));
 #else
 #define INC_VOXEL_COUNTER_BY(StatName, Amount)
@@ -194,47 +193,53 @@ VOXELCORE_API FName VoxelStats_AddNum(const FString& Format, int32 Num);
 #define VOXEL_ALLOCATED_SIZE_TRACKER_IMPL(StatName, GetAllocatedSize, UpdateStats, EnsureStatsAreUpToDate) \
 	struct FVoxelStatsRefHelper \
 	{ \
-		int64 AllocatedSize = 0; \
+		FVoxelCounter64 AllocatedSize; \
 		\
 		FVoxelStatsRefHelper() = default; \
 		FVoxelStatsRefHelper(FVoxelStatsRefHelper&& Other) \
 		{ \
-			AllocatedSize = Other.AllocatedSize; \
-			Other.AllocatedSize = 0; \
+			AllocatedSize.Set(Other.AllocatedSize.Exchange_ReturnOld(0)); \
 		} \
 		FVoxelStatsRefHelper& operator=(FVoxelStatsRefHelper&& Other) \
 		{ \
-			AllocatedSize = Other.AllocatedSize; \
-			Other.AllocatedSize = 0; \
+			AllocatedSize.Set(Other.AllocatedSize.Exchange_ReturnOld(0)); \
 			return *this; \
 		} \
 		FVoxelStatsRefHelper(const FVoxelStatsRefHelper& Other) \
 		{ \
-			AllocatedSize = Other.AllocatedSize; \
-			INC_VOXEL_MEMORY_STAT_BY(StatName, AllocatedSize); \
+			AllocatedSize.Set(Other.AllocatedSize.Get()); \
+			INC_VOXEL_MEMORY_STAT_BY(StatName, AllocatedSize.Get()); \
 		} \
 		FVoxelStatsRefHelper& operator=(const FVoxelStatsRefHelper& Other) \
 		{ \
-			AllocatedSize = Other.AllocatedSize; \
-			INC_VOXEL_MEMORY_STAT_BY(StatName, AllocatedSize); \
+			const int64 NewAllocatedSize = Other.AllocatedSize.Get(); \
+			const int64 OldAllocatedSize = AllocatedSize.Exchange_ReturnOld(NewAllocatedSize); \
+			DEC_VOXEL_MEMORY_STAT_BY(StatName, OldAllocatedSize); \
+			INC_VOXEL_MEMORY_STAT_BY(StatName, NewAllocatedSize); \
 			return *this; \
 		} \
 		FORCEINLINE ~FVoxelStatsRefHelper() \
 		{ \
-			DEC_VOXEL_MEMORY_STAT_BY(StatName, AllocatedSize); \
+			DEC_VOXEL_MEMORY_STAT_BY(StatName, AllocatedSize.Get()); \
 		} \
 	}; \
 	mutable FVoxelStatsRefHelper VOXEL_APPEND_LINE(__VoxelStatsRefHelper); \
 	void UpdateStats() const \
 	{ \
-		int64& AllocatedSize = VOXEL_APPEND_LINE(__VoxelStatsRefHelper).AllocatedSize; \
-		DEC_VOXEL_MEMORY_STAT_BY(StatName, AllocatedSize); \
-		AllocatedSize = GetAllocatedSize(); \
-		INC_VOXEL_MEMORY_STAT_BY(StatName, AllocatedSize); \
+		const int64 NewAllocatedSize = GetAllocatedSize(); \
+		const int64 OldAllocatedSize = VOXEL_APPEND_LINE(__VoxelStatsRefHelper).AllocatedSize.Exchange_ReturnOld(NewAllocatedSize); \
+		\
+		if (NewAllocatedSize == OldAllocatedSize) \
+		{ \
+			return; \
+		} \
+		\
+		DEC_VOXEL_MEMORY_STAT_BY(StatName, OldAllocatedSize); \
+		INC_VOXEL_MEMORY_STAT_BY(StatName, NewAllocatedSize); \
 	} \
 	void EnsureStatsAreUpToDate() const \
 	{ \
-		ensure(VOXEL_APPEND_LINE(__VoxelStatsRefHelper).AllocatedSize == GetAllocatedSize()); \
+		ensure(VOXEL_APPEND_LINE(__VoxelStatsRefHelper).AllocatedSize.Get() == GetAllocatedSize()); \
 	}
 
 #define VOXEL_TYPE_SIZE_TRACKER(Type, StatName) \

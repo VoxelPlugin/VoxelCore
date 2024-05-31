@@ -3,13 +3,31 @@
 #include "VoxelDependencyTracker.h"
 
 DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelDependencyTracker);
+DEFINE_VOXEL_MEMORY_STAT(STAT_VoxelDependencyTrackerMemory);
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 FVoxelDependencyTracker::~FVoxelDependencyTracker()
 {
 	VOXEL_SCOPE_LOCK(CriticalSection);
-	ensure(!IsInvalidated() || DependencyRefs.Num() == 0);
+	ensure(!IsInvalidated() || DependencyRefs_RequiresLock.Num() == 0);
 	Unregister_RequiresLock();
 }
+
+int64 FVoxelDependencyTracker::GetAllocatedSize() const
+{
+	return
+		sizeof(*this) +
+		DependencyRefs_RequiresLock.GetAllocatedSize() +
+		ObjectsToKeepAlive_RequiresLock.GetAllocatedSize() +
+		DependencyToTrackerRefs_RequiresLock.GetAllocatedSize();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 void FVoxelDependencyTracker::AddDependency(
 	const TSharedRef<FVoxelDependency>& Dependency,
@@ -36,7 +54,8 @@ void FVoxelDependencyTracker::AddDependency(
 	}
 
 	VOXEL_SCOPE_LOCK(CriticalSection);
-	ensure(!OnInvalidated);
+	check(!bIsFinalized_RequiresLock);
+	check(!OnInvalidated_RequiresLock);
 
 	if (IsInvalidated())
 	{
@@ -45,7 +64,7 @@ void FVoxelDependencyTracker::AddDependency(
 		return;
 	}
 
-	TVoxelInlineArray<FVoxelDependency::FTrackerRef, 2>& TrackerRefs = DependencyToTrackerRefs.FindOrAdd(Dependency);
+	TVoxelInlineArray<FVoxelDependency::FTrackerRef, 2>& TrackerRefs = DependencyToTrackerRefs_RequiresLock.FindOrAdd(Dependency);
 	if (TrackerRefs.Contains(TrackerRef))
 	{
 		// Already added
@@ -60,45 +79,62 @@ void FVoxelDependencyTracker::AddDependency(
 	}
 	Dependency->UpdateStats();
 
-	FDependencyRef& DependencyRef = DependencyRefs.Emplace_GetRef();
+	FDependencyRef& DependencyRef = DependencyRefs_RequiresLock.Emplace_GetRef();
 	DependencyRef.WeakDependency = Dependency;
 	DependencyRef.Index = Index;
 }
 
-bool FVoxelDependencyTracker::TrySetOnInvalidated(TVoxelUniqueFunction<void()> NewOnInvalidated)
+void FVoxelDependencyTracker::AddObjectToKeepAlive(const FSharedVoidPtr& ObjectToKeepAlive)
 {
 	VOXEL_SCOPE_LOCK(CriticalSection);
-	ensure(!OnInvalidated);
+	checkVoxelSlow(!bIsFinalized_RequiresLock);
 
-	if (IsInvalidated())
-	{
-		return false;
-	}
-
-	OnInvalidated = MoveTemp(NewOnInvalidated);
-	return true;
+	ObjectsToKeepAlive_RequiresLock.Add(MakeSharedVoidPtr(ObjectToKeepAlive));
 }
 
-void FVoxelDependencyTracker::SetOnInvalidated(TVoxelUniqueFunction<void()> NewOnInvalidated)
+bool FVoxelDependencyTracker::SetOnInvalidated(
+	TVoxelUniqueFunction<void()> NewOnInvalidated,
+	const bool bFireNow)
 {
 	CriticalSection.Lock();
-	ensure(!OnInvalidated);
+
+	checkVoxelSlow(!bIsFinalized_RequiresLock);
+	bIsFinalized_RequiresLock = true;
+
+	ObjectsToKeepAlive_RequiresLock.Shrink();
+	DependencyToTrackerRefs_RequiresLock.Shrink();
+	DependencyToTrackerRefs_RequiresLock.Empty();
+
+	checkVoxelSlow(!OnInvalidated_RequiresLock);
 
 	if (IsInvalidated())
 	{
 		CriticalSection.Unlock();
-		NewOnInvalidated();
-		return;
+
+		if (bFireNow)
+		{
+			NewOnInvalidated();
+		}
+		return false;
 	}
 
-	OnInvalidated = MoveTemp(NewOnInvalidated);
+	OnInvalidated_RequiresLock = MoveTemp(NewOnInvalidated);
 	CriticalSection.Unlock();
+
+	return true;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 FVoxelDependencyTracker::FVoxelDependencyTracker(const FName& Name)
 	: Name(Name)
 {
-	DependencyRefs.Reserve(16);
+	VOXEL_FUNCTION_COUNTER();
+
+	ObjectsToKeepAlive_RequiresLock.Reserve(128);
+	DependencyRefs_RequiresLock.Reserve(128);
 }
 
 void FVoxelDependencyTracker::Unregister_RequiresLock()
@@ -106,7 +142,7 @@ void FVoxelDependencyTracker::Unregister_RequiresLock()
 	VOXEL_FUNCTION_COUNTER();
 	checkVoxelSlow(CriticalSection.IsLocked());
 
-	for (const FDependencyRef& DependencyRef : DependencyRefs)
+	for (const FDependencyRef& DependencyRef : DependencyRefs_RequiresLock)
 	{
 		const TSharedPtr<FVoxelDependency> Dependency = DependencyRef.WeakDependency.Pin();
 		if (!Dependency)
@@ -118,6 +154,8 @@ void FVoxelDependencyTracker::Unregister_RequiresLock()
 
 		checkVoxelSlow(GetWeakPtrObject_Unsafe(Dependency->TrackerRefs_RequiresLock[DependencyRef.Index].WeakTracker) == this);
 		Dependency->TrackerRefs_RequiresLock.RemoveAt(DependencyRef.Index);
+
+		Dependency->UpdateStats();
 	}
-	DependencyRefs.Empty();
+	DependencyRefs_RequiresLock.Empty();
 }

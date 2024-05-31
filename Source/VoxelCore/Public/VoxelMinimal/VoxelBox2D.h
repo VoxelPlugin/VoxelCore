@@ -130,6 +130,10 @@ struct VOXELCORE_API FVoxelBox2D
 			FVector3d(Min.X, Min.Y, MinZ),
 			FVector3d(Max.X, Max.Y, MaxZ));
 	}
+	FVoxelBox ToBox3D_Infinite() const
+	{
+		return ToBox3D(FVoxelBox::Infinite.Min.Z, FVoxelBox::Infinite.Max.Z);
+	}
 
 	FORCEINLINE bool IsValid() const
 	{

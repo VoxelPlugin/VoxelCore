@@ -70,9 +70,9 @@ void FVoxelDependencyInvalidationScope::Invalidate()
 			Tracker->bIsInvalidated.Set(true);
 			Tracker->Unregister_RequiresLock();
 
-			if (Tracker->OnInvalidated)
+			if (Tracker->OnInvalidated_RequiresLock)
 			{
-				OnInvalidatedArray.Add(MoveTemp(Tracker->OnInvalidated));
+				OnInvalidatedArray.Add(MoveTemp(Tracker->OnInvalidated_RequiresLock));
 			}
 		}
 		Trackers.Empty();
@@ -134,6 +134,14 @@ void FVoxelDependency::Invalidate(const FInvalidationParameters Parameters)
 		}
 
 		RootScope.Trackers.Add(TrackerRef.WeakTracker);
+	});
+}
+
+void FVoxelDependency::Invalidate(const FVoxelBox& Bounds)
+{
+	Invalidate(FInvalidationParameters
+	{
+		Bounds
 	});
 }
 
