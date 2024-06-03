@@ -4,53 +4,68 @@
 
 #include "VoxelMinimal.h"
 
-class VOXELCORE_API IVoxelTaskDispatcher
+class IVoxelTaskDispatcher;
+
+class VOXELCORE_API FVoxelTaskDispatcherKeepAliveRef
+{
+public:
+	~FVoxelTaskDispatcherKeepAliveRef();
+
+private:
+	const TWeakPtr<IVoxelTaskDispatcher> WeakDispatcher;
+	const int32 Index;
+
+	FVoxelTaskDispatcherKeepAliveRef(
+		const TSharedRef<IVoxelTaskDispatcher>& Dispatcher,
+		const int32 Index)
+		: WeakDispatcher(Dispatcher)
+		, Index(Index)
+	{
+	}
+
+	friend class IVoxelTaskDispatcher;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+class VOXELCORE_API IVoxelTaskDispatcher : public TSharedFromThis<IVoxelTaskDispatcher>
 {
 public:
 	IVoxelTaskDispatcher() = default;
 	virtual ~IVoxelTaskDispatcher() = default;
 
-	FORCEINLINE int32 NumPromises() const
-	{
-		return PrivateNumPromises.Get();
-	}
-
 	virtual void Dispatch(
 		EVoxelFutureThread Thread,
 		TVoxelUniqueFunction<void()> Lambda) = 0;
 
+protected:
+	FVoxelCounter32* NumPromisesPtr = nullptr;
+
 private:
-	FVoxelCounter32 PrivateNumPromises;
+	FVoxelCriticalSection CriticalSection;
+	TVoxelChunkedSparseArray<TSharedPtr<FVoxelPromiseState>> PromisesToKeepAlive_RequiresLock;
+
+	TSharedRef<FVoxelTaskDispatcherKeepAliveRef> AddRef(const TSharedRef<FVoxelPromiseState>& Promise);
 
 	friend class FVoxelPromiseState;
+	friend class FVoxelTaskDispatcherKeepAliveRef;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 class VOXELCORE_API FVoxelTaskDispatcherScope
 {
 public:
-	explicit FVoxelTaskDispatcherScope(const TSharedRef<IVoxelTaskDispatcher>& Dispatcher);
+	explicit FVoxelTaskDispatcherScope(IVoxelTaskDispatcher& Dispatcher);
 	~FVoxelTaskDispatcherScope();
 
-	static TSharedPtr<IVoxelTaskDispatcher> Get();
+	static IVoxelTaskDispatcher& Get();
 
 private:
-	const TSharedRef<IVoxelTaskDispatcher>& Dispatcher;
+	IVoxelTaskDispatcher& Dispatcher;
 	void* const PreviousTLS;
-};
-
-class VOXELCORE_API FVoxelDefaultTaskDispatcher : public IVoxelTaskDispatcher
-{
-public:
-	FVoxelDefaultTaskDispatcher() = default;
-
-	//~ Begin IVoxelTaskDispatcher Interface
-	virtual void Dispatch(
-		EVoxelFutureThread Thread,
-		TVoxelUniqueFunction<void()> Lambda) override;
-	//~ End IVoxelTaskDispatcher Interface
-
-public:
-	static void StaticDispatch(
-		EVoxelFutureThread Thread,
-		TVoxelUniqueFunction<void()> Lambda);
 };

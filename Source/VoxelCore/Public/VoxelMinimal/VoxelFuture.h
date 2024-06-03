@@ -9,6 +9,7 @@
 
 class FVoxelFuture;
 class FVoxelPromise;
+class FVoxelTaskDispatcherKeepAliveRef;
 
 template<typename>
 class TVoxelFuture;
@@ -105,7 +106,7 @@ private:
 	TVoxelAtomic<bool> bIsComplete;
 	FSharedVoidPtr Value_RequiresLock;
 	FThreadToContinuation ThreadToContinuation_RequiresLock;
-	TSharedPtr<FVoxelPromiseState> ThisPtr_RequiresLock;
+	TSharedPtr<FVoxelTaskDispatcherKeepAliveRef> KeepAliveRef_RequiresLock;
 
 	FVoxelPromiseState();
 

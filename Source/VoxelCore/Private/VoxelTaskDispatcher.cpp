@@ -2,71 +2,105 @@
 
 #include "VoxelTaskDispatcher.h"
 
+class VOXELCORE_API FVoxelDefaultTaskDispatcherSingleton : public FVoxelSingleton
+{
+public:
+	class FTaskDispatcher : public IVoxelTaskDispatcher
+	{
+		//~ Begin IVoxelTaskDispatcher Interface
+		virtual void Dispatch(
+			const EVoxelFutureThread Thread,
+			TVoxelUniqueFunction<void()> Lambda) override
+		{
+			switch (Thread)
+			{
+			default: VOXEL_ASSUME(false);
+			case EVoxelFutureThread::AnyThread:
+			{
+				Lambda();
+			}
+			break;
+			case EVoxelFutureThread::GameThread:
+			{
+				RunOnGameThread(MoveTemp(Lambda));
+			}
+			break;
+			case EVoxelFutureThread::RenderThread:
+			{
+				VOXEL_ENQUEUE_RENDER_COMMAND(Future)([Lambda = MoveTemp(Lambda)](FRHICommandListImmediate& RHICmdList)
+				{
+					Lambda();
+				});
+			}
+			break;
+			case EVoxelFutureThread::AsyncThread:
+			{
+				AsyncBackgroundTaskImpl(MoveTemp(Lambda));
+			}
+			break;
+			}
+		}
+		//~ End IVoxelTaskDispatcher Interface
+	};
+	const TSharedRef<FTaskDispatcher> TaskDispatcher = MakeVoxelShared<FTaskDispatcher>();
+};
+FVoxelDefaultTaskDispatcherSingleton* GVoxelDefaultTaskDispatcherSingleton = new FVoxelDefaultTaskDispatcherSingleton();
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FVoxelTaskDispatcherKeepAliveRef::~FVoxelTaskDispatcherKeepAliveRef()
+{
+	const TSharedPtr<IVoxelTaskDispatcher> Dispatcher = WeakDispatcher.Pin();
+	if (!Dispatcher)
+	{
+		return;
+	}
+
+	VOXEL_SCOPE_LOCK(Dispatcher->CriticalSection);
+	Dispatcher->PromisesToKeepAlive_RequiresLock.RemoveAt(Index);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+TSharedRef<FVoxelTaskDispatcherKeepAliveRef> IVoxelTaskDispatcher::AddRef(const TSharedRef<FVoxelPromiseState>& Promise)
+{
+	int32 Index;
+	{
+		VOXEL_SCOPE_LOCK(CriticalSection);
+		Index = PromisesToKeepAlive_RequiresLock.Add(Promise);
+	}
+	return MakeVoxelShareable(new (GVoxelMemory) FVoxelTaskDispatcherKeepAliveRef(AsShared(), Index));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 const uint32 GVoxelTaskDispatcherScopeTLS = FPlatformTLS::AllocTlsSlot();
 
-FVoxelTaskDispatcherScope::FVoxelTaskDispatcherScope(const TSharedRef<IVoxelTaskDispatcher>& Dispatcher)
+FVoxelTaskDispatcherScope::FVoxelTaskDispatcherScope(IVoxelTaskDispatcher& Dispatcher)
 	: Dispatcher(Dispatcher)
 	, PreviousTLS(FPlatformTLS::GetTlsValue(GVoxelTaskDispatcherScopeTLS))
 {
-	FPlatformTLS::SetTlsValue(GVoxelTaskDispatcherScopeTLS, this);
+	FPlatformTLS::SetTlsValue(GVoxelTaskDispatcherScopeTLS, &Dispatcher);
 }
 
 FVoxelTaskDispatcherScope::~FVoxelTaskDispatcherScope()
 {
-	ensure(FPlatformTLS::GetTlsValue(GVoxelTaskDispatcherScopeTLS) == this);
+	ensure(FPlatformTLS::GetTlsValue(GVoxelTaskDispatcherScopeTLS) == &Dispatcher);
 	FPlatformTLS::SetTlsValue(GVoxelTaskDispatcherScopeTLS, PreviousTLS);
 }
 
-TSharedPtr<IVoxelTaskDispatcher> FVoxelTaskDispatcherScope::Get()
+IVoxelTaskDispatcher& FVoxelTaskDispatcherScope::Get()
 {
-	const FVoxelTaskDispatcherScope* Scope = static_cast<FVoxelTaskDispatcherScope*>(FPlatformTLS::GetTlsValue(GVoxelTaskDispatcherScopeTLS));
-	if (!Scope)
+	if (IVoxelTaskDispatcher* Dispatcher = static_cast<IVoxelTaskDispatcher*>(FPlatformTLS::GetTlsValue(GVoxelTaskDispatcherScopeTLS)))
 	{
-		return nullptr;
+		return *Dispatcher;
 	}
-	return Scope->Dispatcher;
-}
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-void FVoxelDefaultTaskDispatcher::Dispatch(
-	const EVoxelFutureThread Thread,
-	TVoxelUniqueFunction<void()> Lambda)
-{
-	StaticDispatch(Thread, MoveTemp(Lambda));
-}
-
-void FVoxelDefaultTaskDispatcher::StaticDispatch(
-	const EVoxelFutureThread Thread,
-	TVoxelUniqueFunction<void()> Lambda)
-{
-	switch (Thread)
-	{
-	default: VOXEL_ASSUME(false);
-	case EVoxelFutureThread::AnyThread:
-	{
-		Lambda();
-	}
-	break;
-	case EVoxelFutureThread::GameThread:
-	{
-		RunOnGameThread(MoveTemp(Lambda));
-	}
-	break;
-	case EVoxelFutureThread::RenderThread:
-	{
-		VOXEL_ENQUEUE_RENDER_COMMAND(Future)([Lambda = MoveTemp(Lambda)](FRHICommandListImmediate& RHICmdList)
-		{
-			Lambda();
-		});
-	}
-	break;
-	case EVoxelFutureThread::AsyncThread:
-	{
-		AsyncBackgroundTaskImpl(MoveTemp(Lambda));
-	}
-	break;
-	}
+	return *GVoxelDefaultTaskDispatcherSingleton->TaskDispatcher;
 }
