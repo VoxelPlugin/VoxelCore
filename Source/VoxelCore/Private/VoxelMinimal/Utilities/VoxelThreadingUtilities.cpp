@@ -1,7 +1,6 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
-#include "VoxelThreadPool.h"
 #include "Async/Async.h"
 
 TQueue<TVoxelUniqueFunction<void()>, EQueueMode::Mpsc> GVoxelGameThreadTaskQueue;
@@ -89,4 +88,61 @@ void AsyncThreadPoolTaskImpl(TVoxelUniqueFunction<void()> Lambda)
 void RunOnGameThread_Async(TVoxelUniqueFunction<void()> Lambda)
 {
 	GVoxelGameThreadTaskQueue.Enqueue(MoveTemp(Lambda));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+thread_local bool GVoxelAllowParallelTasks = false;
+thread_local TVoxelChunkedArray<TVoxelUniqueFunction<void()>> GVoxelTasks;
+
+void FVoxelUtilities::Task(TVoxelUniqueFunction<void()> Lambda)
+{
+	if (!GVoxelAllowParallelTasks)
+	{
+		Lambda();
+		return;
+	}
+
+	GVoxelTasks.Add(MoveTemp(Lambda));
+}
+
+void FVoxelUtilities::FlushTasks()
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	TVoxelChunkedArray<TVoxelUniqueFunction<void()>> Tasks = MoveTemp(GVoxelTasks);
+	check(GVoxelTasks.Num() == 0);
+
+	if (GVoxelAllowParallelTasks)
+	{
+		ParallelFor(Tasks.Num(), [&](const int32 Index)
+		{
+			FVoxelTaskScope TaskScope(true);
+			Tasks[Index]();
+		});
+	}
+	else
+	{
+		for (const TVoxelUniqueFunction<void()>& Task : Tasks)
+		{
+			Task();
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FVoxelTaskScope::FVoxelTaskScope(const bool bAllowParallelTasks)
+	: bPreviousAllowParallelTasks(GVoxelAllowParallelTasks)
+{
+	GVoxelAllowParallelTasks = bAllowParallelTasks;
+}
+
+FVoxelTaskScope::~FVoxelTaskScope()
+{
+	GVoxelAllowParallelTasks = bPreviousAllowParallelTasks;
 }

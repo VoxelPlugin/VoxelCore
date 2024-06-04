@@ -190,6 +190,8 @@ public:
 	// No SetNumUninitialized: the last word must always be zero-padded
 	void SetNum(SizeType NewNumBits, const bool bValue)
 	{
+		VOXEL_FUNCTION_COUNTER_NUM(NewNumBits, 128);
+
 		// Has different behavior than TArray::SetNum
 		checkVoxelSlow(Num() == 0);
 

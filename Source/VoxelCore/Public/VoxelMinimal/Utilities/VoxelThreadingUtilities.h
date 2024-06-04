@@ -320,3 +320,23 @@ void ParallelFor_ArrayView(
 		Lambda(ThreadArrayView);
 	});
 }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+namespace FVoxelUtilities
+{
+	VOXELCORE_API void Task(TVoxelUniqueFunction<void()> Lambda);
+	VOXELCORE_API void FlushTasks();
+}
+
+class VOXELCORE_API FVoxelTaskScope
+{
+public:
+	explicit FVoxelTaskScope(bool bAllowParallelTasks);
+	~FVoxelTaskScope();
+
+private:
+	const bool bPreviousAllowParallelTasks;
+};
