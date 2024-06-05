@@ -933,4 +933,7 @@ public:
 	static void ResetPreviousLocalToWorld(
 		const UPrimitiveComponent& Component,
 		const FPrimitiveSceneProxy& SceneProxy);
+
+public:
+	static void OnEndFrameRT(TVoxelUniqueFunction<void()> Lambda);
 };

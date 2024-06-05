@@ -1091,3 +1091,40 @@ void FVoxelRenderUtilities::ResetPreviousLocalToWorld(
 			Scene.VelocityData.OverridePreviousTransform(SceneProxy.GetPrimitiveComponentId(), PreviousLocalToWorld);
 		});
 }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+struct FVoxelOnEndFrameRT
+{
+	FVoxelCriticalSection CriticalSection;
+	TVoxelChunkedArray<TVoxelUniqueFunction<void()>> Functions_RequiresLock;
+};
+FVoxelOnEndFrameRT GVoxelOnEndFrameRT;
+
+VOXEL_RUN_ON_STARTUP_GAME()
+{
+	FCoreDelegates::OnEndFrameRT.AddLambda([]
+	{
+		VOXEL_SCOPE_COUNTER("GVoxelOnEndFrameRT");
+		ensure(IsInActualRenderingThread());
+
+		TVoxelChunkedArray<TVoxelUniqueFunction<void()>> Functions;
+		{
+			VOXEL_SCOPE_LOCK(GVoxelOnEndFrameRT.CriticalSection);
+			Functions = MoveTemp(GVoxelOnEndFrameRT.Functions_RequiresLock);
+		}
+
+		for (const TVoxelUniqueFunction<void()>& Lambda : Functions)
+		{
+			Lambda();
+		}
+	});
+}
+
+void FVoxelRenderUtilities::OnEndFrameRT(TVoxelUniqueFunction<void()> Lambda)
+{
+	VOXEL_SCOPE_LOCK(GVoxelOnEndFrameRT.CriticalSection);
+	GVoxelOnEndFrameRT.Functions_RequiresLock.Add(MoveTemp(Lambda));
+}
