@@ -1,6 +1,7 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelDependency.h"
+#include "VoxelDependencySink.h"
 #include "VoxelDependencyTracker.h"
 
 DEFINE_VOXEL_MEMORY_STAT(STAT_VoxelDependencies);
@@ -17,7 +18,7 @@ FVoxelDependencyInvalidationScope::FVoxelDependencyInvalidationScope()
 
 FVoxelDependencyInvalidationScope::~FVoxelDependencyInvalidationScope()
 {
-	if (Trackers.Num() > 0)
+	if (Invalidations.Num() > 0)
 	{
 		Invalidate();
 	}
@@ -33,17 +34,34 @@ void FVoxelDependencyInvalidationScope::Invalidate()
 	VOXEL_FUNCTION_COUNTER();
 	ensure(GVoxelDependencyInvalidationScope == this);
 
-	if (IsInGameThread())
+	if (IsInGameThread() && false)
 	{
-		AsyncBackgroundTask([Trackers = MakeUniqueCopy(MoveTemp(Trackers))]
+		// Causes race conditions in landscape pipeline
+
+		AsyncBackgroundTask([Invalidations = MakeUniqueCopy(MoveTemp(Invalidations))]
 		{
 			FVoxelDependencyInvalidationScope Invalidator;
 
-			ensure(GVoxelDependencyInvalidationScope->Trackers.Num() == 0);
-			GVoxelDependencyInvalidationScope->Trackers = MoveTemp(*Trackers);
+			ensure(GVoxelDependencyInvalidationScope->Invalidations.Num() == 0);
+			GVoxelDependencyInvalidationScope->Invalidations = MoveTemp(*Invalidations);
 		});
 		return;
 	}
+
+	TVoxelSet<TWeakPtr<FVoxelDependencyTracker>> Trackers;
+
+	const auto FlushInvalidations = [&]
+	{
+		VOXEL_SCOPE_COUNTER("FlushInvalidations");
+
+		for (const FInvalidation& Invalidation : Invalidations)
+		{
+			Invalidation.Dependency->GetInvalidatedTrackers(Invalidation.Parameters, Trackers);
+		}
+		Invalidations.Reset();
+	};
+
+	FlushInvalidations();
 
 	while (Trackers.Num() > 0)
 	{
@@ -75,14 +93,16 @@ void FVoxelDependencyInvalidationScope::Invalidate()
 				OnInvalidatedArray.Add(MoveTemp(Tracker->OnInvalidated_RequiresLock));
 			}
 		}
-		Trackers.Empty();
+		Trackers.Reset();
 
-		// This might add new trackers to Trackers
+		// This might add new invalidation to Invalidations
 		VOXEL_SCOPE_COUNTER("OnInvalidated");
 		for (const TVoxelUniqueFunction<void()>& OnInvalidated : OnInvalidatedArray)
 		{
 			OnInvalidated();
 		}
+
+		FlushInvalidations();
 	}
 }
 
@@ -90,12 +110,48 @@ void FVoxelDependencyInvalidationScope::Invalidate()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void FVoxelDependency::Invalidate(const FInvalidationParameters Parameters)
+void FVoxelDependency::Invalidate(const FVoxelDependencyInvalidationParameters Parameters)
+{
+	FVoxelDependencySink::AddAction(MakeStrongPtrLambda(this, [=, this]
+	{
+		VOXEL_FUNCTION_COUNTER();
+
+		FVoxelDependencyInvalidationScope LocalScope;
+		FVoxelDependencyInvalidationScope& RootScope = *GVoxelDependencyInvalidationScope;
+
+		RootScope.Invalidations.Add(FVoxelDependencyInvalidationScope::FInvalidation
+		{
+			AsShared(),
+			Parameters
+		});
+	}));
+}
+
+void FVoxelDependency::Invalidate(const FVoxelBox& Bounds)
+{
+	Invalidate(FVoxelDependencyInvalidationParameters
+	{
+		Bounds
+	});
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FVoxelDependency::FVoxelDependency(const FString& Name)
+	: Name(Name)
 {
 	VOXEL_FUNCTION_COUNTER();
+	TrackerRefs_RequiresLock.Reserve(8192);
+	UpdateStats();
+}
 
-	FVoxelDependencyInvalidationScope LocalScope;
-	FVoxelDependencyInvalidationScope& RootScope = *GVoxelDependencyInvalidationScope;
+void FVoxelDependency::GetInvalidatedTrackers(
+	FVoxelDependencyInvalidationParameters Parameters,
+	TVoxelSet<TWeakPtr<FVoxelDependencyTracker>>& OutTrackers)
+{
+	VOXEL_FUNCTION_COUNTER();
 
 	const bool bCheckBounds = Parameters.Bounds.IsSet();
 	const FVoxelBox Bounds = Parameters.Bounds.Get({});
@@ -133,22 +189,6 @@ void FVoxelDependency::Invalidate(const FInvalidationParameters Parameters)
 			return;
 		}
 
-		RootScope.Trackers.Add(TrackerRef.WeakTracker);
+		OutTrackers.Add(TrackerRef.WeakTracker);
 	});
-}
-
-void FVoxelDependency::Invalidate(const FVoxelBox& Bounds)
-{
-	Invalidate(FInvalidationParameters
-	{
-		Bounds
-	});
-}
-
-FVoxelDependency::FVoxelDependency(const FString& Name)
-	: Name(Name)
-{
-	VOXEL_FUNCTION_COUNTER();
-	TrackerRefs_RequiresLock.Reserve(8192);
-	UpdateStats();
 }

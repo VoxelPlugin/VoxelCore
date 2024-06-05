@@ -54,8 +54,8 @@ void FVoxelDependencyTracker::AddDependency(
 	}
 
 	VOXEL_SCOPE_LOCK(CriticalSection);
-	check(!bIsFinalized_RequiresLock);
-	check(!OnInvalidated_RequiresLock);
+	ensure(!bIsFinalized_RequiresLock);
+	ensure(!OnInvalidated_RequiresLock);
 
 	if (IsInvalidated())
 	{

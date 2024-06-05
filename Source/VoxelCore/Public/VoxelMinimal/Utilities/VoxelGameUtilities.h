@@ -24,6 +24,10 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 
 #if WITH_EDITOR
+	VOXELCORE_API void OnActorSelectionChanged(
+		AActor& Actor,
+		TDelegate<void(bool bIsSelected)> Delegate);
+
 	VOXELCORE_API bool IsActorSelected_AnyThread(FObjectKey Actor);
 #endif
 

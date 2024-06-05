@@ -9,6 +9,12 @@ class FVoxelDependencyTracker;
 
 DECLARE_VOXEL_MEMORY_STAT(VOXELCORE_API, STAT_VoxelDependencies, "Dependencies");
 
+struct FVoxelDependencyInvalidationParameters
+{
+	TOptional<FVoxelBox> Bounds;
+	TOptional<uint64> LessOrEqualTag;
+};
+
 class VOXELCORE_API FVoxelDependencyInvalidationScope
 {
 public:
@@ -16,7 +22,12 @@ public:
 	~FVoxelDependencyInvalidationScope();
 
 private:
-	TVoxelChunkedArray<TWeakPtr<FVoxelDependencyTracker>> Trackers;
+	struct FInvalidation
+	{
+		TSharedPtr<FVoxelDependency> Dependency;
+		FVoxelDependencyInvalidationParameters Parameters;
+	};
+	TVoxelChunkedArray<FInvalidation> Invalidations;
 
 	void Invalidate();
 
@@ -42,12 +53,8 @@ public:
 		return TrackerRefs_RequiresLock.GetAllocatedSize();
 	}
 
-	struct FInvalidationParameters
-	{
-		TOptional<FVoxelBox> Bounds;
-		TOptional<uint64> LessOrEqualTag;
-	};
-	void Invalidate(FInvalidationParameters Parameters = {});
+public:
+	void Invalidate(FVoxelDependencyInvalidationParameters Parameters = {});
 	void Invalidate(const FVoxelBox& Bounds);
 
 private:
@@ -91,5 +98,10 @@ private:
 
 	explicit FVoxelDependency(const FString& Name);
 
+	void GetInvalidatedTrackers(
+		FVoxelDependencyInvalidationParameters Parameters,
+		TVoxelSet<TWeakPtr<FVoxelDependencyTracker>>& OutTrackers);
+
 	friend FVoxelDependencyTracker;
+	friend FVoxelDependencyInvalidationScope;
 };

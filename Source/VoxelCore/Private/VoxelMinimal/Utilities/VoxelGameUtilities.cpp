@@ -198,8 +198,10 @@ bool FVoxelUtilities::GetCameraView(const UWorld* World, FVector& OutPosition, F
 class FVoxelActorSelectionTracker : public FVoxelSingleton
 {
 public:
+	TVoxelMap<TObjectPtr<AActor>, TMulticastDelegate<void(bool)>> ActorToDelegate;
+
 	FVoxelCriticalSection CriticalSection;
-	TSet<FObjectKey> SelectedActors_RequiresLock;
+	TVoxelSet<FObjectKey> SelectedActors_RequiresLock;
 
 	//~ Begin FVoxelSingleton Interface
 	virtual void Initialize() override
@@ -209,6 +211,27 @@ public:
 			UpdateSelection();
 		});
 	}
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
+	{
+		VOXEL_FUNCTION_COUNTER();
+
+		for (auto It = ActorToDelegate.CreateIterator(); It; ++It)
+		{
+			if (!It.Value().IsBound())
+			{
+				It.RemoveCurrent();
+				continue;
+			}
+
+			TObjectPtr<AActor> Actor = It.Key();
+			Collector.AddReferencedObject(Actor);
+
+			if (!Actor)
+			{
+				It.RemoveCurrent();
+			}
+		}
+	}
 	//~ End FVoxelSingleton Interface
 
 public:
@@ -216,20 +239,72 @@ public:
 	{
 		VOXEL_FUNCTION_COUNTER();
 
-		TSet<FObjectKey> NewSelectedActors;
-
-		USelection* Selection = GEditor->GetSelectedActors();
-		for (FSelectionIterator It(*Selection); It; ++It)
+		TVoxelSet<FObjectKey> NewSelectedActors;
 		{
-			const AActor* Actor = CastChecked<AActor>(*It);
-			NewSelectedActors.Add(Actor);
+			USelection* Selection = GEditor->GetSelectedActors();
+			NewSelectedActors.Reserve(Selection->Num());
+
+			for (FSelectionIterator It(*Selection); It; ++It)
+			{
+				const AActor* Actor = CastChecked<AActor>(*It);
+				NewSelectedActors.Add(Actor);
+			}
 		}
 
-		VOXEL_SCOPE_LOCK(CriticalSection);
-		SelectedActors_RequiresLock = MoveTemp(NewSelectedActors);
+		TVoxelSet<FObjectKey> ActorsToSelect;
+		TVoxelSet<FObjectKey> ActorsToDeselect;
+		{
+			VOXEL_SCOPE_LOCK(CriticalSection);
+
+			ActorsToSelect = NewSelectedActors.Difference(SelectedActors_RequiresLock);
+			ActorsToDeselect = SelectedActors_RequiresLock.Difference(NewSelectedActors);
+
+			SelectedActors_RequiresLock = MoveTemp(NewSelectedActors);
+		}
+
+		for (const FObjectKey& ActorKey : ActorsToSelect)
+		{
+			AActor* Actor = Cast<AActor>(ActorKey.ResolveObjectPtr());
+			if (!Actor)
+			{
+				continue;
+			}
+
+			const TMulticastDelegate<void(bool)>* Delegate = ActorToDelegate.Find(Actor);
+			if (!Delegate)
+			{
+				continue;
+			}
+
+			Delegate->Broadcast(true);
+		}
+
+		for (const FObjectKey& ActorKey : ActorsToDeselect)
+		{
+			AActor* Actor = Cast<AActor>(ActorKey.ResolveObjectPtr());
+			if (!Actor)
+			{
+				continue;
+			}
+
+			const TMulticastDelegate<void(bool)>* Delegate = ActorToDelegate.Find(Actor);
+			if (!Delegate)
+			{
+				continue;
+			}
+
+			Delegate->Broadcast(false);
+		}
 	}
 };
 FVoxelActorSelectionTracker* GVoxelActorSelectionTracker = new FVoxelActorSelectionTracker();
+
+void FVoxelUtilities::OnActorSelectionChanged(
+	AActor& Actor,
+	TDelegate<void(bool bIsSelected)> Delegate)
+{
+	GVoxelActorSelectionTracker->ActorToDelegate.FindOrAdd(&Actor).Add(MoveTemp(Delegate));
+}
 
 bool FVoxelUtilities::IsActorSelected_AnyThread(const FObjectKey Actor)
 {

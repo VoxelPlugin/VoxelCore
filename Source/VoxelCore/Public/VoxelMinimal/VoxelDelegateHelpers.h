@@ -296,6 +296,15 @@ FORCEINLINE auto MakeWeakObjectPtrLambda(T* Ptr, LambdaType Lambda, ReturnType&&
 	return TMakeWeakObjectPtrLambdaHelper<LambdaArgTypes_T<LambdaType>>::Make(Ptr, MoveTemp(Lambda), MoveTemp(Default));
 }
 
+template<
+	typename T,
+	typename LambdaType,
+	typename = std::enable_if_t<TIsDerivedFrom<T, UObject>::Value || TIsDerivedFrom<T, IInterface>::Value>>
+FORCEINLINE auto MakeWeakObjectPtrDelegate(T* Ptr, LambdaType Lambda)
+{
+	return TDelegate<LambdaSignature_T<LambdaType>>::CreateWeakLambda(Ptr, MoveTemp(Lambda));
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

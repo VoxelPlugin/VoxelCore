@@ -50,8 +50,6 @@ void UVoxelActorBaseRootComponent::UpdateBounds()
 	Super::UpdateBounds();
 
 	FVoxelTransformRef::NotifyTransformChanged(*this);
-
-	GetOuterAVoxelActorBase()->NotifyTransformChanged();
 }
 
 FBoxSphereBounds UVoxelActorBaseRootComponent::CalcBounds(const FTransform& LocalToWorld) const
@@ -73,6 +71,12 @@ AVoxelActorBase::AVoxelActorBase()
 #if WITH_EDITORONLY_DATA
 	bIsSpatiallyLoaded = false;
 #endif
+
+	PrivateTransformRef = MakeSharedCopy(FVoxelTransformRef::Make(*this));
+	PrivateTransformRef->AddOnChanged(MakeWeakObjectPtrDelegate(this, [this](const FMatrix&)
+	{
+		NotifyTransformChanged();
+	}));
 }
 
 AVoxelActorBase::~AVoxelActorBase()
@@ -308,14 +312,7 @@ void AVoxelActorBase::Tick(const float DeltaTime)
 		}
 	}
 
-	if (bPrivateRecreateQueued &&
-		CanBeCreated())
-	{
-		bPrivateRecreateQueued = false;
-
-		Destroy();
-		Create();
-	}
+	FlushRecreate();
 
 	if (PrivateRuntime)
 	{
@@ -408,6 +405,20 @@ void AVoxelActorBase::Destroy()
 	}
 	PrivateComponents.Empty();
 	PrivateClassToWeakComponents.Empty();
+}
+
+void AVoxelActorBase::FlushRecreate()
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	if (bPrivateRecreateQueued &&
+		CanBeCreated())
+	{
+		bPrivateRecreateQueued = false;
+
+		Destroy();
+		Create();
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -85,8 +85,6 @@ void FVoxelTransformRefManager::NotifyTransformChanged(const USceneComponent& Co
 	VOXEL_SCOPE_LOCK(CriticalSection);
 	check(IsInGameThread());
 
-	LOG_VOXEL(Verbose, "NotifyTransformChanged %s", *Component.GetReadableName());
-
 	TVoxelSet<TWeakPtr<FVoxelTransformRefImpl>>* WeakTransformRefs = ComponentToWeakTransformRefs_RequiresLock.Find(&Component);
 	if (!WeakTransformRefs)
 	{

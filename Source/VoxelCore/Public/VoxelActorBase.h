@@ -5,6 +5,8 @@
 #include "VoxelMinimal.h"
 #include "VoxelActorBase.generated.h"
 
+class FVoxelTransformRef;
+
 class VOXELCORE_API IVoxelActorRuntime : public TSharedFromThis<IVoxelActorRuntime>
 {
 public:
@@ -106,6 +108,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Voxel")
 	void Destroy();
 
+	void FlushRecreate();
+
 public:
 	virtual bool CanBeCreated() const { return true; }
 	virtual void NotifyTransformChanged() {}
@@ -126,6 +130,7 @@ private:
 	bool bPrivateRecreateQueued = false;
 	bool bPrivateCreateOnceVisible = false;
 	TSharedPtr<IVoxelActorRuntime> PrivateRuntime;
+	TSharedPtr<FVoxelTransformRef> PrivateTransformRef;
 
 public:
 	template<typename T>
