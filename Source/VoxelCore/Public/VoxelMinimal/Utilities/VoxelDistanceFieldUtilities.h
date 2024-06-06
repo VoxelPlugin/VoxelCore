@@ -18,14 +18,28 @@ namespace FVoxelUtilities
 		return Color;
 	}
 
-	FORCEINLINE float SmoothMin(const float DistanceA, const float DistanceB, const float Smoothness)
+	FORCEINLINE float SmoothMin(
+		const float DistanceA,
+		const float DistanceB,
+		const float Smoothness,
+		float* OutAlpha = nullptr)
 	{
 		const float H = FMath::Clamp(0.5f + 0.5f * (DistanceB - DistanceA) / Smoothness, 0.0f, 1.0f);
+
+		if (OutAlpha)
+		{
+			*OutAlpha = 1.f - H;
+		}
+
 		return FMath::Lerp(DistanceB, DistanceA, H) - Smoothness * H * (1.0f - H);
 	}
-	FORCEINLINE float SmoothMax(const float DistanceA, const float DistanceB, const float Smoothness)
+	FORCEINLINE float SmoothMax(
+		const float DistanceA,
+		const float DistanceB,
+		const float Smoothness,
+		float* OutAlpha = nullptr)
 	{
-		return -SmoothMin(-DistanceA, -DistanceB, Smoothness);
+		return -SmoothMin(-DistanceA, -DistanceB, Smoothness, OutAlpha);
 	}
 
 	// See https://www.iquilezles.org/www/articles/smin/smin.htm
