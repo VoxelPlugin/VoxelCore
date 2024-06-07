@@ -1,0 +1,1095 @@
+﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
+
+#include "VoxelCoreMinimal.isph"
+#include "VoxelCoreTypes.isph"
+
+// ReSharper disable CppCStyleCast
+
+FORCEINLINE generic uint8 select(generic bool cond, generic uint8 t, generic uint8 f)
+{
+	return (generic uint8)select(cond, (generic int8)t, (generic int8)f);
+}
+FORCEINLINE generic uint16 select(generic bool cond, generic uint16 t, generic uint16 f)
+{
+	return (generic uint16)select(cond, (generic int16)t, (generic int16)f);
+}
+FORCEINLINE generic uint32 select(generic bool cond, generic uint32 t, generic uint32 f)
+{
+	return (generic uint32)select(cond, (generic int32)t, (generic int32)f);
+}
+FORCEINLINE generic uint64 select(generic bool cond, generic uint64 t, generic uint64 f)
+{
+	return (generic uint64)select(cond, (generic int64)t, (generic int64)f);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FORCEINLINE generic float lerp(const generic float A, const generic float B, const generic float Alpha)
+{
+	// Minimize float precision errors in case A or B is huge
+	return A * (1.f - Alpha) + B * Alpha;
+}
+FORCEINLINE generic double lerp(const generic double A, const generic double B, const generic double Alpha)
+{
+	return A * (1.f - Alpha) + B * Alpha;
+}
+
+FORCEINLINE generic float fmod(const generic float x, const generic float y)
+{
+	return x - trunc(x / y) * y;
+}
+
+FORCEINLINE generic bool IsFinite(const generic float A)
+{
+	return (intbits(A) & 0x7F800000U) != 0x7F800000U;
+}
+
+FORCEINLINE generic bool IsFinite(const generic double A)
+{
+	return ((intbits(A) >> 52) & 0x7FFU) != 0x7FFU;
+}
+
+FORCEINLINE generic float InvSqrt(const generic float X)
+{
+	return 1.f / sqrt(X);
+}
+FORCEINLINE generic double InvSqrt(const generic double X)
+{
+	return 1.d / sqrt(X);
+}
+
+FORCEINLINE generic float Square(const generic float X)
+{
+	return X * X;
+}
+
+FORCEINLINE generic float SmoothStep(const generic float A, const generic float B, const generic float Alpha)
+{
+	if (Alpha < A)
+	{
+		return 0.f;
+	}
+	else if (Alpha >= B)
+	{
+		return 1.f;
+	}
+
+	const generic float InterpFraction = (Alpha - A) / (B - A);
+	return InterpFraction * InterpFraction * (3.0f - 2.0f * InterpFraction);
+}
+
+FORCEINLINE generic uint32 MurmurHash32(generic uint32 Hash)
+{
+	Hash ^= Hash >> 16;
+	Hash *= 0x85ebca6b;
+	Hash ^= Hash >> 13;
+	Hash *= 0xc2b2ae35;
+	Hash ^= Hash >> 16;
+	return Hash;
+}
+
+FORCEINLINE generic uint32 MurmurHash32(const generic uint32 Value, const generic uint32 Seed)
+{
+	generic uint32 H = 1831214719 * (1460481823 + Seed);
+	return MurmurHash32(H ^ Value);
+}
+
+FORCEINLINE generic bool IsPowerOfTwo(const generic uint32 Value)
+{
+	return (Value & (Value - 1)) == 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FORCEINLINE generic float2 MakeFloat2(
+	const generic float X,
+	const generic float Y)
+{
+	generic float2 Result;
+	Result.x = X;
+	Result.y = Y;
+	return Result;
+}
+FORCEINLINE generic float3 MakeFloat3(
+	const generic float X,
+	const generic float Y,
+	const generic float Z)
+{
+	generic float3 Result;
+	Result.x = X;
+	Result.y = Y;
+	Result.z = Z;
+	return Result;
+}
+FORCEINLINE generic float4 MakeFloat4(
+	const generic float X,
+	const generic float Y,
+	const generic float Z,
+	const generic float W)
+{
+	generic float4 Result;
+	Result.x = X;
+	Result.y = Y;
+	Result.z = Z;
+	Result.w = W;
+	return Result;
+}
+
+FORCEINLINE generic double2 MakeDouble2(
+	const generic double X,
+	const generic double Y)
+{
+	generic double2 Result;
+	Result.x = X;
+	Result.y = Y;
+	return Result;
+}
+FORCEINLINE generic double3 MakeDouble3(
+	const generic double X,
+	const generic double Y,
+	const generic double Z)
+{
+	generic double3 Result;
+	Result.x = X;
+	Result.y = Y;
+	Result.z = Z;
+	return Result;
+}
+FORCEINLINE generic double4 MakeDouble4(
+	const generic double X,
+	const generic double Y,
+	const generic double Z,
+	const generic double W)
+{
+	generic double4 Result;
+	Result.x = X;
+	Result.y = Y;
+	Result.z = Z;
+	Result.w = W;
+	return Result;
+}
+
+FORCEINLINE generic int2 MakeInt2(
+	const generic int32 X,
+	const generic int32 Y)
+{
+	generic int2 Result;
+	Result.x = X;
+	Result.y = Y;
+	return Result;
+}
+FORCEINLINE generic int3 MakeInt3(
+	const generic int32 X,
+	const generic int32 Y,
+	const generic int32 Z)
+{
+	generic int3 Result;
+	Result.x = X;
+	Result.y = Y;
+	Result.z = Z;
+	return Result;
+}
+FORCEINLINE generic int4 MakeInt4(
+	const generic int32 X,
+	const generic int32 Y,
+	const generic int32 Z,
+	const generic int32 W)
+{
+	generic int4 Result;
+	Result.x = X;
+	Result.y = Y;
+	Result.z = Z;
+	Result.w = W;
+	return Result;
+}
+
+#define VECTOR_OP(Type, OpOp, Op) \
+	FORCEINLINE generic Type ## 2 OpOp(generic Type ## 2 A, generic Type ## 2 B) \
+	{ \
+	    generic Type ## 2 Result; \
+		Result.x = A.x Op B.x; \
+		Result.y = A.y Op B.y; \
+	    return Result; \
+	} \
+	FORCEINLINE generic Type ## 3 OpOp(generic Type ## 3 A, generic Type ## 3 B) \
+	{ \
+	    generic Type ## 3 Result; \
+		Result.x = A.x Op B.x; \
+		Result.y = A.y Op B.y; \
+		Result.z = A.z Op B.z; \
+	    return Result; \
+	} \
+	FORCEINLINE generic Type ## 4 OpOp(generic Type ## 4 A, generic Type ## 4 B) \
+	{ \
+	    generic Type ## 4 Result; \
+		Result.x = A.x Op B.x; \
+		Result.y = A.y Op B.y; \
+		Result.z = A.z Op B.z; \
+		Result.w = A.w Op B.w; \
+	    return Result; \
+	}
+
+#define SCALAR_VECTOR_OP(InputType, ScalarType, ResultType, OpOp, Op) \
+	FORCEINLINE generic ResultType ## 2 OpOp(generic InputType ## 2 A, generic ScalarType B) \
+	{ \
+	    generic ResultType ## 2 Result; \
+		Result.x = A.x Op B; \
+		Result.y = A.y Op B; \
+	    return Result; \
+	} \
+	FORCEINLINE generic ResultType ## 3 OpOp(generic InputType ## 3 A, generic ScalarType B) \
+	{ \
+	    generic ResultType ## 3 Result; \
+		Result.x = A.x Op B; \
+		Result.y = A.y Op B; \
+		Result.z = A.z Op B; \
+	    return Result; \
+	} \
+	FORCEINLINE generic ResultType ## 4 OpOp(generic InputType ## 4 A, generic ScalarType B) \
+	{ \
+	    generic ResultType ## 4 Result; \
+		Result.x = A.x Op B; \
+		Result.y = A.y Op B; \
+		Result.z = A.z Op B; \
+		Result.w = A.w Op B; \
+	    return Result; \
+	} \
+	\
+	FORCEINLINE generic ResultType ## 2 OpOp(generic ScalarType A, generic InputType ## 2 B) \
+	{ \
+	    generic ResultType ## 2 Result; \
+		Result.x = A Op B.x; \
+		Result.y = A Op B.y; \
+	    return Result; \
+	} \
+	FORCEINLINE generic ResultType ## 3 OpOp(generic ScalarType A, generic InputType ## 3 B) \
+	{ \
+	    generic ResultType ## 3 Result; \
+		Result.x = A Op B.x; \
+		Result.y = A Op B.y; \
+		Result.z = A Op B.z; \
+	    return Result; \
+	} \
+	FORCEINLINE generic ResultType ## 4 OpOp(generic ScalarType A, generic InputType ## 4 B) \
+	{ \
+	    generic ResultType ## 4 Result; \
+		Result.x = A Op B.x; \
+		Result.y = A Op B.y; \
+		Result.z = A Op B.z; \
+		Result.w = A Op B.w; \
+	    return Result; \
+	}
+
+VECTOR_OP(float, operator*, *);
+VECTOR_OP(float, operator/, /);
+VECTOR_OP(float, operator+, +);
+VECTOR_OP(float, operator-, -);
+
+VECTOR_OP(double, operator*, *);
+VECTOR_OP(double, operator/, /);
+VECTOR_OP(double, operator+, +);
+VECTOR_OP(double, operator-, -);
+
+VECTOR_OP(int, operator*, *);
+// Slow VECTOR_OP(int, operator/, /);
+VECTOR_OP(int, operator+, +);
+VECTOR_OP(int, operator-, -);
+
+SCALAR_VECTOR_OP(float, float, float, operator*, *);
+SCALAR_VECTOR_OP(float, float, float, operator/, /);
+SCALAR_VECTOR_OP(float, float, float, operator+, +);
+SCALAR_VECTOR_OP(float, float, float, operator-, -);
+
+SCALAR_VECTOR_OP(double, double, double, operator*, *);
+SCALAR_VECTOR_OP(double, double, double, operator/, /);
+SCALAR_VECTOR_OP(double, double, double, operator+, +);
+SCALAR_VECTOR_OP(double, double, double, operator-, -);
+
+SCALAR_VECTOR_OP(int, int32, int, operator*, *);
+// Slow SCALAR_VECTOR_OP(int, int32, int, operator/, /);
+SCALAR_VECTOR_OP(int, int32, int, operator+, +);
+SCALAR_VECTOR_OP(int, int32, int, operator-, -);
+
+SCALAR_VECTOR_OP(int, float, float, operator*, *);
+SCALAR_VECTOR_OP(int, float, float, operator/, /);
+SCALAR_VECTOR_OP(int, float, float, operator+, +);
+SCALAR_VECTOR_OP(int, float, float, operator-, -);
+
+#undef VECTOR_OP
+#undef SCALAR_VECTOR_OP
+
+FORCEINLINE generic float2 MakeFloat2(const generic int2 Value)
+{
+	generic float2 Result;
+	Result.x = Value.x;
+	Result.y = Value.y;
+	return Result;
+}
+FORCEINLINE generic float3 MakeFloat3(const generic int3 Value)
+{
+	generic float3 Result;
+	Result.x = Value.x;
+	Result.y = Value.y;
+	Result.z = Value.z;
+	return Result;
+}
+
+FORCEINLINE generic int2 MakeInt2(const generic float2 Value)
+{
+	generic int2 Result;
+	Result.x = Value.x;
+	Result.y = Value.y;
+	return Result;
+}
+FORCEINLINE generic int3 MakeInt3(const generic float3 Value)
+{
+	generic int3 Result;
+	Result.x = Value.x;
+	Result.y = Value.y;
+	Result.z = Value.z;
+	return Result;
+}
+
+FORCEINLINE generic float2 floor(const generic float2 Value)
+{
+	return MakeFloat2(
+		floor(Value.x),
+		floor(Value.y));
+}
+FORCEINLINE generic float3 floor(const generic float3 Value)
+{
+	return MakeFloat3(
+		floor(Value.x),
+		floor(Value.y),
+		floor(Value.z));
+}
+
+FORCEINLINE generic float2 clamp(
+	const generic float2 Value,
+	const generic float2 A,
+	const generic float2 B)
+{
+	return MakeFloat2(
+		clamp(Value.x, A.x, B.x),
+		clamp(Value.y, A.y, B.y));
+}
+FORCEINLINE generic float3 clamp(
+	const generic float3 Value,
+	const generic float3 A,
+	const generic float3 B)
+{
+	return MakeFloat3(
+		clamp(Value.x, A.x, B.x),
+		clamp(Value.y, A.y, B.y),
+		clamp(Value.z, A.z, B.z));
+}
+FORCEINLINE generic float3 clamp(
+	const generic float3 Value,
+	const generic float A,
+	const generic float B)
+{
+	return MakeFloat3(
+		clamp(Value.x, A, B),
+		clamp(Value.y, A, B),
+		clamp(Value.z, A, B));
+}
+
+FORCEINLINE generic int2 clamp(
+	const generic int2 Value,
+	const generic int2 A,
+	const generic int2 B)
+{
+	return MakeInt2(
+		clamp(Value.x, A.x, B.x),
+		clamp(Value.y, A.y, B.y));
+}
+FORCEINLINE generic int3 clamp(
+	const generic int3 Value,
+	const generic int3 A,
+	const generic int3 B)
+{
+	return MakeInt3(
+		clamp(Value.x, A.x, B.x),
+		clamp(Value.y, A.y, B.y),
+		clamp(Value.z, A.z, B.z));
+}
+
+FORCEINLINE generic float2 lerp(
+	const generic float2 A,
+	const generic float2 B, const
+	generic float Alpha)
+{
+	return MakeFloat2(
+		lerp(A.x, B.x, Alpha),
+		lerp(A.y, B.y, Alpha));
+}
+FORCEINLINE generic float3 lerp(
+	const generic float3 A,
+	const generic float3 B,
+	const generic float Alpha)
+{
+	return MakeFloat3(
+		lerp(A.x, B.x, Alpha),
+		lerp(A.y, B.y, Alpha),
+		lerp(A.z, B.z, Alpha));
+}
+FORCEINLINE generic float4 lerp(
+	const generic float4 A,
+	const generic float4 B,
+	const generic float Alpha)
+{
+	return MakeFloat4(
+		lerp(A.x, B.x, Alpha),
+		lerp(A.y, B.y, Alpha),
+		lerp(A.z, B.z, Alpha),
+		lerp(A.w, B.w, Alpha));
+}
+
+FORCEINLINE generic float length(const generic float2 Value)
+{
+	return sqrt(Value.x * Value.x + Value.y * Value.y);
+}
+FORCEINLINE generic float length(const generic float3 Value)
+{
+	return sqrt(Value.x * Value.x + Value.y * Value.y + Value.z * Value.z);
+}
+FORCEINLINE generic double length(const generic double2 Value)
+{
+	return sqrt(Value.x * Value.x + Value.y * Value.y);
+}
+FORCEINLINE generic double length(const generic double3 Value)
+{
+	return sqrt(Value.x * Value.x + Value.y * Value.y + Value.z * Value.z);
+}
+
+FORCEINLINE generic float distance(const generic float2 A, const generic float2 B)
+{
+	return length(B - A);
+}
+FORCEINLINE generic float distance(const generic float3 A, const generic float3 B)
+{
+	return length(B - A);
+}
+FORCEINLINE generic double distance(const generic double2 A, generic const double2 B)
+{
+	return length(B - A);
+}
+FORCEINLINE generic double distance(const generic double3 A, const generic double3 B)
+{
+	return length(B - A);
+}
+
+FORCEINLINE generic float2 normalize(const generic float2 Vector)
+{
+	const generic float SquareSum = Vector.x * Vector.x + Vector.y * Vector.y;
+	return Vector * InvSqrt(SquareSum);
+}
+FORCEINLINE generic float3 normalize(const generic float3 Vector)
+{
+	const generic float SquareSum = Vector.x * Vector.x + Vector.y * Vector.y + Vector.z * Vector.z;
+	if (SquareSum == 0.f)
+	{
+		return MakeFloat3(0, 0, 1);
+	}
+
+	return Vector * InvSqrt(SquareSum);
+}
+
+FORCEINLINE generic float2 abs(const generic float2 Vector)
+{
+	return MakeFloat2(
+		abs(Vector.x),
+		abs(Vector.y));
+}
+FORCEINLINE generic float3 abs(const generic float3 Vector)
+{
+	return MakeFloat3(
+		abs(Vector.x),
+		abs(Vector.y),
+		abs(Vector.z));
+}
+
+FORCEINLINE generic double2 normalize(const generic double2 Vector)
+{
+	const generic double SquareSum = Vector.x * Vector.x + Vector.y * Vector.y;
+	return Vector * InvSqrt(SquareSum);
+}
+FORCEINLINE generic double3 normalize(const generic double3 Vector)
+{
+	const generic double SquareSum = Vector.x * Vector.x + Vector.y * Vector.y + Vector.z * Vector.z;
+	if (SquareSum == 0.d)
+	{
+		return MakeDouble3(0, 0, 1);
+	}
+
+	return Vector * InvSqrt(SquareSum);
+}
+
+FORCEINLINE generic float3 cross(const generic float3 A, const generic float3 B)
+{
+	return MakeFloat3(
+		A.y * B.z - A.z * B.y,
+		A.z * B.x - A.x * B.z,
+		A.x * B.y - A.y * B.x
+	);
+}
+FORCEINLINE generic double3 cross(const generic double3 A, const generic double3 B)
+{
+	return MakeDouble3(
+		A.y * B.z - A.z * B.y,
+		A.z * B.x - A.x * B.z,
+		A.x * B.y - A.y * B.x
+	);
+}
+
+FORCEINLINE generic float dot(const generic float2 A, const generic float2 B)
+{
+	return A.x * B.x + A.y * B.y;
+}
+FORCEINLINE generic float dot(const generic float3 A, const generic float3 B)
+{
+	return A.x * B.x + A.y * B.y + A.z * B.z;
+}
+
+FORCEINLINE generic float3 min(const generic float3 A, const generic float3 B)
+{
+	return MakeFloat3(
+		min(A.x, B.x),
+		min(A.y, B.y),
+		min(A.z, B.z));
+}
+FORCEINLINE generic float3 max(const generic float3 A, const generic float3 B)
+{
+	return MakeFloat3(
+		max(A.x, B.x),
+		max(A.y, B.y),
+		max(A.z, B.z));
+}
+
+FORCEINLINE generic float3 min(const generic float3 A, const generic float B)
+{
+	return MakeFloat3(
+		min(A.x, B),
+		min(A.y, B),
+		min(A.z, B));
+}
+FORCEINLINE generic float3 max(const generic float3 A, const generic float B)
+{
+	return MakeFloat3(
+		max(A.x, B),
+		max(A.y, B),
+		max(A.z, B));
+}
+
+FORCEINLINE generic float3 min(const generic float A, const generic float3 B)
+{
+	return MakeFloat3(
+		min(A, B.x),
+		min(A, B.y),
+		min(A, B.z));
+}
+FORCEINLINE generic float3 max(const generic float A, const generic float3 B)
+{
+	return MakeFloat3(
+		max(A, B.x),
+		max(A, B.y),
+		max(A, B.z));
+}
+
+FORCEINLINE generic float DistanceSquared(const generic float2 A, const generic float2 B)
+{
+	const generic float2 C = A - B;
+	return dot(C, C);
+}
+FORCEINLINE generic float DistanceSquared(const generic float3 A, const generic float3 B)
+{
+	const generic float3 C = A - B;
+	return dot(C, C);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FORCEINLINE generic double2 TransformPosition(const generic double2x2 Matrix, const generic double2 Position)
+{
+	return MakeDouble2(
+		Position.x * Matrix.M[0][0] + Position.y * Matrix.M[1][0],
+		Position.x * Matrix.M[0][1] + Position.y * Matrix.M[1][1]);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FORCEINLINE generic double2 TransformPosition(const generic FTransform2d Transform, const generic double2 Position)
+{
+	return TransformPosition(Transform.Matrix, Position) + Transform.Translation;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FORCEINLINE generic float3 TransformPosition(const generic float4x4 Matrix, const generic float3 Position)
+{
+	return MakeFloat3(
+		Matrix.M[0] * Position.x + Matrix.M[4] * Position.y + Matrix.M[8] * Position.z + Matrix.M[12],
+		Matrix.M[1] * Position.x + Matrix.M[5] * Position.y + Matrix.M[9] * Position.z + Matrix.M[13],
+		Matrix.M[2] * Position.x + Matrix.M[6] * Position.y + Matrix.M[10] * Position.z + Matrix.M[14]);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FORCEINLINE generic float SmoothHelper(generic float Value, generic float Smoothness)
+{
+#if PLATFORM_WINDOWS
+	// Works even when Smoothness == 0 on Windows
+	// Breaks on M1 macs
+	return Value / Smoothness;
+#else
+	return Smoothness == 0.f
+		? Value < 0.f ? -1.f : 1.f
+		: Value / Smoothness;
+#endif
+}
+
+FORCEINLINE float SmoothMin(
+	const generic float DistanceA,
+	const generic float DistanceB,
+	const generic float Smoothness)
+{
+	const generic float H = clamp(0.5f + 0.5f * SmoothHelper(DistanceB - DistanceA, Smoothness), 0.f, 1.f);
+	return lerp(DistanceB, DistanceA, H) - Smoothness * H * (1.f - H);
+}
+FORCEINLINE float SmoothMax(
+	const generic float DistanceA,
+	const generic float DistanceB,
+	const generic float Smoothness)
+{
+	return -SmoothMin(-DistanceA, -DistanceB, Smoothness);
+}
+
+FORCEINLINE generic float SmoothMin(
+	const generic float DistanceA,
+	const generic float DistanceB,
+	const generic float Smoothness,
+	generic float& OutAlpha)
+{
+	const generic float H = clamp(0.5f + 0.5f * SmoothHelper(DistanceB - DistanceA, Smoothness), 0.f, 1.f);
+	OutAlpha = 1.f - H;
+	return lerp(DistanceB, DistanceA, H) - Smoothness * H * (1.f - H);
+}
+FORCEINLINE generic float SmoothMax(
+	const generic float DistanceA,
+	const generic float DistanceB,
+	const generic float Smoothness,
+	generic float& OutAlpha)
+{
+	return -SmoothMin(-DistanceA, -DistanceB, Smoothness, OutAlpha);
+}
+
+FORCEINLINE generic float SafeSmoothMin(
+	const generic float DistanceA,
+	const generic float DistanceB,
+	const generic float Smoothness)
+{
+	const generic float H = clamp(0.5f + 0.5f * SmoothHelper(DistanceB - DistanceA, Smoothness), 0.f, 1.f);
+	const generic float Result = lerp(DistanceB, DistanceA, H) - Smoothness * H * (1.f - H);
+
+	return
+		H < KINDA_SMALL_NUMBER
+		? DistanceB
+		: H > 1.f - KINDA_SMALL_NUMBER
+		? DistanceA
+		: Result;
+}
+FORCEINLINE generic float SafeSmoothMax(
+	const generic float DistanceA,
+	const generic float DistanceB,
+	const generic float Smoothness)
+{
+	return -SafeSmoothMin(-DistanceA, -DistanceB, Smoothness);
+}
+
+FORCEINLINE generic float BilinearInterpolation(
+	const generic float A,
+	const generic float B,
+	const generic float C,
+	const generic float D,
+	const generic float X,
+	const generic float Y)
+{
+	return lerp(lerp(A, B, X), lerp(C, D, X), Y);
+}
+
+FORCEINLINE generic float TrilinearInterpolation(
+	const generic float A,
+	const generic float B,
+	const generic float C,
+	const generic float D,
+	const generic float E,
+	const generic float F,
+	const generic float G,
+	const generic float H,
+	const generic float X,
+	const generic float Y,
+	const generic float Z)
+{
+	return lerp(
+		BilinearInterpolation(A, B, C, D, X, Y),
+		BilinearInterpolation(E, F, G, H, X, Y),
+		Z);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FORCEINLINE generic int32 FloatToUINT8_int32(const generic float Float)
+{
+	return clamp((generic int32)floor(Float * 255.999f), 0, 255);
+}
+FORCEINLINE generic float UINT8ToFloat_int32(const generic int32 Int)
+{
+	return Int / 255.f;
+}
+
+FORCEINLINE generic uint8 FloatToUINT8(const generic float Float)
+{
+	return FloatToUINT8_int32(Float);
+}
+FORCEINLINE generic float UINT8ToFloat(const generic uint8 Int)
+{
+	return UINT8ToFloat_int32(Int);
+}
+
+FORCEINLINE generic int32 ReadBits(generic uint32 Data, const generic int32 FirstBit, const generic int32 NumBits)
+{
+	check(0 <= FirstBit && FirstBit + NumBits <= 32);
+	check(0 < NumBits);
+
+	Data <<= 32 - (FirstBit + NumBits);
+	Data >>= 32 - NumBits;
+	return Data;
+}
+FORCEINLINE generic uint64 ReadBits(generic uint64 Data, const generic int32 FirstBit, const generic int32 NumBits)
+{
+	check(0 <= FirstBit && FirstBit + NumBits <= 64);
+	check(0 < NumBits);
+
+	Data <<= 64 - (FirstBit + NumBits);
+	Data >>= 64 - NumBits;
+	return Data;
+}
+
+FORCEINLINE generic bool IsNearlyZero(const generic float Float)
+{
+	return abs(Float) < KINDA_SMALL_NUMBER;
+}
+
+// H00
+FORCEINLINE generic float HermiteP0(const generic float T)
+{
+	return (1 + 2 * T) * Square(1 - T);
+}
+// H10
+FORCEINLINE generic float HermiteD0(const generic float T)
+{
+	return T * Square(1 - T);
+}
+
+// H01
+FORCEINLINE generic float HermiteP1(const generic float T)
+{
+	return Square(T) * (3 - 2 * T);
+}
+// H11
+FORCEINLINE generic float HermiteD1(const generic float T)
+{
+	return Square(T) * (T - 1);
+}
+
+FORCEINLINE generic float2 UnitVectorToOctahedron(generic float3 Unit)
+{
+	const generic float AbsSum = abs(Unit.x) + abs(Unit.y) + abs(Unit.z);
+	Unit.x /= AbsSum;
+	Unit.y /= AbsSum;
+
+	generic float2 Result = MakeFloat2(Unit.x, Unit.y);
+	if (Unit.z <= 0)
+	{
+		Result.x = (1 - abs(Unit.y)) * (Unit.x >= 0 ? 1 : -1);
+		Result.y = (1 - abs(Unit.x)) * (Unit.y >= 0 ? 1 : -1);
+	}
+	return Result * 0.5f + 0.5f;
+}
+FORCEINLINE generic float3 OctahedronToUnitVector(generic float2 Octahedron)
+{
+	Octahedron = Octahedron * 2.f - 1.f;
+
+	generic float3 Unit;
+	Unit.x = Octahedron.x;
+	Unit.y = Octahedron.y;
+	Unit.z = 1.f - abs(Octahedron.x) - abs(Octahedron.y);
+
+	const generic float T = max(-Unit.z, 0.f);
+
+	Unit.x += Unit.x >= 0 ? -T : T;
+	Unit.y += Unit.y >= 0 ? -T : T;
+
+	return normalize(Unit);
+}
+
+FORCEINLINE generic float3 OctahedronToUnitVector(const generic FVoxelOctahedron Octahedron)
+{
+	return OctahedronToUnitVector(MakeFloat2(UINT8ToFloat(Octahedron.X), UINT8ToFloat(Octahedron.Y)));
+}
+
+FORCEINLINE generic FVoxelOctahedron MakeOctahedron(const generic float2 Octahedron)
+{
+	generic FVoxelOctahedron Result;
+	Result.X = FloatToUINT8(Octahedron.x);
+	Result.Y = FloatToUINT8(Octahedron.y);
+	return Result;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FORCEINLINE generic bool IsIdentity(const generic float4 Rotation)
+{
+	return
+		Rotation.x == 0.f &&
+		Rotation.y == 0.f &&
+		Rotation.z == 0.f &&
+		Rotation.w == 1.f;
+}
+
+FORCEINLINE generic float4 MakeQuaternionFromEuler(
+	const generic float Pitch,
+	const generic float Yaw,
+	const generic float Roll)
+{
+	generic float SinPitch;
+	generic float CosPitch;
+	sincos(fmod(Pitch, 360.0f) * PI / 360.f, &SinPitch, &CosPitch);
+
+	generic float SinYaw;
+	generic float CosYaw;
+	sincos(fmod(Yaw, 360.0f) * PI / 360.f, &SinYaw, &CosYaw);
+
+	generic float SinRoll;
+	generic float CosRoll;
+	sincos(fmod(Roll, 360.0f) * PI / 360.f, &SinRoll, &CosRoll);
+
+	return MakeFloat4(
+		CosRoll * SinPitch * SinYaw - SinRoll * CosPitch * CosYaw,
+		-CosRoll * SinPitch * CosYaw - SinRoll * CosPitch * SinYaw,
+		CosRoll * CosPitch * SinYaw - SinRoll * SinPitch * CosYaw,
+		CosRoll * CosPitch * CosYaw + SinRoll * SinPitch * SinYaw);
+}
+
+FORCEINLINE generic float Rotator_NormalizeAxis(generic float Angle)
+{
+	// returns Angle in the range (-360,360)
+	Angle = fmod(Angle, 360.f);
+
+	if (Angle < 0.f)
+	{
+		// Shift to [0,360) range
+		Angle += 360.f;
+	}
+
+	if (Angle > 180.f)
+	{
+		// Shift to (-180,180]
+		Angle -= 360.f;
+	}
+
+	return Angle;
+}
+FORCEINLINE void MakeEulerFromQuaternion(
+	const generic float4 Quat,
+	generic float& OutPitch,
+	generic float& OutYaw,
+	generic float& OutRoll)
+{
+	const generic float SingularityTest = Quat.z * Quat.x - Quat.w * Quat.y;
+	const generic float YawY = 2.f * (Quat.w * Quat.z + Quat.x * Quat.y);
+	const generic float YawX = (1.f - 2.f * (Quat.y * Quat.y) + (Quat.z * Quat.z));
+
+	// reference
+	// http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+	// http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/
+
+	// this value was found from experience, the above websites recommend different values
+	// but that isn't the case for us, so I went through different testing, and finally found the case
+	// where both of world lives happily.
+	const generic float SINGULARITY_THRESHOLD = 0.4999995f;
+	const generic float RAD_TO_DEG = (180.f / PI);
+
+	if (SingularityTest < -SINGULARITY_THRESHOLD)
+	{
+		OutPitch = -90.f;
+		OutYaw = (atan2(YawY, YawX) * RAD_TO_DEG);
+		OutRoll = Rotator_NormalizeAxis(-OutYaw - (2.f * atan2(Quat.x, Quat.w) * RAD_TO_DEG));
+	}
+	else if (SingularityTest > SINGULARITY_THRESHOLD)
+	{
+		OutPitch = 90.f;
+		OutYaw = (atan2(YawY, YawX) * RAD_TO_DEG);
+		OutRoll = Rotator_NormalizeAxis(OutYaw - (2.f * atan2(Quat.x, Quat.w) * RAD_TO_DEG));
+	}
+	else
+	{
+		OutPitch = (asin(2.f * SingularityTest) * RAD_TO_DEG);
+		OutYaw = (atan2(YawY, YawX) * RAD_TO_DEG);
+		OutRoll = (atan2(-2.f * (Quat.w * Quat.x + Quat.y * Quat.z), (1.f - 2.f * (Quat.x * Quat.x + Quat.y * Quat.y))) * RAD_TO_DEG);
+	}
+}
+
+FORCEINLINE generic float4 MakeQuaternionFromBasis(
+	const generic float3 X,
+	const generic float3 Y,
+	const generic float3 Z)
+{
+	generic float4 Quat;
+
+	if (X.x + Y.y + Z.z > 0.0f)
+	{
+		const generic float InvS = InvSqrt(X.x + Y.y + Z.z + 1.0f);
+		const generic float S = 0.5f * InvS;
+
+		Quat.x = (Y.z - Z.y) * S;
+		Quat.y = (Z.x - X.z) * S;
+		Quat.z = (X.y - Y.x) * S;
+		Quat.w = 0.5f * (1.f / InvS);
+	}
+	else if (X.x > Y.y && X.x > Z.z)
+	{
+		const generic float InvS = InvSqrt(X.x - Y.y - Z.z + 1.0f);
+		const generic float S = 0.5f * InvS;
+
+		Quat.x = 0.5f * (1.f / InvS);
+		Quat.y = (X.y + Y.x) * S;
+		Quat.z = (X.z + Z.x) * S;
+		Quat.w = (Y.z - Z.y) * S;
+	}
+	else if (Y.y > X.x && Y.y > Z.z)
+	{
+		const generic float InvS = InvSqrt(Y.y - Z.z - X.x + 1.0f);
+		const generic float S = 0.5f * InvS;
+
+		Quat.y = 0.5f * (1.f / InvS);
+		Quat.z = (Y.z + Z.y) * S;
+		Quat.x = (Y.x + X.y) * S;
+		Quat.w = (Z.x - X.z) * S;
+	}
+	else
+	{
+		const generic float InvS = InvSqrt(Z.z - X.x - Y.y + 1.0f);
+		const generic float S = 0.5f * InvS;
+
+		Quat.z = 0.5f * (1.f / InvS);
+		Quat.x = (Z.x + X.z) * S;
+		Quat.y = (Z.y + Y.z) * S;
+		Quat.w = (X.y - Y.x) * S;
+	}
+
+	return Quat;
+}
+FORCEINLINE generic float4 MakeQuaternionFromZ(const generic float3 Z)
+{
+	const generic float3 NewZ = normalize(Z);
+
+	// Try to use up if possible
+	const generic float3 UpVector = abs(NewZ.z) < (1.f - KINDA_SMALL_NUMBER) ? MakeFloat3(0, 0, 1.f) : MakeFloat3(1.f, 0, 0);
+
+	const generic float3 NewX = normalize(cross(UpVector, NewZ));
+	const generic float3 NewY = cross(NewZ, NewX);
+
+	return MakeQuaternionFromBasis(NewX, NewY, NewZ);
+}
+
+FORCEINLINE generic float3 RotateVector(const generic float3 Position, const generic float4 Rotation)
+{
+	// See FQuat::RotateVector
+	const generic float3 Q = MakeFloat3(Rotation.x, Rotation.y, Rotation.z);
+	const generic float3 T = 2.f * cross(Q, Position);
+
+	return Position + (Rotation.w * T) + cross(Q, T);
+}
+FORCEINLINE generic double3 RotateVector(const generic double3 Position, const generic double4 Rotation)
+{
+	// See FQuat::RotateVector
+	const generic double3 Q = MakeDouble3(Rotation.x, Rotation.y, Rotation.z);
+	const generic double3 T = 2.f * cross(Q, Position);
+
+	return Position + (Rotation.w * T) + cross(Q, T);
+}
+
+FORCEINLINE generic float3 UnrotateVector(const generic float3 Position, const generic float4 Rotation)
+{
+	// See FQuat::UnrotateVector
+	const generic float3 Q = MakeFloat3(-Rotation.x, -Rotation.y, -Rotation.z);
+	const generic float3 T = 2.f * cross(Q, Position);
+
+	return Position + (Rotation.w * T) + cross(Q, T);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FORCEINLINE generic float2 RotateVector2D(const generic float2 Position, const generic float2 Rotation)
+{
+	generic float2 Result;
+	Result.x = Position.x * Rotation.x - Position.y * Rotation.y;
+	Result.y = Position.x * Rotation.y + Position.y * Rotation.x;
+	return Result;
+}
+
+FORCEINLINE generic double2 RotateVector2D(const generic double2 Position, generic const double2 Rotation)
+{
+	generic double2 Result;
+	Result.x = Position.x * Rotation.x - Position.y * Rotation.y;
+	Result.y = Position.x * Rotation.y + Position.y * Rotation.x;
+	return Result;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FORCEINLINE generic float GetFraction(const generic uint32 Seed)
+{
+	return floatbits(0x3F800000U | (Seed >> 9)) - 1.0f;
+}
+
+FORCEINLINE generic float RandRange(const generic uint32 Seed, const generic float2 Range)
+{
+	return Range.x + GetFraction(Seed) * (Range.y - Range.x);
+}
+
+FORCEINLINE generic float4 GetDistanceFieldColor(const generic float Value)
+{
+	// Credit for this snippet goes to Inigo Quilez
+
+	generic float4 Color = float4_one - (Value > 0 ? 1.f : -1.f) * MakeFloat4(0.1f, 0.4f, 0.7f, 0.f);
+	Color = Color
+		* (1.f - exp(-3.f * abs(Value)))
+		* (0.8f + 0.2f * cos(150.f * Value));
+
+	Color = lerp(Color, float4_one, 1.0 - SmoothStep(0.0f, 0.01f, abs(Value)));
+
+	Color.w = 1.f;
+	return Color;
+}

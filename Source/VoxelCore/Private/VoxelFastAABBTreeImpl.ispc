@@ -1,6 +1,7 @@
 ﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.isph"
+#include "VoxelWelfordVariance.isph"
 
 export void VoxelFastAABBTree_Compute(
 	const uniform float MinX[],

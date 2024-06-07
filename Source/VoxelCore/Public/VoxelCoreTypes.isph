@@ -1,0 +1,124 @@
+﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
+
+#pragma once
+
+#include "VoxelCoreMinimal.isph"
+
+struct float2
+{
+	float x;
+	float y;
+};
+struct float3
+{
+	float x;
+	float y;
+	float z;
+};
+struct float4
+{
+	float x;
+	float y;
+	float z;
+	float w;
+};
+
+struct double2
+{
+	double x;
+	double y;
+};
+struct double3
+{
+	double x;
+	double y;
+	double z;
+};
+struct double4
+{
+	double x;
+	double y;
+	double z;
+	double w;
+};
+
+struct int2
+{
+	int32 x;
+	int32 y;
+};
+struct int3
+{
+	int32 x;
+	int32 y;
+	int32 z;
+};
+struct int4
+{
+	int32 x;
+	int32 y;
+	int32 z;
+	int32 w;
+};
+
+#define float2_zero MakeFloat2(0, 0)
+#define float3_zero MakeFloat3(0, 0, 0)
+#define float4_zero MakeFloat4(0, 0, 0, 0)
+
+#define double2_zero MakeDouble2(0, 0)
+#define double3_zero MakeDouble3(0, 0, 0)
+#define double4_zero MakeDouble4(0, 0, 0, 0)
+
+#define int2_zero MakeInt2(0, 0)
+#define int3_zero MakeInt3(0, 0, 0)
+#define int4_zero MakeInt4(0, 0, 0, 0)
+
+#define float2_one MakeFloat2(1, 1)
+#define float3_one MakeFloat3(1, 1, 1)
+#define float4_one MakeFloat4(1, 1, 1, 1)
+
+#define int2_one MakeInt2(1, 1)
+#define int3_one MakeInt3(1, 1, 1)
+#define int4_one MakeInt4(1, 1, 1, 1)
+
+#define double2_one MakeDouble2(1, 1)
+#define double3_one MakeDouble3(1, 1, 1)
+#define double4_one MakeDouble4(1, 1, 1, 1)
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+struct double2x2
+{
+	double M[2][2];
+};
+
+struct float4x4
+{
+	float M[16];
+};
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+struct FTransform2d
+{
+	double2x2 Matrix;
+	double2 Translation;
+};
+
+struct FColor
+{
+	uint8 B;
+	uint8 G;
+	uint8 R;
+	uint8 A;
+};
+
+struct FVoxelOctahedron
+{
+	uint8 X;
+	uint8 Y;
+};

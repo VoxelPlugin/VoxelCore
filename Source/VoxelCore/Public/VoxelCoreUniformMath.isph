@@ -1,0 +1,14 @@
+﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
+
+#pragma once
+
+#include "VoxelCoreMinimal.isph"
+
+FORCEINLINE uniform int32 DivideCeil(const uniform int32 Dividend, const uniform int32 Divisor)
+{
+	return (Dividend > 0) ? 1 + (Dividend - 1) / Divisor : (Dividend / Divisor);
+}
+FORCEINLINE uniform int32 DivideFloor(const uniform int32 Dividend, const uniform int32 Divisor)
+{
+	return Dividend / Divisor;
+}

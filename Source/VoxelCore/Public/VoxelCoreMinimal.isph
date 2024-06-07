@@ -1,0 +1,342 @@
+﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
+
+#pragma once
+
+// ReSharper disable CppCStyleCast
+
+#define INTELLISENSE_PARSER (__INTELLISENSE__ || __RESHARPER__)
+
+#if INTELLISENSE_PARSER
+#define INTELLISENSE_ONLY(...) __VA_ARGS__
+#define varying
+#define uniform
+#define generic
+#define export
+#define foreach(...)
+#define assume(...) (void)!!(__VA_ARGS__)
+#define assert(...) (void)!!(__VA_ARGS__)
+#define VOXEL_DEBUG 1
+#define TARGET_WIDTH 8
+
+#define FOREACH(Var, Start, End) for (int32 Var = Start; Var < End; Var++)
+#define UNROLL
+#define UNROLL_N(N)
+#define IGNORE_PERF_WARNING
+
+#define coherent_if if
+
+int MakeRegister(int, ...);
+float MakeRegister(float, ...);
+
+template<int>
+struct floatv
+{
+	floatv() = default;
+	floatv(float);
+
+	float& operator[](int);
+	const float& operator[](int) const;
+};
+
+double operator ""d(long double);
+
+using int8 = char;
+using int16 = short;
+using int32 = int;
+using int64 = long long int;
+
+using uint8 = unsigned char;
+using uint16 = unsigned short;
+using uint32 = unsigned int;
+using uint64 = unsigned long long int;
+
+struct float16
+{
+	float x;
+	float y;
+};
+
+float min(float, float);
+double min(double, double);
+uint8 min(uint8, uint8);
+int32 min(int32, int32);
+float max(float, float);
+float max(double, double);
+uint8 max(uint8, uint8);
+int32 max(int32, int32);
+float clamp(float value, float a, float b);
+double clamp(double value, double a, double b);
+int32 clamp(int32 value, int32 a, int32 b);
+
+bool isnan(float16 v);
+bool isnan(float v);
+bool isnan(double v);
+
+int8 broadcast(int8 value, uniform int index);
+int16 broadcast(int16 value, uniform int index);
+int32 broadcast(int32 value, uniform int index);
+int64 broadcast(int64 value, uniform int index);
+float16 broadcast(float16 value, uniform int index);
+float broadcast(float value, uniform int index);
+double broadcast(double value, uniform int index);
+
+int8 rotate(int8 value, uniform int offset);
+int16 rotate(int16 value, uniform int offset);
+int32 rotate(int32 value, uniform int offset);
+int64 rotate(int64 value, uniform int offset);
+float16 rotate(float16 value, uniform int offset);
+float rotate(float value, uniform int offset);
+double rotate(double value, uniform int offset);
+
+int8 shift(int8 value, uniform int offset);
+int16 shift(int16 value, uniform int offset);
+int32 shift(int32 value, uniform int offset);
+int64 shift(int64 value, uniform int offset);
+float16 shift(float16 value, uniform int offset);
+float shift(float value, uniform int offset);
+double shift(double value, uniform int offset);
+
+int8 shuffle(int8 value, int permutation);
+int16 shuffle(int16 value, int permutation);
+int32 shuffle(int32 value, int permutation);
+int64 shuffle(int64 value, int permutation);
+float16 shuffle(float16 value, int permutation);
+float shuffle(float value, int permutation);
+double shuffle(double value, int permutation);
+
+bool any(bool v);
+bool all(bool v);
+bool none(bool v);
+
+int16 reduce_add(int8 x);
+uint16 reduce_add(uint8 x);
+int32 reduce_add(int16 x);
+uint32 reduce_add(uint16 x);
+int64 reduce_add(int32 x);
+uint64 reduce_add(uint32 x);
+int64 reduce_add(int64 x);
+uint64 reduce_add(uint64 x);
+
+float16 reduce_add(float16 x);
+float reduce_add(float x);
+double reduce_add(double x);
+
+int32 reduce_min(int32 a);
+uint32 reduce_min(uint32 a);
+int64 reduce_min(int64 a);
+uint64 reduce_min(uint64 a);
+
+float16 reduce_min(float16 a);
+float reduce_min(float a);
+double reduce_min(double a);
+
+int32 reduce_max(int32 a);
+uint32 reduce_max(uint32 a);
+int64 reduce_max(int64 a);
+uint64 reduce_max(uint64 a);
+
+float16 reduce_max(float16 a);
+float reduce_max(float a);
+double reduce_max(double a);
+
+bool reduce_equal(int32 v);
+bool reduce_equal(uint32 v);
+bool reduce_equal(int64 v);
+bool reduce_equal(uint64 v);
+
+bool reduce_equal(float16 v);
+bool reduce_equal(float v);
+bool reduce_equal(double);
+
+bool reduce_equal(int32 v, int32* sameval);
+bool reduce_equal(uint32 v, uint32* sameval);
+bool reduce_equal(int64 v, int64* sameval);
+bool reduce_equal(uint64 v, uint64* sameval);
+
+bool reduce_equal(float16 v, float16* sameval);
+bool reduce_equal(float v, float* sameval);
+bool reduce_equal(double, double* sameval);
+
+int32 exclusive_scan_add(int32 v);
+uint32 exclusive_scan_add(uint32 v);
+float16 exclusive_scan_add(float16 v);
+float exclusive_scan_add(float v);
+int64 exclusive_scan_add(int64 v);
+uint64 exclusive_scan_add(uint64 v);
+double exclusive_scan_add(double v);
+int32 exclusive_scan_and(int32 v);
+uint32 exclusive_scan_and(uint32 v);
+int64 exclusive_scan_and(int64 v);
+uint64 exclusive_scan_and(uint64 v);
+int32 exclusive_scan_or(int32 v);
+uint32 exclusive_scan_or(uint32 v);
+int64 exclusive_scan_or(int64 v);
+uint64 exclusive_scan_or(uint64 v);
+
+uniform bool extract(bool x, uniform int i);
+uniform int8 extract(int8 x, uniform int i);
+uniform int16 extract(int16 x, uniform int i);
+uniform int32 extract(int32 x, uniform int i);
+uniform int64 extract(int64 x, uniform int i);
+uniform uint8 extract(uint8 x, uniform int i);
+uniform uint16 extract(uint16 x, uniform int i);
+uniform uint32 extract(uint32 x, uniform int i);
+uniform uint64 extract(uint64 x, uniform int i);
+uniform float16 extract(float16 x, uniform int i);
+uniform float extract(float x, uniform int i);
+uniform double extract(double x, uniform int i);
+
+[[nodiscard]] bool insert(bool x, uniform int i, uniform bool v);
+[[nodiscard]] int8 insert(int8 x, uniform int i, uniform int8 v);
+[[nodiscard]] int16 insert(int16 x, uniform int i, uniform int16 v);
+[[nodiscard]] int32 insert(int32 x, uniform int i, uniform int32 v);
+[[nodiscard]] int64 insert(int64 x, uniform int i, uniform int64 v);
+[[nodiscard]] uint8 insert(uint8 x, uniform int i, uniform uint8 v);
+[[nodiscard]] uint16 insert(uint16 x, uniform int i, uniform uint16 v);
+[[nodiscard]] uint32 insert(uint32 x, uniform int i, uniform uint32 v);
+[[nodiscard]] uint64 insert(uint64 x, uniform int i, uniform uint64 v);
+[[nodiscard]] float16 insert(float16 x, uniform int i, uniform float16 v);
+[[nodiscard]] float insert(float x, uniform int i, uniform float v);
+[[nodiscard]] double insert(double x, uniform int i, uniform double v);
+
+bool and(bool a, bool b);
+bool or(bool a, bool b);
+uniform bool and(uniform bool a, uniform bool b);
+uniform bool or(uniform bool a, uniform bool b);
+
+int8 select(bool cond, int8 t, int8 f);
+int8 select(uniform bool cond, int8 t, int8 f);
+uniform int8 select(uniform bool cond, uniform int8 t, uniform int8 f);
+
+int16 select(bool cond, int16 t, int16 f);
+int32 select(bool cond, int32 t, int32 f);
+int64 select(bool cond, int64 t, int64 f);
+float select(bool cond, float t, float f);
+double select(bool cond, double t, double f);
+
+float abs(float value);
+int32 abs(int32 value);
+double abs(double value);
+
+float exp(float x);
+double exp(double x);
+float log(float x);
+double log(double x);
+float pow(float base, float exp);
+double pow(double base, double exp);
+float sqrt(float value);
+double sqrt(double value);
+float rsqrt(float value);
+double rsqrt(double value);
+float floor(float value);
+double floor(double value);
+float ceil(float value);
+double ceil(double value);
+float round(float value);
+double round(double value);
+float trunc(float x);
+double trunc(double x);
+
+float cos(float value);
+float acos(float value);
+float sin(float value);
+float asin(float value);
+float tan(float value);
+float atan(float value);
+float atan2(float valuea, float valueb);
+void sincos(float x, float* s, float* c);
+
+float16 float16bits(uint16 a);
+float16 float16bits(uint16 a);
+float floatbits(uint32 a);
+float floatbits(uint32 a);
+double doublebits(uint64 a);
+double doublebits(uint64 a);
+uint16 intbits(float16 a);
+uint16 intbits(float16 a);
+uint32 intbits(float a);
+uint32 intbits(float a);
+uint64 intbits(double a);
+uint64 intbits(double a);
+
+int32 packmask(bool value);
+int32 sign_extend(bool value);
+int32 popcnt(int32 v);
+int32 popcnt(bool v);
+int32 count_leading_zeros(int32 v);
+int32 count_trailing_zeros(int32 v);
+
+// Returns a mask of the most significant bit of each element in v
+uniform int32 __movmsk(varying int32 v);
+
+int32 programCount;
+int32 programIndex;
+
+#error "Compiler defined as parser"
+#else
+#define INTELLISENSE_ONLY(...)
+#define FOREACH(Var, Start, End) foreach (Var = Start ... End)
+#define UNROLL #pragma unroll
+#define UNROLL_N(N) UNROLL N
+#define IGNORE_PERF_WARNING #pragma ignore warning(perf)
+
+#define coherent_if cif
+
+#if TARGET_WIDTH == 8
+#define MakeRegister(A, B, C, D, E, F, G, H) { A, B, C, D, E, F, G, H }
+#elif TARGET_WIDTH == 4
+#define MakeRegister(A, B, C, D) { A, B, C, D }
+#endif
+
+#define floatv float
+#endif
+
+#ifndef VOXEL_DEBUG
+// VOXEL_DEBUG seems to not be defined when packaging plugin
+#define VOXEL_DEBUG 0
+//#error "VOXEL_DEBUG not defined"
+#endif
+
+#define FORCEINLINE inline
+
+extern "C" void VoxelISPC_Assert(uniform int Line);
+extern "C" void VoxelISPC_UnsupportedTargetWidth(uniform int Width);
+
+#if VOXEL_DEBUG
+#define check(...) \
+	if (!(__VA_ARGS__)) \
+	{ \
+		VoxelISPC_Assert(__LINE__); \
+	}
+
+#define ensure(...) check(__VA_ARGS__)
+#define VOXEL_ASSUME(...) check(__VA_ARGS__)
+#else
+#define check(...)
+#define ensure(...) (__VA_ARGS__)
+#define VOXEL_ASSUME(...) assume((__VA_ARGS__))
+#endif
+
+#define unsupportedTargetWidth() VoxelISPC_UnsupportedTargetWidth(TARGET_WIDTH);
+
+#define PREPROCESSOR_JOIN_INNER(X, Y) X ## Y
+#define PREPROCESSOR_JOIN(X, Y) PREPROCESSOR_JOIN_INNER(X, Y)
+
+#undef PI
+#define PI 3.1415926535897932f
+#define SMALL_NUMBER 1.e-8f
+#define KINDA_SMALL_NUMBER 1.e-4f
+#define BIG_NUMBER 3.4e+38f
+
+#define MAX_uint8	0xff
+#define MAX_uint16	0xffff
+#define MAX_uint32	0xffffffff
+#define MAX_uint64	0xffffffffffffffff
+#define MAX_int8	0x7f
+#define MAX_int16	0x7fff
+#define MAX_int32	0x7fffffff
+#define MAX_int64	0x7fffffffffffffff
+#define MIN_flt		1.175494351e-38F
+#define MAX_flt		3.402823466e+38F
+#define MIN_dbl		2.2250738585072014e-308
+#define MAX_dbl		1.7976931348623158e+308
