@@ -198,10 +198,12 @@ bool FVoxelUtilities::GetCameraView(const UWorld* World, FVector& OutPosition, F
 class FVoxelActorSelectionTracker : public FVoxelSingleton
 {
 public:
-	TVoxelMap<TObjectPtr<AActor>, TMulticastDelegate<void(bool)>> ActorToDelegate;
+	TVoxelMap<FObjectKey, TMulticastDelegate<void(bool)>> ActorToDelegate;
 
 	FVoxelCriticalSection CriticalSection;
 	TVoxelSet<FObjectKey> SelectedActors_RequiresLock;
+
+	double LastCleanup = FPlatformTime::Seconds();
 
 	//~ Begin FVoxelSingleton Interface
 	virtual void Initialize() override
@@ -211,22 +213,19 @@ public:
 			UpdateSelection();
 		});
 	}
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
+	virtual void Tick() override
 	{
 		VOXEL_FUNCTION_COUNTER();
 
+		if (FPlatformTime::Seconds() - LastCleanup < 30.f)
+		{
+			return;
+		}
+		LastCleanup = FPlatformTime::Seconds();
+
 		for (auto It = ActorToDelegate.CreateIterator(); It; ++It)
 		{
-			if (!It.Value().IsBound())
-			{
-				It.RemoveCurrent();
-				continue;
-			}
-
-			TObjectPtr<AActor> Actor = It.Key();
-			Collector.AddReferencedObject(Actor);
-
-			if (!Actor)
+			if (!It.Key().ResolveObjectPtr())
 			{
 				It.RemoveCurrent();
 			}
@@ -262,14 +261,8 @@ public:
 			SelectedActors_RequiresLock = MoveTemp(NewSelectedActors);
 		}
 
-		for (const FObjectKey& ActorKey : ActorsToSelect)
+		for (const FObjectKey& Actor : ActorsToSelect)
 		{
-			AActor* Actor = Cast<AActor>(ActorKey.ResolveObjectPtr());
-			if (!Actor)
-			{
-				continue;
-			}
-
 			const TMulticastDelegate<void(bool)>* Delegate = ActorToDelegate.Find(Actor);
 			if (!Delegate)
 			{
@@ -279,14 +272,8 @@ public:
 			Delegate->Broadcast(true);
 		}
 
-		for (const FObjectKey& ActorKey : ActorsToDeselect)
+		for (const FObjectKey& Actor : ActorsToDeselect)
 		{
-			AActor* Actor = Cast<AActor>(ActorKey.ResolveObjectPtr());
-			if (!Actor)
-			{
-				continue;
-			}
-
 			const TMulticastDelegate<void(bool)>* Delegate = ActorToDelegate.Find(Actor);
 			if (!Delegate)
 			{
