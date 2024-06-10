@@ -435,6 +435,11 @@ FORCENOINLINE T* SlowPath_ResolveObjectPtrFast(const TObjectPtr<T>& ObjectPtr)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+template<typename T, typename = std::enable_if_t<TIsDerivedFrom<T, UObject>::Value>>
+FORCEINLINE FObjectKey MakeObjectKey(const T* Ptr)
+{
+	return FObjectKey(Ptr);
+}
 template<typename T>
 FORCEINLINE FObjectKey MakeObjectKey(const TWeakObjectPtr<T>& Ptr)
 {

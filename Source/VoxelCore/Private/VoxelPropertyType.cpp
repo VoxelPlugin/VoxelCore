@@ -315,6 +315,35 @@ FString FVoxelPropertyType::ToString() const
 	return Name;
 }
 
+int32 FVoxelPropertyType::GetTypeSize() const
+{
+	check(GetContainerType() == EVoxelPropertyContainerType::None);
+
+	if (!ensure(IsValid()))
+	{
+		return 0;
+	}
+
+	switch (InternalType)
+	{
+	default:
+	{
+		ensure(false);
+		return 0;
+	}
+	case EVoxelPropertyInternalType::Bool: return sizeof(bool);
+	case EVoxelPropertyInternalType::Float: return sizeof(float);
+	case EVoxelPropertyInternalType::Double: return sizeof(double);
+	case EVoxelPropertyInternalType::Int32: return sizeof(int32);
+	case EVoxelPropertyInternalType::Int64: return sizeof(int64);
+	case EVoxelPropertyInternalType::Name: return sizeof(FName);
+	case EVoxelPropertyInternalType::Byte: return sizeof(uint8);
+	case EVoxelPropertyInternalType::Class: return sizeof(UClass*);
+	case EVoxelPropertyInternalType::Object: return sizeof(UObject*);
+	case EVoxelPropertyInternalType::Struct: return GetStruct()->GetStructureSize();
+	}
+}
+
 FEdGraphPinType FVoxelPropertyType::GetEdGraphPinType_K2() const
 {
 	if (!IsValid())

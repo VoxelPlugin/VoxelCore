@@ -146,21 +146,13 @@ void FVoxelAssetTypeActions::Register(UClass* Class, const TSharedRef<FVoxelAsse
 			{
 				Color = FColor(255, 140, 0);
 			}
-			else if (AssetColor == "DarkGreen")
-			{
-				Color = FColor(0, 192, 0);
-			}
-			else if (AssetColor == "LightGreen")
+			else if (AssetColor == "Green")
 			{
 				Color = FColor(128, 255, 128);
 			}
 			else if (AssetColor == "Blue")
 			{
 				Color = FColor(0, 175, 255);
-			}
-			else if (AssetColor == "LightBlue")
-			{
-				Color = FColor(0, 175, 175);
 			}
 			else if (AssetColor == "Red")
 			{

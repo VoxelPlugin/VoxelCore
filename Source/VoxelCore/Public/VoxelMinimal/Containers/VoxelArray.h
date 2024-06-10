@@ -434,3 +434,6 @@ using TVoxelArray64 = TVoxelArray<T, FVoxelAllocator64>;
 
 template<typename T, int32 NumInlineElements>
 using TVoxelInlineArray = TVoxelArray<T, TVoxelInlineAllocator<NumInlineElements>>;
+
+template<typename T, int32 NumInlineElements>
+using TVoxelFixedArray = TVoxelArray<T, TFixedAllocator<NumInlineElements>>;

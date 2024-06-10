@@ -10,6 +10,8 @@ class VOXELCORE_API FVoxelDebugDrawer
 {
 public:
 	explicit FVoxelDebugDrawer(const FObjectKey& World);
+	explicit FVoxelDebugDrawer(const UWorld* World);
+	explicit FVoxelDebugDrawer(const TWeakObjectPtr<UWorld>& World);
 	~FVoxelDebugDrawer();
 
 public:

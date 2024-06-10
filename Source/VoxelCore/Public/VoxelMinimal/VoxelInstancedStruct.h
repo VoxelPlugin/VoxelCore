@@ -260,12 +260,12 @@ public:
 	{
 	}
 
-	FORCEINLINE TVoxelInstancedStruct(const FVoxelInstancedStruct& Other)
+	FORCEINLINE explicit TVoxelInstancedStruct(const FVoxelInstancedStruct& Other)
 		: FVoxelInstancedStruct(Other)
 	{
 		CheckType();
 	}
-	FORCEINLINE TVoxelInstancedStruct(FVoxelInstancedStruct&& Other)
+	FORCEINLINE explicit TVoxelInstancedStruct(FVoxelInstancedStruct&& Other)
 		: FVoxelInstancedStruct(MoveTemp(Other))
 	{
 		CheckType();

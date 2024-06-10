@@ -8,6 +8,16 @@ FVoxelDebugDrawer::FVoxelDebugDrawer(const FObjectKey& World)
 	PrivateState->PrivateWorld = World;
 }
 
+FVoxelDebugDrawer::FVoxelDebugDrawer(const UWorld* World)
+	: FVoxelDebugDrawer(MakeObjectKey(World))
+{
+}
+
+FVoxelDebugDrawer::FVoxelDebugDrawer(const TWeakObjectPtr<UWorld>& World)
+	: FVoxelDebugDrawer(MakeObjectKey(World))
+{
+}
+
 FVoxelDebugDrawer::~FVoxelDebugDrawer()
 {
 	RunOnGameThread([State = PrivateState]

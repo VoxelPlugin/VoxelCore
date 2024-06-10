@@ -7,6 +7,7 @@
 #include "VoxelMinimal/Containers/VoxelStaticArray.h"
 #include "VoxelMinimal/Utilities/VoxelMathUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelArrayUtilities.h"
+#include "VoxelMinimal/Utilities/VoxelLambdaUtilities.h"
 
 // Matches FVoxelBufferStorage's chunk size for float/int32
 constexpr int32 GVoxelDefaultAllocationSize = 1 << 14;
@@ -330,7 +331,7 @@ public:
 		return this->GetChunkView(FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index)).LeftOf(Count);
 	}
 
-	template<typename LambdaType>
+	template<typename LambdaType, typename = LambdaHasSignature_T<LambdaType, void(int32, TVoxelArrayView<Type>)>>
 	FORCEINLINE void ForeachView(
 		const int32 StartIndex,
 		const int32 Count,
@@ -349,7 +350,7 @@ public:
 		}
 		checkVoxelSlow(Index == EndIndex);
 	}
-	template<typename LambdaType>
+	template<typename LambdaType, typename = LambdaHasSignature_T<LambdaType, void(int32, TConstVoxelArrayView<Type>)>>
 	FORCEINLINE void ForeachView(
 		const int32 StartIndex,
 		const int32 Count,
@@ -367,6 +368,18 @@ public:
 			Index += NumInChunk;
 		}
 		checkVoxelSlow(Index == EndIndex);
+	}
+
+
+	template<typename LambdaType, typename = LambdaHasSignature_T<LambdaType, void(int32, TVoxelArrayView<Type>)>>
+	FORCEINLINE void ForeachView(LambdaType Lambda)
+	{
+		this->ForeachView(0, Num(), MoveTemp(Lambda));
+	}
+	template<typename LambdaType, typename = LambdaHasSignature_T<LambdaType, void(int32, TConstVoxelArrayView<Type>)>>
+	FORCEINLINE void ForeachView(LambdaType Lambda) const
+	{
+		this->ForeachView(0, Num(), MoveTemp(Lambda));
 	}
 
 public:

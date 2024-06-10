@@ -177,6 +177,7 @@ private:
 public:
 	bool IsValid() const;
 	FString ToString() const;
+	int32 GetTypeSize() const;
 	FEdGraphPinType GetEdGraphPinType_K2() const;
 	bool CanBeCastedTo(const FVoxelPropertyType& Other) const;
 #if WITH_EDITOR

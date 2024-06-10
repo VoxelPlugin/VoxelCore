@@ -50,7 +50,11 @@ private:
 	} \
 	FORCEINLINE static TSharedRef<Name> Get(const UWorld* World) \
 	{ \
-		return Get(FObjectKey(World)); \
+		return Get(MakeObjectKey(World)); \
+	} \
+	FORCEINLINE static TSharedRef<Name> Get(const TWeakObjectPtr<const UWorld> World) \
+	{ \
+		return Get(MakeObjectKey(World)); \
 	} \
 	FORCEINLINE static TSharedRef<Name> Get(const FObjectKey World) \
 	{ \
