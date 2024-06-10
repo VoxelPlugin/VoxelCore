@@ -19,8 +19,8 @@ public:
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 
 	/** IPropertyTypeCustomization interface */
-	virtual void CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
-	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
+	virtual void CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
+	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
 
 private:
 	FText GetDisplayValueString() const;
@@ -34,7 +34,52 @@ private:
 	/** The base struct that we're allowing to be picked (controlled by the "BaseStruct" meta-data) */
 	UScriptStruct* BaseScriptStruct = nullptr;
 
-	TSharedPtr<class SComboButton> ComboButton;
+	TSharedPtr<SComboButton> ComboButton;
+};
+
+class FVoxelInstancedStructOnScope : public FStructOnScope
+{
+public:
+	FVoxelInstancedStruct Struct;
+
+	FVoxelInstancedStructOnScope() = default;
+	UE_NONCOPYABLE(FVoxelInstancedStructOnScope);
+
+	//~ Begin FStructOnScope Interface
+	virtual void Initialize() override
+	{
+		unimplemented();
+	}
+	virtual bool OwnsStructMemory() const override
+	{
+		ensure(false);
+		return false;
+	}
+	virtual uint8* GetStructMemory() override
+	{
+		return static_cast<uint8*>(Struct.GetStructMemory());
+	}
+	virtual const uint8* GetStructMemory() const override
+	{
+		return static_cast<const uint8*>(Struct.GetStructMemory());
+	}
+	virtual const UStruct* GetStruct() const override
+	{
+		return Struct.GetScriptStruct();
+	}
+	virtual bool IsValid() const override
+	{
+		return Struct.IsValid();
+	}
+	virtual void Destroy() override
+	{
+		ensure(false);
+	}
+	virtual void Reset() override
+	{
+		Struct.Reset();
+	}
+	//~ End FStructOnScope Interface
 };
 
 /**
@@ -76,7 +121,7 @@ private:
 	TSharedPtr<IPropertyHandle> StructProperty;
 
 	/** Struct instance that is being edited; this is a copy of the source struct data to avoid lifetime issues when the underlying source is updated/deleted */
-	TSharedPtr<FStructOnScope> StructInstanceData;
+	TSharedPtr<FVoxelInstancedStructOnScope> StructInstanceData;
 
 	/** Delegate that can be used to refresh the child rows of the current struct (eg, when changing struct type) */
 	FSimpleDelegate OnRegenerateChildren;

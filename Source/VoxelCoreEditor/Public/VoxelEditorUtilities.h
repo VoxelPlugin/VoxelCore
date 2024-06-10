@@ -423,11 +423,13 @@ public:
 	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override
 	{
 		VOXEL_FUNCTION_COUNTER();
+
 		Customization->CustomizeDetails(DetailBuilder);
 	}
 	virtual void CustomizeDetails(const TSharedPtr<IDetailLayoutBuilder>& DetailBuilder) override
 	{
 		VOXEL_FUNCTION_COUNTER();
+
 		Customization->CustomizeDetails(DetailBuilder);
 	}
 };
@@ -444,6 +446,7 @@ public:
 		IPropertyTypeCustomizationUtils& CustomizationUtils) override
 	{
 		VOXEL_FUNCTION_COUNTER();
+
 		Customization->CustomizeHeader(PropertyHandle, HeaderRow, CustomizationUtils);
 	}
 	virtual void CustomizeChildren(
@@ -452,6 +455,7 @@ public:
 		IPropertyTypeCustomizationUtils& CustomizationUtils) override
 	{
 		VOXEL_FUNCTION_COUNTER();
+
 		Customization->CustomizeChildren(
 			PropertyHandle,
 			ChildBuilder,

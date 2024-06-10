@@ -76,7 +76,9 @@ inline const UScriptStruct* GetCommonScriptStruct(TSharedPtr<IPropertyHandle> St
 	return CommonStructType;
 }
 
-////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 FVoxelInstancedStructDataDetails::FVoxelInstancedStructDataDetails(TSharedPtr<IPropertyHandle> InStructProperty)
 {
@@ -198,9 +200,11 @@ void FVoxelInstancedStructDataDetails::GenerateChildContent(IDetailChildrenBuild
 {
 	// Create a struct instance to edit, for the common struct type of the sources being edited
 	StructInstanceData.Reset();
+
 	if (const UScriptStruct* CommonStructType = GetCommonScriptStruct(StructProperty))
 	{
-		StructInstanceData = MakeVoxelShared<FStructOnScope>(CommonStructType);
+		StructInstanceData = MakeVoxelShared<FVoxelInstancedStructOnScope>();
+		StructInstanceData->Struct = FVoxelInstancedStruct(ConstCast(CommonStructType));
 
 		// Make sure the struct also has a valid package set, so that properties that rely on this (like FText) work correctly
 		{
@@ -211,6 +215,9 @@ void FVoxelInstancedStructDataDetails::GenerateChildContent(IDetailChildrenBuild
 				StructInstanceData->SetPackage(OuterPackages[0]);
 			}
 		}
+
+		// Otherwise struct data won't be ready in the struct customization call
+		SyncEditableInstanceFromSource();
 	}
 
 	// Add the rows for the struct
@@ -266,8 +273,9 @@ void FVoxelInstancedStructDataDetails::PostRedo(bool bSuccess)
 	LastSyncEditableInstanceFromSourceSeconds = 0.0;
 }
 
-////////////////////////////////////
-
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 TSharedRef<IPropertyTypeCustomization> FVoxelInstancedStructDetails::MakeInstance()
 {

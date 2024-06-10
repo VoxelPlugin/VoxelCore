@@ -309,7 +309,7 @@ VOXEL_RUN_ON_STARTUP_GAME()
 
 		if (!IsRunningCookCommandlet())
 		{
-			ensureMsgf(false, TEXT("%s"), *Error);
+			ensureMsgfVoxelSlow(false, TEXT("%s"), *Error);
 		}
 	});
 }
