@@ -268,6 +268,19 @@ public:
 		return Result;
 	}
 
+	FORCENOINLINE TVoxelSet<KeyType> KeySet() const
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
+
+		TVoxelSet<KeyType> Result;
+		Result.Reserve(Elements.Num());
+		for (const FElement& Element : Elements)
+		{
+			Result.Add_CheckNew(Element.Key);
+		}
+		return Result;
+	}
+
 	FORCENOINLINE friend FArchive& operator<<(FArchive& Ar, TVoxelMap& Map)
 	{
 		Ar << Map.Elements;

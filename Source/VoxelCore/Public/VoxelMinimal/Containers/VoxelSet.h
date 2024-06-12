@@ -75,6 +75,10 @@ public:
 	{
 		this->Append(MakeVoxelArrayView(Initializer));
 	}
+	explicit TVoxelSet(const TConstVoxelArrayView<Type> Array)
+	{
+		this->Append(Array);
+	}
 
 public:
 	FORCEINLINE int32 Num() const
