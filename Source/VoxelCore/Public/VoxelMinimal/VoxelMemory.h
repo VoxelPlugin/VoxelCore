@@ -300,13 +300,13 @@ FORCEINLINE TSharedRef<T> MakeVoxelShareable(T* Object)
 template<typename T, typename... ArgTypes, typename = std::enable_if_t<std::is_constructible_v<T, ArgTypes...>>>
 FORCEINLINE TSharedRef<T> MakeVoxelShared(ArgTypes&&... Args)
 {
-	return MakeVoxelShareable(new (GVoxelMemory) T(Forward<ArgTypes>(Args)...));
+	return MakeVoxelShareable(new(GVoxelMemory) T(Forward<ArgTypes>(Args)...));
 }
 
 template<typename T, typename... ArgTypes, typename = std::enable_if_t<std::is_constructible_v<T, ArgTypes...>>>
 FORCEINLINE TVoxelUniquePtr<T> MakeVoxelUnique(ArgTypes&&... Args)
 {
-	return TVoxelUniquePtr<T>(new (GVoxelMemory) T(Forward<ArgTypes>(Args)...));
+	return TVoxelUniquePtr<T>(new(GVoxelMemory) T(Forward<ArgTypes>(Args)...));
 }
 
 // Need TEnableIf as &&& is equivalent to &, so T could get matched with Smthg&

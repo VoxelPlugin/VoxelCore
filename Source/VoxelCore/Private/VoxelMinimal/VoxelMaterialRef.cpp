@@ -160,7 +160,7 @@ TSharedRef<FVoxelMaterialRef> FVoxelMaterialRef::Make(UMaterialInterface* Materi
 		return Default();
 	}
 
-	const TSharedRef<FVoxelMaterialRef> MaterialRef = MakeVoxelShareable(new (GVoxelMemory) FVoxelMaterialRef());
+	const TSharedRef<FVoxelMaterialRef> MaterialRef = MakeVoxelShareable(new(GVoxelMemory) FVoxelMaterialRef());
 	MaterialRef->Material = Material;
 	MaterialRef->WeakMaterial = Material;
 	GVoxelMaterialRefManager->MaterialRefs.Add(MaterialRef);
@@ -200,7 +200,7 @@ TSharedRef<FVoxelMaterialRef> FVoxelMaterialRef::MakeInstance(UMaterialInterface
 	MaterialInstanceRef->Instance = Instance;
 	GVoxelMaterialRefManager->MaterialInstanceRefs.Add(MaterialInstanceRef);
 
-	const TSharedRef<FVoxelMaterialRef> MaterialRef = MakeVoxelShareable(new (GVoxelMemory) FVoxelMaterialRef());
+	const TSharedRef<FVoxelMaterialRef> MaterialRef = MakeVoxelShareable(new(GVoxelMemory) FVoxelMaterialRef());
 	MaterialRef->Material = Instance;
 	MaterialRef->WeakMaterial = Instance;
 	MaterialRef->MaterialInstanceRef = MaterialInstanceRef;

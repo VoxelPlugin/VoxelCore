@@ -73,7 +73,7 @@ TSharedRef<FVoxelTaskDispatcherKeepAliveRef> IVoxelTaskDispatcher::AddRef(const 
 		VOXEL_SCOPE_LOCK(CriticalSection);
 		Index = PromisesToKeepAlive_RequiresLock.Add(Promise);
 	}
-	return MakeVoxelShareable(new (GVoxelMemory) FVoxelTaskDispatcherKeepAliveRef(AsShared(), Index));
+	return MakeVoxelShareable(new(GVoxelMemory) FVoxelTaskDispatcherKeepAliveRef(AsShared(), Index));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -264,7 +264,7 @@ public:
 	void Set(const FVoxelFuture& Future) const;
 
 protected:
-	TSharedRef<FVoxelPromiseState> PromiseState = MakeVoxelShareable(new (GVoxelMemory) FVoxelPromiseState());
+	TSharedRef<FVoxelPromiseState> PromiseState = MakeVoxelShareable(new(GVoxelMemory) FVoxelPromiseState());
 };
 
 ///////////////////////////////////////////////////////////////////////////////

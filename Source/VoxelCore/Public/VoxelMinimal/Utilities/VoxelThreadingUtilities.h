@@ -240,12 +240,12 @@ TSharedRef<T> MakeVoxelShareable_RenderThread(T* Object)
 template<typename T, typename... ArgTypes, typename = std::enable_if_t<std::is_constructible_v<T, ArgTypes...>>>
 TSharedRef<T> MakeVoxelShared_GameThread(ArgTypes&&... Args)
 {
-	return MakeVoxelShareable_GameThread(new (GVoxelMemory) T(Forward<ArgTypes>(Args)...));
+	return MakeVoxelShareable_GameThread(new(GVoxelMemory) T(Forward<ArgTypes>(Args)...));
 }
 template<typename T, typename... ArgTypes, typename = std::enable_if_t<std::is_constructible_v<T, ArgTypes...>>>
 TSharedRef<T> MakeVoxelShared_RenderThread(ArgTypes&&... Args)
 {
-	return MakeVoxelShareable_RenderThread(new (GVoxelMemory) T(Forward<ArgTypes>(Args)...));
+	return MakeVoxelShareable_RenderThread(new(GVoxelMemory) T(Forward<ArgTypes>(Args)...));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

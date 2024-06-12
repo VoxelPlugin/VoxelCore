@@ -230,7 +230,7 @@ namespace Chaos
 
 			VOXEL_SCOPE_COUNTER("FTriangleMeshImplicitObject::FTriangleMeshImplicitObject");
 #if VOXEL_ENGINE_VERSION < 504
-			return MakeVoxelShareable(new (GVoxelMemory) FTriangleMeshImplicitObject(
+			return MakeVoxelShareable(new(GVoxelMemory) FTriangleMeshImplicitObject(
 #else
 			return (new FTriangleMeshImplicitObject(
 #endif

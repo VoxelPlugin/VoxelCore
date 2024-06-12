@@ -493,7 +493,7 @@ void FVoxelRenderUtilities::CopyBuffer(FRDGBuilder& GraphBuilder, TSharedPtr<FVo
 
 	if (!Readback)
 	{
-		Readback = MakeVoxelShareable(new (GVoxelMemory) FVoxelGPUBufferReadback(Buffer->Name));
+		Readback = MakeVoxelShareable(new(GVoxelMemory) FVoxelGPUBufferReadback(Buffer->Name));
 	}
 	else
 	{

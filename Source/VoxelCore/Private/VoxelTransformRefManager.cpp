@@ -25,7 +25,7 @@ TSharedRef<FVoxelTransformRefImpl> FVoxelTransformRefManager::Make_AnyThread(con
 		return TransformRef.ToSharedRef();
 	}
 
-	const TSharedRef<FVoxelTransformRefImpl> TransformRef = MakeVoxelShareable(new (GVoxelMemory) FVoxelTransformRefImpl(Nodes));
+	const TSharedRef<FVoxelTransformRefImpl> TransformRef = MakeVoxelShareable(new(GVoxelMemory) FVoxelTransformRefImpl(Nodes));
 	TransformRef->TryInitialize_AnyThread();
 	NodeArrayToWeakTransformRef_RequiresLock.FindOrAdd(NodeArray) = TransformRef;
 
@@ -53,7 +53,7 @@ TSharedRef<FVoxelTransformRefImpl> FVoxelTransformRefManager::Make_GameThread(co
 		return TransformRef.ToSharedRef();
 	}
 
-	const TSharedRef<FVoxelTransformRefImpl> TransformRef = MakeVoxelShareable(new (GVoxelMemory) FVoxelTransformRefImpl(Nodes));
+	const TSharedRef<FVoxelTransformRefImpl> TransformRef = MakeVoxelShareable(new(GVoxelMemory) FVoxelTransformRefImpl(Nodes));
 	TransformRef->Update_GameThread();
 	NodeArrayToWeakTransformRef_RequiresLock.FindOrAdd(NodeArray) = TransformRef;
 

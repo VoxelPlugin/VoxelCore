@@ -136,7 +136,7 @@ private:
 
 		using FStorage = TStorage<FunctorType>;
 
-		FStorage* Storage = new (GVoxelMemory) FStorage(MoveTempIfPossible(Functor));
+		FStorage* Storage = new(GVoxelMemory) FStorage(MoveTempIfPossible(Functor));
 		Storage->Destroy = &FStorage::CallDestroy;
 
 		Callable = &VoxelCall<FunctorType, ReturnType, ArgTypes...>;

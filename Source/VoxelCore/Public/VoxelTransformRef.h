@@ -30,7 +30,7 @@ public:
 	FVoxelTransformRef operator*(const FVoxelTransformRef& Other) const;
 
 	DECLARE_DELEGATE_OneParam(FOnChanged, const FMatrix& NewTransform);
-	void AddOnChanged(const FOnChanged& OnChanged, bool bFireNow = true) const;
+	void AddOnChanged(const FOnChanged& OnChanged) const;
 
 public:
 	FORCEINLINE bool operator==(const FVoxelTransformRef& Other) const

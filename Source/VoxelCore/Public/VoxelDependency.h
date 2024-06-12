@@ -54,6 +54,8 @@ public:
 	}
 
 public:
+	TTSMulticastDelegate<void(FVoxelDependencyInvalidationParameters Parameters)> OnInvalidated;
+
 	void Invalidate(FVoxelDependencyInvalidationParameters Parameters = {});
 	void Invalidate(const FVoxelBox& Bounds);
 

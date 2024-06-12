@@ -88,15 +88,10 @@ FVoxelTransformRef FVoxelTransformRef::operator*(const FVoxelTransformRef& Other
 	return FVoxelTransformRef(false, NewImpl);
 }
 
-void FVoxelTransformRef::AddOnChanged(const FOnChanged& OnChanged, const bool bFireNow) const
+void FVoxelTransformRef::AddOnChanged(const FOnChanged& OnChanged) const
 {
 	if (Impl)
 	{
 		Impl->AddOnChanged(OnChanged);
-	}
-
-	if (bFireNow)
-	{
-		(void)OnChanged.ExecuteIfBound(Get_NoDependency());
 	}
 }
