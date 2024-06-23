@@ -81,15 +81,22 @@ TSharedRef<FVoxelStructDetailsWrapper> FVoxelStructDetailsWrapper::Make(
 
 void FVoxelStructDetailsWrapper::AddChildrenTo(const FVoxelDetailInterface& DetailInterface) const
 {
-	const IDetailPropertyRow* Row = DetailInterface.AddExternalStructure(StructOnScope);
+	IDetailPropertyRow* Row = DetailInterface.AddExternalStructure(StructOnScope);
 	if (!ensure(Row))
 	{
 		return;
 	}
 
-	for (const TSharedRef<IPropertyHandle>& ChildHandle : FVoxelEditorUtilities::GetChildHandlesRecursive(Row->GetPropertyHandle()))
+	Row->Visibility(EVisibility::Collapsed);
+
+	for (const TSharedRef<IPropertyHandle>& ChildHandle : FVoxelEditorUtilities::GetChildHandles(Row->GetPropertyHandle(), true, true))
 	{
 		SetupChildHandle(ChildHandle);
+	}
+
+	for (const TSharedRef<IPropertyHandle>& ChildHandle : FVoxelEditorUtilities::GetChildHandles(Row->GetPropertyHandle(), false, false))
+	{
+		(void)DetailInterface.AddProperty(ChildHandle);
 	}
 }
 

@@ -55,8 +55,8 @@ public:
 	bool bCreateOnConstruction_EditorOnly = true;
 #endif
 
-	FSimpleMulticastDelegate OnCreated;
-	FSimpleMulticastDelegate OnDestroyed;
+	FSimpleMulticastDelegate OnRuntimeCreated;
+	FSimpleMulticastDelegate OnRuntimeDestroyed;
 
 public:
 	AVoxelActorBase();
@@ -93,22 +93,22 @@ public:
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "Voxel")
-	void QueueRecreate()
+	void QueueRecreateRuntime()
 	{
 		bPrivateRecreateQueued = true;
 	}
 
 	// Will call Create when it's ready to be created
 	UFUNCTION(BlueprintCallable, Category = "Voxel")
-	void QueueCreate();
+	void QueueCreateRuntime();
 
 	UFUNCTION(BlueprintCallable, Category = "Voxel")
-	void Create();
+	void CreateRuntime();
 
 	UFUNCTION(BlueprintCallable, Category = "Voxel")
-	void Destroy();
+	void DestroyRuntime();
 
-	void FlushRecreate();
+	void FlushRecreateRuntime();
 
 public:
 	virtual bool CanBeCreated() const { return true; }

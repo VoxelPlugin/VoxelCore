@@ -283,7 +283,7 @@ public:
 	template<typename OtherType, typename = std::enable_if_t<
 		std::is_null_pointer_v<OtherType> &&
 		// Wrap in a dummy type to disable this as copy constructor without failing to compile on clang if T is forward declared
-		TIsConstructible<typename TChooseClass<std::is_same_v<OtherType, TVoxelFuture>, void, T>::Result, const OtherType&>::Value>>
+		TIsConstructible<std::conditional_t<std::is_same_v<OtherType, TVoxelFuture>, void, T>, const OtherType&>::Value>>
 	TVoxelFuture(const OtherType& OtherValue)
 		: TVoxelFuture(T(OtherValue))
 	{

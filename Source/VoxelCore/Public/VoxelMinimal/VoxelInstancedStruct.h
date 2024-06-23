@@ -344,6 +344,10 @@ public:
 	{
 		return FVoxelInstancedStruct::AsShared<T>();
 	}
+	FORCEINLINE TSharedRef<const T> AsShared() const
+	{
+		return FVoxelInstancedStruct::AsShared<const T>();
+	}
 
 public:
 	FORCEINLINE T& Get()

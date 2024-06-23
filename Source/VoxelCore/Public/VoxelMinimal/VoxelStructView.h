@@ -56,6 +56,7 @@ public:
 			checkVoxelSlow(IsA<T>());
 		}
 	}
+
 	template<typename OtherType, typename = std::enable_if_t<
 		!std::is_same_v<T, OtherType>
 		&&
@@ -76,13 +77,50 @@ public:
 		StructMemory = Other.GetMemory();
 	}
 
+	template<typename ChildType, typename = std::enable_if_t<
+		TOr
+		<
+			TIntegralConstant<bool, std::is_void_v<T>>,
+			TIsDerivedFrom<ChildType, T>
+		>::Value>>
+	FORCEINLINE TVoxelStructView(TVoxelInstancedStruct<ChildType>& InstancedStruct)
+	{
+		checkStatic(!std::is_const_v<ChildType>);
+
+		if constexpr (std::is_void_v<T>)
+		{
+			ScriptStruct = InstancedStruct.GetScriptStruct();
+			StructMemory = InstancedStruct.GetPtr();
+		}
+		else
+		{
+			checkVoxelSlow(!InstancedStruct.IsValid() || InstancedStruct.template IsA<T>());
+
+			ScriptStruct = InstancedStruct.GetScriptStruct();
+			StructMemory = InstancedStruct.template GetPtr<T>();
+		}
+	}
+
+	template<typename ChildType, typename = std::enable_if_t<
+		std::is_const_v<T>
+		&&
+		TOr
+		<
+			TIntegralConstant<bool, std::is_void_v<T>>,
+			TIsDerivedFrom<ChildType, T>
+		>::Value>>
+	FORCEINLINE TVoxelStructView(const TVoxelInstancedStruct<ChildType>& InstancedStruct)
+		: TVoxelStructView(ConstCast(InstancedStruct))
+	{
+	}
+
 public:
 	auto MakeInstancedStruct() const
 	{
 		FVoxelInstancedStruct Result;
 		Result.InitializeAs(GetStruct(), GetMemory());
 
-		using InstancedStruct = typename TChooseClass<std::is_void_v<T>, FVoxelInstancedStruct, TVoxelInstancedStruct<T>>::Result;
+		using InstancedStruct = std::conditional_t<std::is_void_v<T>, FVoxelInstancedStruct, TVoxelInstancedStruct<T>>;
 		return InstancedStruct(MoveTemp(Result));
 	}
 	auto MakeSharedCopy() const
@@ -97,10 +135,10 @@ public:
 		}
 	}
 
-	FORCEINLINE TVoxelArrayView<typename TChooseClass<std::is_const_v<T>, const uint8, uint8>::Result> GetRawView() const
+	FORCEINLINE TVoxelArrayView<std::conditional_t<std::is_const_v<T>, const uint8, uint8>> GetRawView() const
 	{
 		checkVoxelSlow(IsValid());
-		using ByteType = typename TChooseClass<std::is_const_v<T>, const uint8, uint8>::Result;
+		using ByteType = std::conditional_t<std::is_const_v<T>, const uint8, uint8>;
 		return TVoxelArrayView<ByteType>(reinterpret_cast<ByteType*>(GetMemory()), GetStruct()->GetStructureSize());
 	}
 
@@ -178,7 +216,7 @@ public:
 	FORCEINLINE auto& Get() const
 	{
 		checkVoxelSlow(IsA<OtherType>());
-		return *static_cast<typename TChooseClass<std::is_const_v<T>, const OtherType, OtherType>::Result*>(StructMemory);
+		return *static_cast<std::conditional_t<std::is_const_v<T>, const OtherType, OtherType>*>(StructMemory);
 	}
 
 	template<typename OtherType = T>

@@ -167,6 +167,21 @@ FORCEINLINE const TArray<ToType*, Allocator>& CastChecked(const TArray<FromType*
 	return ReinterpretCastArray<ToType*>(Array);
 }
 
+template<typename ToType, typename FromType, typename = std::enable_if_t<
+	TIsDerivedFrom<
+		std::remove_const_t<ToType>,
+		UObject
+	>::Value
+	&&
+	TIsDerivedFrom<
+		std::remove_const_t<ToType>,
+		std::remove_const_t<FromType>
+	>::Value>>
+FORCEINLINE std::conditional_t<std::is_const_v<FromType>, const ToType, ToType>& CastChecked(FromType& Object)
+{
+	return *CastChecked<ToType>(&Object);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -287,7 +302,7 @@ void ForEachObjectOfClass_Copy(LambdaType&& Operation, bool bIncludeDerivedClass
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename T = void, typename ArrayType = typename TChooseClass<std::is_void_v<T>, UClass*, TSubclassOf<T>>::Result>
+template<typename T = void, typename ArrayType = std::conditional_t<std::is_void_v<T>, UClass*, TSubclassOf<T>>>
 TArray<ArrayType> GetDerivedClasses(const UClass* BaseClass = T::StaticClass(), const bool bRecursive = true, const bool bRemoveDeprecated = true)
 {
 	VOXEL_FUNCTION_COUNTER();

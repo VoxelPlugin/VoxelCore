@@ -585,7 +585,7 @@ public:
 	struct TIterator
 	{
 		template<typename T>
-		using TType = typename TChooseClass<bConst, const T, T>::Result;
+		using TType = std::conditional_t<bConst, const T, T>;
 
 		TType<TVoxelSet>* SetPtr = nullptr;
 		TType<FElement>* ElementPtr = nullptr;

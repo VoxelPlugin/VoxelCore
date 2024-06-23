@@ -94,4 +94,4 @@ template<typename LambdaType, typename Signature>
 using LambdaHasSignature_T = std::enable_if_t<LambdaHasSignature_V<LambdaType, Signature>>;
 
 template<typename LambdaType, typename Type>
-using LambdaDependentType_T = typename TChooseClass<std::is_same_v<LambdaType, void>, void, Type>::Result;
+using LambdaDependentType_T = std::conditional_t<std::is_same_v<LambdaType, void>, void, Type>;

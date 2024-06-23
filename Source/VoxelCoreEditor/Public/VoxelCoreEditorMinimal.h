@@ -40,6 +40,7 @@
 #include "Factories/Factory.h"
 #include "ActorFactories/ActorFactory.h"
 #include "HAL/PlatformApplicationMisc.h"
+#include "DragAndDrop/DecoratedDragDropOp.h"
 #include "ThumbnailRendering/ThumbnailManager.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 

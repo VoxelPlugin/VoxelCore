@@ -97,7 +97,7 @@ void AVoxelActorBase::BeginPlay()
 	if (bCreateOnBeginPlay &&
 		!IsRuntimeCreated())
 	{
-		QueueCreate();
+		QueueCreateRuntime();
 	}
 }
 
@@ -107,7 +107,7 @@ void AVoxelActorBase::BeginDestroy()
 
 	if (IsRuntimeCreated())
 	{
-		Destroy();
+		DestroyRuntime();
 	}
 
 	Super::BeginDestroy();
@@ -121,7 +121,7 @@ void AVoxelActorBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 	if (IsRuntimeCreated())
 	{
-		Destroy();
+		DestroyRuntime();
 	}
 
 	Super::EndPlay(EndPlayReason);
@@ -133,7 +133,7 @@ void AVoxelActorBase::Destroyed()
 
 	if (IsRuntimeCreated())
 	{
-		Destroy();
+		DestroyRuntime();
 	}
 
 	Super::Destroyed();
@@ -178,7 +178,7 @@ void AVoxelActorBase::PostEditImport()
 
 	if (IsRuntimeCreated())
 	{
-		QueueRecreate();
+		QueueRecreateRuntime();
 	}
 }
 
@@ -218,14 +218,14 @@ void AVoxelActorBase::PostEditUndo()
 	{
 		if (!IsRuntimeCreated())
 		{
-			QueueCreate();
+			QueueCreateRuntime();
 		}
 	}
 	else
 	{
 		if (IsRuntimeCreated())
 		{
-			Destroy();
+			DestroyRuntime();
 		}
 	}
 }
@@ -286,7 +286,7 @@ void AVoxelActorBase::Tick(const float DeltaTime)
 	if (bPrivateCreateQueued &&
 		CanBeCreated())
 	{
-		Create();
+		CreateRuntime();
 	}
 
 	if (ShouldDestroyWhenHidden())
@@ -301,18 +301,18 @@ void AVoxelActorBase::Tick(const float DeltaTime)
 		{
 			if (IsRuntimeCreated())
 			{
-				Destroy();
+				DestroyRuntime();
 				bPrivateCreateOnceVisible = true;
 			}
 		}
 		else if (bPrivateCreateOnceVisible)
 		{
 			bPrivateCreateOnceVisible = false;
-			Create();
+			CreateRuntime();
 		}
 	}
 
-	FlushRecreate();
+	FlushRecreateRuntime();
 
 	if (PrivateRuntime)
 	{
@@ -341,13 +341,13 @@ void AVoxelActorBase::AddReferencedObjects(UObject* InThis, FReferenceCollector&
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void AVoxelActorBase::QueueCreate()
+void AVoxelActorBase::QueueCreateRuntime()
 {
 	VOXEL_FUNCTION_COUNTER();
 
 	if (CanBeCreated())
 	{
-		Create();
+		CreateRuntime();
 	}
 	else
 	{
@@ -355,7 +355,7 @@ void AVoxelActorBase::QueueCreate()
 	}
 }
 
-void AVoxelActorBase::Create()
+void AVoxelActorBase::CreateRuntime()
 {
 	VOXEL_FUNCTION_COUNTER();
 
@@ -373,10 +373,10 @@ void AVoxelActorBase::Create()
 	}
 
 	PrivateRuntime = CreateNewRuntime();
-	OnCreated.Broadcast();
+	OnRuntimeCreated.Broadcast();
 }
 
-void AVoxelActorBase::Destroy()
+void AVoxelActorBase::DestroyRuntime()
 {
 	VOXEL_FUNCTION_COUNTER();
 
@@ -390,7 +390,7 @@ void AVoxelActorBase::Destroy()
 		return;
 	}
 
-	OnDestroyed.Broadcast();
+	OnRuntimeDestroyed.Broadcast();
 
 	PrivateRuntime->Destroy();
 	PrivateRuntime->bPrivateIsDestroyed = true;
@@ -407,7 +407,7 @@ void AVoxelActorBase::Destroy()
 	PrivateClassToWeakComponents.Empty();
 }
 
-void AVoxelActorBase::FlushRecreate()
+void AVoxelActorBase::FlushRecreateRuntime()
 {
 	VOXEL_FUNCTION_COUNTER();
 
@@ -416,8 +416,8 @@ void AVoxelActorBase::FlushRecreate()
 	{
 		bPrivateRecreateQueued = false;
 
-		Destroy();
-		Create();
+		DestroyRuntime();
+		CreateRuntime();
 	}
 }
 

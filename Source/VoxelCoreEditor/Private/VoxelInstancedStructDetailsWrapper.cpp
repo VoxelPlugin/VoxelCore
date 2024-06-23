@@ -117,7 +117,7 @@ IDetailPropertyRow* FVoxelInstancedStructDetailsWrapper::AddExternalStructure(
 		return nullptr;
 	}
 
-	for (const TSharedRef<IPropertyHandle>& ChildHandle : FVoxelEditorUtilities::GetChildHandlesRecursive(Row->GetPropertyHandle()))
+	for (const TSharedRef<IPropertyHandle>& ChildHandle : FVoxelEditorUtilities::GetChildHandles(Row->GetPropertyHandle(), true, true))
 	{
 		SetupChildHandle(ChildHandle);
 	}

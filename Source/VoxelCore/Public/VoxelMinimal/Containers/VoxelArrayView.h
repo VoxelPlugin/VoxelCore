@@ -127,7 +127,7 @@ public:
 		return GetData()[Num() - IndexFromTheEnd - 1];
 	}
 
-	template<typename T, typename ToType = typename TChooseClass<std::is_const_v<ElementType>, const T, T>::Result>
+	template<typename T, typename ToType = std::conditional_t<std::is_const_v<ElementType>, const T, T>>
 	FORCEINLINE TVoxelArrayView<ToType, SizeType> ReinterpretAs() const
 	{
 		const int64 NumBytes = Num() * sizeof(ElementType);

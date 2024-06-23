@@ -8,7 +8,7 @@ template<typename T>
 struct TVoxelWeakPropertyPtr
 {
 public:
-	using ObjectType = TChooseClass<std::is_const_v<T>, const UObject, UObject>;
+	using ObjectType = std::conditional_t<std::is_const_v<T>, const UObject, UObject>;
 
 	TVoxelWeakPropertyPtr() = default;
 	FORCEINLINE TVoxelWeakPropertyPtr(

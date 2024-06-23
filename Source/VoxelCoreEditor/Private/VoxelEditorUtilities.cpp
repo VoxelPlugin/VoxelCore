@@ -282,8 +282,6 @@ FSimpleDelegate FVoxelEditorUtilities::MakeRefreshDelegate(
 
 		if (!WeakDetailView.IsValid())
 		{
-			// Extra safety to mitigate UE5 bug
-			// See https://voxelplugin.atlassian.net/browse/VP-161
 			return;
 		}
 
@@ -357,7 +355,10 @@ TArray<FName> FVoxelEditorUtilities::GetPropertyOptions(const TSharedRef<IProper
 	return Options;
 }
 
-TArray<TSharedRef<IPropertyHandle>> FVoxelEditorUtilities::GetChildHandlesRecursive(const TSharedPtr<IPropertyHandle>& PropertyHandle)
+TArray<TSharedRef<IPropertyHandle>> FVoxelEditorUtilities::GetChildHandles(
+	const TSharedPtr<IPropertyHandle>& PropertyHandle,
+	const bool bRecursive,
+	const bool bIncludeSelf)
 {
 	TrackHandle(PropertyHandle);
 
@@ -372,7 +373,17 @@ TArray<TSharedRef<IPropertyHandle>> FVoxelEditorUtilities::GetChildHandlesRecurs
 			return;
 		}
 
-		ChildHandles.Add(Handle.ToSharedRef());
+		if (bIncludeSelf ||
+			Handle != PropertyHandle)
+		{
+			ChildHandles.Add(Handle.ToSharedRef());
+		}
+
+		if (!bRecursive &&
+			Handle != PropertyHandle)
+		{
+			return;
+		}
 
 		uint32 NumChildren = 0;
 		if (!ensure(Handle->GetNumChildren(NumChildren) == FPropertyAccess::Success))

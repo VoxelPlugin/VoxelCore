@@ -61,7 +61,7 @@ private:
 	};
 
 public:
-	using FElement = typename TChooseClass<sizeof(FElementKeyValue) <= sizeof(FElementValueKey), FElementKeyValue, FElementValueKey>::Result;
+	using FElement = std::conditional_t<sizeof(FElementKeyValue) <= sizeof(FElementValueKey), FElementKeyValue, FElementValueKey>;
 };
 
 template<typename KeyType, typename ValueType>
@@ -673,7 +673,7 @@ public:
 	struct TIterator
 	{
 		template<typename T>
-		using TType = typename TChooseClass<bConst, const T, T>::Result;
+		using TType = std::conditional_t<bConst, const T, T>;
 
 		TType<TVoxelMap>* MapPtr = nullptr;
 		TType<FElement>* ElementPtr = nullptr;

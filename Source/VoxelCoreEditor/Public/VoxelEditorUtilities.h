@@ -40,6 +40,17 @@ VOXELCOREEDITOR_API FString Voxel_GetCommandsName(FString Name);
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+#undef DRAG_DROP_OPERATOR_TYPE
+
+#define DRAG_DROP_OPERATOR_TYPE(TYPE, BASE) \
+	void __Dummy_ ## TYPE() { checkStatic(std::is_same_v<VOXEL_THIS_TYPE, TYPE>); } \
+	static const FString& GetTypeId() { static FString Type = TEXT(#TYPE); return Type; } \
+	virtual bool IsOfTypeImpl(const FString& Type) const override { return GetTypeId() == Type || BASE::IsOfTypeImpl(Type); }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 struct VOXELCOREEDITOR_API FVoxelEditorUtilities
 {
 public:
@@ -349,7 +360,11 @@ public:
 	}
 
 	static TArray<FName> GetPropertyOptions(const TSharedRef<IPropertyHandle>& PropertyHandle);
-	static TArray<TSharedRef<IPropertyHandle>> GetChildHandlesRecursive(const TSharedPtr<IPropertyHandle>& PropertyHandle);
+
+	static TArray<TSharedRef<IPropertyHandle>> GetChildHandles(
+		const TSharedPtr<IPropertyHandle>& PropertyHandle,
+		bool bRecursive,
+		bool bIncludeSelf);
 
 public:
 	static TSharedPtr<IPropertyHandle> MakePropertyHandle(

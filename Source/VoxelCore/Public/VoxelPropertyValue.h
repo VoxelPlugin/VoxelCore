@@ -51,21 +51,25 @@ public:
 	}
 
 public:
-	template<typename T>
+	template<typename T, typename = std::enable_if_t<
+		TIsSafeVoxelPropertyValue<T>::Value &&
+		!TIsDerivedFrom<T, UObject>::Value>>
 	static FVoxelPropertyTerminalValue Make(const T& Value = FVoxelUtilities::MakeSafe<T>())
 	{
-		checkStatic(TIsSafeVoxelPropertyValue<T>::Value);
-
 		FVoxelPropertyTerminalValue Result(FVoxelPropertyType::Make<T>());
 		Result.Get<T>() = Value;
 		return Result;
 	}
-	// For objects
-	template<typename T>
-	static FVoxelPropertyTerminalValue Make(T* Value)
+	template<typename T, typename = std::enable_if_t<TIsDerivedFrom<T, UObject>::Value>>
+	static FVoxelPropertyTerminalValue Make(T* Value = nullptr)
 	{
-		checkStatic(TIsDerivedFrom<T, UObject>::Value);
-
+		FVoxelPropertyTerminalValue Result(FVoxelPropertyType::Make<T>());
+		Result.Get<T>() = Value;
+		return Result;
+	}
+	template<typename T, typename = std::enable_if_t<TIsDerivedFrom<T, UObject>::Value>>
+	static FVoxelPropertyTerminalValue Make(const TObjectPtr<T>& Value)
+	{
 		FVoxelPropertyTerminalValue Result(FVoxelPropertyType::Make<T>());
 		Result.Get<T>() = Value;
 		return Result;

@@ -205,38 +205,27 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 
 	template<typename T>
-	using TPropertyType = typename TChooseClass<
-		std::is_same_v<T, bool>          , FBoolProperty                                      , typename TChooseClass<
-		std::is_same_v<T, uint8>         , FByteProperty                                      , typename TChooseClass<
-		std::is_same_v<T, float>         , FFloatProperty                                     , typename TChooseClass<
-		std::is_same_v<T, double>        , FDoubleProperty                                    , typename TChooseClass<
-		std::is_same_v<T, int32>         , FIntProperty                                       , typename TChooseClass<
-		std::is_same_v<T, int64>         , FInt64Property                                     , typename TChooseClass<
-		std::is_same_v<T, FName>         , FNameProperty                                      , typename TChooseClass<
-		TIsEnum<T>::Value                , FEnumProperty                                      , typename TChooseClass<
-		TIsDerivedFrom<T, UObject>::Value, FObjectProperty                                    , typename TChooseClass<
-		TIsTObjectPtr<T>::Value          , UE_504_SWITCH(FObjectPtrProperty, FObjectProperty) , typename TChooseClass<
-		TIsSoftObjectPtr<T>::Value       , FSoftObjectProperty                                , typename TChooseClass<
+	using TPropertyType = std::conditional_t<
+		std::is_same_v<T, bool>          , FBoolProperty                                      , std::conditional_t<
+		std::is_same_v<T, uint8>         , FByteProperty                                      , std::conditional_t<
+		std::is_same_v<T, float>         , FFloatProperty                                     , std::conditional_t<
+		std::is_same_v<T, double>        , FDoubleProperty                                    , std::conditional_t<
+		std::is_same_v<T, int32>         , FIntProperty                                       , std::conditional_t<
+		std::is_same_v<T, int64>         , FInt64Property                                     , std::conditional_t<
+		std::is_same_v<T, FName>         , FNameProperty                                      , std::conditional_t<
+		TIsEnum<T>::Value                , FEnumProperty                                      , std::conditional_t<
+		TIsDerivedFrom<T, UObject>::Value, FObjectProperty                                    , std::conditional_t<
+		TIsTObjectPtr<T>::Value          , UE_504_SWITCH(FObjectPtrProperty, FObjectProperty) , std::conditional_t<
+		TIsSoftObjectPtr<T>::Value       , FSoftObjectProperty                                , std::conditional_t<
 		TIsTSubclassOf<T>::Value         , FClassProperty
-	                                     , FStructProperty
-	>::Result
-	>::Result
-	>::Result
-	>::Result
-	>::Result
-	>::Result
-	>::Result
-	>::Result
-	>::Result
-	>::Result
-	>::Result
-	>::Result;
+			                             , FStructProperty
+		>>>>>>>>>>>>;
 
 	template<typename T>
 	bool MatchesProperty(const FProperty& Property, bool bAllowInheritance);
 
 	template<typename T, typename ContainerType>
-	auto TryGetProperty(ContainerType& Container, const FProperty& Property) -> typename TChooseClass<std::is_const_v<ContainerType>, const T*, T*>::Result
+	auto TryGetProperty(ContainerType& Container, const FProperty& Property) -> std::conditional_t<std::is_const_v<ContainerType>, const T*, T*>
 	{
 		if (!FVoxelUtilities::MatchesProperty<T>(Property, true))
 		{
