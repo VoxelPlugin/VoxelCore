@@ -6,7 +6,7 @@
 #include "VoxelFalloff.generated.h"
 
 UENUM(BlueprintType)
-enum class EVoxelFalloff : uint8
+enum class EVoxelFalloffType : uint8
 {
 	None UMETA(ToolTip = "No falloff", Icon = "Icons.Denied"),
 	Linear UMETA(ToolTip = "Sharp, linear falloff", Icon = "LandscapeEditor.CircleBrush_Linear"),
@@ -15,8 +15,26 @@ enum class EVoxelFalloff : uint8
 	Tip UMETA(ToolTip = "Tip falloff, sharp at the center and smooth at the edge", Icon = "LandscapeEditor.CircleBrush_Tip")
 };
 
+USTRUCT()
 struct FVoxelFalloff
 {
+	GENERATED_BODY()
+
+public:
+	FVoxelFalloff() = default;
+	FVoxelFalloff(
+		const EVoxelFalloffType Type,
+		const float Amount)
+		: Type(Type)
+		, Amount(Amount)
+	{}
+
+	UPROPERTY(EditAnywhere, Category = "Config")
+	EVoxelFalloffType Type = EVoxelFalloffType::Smooth;
+
+	UPROPERTY(EditAnywhere, Category = "Config", meta = (EditCondition = "Type != EVoxelFalloffType::None", EditConditionHides))
+	float Amount = 0.5f;
+
 public:
 	FORCEINLINE static float LinearFalloff(
 		const float Distance,
@@ -63,7 +81,7 @@ public:
 public:
 	// Falloff: between 0 and 1
 	FORCEINLINE static float GetFalloff(
-		const EVoxelFalloff FalloffType,
+		const EVoxelFalloffType FalloffType,
 		const float Distance,
 		const float Radius,
 		float Falloff)
@@ -71,7 +89,7 @@ public:
 		Falloff = FMath::Clamp(Falloff, 0.f, 1.f);
 
 		if (Falloff == 0.f ||
-			FalloffType == EVoxelFalloff::None)
+			FalloffType == EVoxelFalloffType::None)
 		{
 			return Distance <= Radius ? 1.f : 0.f;
 		}
@@ -81,10 +99,10 @@ public:
 		switch (FalloffType)
 		{
 		default: VOXEL_ASSUME(false);
-		case EVoxelFalloff::Linear: return LinearFalloff(Distance, RelativeRadius, RelativeFalloff);
-		case EVoxelFalloff::Smooth: return SmoothFalloff(Distance, RelativeRadius, RelativeFalloff);
-		case EVoxelFalloff::Spherical: return SphericalFalloff(Distance, RelativeRadius, RelativeFalloff);
-		case EVoxelFalloff::Tip: return TipFalloff(Distance, RelativeRadius, RelativeFalloff);
+		case EVoxelFalloffType::Linear: return LinearFalloff(Distance, RelativeRadius, RelativeFalloff);
+		case EVoxelFalloffType::Smooth: return SmoothFalloff(Distance, RelativeRadius, RelativeFalloff);
+		case EVoxelFalloffType::Spherical: return SphericalFalloff(Distance, RelativeRadius, RelativeFalloff);
+		case EVoxelFalloffType::Tip: return TipFalloff(Distance, RelativeRadius, RelativeFalloff);
 		}
 	}
 };
