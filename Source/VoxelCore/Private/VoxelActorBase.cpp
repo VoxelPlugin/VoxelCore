@@ -41,6 +41,9 @@ FVoxelActorBaseEditorTicker* GVoxelActorBaseEditorTicker = new FVoxelActorBaseEd
 UVoxelActorBaseRootComponent::UVoxelActorBaseRootComponent()
 {
 	bWantsOnUpdateTransform = true;
+#if WITH_EDITOR
+    bConsiderForActorPlacementWhenHidden = true;
+#endif
 }
 
 void UVoxelActorBaseRootComponent::UpdateBounds()

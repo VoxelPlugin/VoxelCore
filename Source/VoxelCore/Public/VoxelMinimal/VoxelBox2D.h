@@ -103,6 +103,10 @@ struct VOXELCORE_API FVoxelBox2D
 		TConstVoxelArrayView<float> PositionX,
 		TConstVoxelArrayView<float> PositionY);
 
+	static FVoxelBox2D FromPositions(
+		TConstVoxelArrayView<double> PositionX,
+		TConstVoxelArrayView<double> PositionY);
+
 	FORCEINLINE FVector2D Size() const
 	{
 		return Max - Min;

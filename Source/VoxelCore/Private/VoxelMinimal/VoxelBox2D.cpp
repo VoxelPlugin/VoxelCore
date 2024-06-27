@@ -106,6 +106,34 @@ FVoxelBox2D FVoxelBox2D::FromPositions(
 	return FVoxelBox2D(Min, Max);
 }
 
+FVoxelBox2D FVoxelBox2D::FromPositions(
+	const TConstVoxelArrayView<double> PositionX,
+	const TConstVoxelArrayView<double> PositionY)
+{
+    VOXEL_FUNCTION_COUNTER();
+
+    const int32 Num = PositionX.Num();
+    check(Num == PositionX.Num());
+    check(Num == PositionY.Num());
+
+    if (Num == 0)
+    {
+        return {};
+    }
+
+	FVector2D Min = { PositionX[0], PositionY[0] };
+	FVector2D Max = { PositionX[0], PositionY[0] };
+
+	for (int32 Index = 1; Index < Num; Index++)
+	{
+		const FVector2D Position{ PositionX[Index], PositionY[Index] };
+		Min = FVoxelUtilities::ComponentMin(Min, Position);
+		Max = FVoxelUtilities::ComponentMax(Max, Position);
+	}
+
+	return FVoxelBox2D(Min, Max);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

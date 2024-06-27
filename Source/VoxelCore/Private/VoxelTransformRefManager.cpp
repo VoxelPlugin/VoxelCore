@@ -44,7 +44,7 @@ TSharedRef<FVoxelTransformRefImpl> FVoxelTransformRefManager::Make_GameThread(co
 {
 	VOXEL_FUNCTION_COUNTER();
 	VOXEL_SCOPE_LOCK(CriticalSection);
-	check(IsInGameThread());
+	check(IsInGameThread() || IsInAsyncLoadingThread());
 
 	const FVoxelTransformRefNodeArray NodeArray(Nodes);
 
