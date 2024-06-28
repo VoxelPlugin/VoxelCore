@@ -40,7 +40,8 @@ public:
 	// Returns false if already invalidated
 	bool SetOnInvalidated(
 		TVoxelUniqueFunction<void()> NewOnInvalidated,
-		bool bFireNow = true);
+		bool bFireNow = true,
+		bool bFinalize = true);
 
 private:
 	TVoxelAtomic<bool> bIsInvalidated;

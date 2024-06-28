@@ -55,7 +55,6 @@ void FVoxelDependencyTracker::AddDependency(
 
 	VOXEL_SCOPE_LOCK(CriticalSection);
 	ensure(!bIsFinalized_RequiresLock);
-	ensure(!OnInvalidated_RequiresLock);
 
 	if (IsInvalidated())
 	{
@@ -94,12 +93,16 @@ void FVoxelDependencyTracker::AddObjectToKeepAlive(const FSharedVoidPtr& ObjectT
 
 bool FVoxelDependencyTracker::SetOnInvalidated(
 	TVoxelUniqueFunction<void()> NewOnInvalidated,
-	const bool bFireNow)
+	const bool bFireNow,
+	const bool bFinalize)
 {
 	CriticalSection.Lock();
 
-	checkVoxelSlow(!bIsFinalized_RequiresLock);
-	bIsFinalized_RequiresLock = true;
+	if (bFinalize)
+	{
+		checkVoxelSlow(!bIsFinalized_RequiresLock);
+		bIsFinalized_RequiresLock = true;
+	}
 
 	ObjectsToKeepAlive_RequiresLock.Shrink();
 	DependencyToTrackerRefs_RequiresLock.Shrink();

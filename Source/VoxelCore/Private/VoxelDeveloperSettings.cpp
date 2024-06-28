@@ -46,5 +46,7 @@ void UVoxelDeveloperSettings::PostEditChangeProperty(FPropertyChangedEvent& Prop
 	{
 		ExportValuesToConsoleVariables(PropertyChangedEvent.Property);
 	}
+
+	SaveConfig(CPF_Config, *GetDefaultConfigFilename());
 }
 #endif
