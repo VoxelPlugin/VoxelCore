@@ -17,7 +17,7 @@ const FVoxelBox2D FVoxelBox2D::InvertedInfinite = []
 
 FVoxelBox2D FVoxelBox2D::FromPositions(const TConstVoxelArrayView<FIntPoint> Positions)
 {
-    VOXEL_FUNCTION_COUNTER();
+    VOXEL_FUNCTION_COUNTER_NUM(Positions.Num(), 128);
 
     if (Positions.Num() == 0)
     {
@@ -38,7 +38,7 @@ FVoxelBox2D FVoxelBox2D::FromPositions(const TConstVoxelArrayView<FIntPoint> Pos
 
 FVoxelBox2D FVoxelBox2D::FromPositions(const TConstVoxelArrayView<FVector2f> Positions)
 {
-    VOXEL_FUNCTION_COUNTER();
+    VOXEL_FUNCTION_COUNTER_NUM(Positions.Num(), 128);
 
     if (Positions.Num() == 0)
     {
@@ -59,7 +59,7 @@ FVoxelBox2D FVoxelBox2D::FromPositions(const TConstVoxelArrayView<FVector2f> Pos
 
 FVoxelBox2D FVoxelBox2D::FromPositions(const TConstVoxelArrayView<FVector2d> Positions)
 {
-    VOXEL_FUNCTION_COUNTER();
+    VOXEL_FUNCTION_COUNTER_NUM(Positions.Num(), 128);
 
     if (Positions.Num() == 0)
     {
@@ -82,7 +82,7 @@ FVoxelBox2D FVoxelBox2D::FromPositions(
 	const TConstVoxelArrayView<float> PositionX,
 	const TConstVoxelArrayView<float> PositionY)
 {
-    VOXEL_FUNCTION_COUNTER();
+    VOXEL_FUNCTION_COUNTER_NUM(PositionX.Num(), 128);
 
     const int32 Num = PositionX.Num();
     check(Num == PositionX.Num());
@@ -93,24 +93,19 @@ FVoxelBox2D FVoxelBox2D::FromPositions(
         return {};
     }
 
-	FVector2f Min = { PositionX[0], PositionY[0] };
-	FVector2f Max = { PositionX[0], PositionY[0] };
+    const FFloatInterval MinMaxX = FVoxelUtilities::GetMinMax(PositionX);
+    const FFloatInterval MinMaxY = FVoxelUtilities::GetMinMax(PositionY);
 
-	for (int32 Index = 1; Index < Num; Index++)
-	{
-		const FVector2f Position{ PositionX[Index], PositionY[Index] };
-		Min = FVoxelUtilities::ComponentMin(Min, Position);
-		Max = FVoxelUtilities::ComponentMax(Max, Position);
-	}
-
-	return FVoxelBox2D(Min, Max);
+	return FVoxelBox2D(
+        FVector2D(MinMaxX.Min, MinMaxY.Min),
+        FVector2D(MinMaxX.Max, MinMaxY.Max));
 }
 
 FVoxelBox2D FVoxelBox2D::FromPositions(
 	const TConstVoxelArrayView<double> PositionX,
 	const TConstVoxelArrayView<double> PositionY)
 {
-    VOXEL_FUNCTION_COUNTER();
+    VOXEL_FUNCTION_COUNTER_NUM(PositionX.Num(), 128);
 
     const int32 Num = PositionX.Num();
     check(Num == PositionX.Num());
@@ -121,17 +116,12 @@ FVoxelBox2D FVoxelBox2D::FromPositions(
         return {};
     }
 
-	FVector2D Min = { PositionX[0], PositionY[0] };
-	FVector2D Max = { PositionX[0], PositionY[0] };
+    const FDoubleInterval MinMaxX = FVoxelUtilities::GetMinMax(PositionX);
+    const FDoubleInterval MinMaxY = FVoxelUtilities::GetMinMax(PositionY);
 
-	for (int32 Index = 1; Index < Num; Index++)
-	{
-		const FVector2D Position{ PositionX[Index], PositionY[Index] };
-		Min = FVoxelUtilities::ComponentMin(Min, Position);
-		Max = FVoxelUtilities::ComponentMax(Max, Position);
-	}
-
-	return FVoxelBox2D(Min, Max);
+	return FVoxelBox2D(
+        FVector2D(MinMaxX.Min, MinMaxY.Min),
+        FVector2D(MinMaxX.Max, MinMaxY.Max));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

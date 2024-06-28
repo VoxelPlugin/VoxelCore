@@ -34,6 +34,7 @@
 #include "UnrealClient.h"
 #include "AssetThumbnail.h"
 #include "Styling/StyleColors.h"
+#include "Styling/SlateStyleRegistry.h"
 #include "Misc/MessageDialog.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Editor/EditorEngine.h"

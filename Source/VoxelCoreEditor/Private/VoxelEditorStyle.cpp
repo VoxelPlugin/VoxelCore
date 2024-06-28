@@ -3,7 +3,6 @@
 #include "VoxelEditorStyle.h"
 #include "VoxelEditorMinimal.h"
 #include "Interfaces/IPluginManager.h"
-#include "Styling/SlateStyleRegistry.h"
 
 VOXEL_CONSOLE_COMMAND(
 	ReinitializeStyle,

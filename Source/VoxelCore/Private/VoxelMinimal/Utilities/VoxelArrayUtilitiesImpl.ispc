@@ -345,6 +345,46 @@ export void ArrayUtilities_GetMinMax_float(
 	*OutMax = MaxResult;
 }
 
+export void ArrayUtilities_GetMinMax_double(
+	const uniform double Values[],
+	const uniform int32 Num,
+	double* uniform OutMin,
+	double* uniform OutMax)
+{
+	const uniform int32 AlignedNum = programCount * (Num / programCount);
+
+	uniform double MinResult;
+	uniform double MaxResult;
+	if (AlignedNum != 0)
+	{
+		varying double MinValue = Values[0];
+		varying double MaxValue = Values[0];
+		for (uniform int32 Index = 0; Index < AlignedNum; Index += programCount)
+		{
+			const varying double Value = Values[Index + programIndex];
+			MinValue = min(MinValue, Value);
+			MaxValue = max(MaxValue, Value);
+		}
+		MinResult = reduce_min(MinValue);
+		MaxResult = reduce_max(MaxValue);
+	}
+	else
+	{
+		MinResult = Values[0];
+		MaxResult = Values[0];
+	}
+
+	for (uniform int32 Index = AlignedNum; Index < Num; Index++)
+	{
+		const uniform double Value = Values[Index];
+		MinResult = min(MinResult, Value);
+		MaxResult = max(MaxResult, Value);
+	}
+
+	*OutMin = MinResult;
+	*OutMax = MaxResult;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

@@ -495,6 +495,7 @@ namespace FVoxelUtilities
 	// Will return { 0, 0 } if no values are valid
 	// Won't check for NaNs
 	VOXELCORE_API FFloatInterval GetMinMax(TConstVoxelArrayView<float> Data);
+	VOXELCORE_API FDoubleInterval GetMinMax(TConstVoxelArrayView<double> Data);
 
 	VOXELCORE_API void GetMinMax(
 		TConstVoxelArrayView<FVector2f> Data,

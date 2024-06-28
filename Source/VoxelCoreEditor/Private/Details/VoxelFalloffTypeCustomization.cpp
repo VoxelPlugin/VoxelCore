@@ -2,7 +2,6 @@
 
 #include "VoxelEditorMinimal.h"
 #include "VoxelFalloff.h"
-#include "Styling/SlateStyleRegistry.h"
 
 VOXEL_CUSTOMIZE_ENUM_HEADER(EVoxelFalloffType)(const TSharedRef<IPropertyHandle> EnumPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils)
 {

@@ -161,6 +161,15 @@ FORCEINLINE TVoxelFutureType<ReturnType> RunOnGameThread(LambdaType Lambda)
 	return Promise.GetFuture();
 }
 
+template<typename LambdaType>
+FORCEINLINE auto MakeRunOnGameThreadLambda(LambdaType Lambda)
+{
+	return [Lambda = MoveTemp(Lambda)]
+	{
+		RunOnGameThread(Lambda);
+	};
+}
+
 template<
 	typename LambdaType,
 	typename ReturnType = LambdaReturnType_T<LambdaType>,

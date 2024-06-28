@@ -2,7 +2,6 @@
 
 #include "VoxelEditorMinimal.h"
 #include "VoxelFalloff.h"
-#include "Styling/SlateStyleRegistry.h"
 
 class FVoxelFalloffCustomization : public FVoxelPropertyTypeCustomizationBase
 {

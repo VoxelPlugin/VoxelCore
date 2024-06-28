@@ -189,6 +189,24 @@ FFloatInterval FVoxelUtilities::GetMinMax(const TConstVoxelArrayView<float> Data
 	return Result;
 }
 
+FDoubleInterval FVoxelUtilities::GetMinMax(const TConstVoxelArrayView<double> Data)
+{
+	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
+
+	if (!ensure(Data.Num() > 0))
+	{
+		return FDoubleInterval(0., 0.);
+	}
+
+	FDoubleInterval Result;
+	ispc::ArrayUtilities_GetMinMax_double(
+		Data.GetData(),
+		Data.Num(),
+		&Result.Min,
+		&Result.Max);
+	return Result;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
