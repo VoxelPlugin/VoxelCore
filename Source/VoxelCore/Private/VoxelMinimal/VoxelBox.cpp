@@ -156,6 +156,40 @@ FVoxelBox FVoxelBox::FromPositions(
 	return Bounds;
 }
 
+FVoxelBox FVoxelBox::FromPositions(
+    const TConstVoxelArrayView<double> PositionX,
+    const TConstVoxelArrayView<double> PositionY,
+    const TConstVoxelArrayView<double> PositionZ)
+{
+	VOXEL_FUNCTION_COUNTER_NUM(PositionX.Num(), 32);
+
+	if (PositionX.Num() == 0 ||
+		PositionY.Num() == 0 ||
+		PositionZ.Num() == 0)
+	{
+		ensure(PositionX.Num() == 0);
+		ensure(PositionY.Num() == 0);
+		ensure(PositionZ.Num() == 0);
+		return {};
+	}
+
+	const FDoubleInterval MinMaxX = FVoxelUtilities::GetMinMax(PositionX);
+	const FDoubleInterval MinMaxY = FVoxelUtilities::GetMinMax(PositionY);
+	const FDoubleInterval MinMaxZ = FVoxelUtilities::GetMinMax(PositionZ);
+
+	FVoxelBox Bounds;
+
+	Bounds.Min.X = MinMaxX.Min;
+	Bounds.Min.Y = MinMaxY.Min;
+	Bounds.Min.Z = MinMaxZ.Min;
+
+	Bounds.Max.X = MinMaxX.Max;
+	Bounds.Max.Y = MinMaxY.Max;
+	Bounds.Max.Z = MinMaxZ.Max;
+
+	return Bounds;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

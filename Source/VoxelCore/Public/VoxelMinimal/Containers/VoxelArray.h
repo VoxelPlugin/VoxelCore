@@ -373,23 +373,20 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename To, typename ElementType, typename Allocator>
+template<typename To, typename ElementType, typename Allocator, typename = std::enable_if_t<sizeof(To) == sizeof(ElementType)>>
 FORCEINLINE TVoxelArray<To, Allocator>& ReinterpretCastVoxelArray(TVoxelArray<ElementType, Allocator>& Array)
 {
-	static_assert(sizeof(To) == sizeof(ElementType), "");
 	return reinterpret_cast<TVoxelArray<To, Allocator>&>(Array);
 }
-template<typename To, typename ElementType, typename Allocator>
+template<typename To, typename ElementType, typename Allocator, typename = std::enable_if_t<sizeof(To) == sizeof(ElementType)>>
 FORCEINLINE TVoxelArray<To, Allocator>&& ReinterpretCastVoxelArray(TVoxelArray<ElementType, Allocator>&& Array)
 {
-	static_assert(sizeof(To) == sizeof(ElementType), "");
 	return reinterpret_cast<TVoxelArray<To, Allocator>&&>(Array);
 }
 
-template<typename To, typename ElementType, typename Allocator>
+template<typename To, typename ElementType, typename Allocator, typename = std::enable_if_t<sizeof(To) == sizeof(ElementType)>>
 FORCEINLINE const TVoxelArray<To, Allocator>& ReinterpretCastVoxelArray(const TVoxelArray<ElementType, Allocator>& Array)
 {
-	static_assert(sizeof(To) == sizeof(ElementType), "");
 	return reinterpret_cast<const TVoxelArray<To, Allocator>&>(Array);
 }
 

@@ -3,6 +3,10 @@
 #include "VoxelMinimal.h"
 #include "DrawDebugHelpers.h"
 
+FVoxelDebugDrawer::FVoxelDebugDrawer()
+{
+}
+
 FVoxelDebugDrawer::FVoxelDebugDrawer(const FObjectKey& World)
 {
 	PrivateState->PrivateWorld = World;
@@ -39,6 +43,23 @@ FVoxelDebugDrawer::~FVoxelDebugDrawer()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+
+FVoxelDebugDrawer& FVoxelDebugDrawer::DrawPoint(const FVector& Position)
+{
+	PrivateState->Drawers.Add([=](const FState& State)
+	{
+		DrawDebugPoint(
+			State.GetWorld(),
+			Position,
+			State.Thickness,
+			State.Color.ToFColor(true),
+			false,
+			State.LifeTime,
+			0);
+	});
+
+	return *this;
+}
 
 FVoxelDebugDrawer& FVoxelDebugDrawer::DrawLine(
 	const FVector& Start,
@@ -117,5 +138,12 @@ FVoxelDebugDrawer& FVoxelDebugDrawer::DrawBox(
 
 UWorld* FVoxelDebugDrawer::FState::GetWorld() const
 {
+	ensureVoxelSlow(IsInGameThread());
+
+	if (PrivateWorld == FObjectKey())
+	{
+		return GWorld;
+	}
+
 	return CastEnsured<UWorld>(PrivateWorld.ResolveObjectPtr());
 }

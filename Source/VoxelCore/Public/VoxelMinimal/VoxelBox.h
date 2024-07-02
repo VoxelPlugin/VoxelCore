@@ -103,6 +103,11 @@ struct VOXELCORE_API FVoxelBox
 		TConstVoxelArrayView<float> PositionY,
 		TConstVoxelArrayView<float> PositionZ);
 
+	static FVoxelBox FromPositions(
+		TConstVoxelArrayView<double> PositionX,
+		TConstVoxelArrayView<double> PositionY,
+		TConstVoxelArrayView<double> PositionZ);
+
 	FORCEINLINE static FVoxelBox SafeConstruct(const FVector3d& A, const FVector3d& B)
 	{
 		FVoxelBox Box;

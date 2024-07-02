@@ -9,6 +9,7 @@
 class VOXELCORE_API FVoxelDebugDrawer
 {
 public:
+	FVoxelDebugDrawer();
 	explicit FVoxelDebugDrawer(const FObjectKey& World);
 	explicit FVoxelDebugDrawer(const UWorld* World);
 	explicit FVoxelDebugDrawer(const TWeakObjectPtr<UWorld>& World);
@@ -37,6 +38,8 @@ public:
 	}
 
 public:
+	FVoxelDebugDrawer& DrawPoint(const FVector& Position);
+
 	FVoxelDebugDrawer& DrawLine(
 		const FVector& Start,
 		const FVector& End);
