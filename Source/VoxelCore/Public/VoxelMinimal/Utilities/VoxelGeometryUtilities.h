@@ -7,7 +7,7 @@
 namespace FVoxelUtilities
 {
 	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
-	FORCEINLINE bool SegmentAreIntersecting(
+	FORCEINLINE bool AreSegmentsIntersecting(
 		const VectorType& StartA,
 		const VectorType& EndA,
 		const VectorType& StartB,
@@ -152,6 +152,178 @@ namespace FVoxelUtilities
 		const ScalarType Tolerance = KINDA_SMALL_NUMBER)
 	{
 		return GetTriangleArea(A, B, C) > Tolerance;
+	}
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
+	FORCEINLINE void GetTriangleBarycentrics(
+		const VectorType& Point,
+		const VectorType& A,
+		const VectorType& B,
+		const VectorType& C,
+		ScalarType& OutAlphaA,
+		ScalarType& OutAlphaB,
+		ScalarType& OutAlphaC)
+	{
+		const VectorType CA = A - C;
+		const VectorType CB = B - C;
+		const VectorType CP = Point - C;
+
+		const ScalarType SizeCA = CA.SizeSquared();
+		const ScalarType SizeCB = CB.SizeSquared();
+
+		const ScalarType a = VectorType::DotProduct(CA, CP);
+		const ScalarType b = VectorType::DotProduct(CB, CP);
+		const ScalarType d = VectorType::DotProduct(CA, CB);
+
+		const ScalarType Determinant = SizeCA * SizeCB - d * d;
+		checkVoxelSlow(Determinant > 0.f);
+
+		OutAlphaA = (SizeCB * a - d * b) / Determinant;
+		OutAlphaB = (SizeCA * b - d * a) / Determinant;
+		OutAlphaC = 1 - OutAlphaA - OutAlphaB;
+
+		ensureVoxelSlow(OutAlphaA > 0 || OutAlphaB > 0 || OutAlphaC > 0);
+	}
+
+	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
+	FORCEINLINE ScalarType ProjectPointOnLine(
+		const VectorType& Point,
+		const VectorType& A,
+		const VectorType& B)
+	{
+		const VectorType AB = B - A;
+		const VectorType AP = Point - A;
+
+		// return VectorType::DotProduct(AP, AB.GetSafeNormal()) / AB.Size();
+		// return VectorType::DotProduct(AP, AB / AB.Size()) / AB.Size();
+		// return VectorType::DotProduct(AP, AB) / AB.Size() / AB.Size();
+		return VectorType::DotProduct(AP, AB) / AB.SizeSquared();
+	}
+
+	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
+	FORCEINLINE ScalarType PointSegmentDistanceSquared(
+		const VectorType& Point,
+		const VectorType& A,
+		const VectorType& B,
+		ScalarType& OutAlphaB)
+	{
+		ScalarType Alpha = ProjectPointOnLine(Point, A, B);
+		// Clamp to AB
+		Alpha = FMath::Clamp<ScalarType>(Alpha, 0, 1);
+
+		OutAlphaB = Alpha;
+
+		const VectorType ProjectedPoint = FMath::Lerp(A, B, Alpha);
+		return VectorType::DistSquared(Point, ProjectedPoint);
+	}
+
+	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
+	FORCEINLINE ScalarType PointTriangleDistanceSquared(
+		const VectorType& Point,
+		const VectorType& A,
+		const VectorType& B,
+		const VectorType& C,
+		ScalarType& OutAlphaA,
+		ScalarType& OutAlphaB,
+		ScalarType& OutAlphaC)
+	{
+		FVoxelUtilities::GetTriangleBarycentrics(
+			Point,
+			A,
+			B,
+			C,
+			OutAlphaA,
+			OutAlphaB,
+			OutAlphaC);
+
+		if (OutAlphaA >= 0 &&
+			OutAlphaB >= 0 &&
+			OutAlphaC >= 0)
+		{
+			// We're inside the triangle
+			return VectorType::Dist(Point, OutAlphaA * A + OutAlphaB * B + OutAlphaC * C);
+		}
+
+		if (OutAlphaA > 0)
+		{
+			// Rules out BC
+
+			ScalarType AlphaB_AB;
+			const ScalarType DistanceAB = FVoxelUtilities::PointSegmentDistanceSquared(Point, A, B, AlphaB_AB);
+
+			ScalarType AlphaC_AC;
+			const ScalarType DistanceAC = FVoxelUtilities::PointSegmentDistanceSquared(Point, A, C, AlphaC_AC);
+
+			if (DistanceAB < DistanceAC)
+			{
+				OutAlphaA = 1 - AlphaB_AB;
+				OutAlphaB = AlphaB_AB;
+				OutAlphaC = 0;
+				return DistanceAB;
+			}
+			else
+			{
+				OutAlphaA = 1 - AlphaC_AC;
+				OutAlphaB = 0;
+				OutAlphaC = AlphaC_AC;
+				return DistanceAC;
+			}
+		}
+
+		if (OutAlphaB > 0)
+		{
+			// Rules out AC
+
+			ScalarType AlphaB_AB;
+			const ScalarType DistanceAB = FVoxelUtilities::PointSegmentDistanceSquared(Point, A, B, AlphaB_AB);
+
+			ScalarType AlphaC_BC;
+			const ScalarType DistanceBC = FVoxelUtilities::PointSegmentDistanceSquared(Point, B, C, AlphaC_BC);
+
+			if (DistanceAB < DistanceBC)
+			{
+				OutAlphaA = 1 - AlphaB_AB;
+				OutAlphaB = AlphaB_AB;
+				OutAlphaC = 0;
+				return DistanceAB;
+			}
+			else
+			{
+				OutAlphaA = 0;
+				OutAlphaB = 1 - AlphaC_BC;
+				OutAlphaC = AlphaC_BC;
+				return DistanceBC;
+			}
+		}
+
+		ensureVoxelSlow(OutAlphaC > 0);
+
+		// Rules out AB
+
+		ScalarType AlphaC_BC;
+		const ScalarType DistanceBC = FVoxelUtilities::PointSegmentDistanceSquared(Point, B, C, AlphaC_BC);
+
+		ScalarType AlphaC_AC;
+		const ScalarType DistanceAC = FVoxelUtilities::PointSegmentDistanceSquared(Point, A, C, AlphaC_AC);
+
+		if (DistanceBC < DistanceAC)
+		{
+			OutAlphaA = 0;
+			OutAlphaB = AlphaC_BC;
+			OutAlphaC = 1 - AlphaC_BC;
+			return DistanceBC;
+		}
+		else
+		{
+			OutAlphaA = AlphaC_AC;
+			OutAlphaB = 0;
+			OutAlphaC = 1 - AlphaC_AC;
+			return DistanceAC;
+		}
 	}
 
 	//////////////////////////////////////////////////////////////////////////////
