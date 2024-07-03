@@ -110,7 +110,7 @@ void FVoxelDependencyInvalidationScope::Invalidate()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void FVoxelDependency::Invalidate(const FVoxelDependencyInvalidationParameters Parameters)
+void FVoxelDependency::Invalidate(const FVoxelDependencyInvalidationParameters& Parameters)
 {
 	FVoxelDependencySink::AddAction(MakeStrongPtrLambda(this, [=, this]
 	{
