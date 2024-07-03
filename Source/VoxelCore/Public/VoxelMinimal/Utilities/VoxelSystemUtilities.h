@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/Containers/VoxelStaticArray.h"
 
 class IPlugin;
 struct FVoxelPluginVersion;
@@ -17,6 +18,7 @@ namespace FVoxelUtilities
 	VOXELCORE_API FString GetAppDataCache();
 	VOXELCORE_API void CleanupFileCache(const FString& Path, int64 MaxSize);
 	VOXELCORE_API FString Unzip(const TArray<uint8>& Data, TMap<FString, TVoxelArray64<uint8>>& OutFiles);
+	VOXELCORE_API TVoxelStaticArray_ForceInit<void*, 14> GetStackFrames(int32 NumFramesToIgnore = 1);
 
 #if WITH_EDITOR
 	VOXELCORE_API void EnsureViewportIsUpToDate();

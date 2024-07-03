@@ -156,18 +156,7 @@ void UpdateVoxelAllocationStackFrames(void* Result, const bool bIsAdd)
 		? GVoxelValidAllocations.Add_CheckNew(Result)
 		: GVoxelValidAllocations.FindChecked(Result);
 
-	constexpr int32 NumFramesToIgnore = 3;
-
-	TVoxelStaticArray<void*, NumFramesToIgnore + FVoxelMemoryStackFrames::Num()> TmpStackFrames(NoInit);
-	TmpStackFrames.Memzero();
-
-	FPlatformStackWalk::CaptureStackBackTrace(
-		ReinterpretCastPtr<uint64>(TmpStackFrames.GetData()),
-		TmpStackFrames.Num());
-
-	FVoxelUtilities::Memcpy(
-		MakeVoxelArrayView(StackFrames),
-		MakeVoxelArrayView(TmpStackFrames).RightOf(NumFramesToIgnore));
+	StackFrames = FVoxelUtilities::GetStackFrames(4);
 }
 
 VOXEL_RUN_ON_STARTUP_GAME()

@@ -15,7 +15,7 @@ enum class EVoxelFalloffType : uint8
 	Tip UMETA(ToolTip = "Tip falloff, sharp at the center and smooth at the edge", Icon = "LandscapeEditor.CircleBrush_Tip")
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FVoxelFalloff
 {
 	GENERATED_BODY()
@@ -29,10 +29,10 @@ public:
 		, Amount(Amount)
 	{}
 
-	UPROPERTY(EditAnywhere, Category = "Config")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Config")
 	EVoxelFalloffType Type = EVoxelFalloffType::Smooth;
 
-	UPROPERTY(EditAnywhere, Category = "Config", meta = (EditCondition = "Type != EVoxelFalloffType::None", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Config", meta = (EditCondition = "Type != EVoxelFalloffType::None", EditConditionHides))
 	float Amount = 0.5f;
 
 public:

@@ -11,9 +11,16 @@ DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelPromiseState);
 
 FVoxelPromiseState::FVoxelPromiseState()
 {
-	if (FVoxelCounter32* NumPromisesPtr = FVoxelTaskDispatcherScope::Get().NumPromisesPtr)
+	IVoxelTaskDispatcher& Dispatcher = FVoxelTaskDispatcherScope::Get();
+
+	if (FVoxelCounter32* NumPromisesPtr = Dispatcher.NumPromisesPtr)
 	{
 		NumPromisesPtr->Increment();
+
+#if VOXEL_DEBUG
+		VOXEL_SCOPE_LOCK(Dispatcher.StacksCriticalSection);
+		Dispatcher.PromiseStateToStackFrames_RequiresLock.Add_EnsureNew(this, FVoxelUtilities::GetStackFrames(2));
+#endif
 	}
 }
 
@@ -52,6 +59,11 @@ void FVoxelPromiseState::Set(const FSharedVoidRef& Value)
 	if (Dispatcher.NumPromisesPtr)
 	{
 		Dispatcher.NumPromisesPtr->Decrement();
+
+#if VOXEL_DEBUG
+		VOXEL_SCOPE_LOCK(Dispatcher.StacksCriticalSection);
+		ensure(Dispatcher.PromiseStateToStackFrames_RequiresLock.Remove(this));
+#endif
 	}
 }
 

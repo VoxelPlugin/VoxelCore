@@ -102,5 +102,10 @@ IVoxelTaskDispatcher& FVoxelTaskDispatcherScope::Get()
 		return *Dispatcher;
 	}
 
+	return GetDefault();
+}
+
+IVoxelTaskDispatcher& FVoxelTaskDispatcherScope::GetDefault()
+{
 	return *GVoxelDefaultTaskDispatcherSingleton->TaskDispatcher;
 }

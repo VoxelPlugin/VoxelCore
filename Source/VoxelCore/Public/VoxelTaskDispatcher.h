@@ -40,8 +40,18 @@ public:
 		EVoxelFutureThread Thread,
 		TVoxelUniqueFunction<void()> Lambda) = 0;
 
+	bool IsTrackingPromises() const
+	{
+		return NumPromisesPtr != nullptr;
+	}
+
 protected:
 	FVoxelCounter32* NumPromisesPtr = nullptr;
+
+#if VOXEL_DEBUG
+	FVoxelCriticalSection StacksCriticalSection;
+	TVoxelMap<FVoxelPromiseState*, TVoxelStaticArray_ForceInit<void*, 14>> PromiseStateToStackFrames_RequiresLock;
+#endif
 
 private:
 	FVoxelCriticalSection CriticalSection;
@@ -64,6 +74,7 @@ public:
 	~FVoxelTaskDispatcherScope();
 
 	static IVoxelTaskDispatcher& Get();
+	static IVoxelTaskDispatcher& GetDefault();
 
 private:
 	IVoxelTaskDispatcher& Dispatcher;
