@@ -1093,3 +1093,16 @@ FORCEINLINE generic float4 GetDistanceFieldColor(const generic float Value)
 	Color.w = 1.f;
 	return Color;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FORCEINLINE generic bool GetBitArray(const uniform uint32 BitArray[], const generic int32 Index)
+{
+	const generic int32 WordIndex = Index >> 5;
+	const generic int32 BitIndex = Index & 31;
+
+	IGNORE_PERF_WARNING
+	return (BitArray[WordIndex] & (1 << BitIndex)) != 0;
+}
