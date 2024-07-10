@@ -145,13 +145,22 @@ namespace FVoxelUtilities
 		return VectorType::CrossProduct(C - A, B - A).Size() / ScalarType(2);
 	}
 	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
+	FORCEINLINE ScalarType GetTriangleAreaSquared(
+		const VectorType& A,
+		const VectorType& B,
+		const VectorType& C)
+	{
+		return VectorType::CrossProduct(C - A, B - A).SizeSquared() / ScalarType(4);
+	}
+	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
 	FORCEINLINE bool IsTriangleValid(
 		const VectorType& A,
 		const VectorType& B,
 		const VectorType& C,
 		const ScalarType Tolerance = KINDA_SMALL_NUMBER)
 	{
-		return GetTriangleArea(A, B, C) > Tolerance;
+		checkVoxelSlow((GetTriangleAreaSquared(A, B, C) > FMath::Square(Tolerance)) == (GetTriangleArea(A, B, C) > Tolerance));
+		return GetTriangleAreaSquared(A, B, C) > FMath::Square(Tolerance);
 	}
 
 	//////////////////////////////////////////////////////////////////////////////

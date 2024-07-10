@@ -643,6 +643,14 @@ FORCEINLINE generic float3 TransformPosition(const generic float4x4 Matrix, cons
 		Matrix.M[2] * Position.x + Matrix.M[6] * Position.y + Matrix.M[10] * Position.z + Matrix.M[14]);
 }
 
+FORCEINLINE generic double3 TransformPosition(const generic double4x4 Matrix, const generic double3 Position)
+{
+	return MakeDouble3(
+		Matrix.M[0] * Position.x + Matrix.M[4] * Position.y + Matrix.M[8] * Position.z + Matrix.M[12],
+		Matrix.M[1] * Position.x + Matrix.M[5] * Position.y + Matrix.M[9] * Position.z + Matrix.M[13],
+		Matrix.M[2] * Position.x + Matrix.M[6] * Position.y + Matrix.M[10] * Position.z + Matrix.M[14]);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

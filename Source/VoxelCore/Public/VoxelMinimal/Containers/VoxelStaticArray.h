@@ -22,14 +22,14 @@ public:
 	{
 		checkStatic(!bCanNoInit);
 
-		for (auto& Element : *this)
+		for (T& Element : *this)
 		{
 			new (&Element) T{};
 		}
 	}
 	FORCEINLINE explicit TVoxelStaticArray(EForceInit)
 	{
-		for (auto& Element : *this)
+		for (T& Element : *this)
 		{
 			new (&Element) T{};
 		}
@@ -47,12 +47,9 @@ public:
 #endif
 	}
 
-	INTELLISENSE_ONLY(template<typename = std::enable_if_t<TIsPODType<T>::Value>>)
 	FORCEINLINE explicit TVoxelStaticArray(T Value)
 	{
-		static_assert(TIsPODType<T>::Value, "This might have unintended consequences");
-
-		for (auto& Element : *this)
+		for (T& Element : *this)
 		{
 			new (&Element) T(Value);
 		}

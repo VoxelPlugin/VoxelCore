@@ -88,7 +88,7 @@ void FVoxelTransformRefImpl::TryInitialize_AnyThread()
 void FVoxelTransformRefImpl::Update_GameThread()
 {
 	VOXEL_FUNCTION_COUNTER();
-	check(IsInGameThread());
+	check(IsInGameThread() || IsInAsyncLoadingThread());
 
 	FMatrix NewTransform = FMatrix::Identity;
 	for (const FVoxelTransformRefNode& Node : Nodes)
@@ -169,7 +169,7 @@ TSharedPtr<FVoxelTransformRefImpl> FVoxelTransformRefImpl::Multiply_AnyThread(
 		{
 			Node.bIsInverted = !Node.bIsInverted;
 		}
-		NewNodes.Add_NoGrow(Node);
+		NewNodes.Add_CheckNoGrow(Node);
 	}
 
 	for (FVoxelTransformRefNode Node : Other.Nodes)
@@ -186,7 +186,7 @@ TSharedPtr<FVoxelTransformRefImpl> FVoxelTransformRefImpl::Multiply_AnyThread(
 			continue;
 		}
 
-		NewNodes.Add_NoGrow(Node);
+		NewNodes.Add_CheckNoGrow(Node);
 	}
 
 	if (NewNodes.Num() == 0)

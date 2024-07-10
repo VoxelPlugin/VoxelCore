@@ -197,7 +197,7 @@ public:
 			Result.Reserve(Num());
 			for (const Type& Value : *this)
 			{
-				Result.Add_NoGrow(Value);
+				Result.Add_CheckNoGrow(Value);
 			}
 			return Result;
 		}
@@ -536,13 +536,6 @@ public:
 		Type& ValueRef = (*this)[Index];
 		new (&ValueRef) Type(Forward<ArgTypes>(Args)...);
 		return ValueRef;
-	}
-
-	// For compatibility with TVoxelMap
-	template<typename... ArgsType>
-	FORCEINLINE int32 Emplace_NoGrow(ArgsType&&... Args)
-	{
-		return this->Emplace(Forward<ArgsType>(Args)...);
 	}
 
 	FORCEINLINE Type Pop()

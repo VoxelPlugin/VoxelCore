@@ -77,7 +77,7 @@ public:
 		return Result;
 	}
 
-	FORCEINLINE SizeType Add_NoGrow(const ElementType& Item)
+	FORCEINLINE SizeType Add_CheckNoGrow(const ElementType& Item)
 	{
 		CheckAddress(&Item);
 		checkVoxelSlow(ArrayNum < ArrayMax);
@@ -116,7 +116,7 @@ public:
 	}
 
 	template<typename... ArgsType>
-	FORCEINLINE SizeType Emplace_NoGrow(ArgsType&&... Args)
+	FORCEINLINE SizeType Emplace_CheckNoGrow(ArgsType&&... Args)
 	{
 		checkVoxelSlow(ArrayNum < ArrayMax);
 
@@ -125,6 +125,12 @@ public:
 		ElementType* Ptr = GetData() + Index;
 		new (Ptr) ElementType(Forward<ArgsType>(Args)...);
 		return Index;
+	}
+	template<typename... ArgsType>
+	FORCEINLINE SizeType Emplace_EnsureNoGrow(ArgsType&&... Args)
+	{
+		ensureVoxelSlow(ArrayNum < ArrayMax);
+		return this->Emplace(Forward<ArgsType>(Args)...);
 	}
 
 	template<typename... ArgsType>

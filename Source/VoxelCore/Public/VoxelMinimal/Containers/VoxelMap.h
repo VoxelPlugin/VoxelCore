@@ -251,7 +251,7 @@ public:
 		Result.Reserve(Elements.Num());
 		for (const FElement& Element : Elements)
 		{
-			Result.Add_NoGrow(Element.Key);
+			Result.Add_CheckNoGrow(Element.Key);
 		}
 		return Result;
 	}
@@ -263,7 +263,7 @@ public:
 		Result.Reserve(Elements.Num());
 		for (const FElement& Element : Elements)
 		{
-			Result.Add_NoGrow(Element.Value);
+			Result.Add_CheckNoGrow(Element.Value);
 		}
 		return Result;
 	}
@@ -459,19 +459,19 @@ public:
 	}
 
 public:
-	FORCEINLINE ValueType& Add_CheckNew_NoRehash(const KeyType& Key)
+	FORCEINLINE ValueType& Add_CheckNew_CheckNoRehash(const KeyType& Key)
 	{
-		return this->AddHashed_CheckNew_NoRehash(HashValue(Key), Key);
+		return this->AddHashed_CheckNew_CheckNoRehash(HashValue(Key), Key);
 	}
-	FORCEINLINE ValueType& Add_CheckNew_NoRehash(const KeyType& Key, const ValueType& Value)
+	FORCEINLINE ValueType& Add_CheckNew_CheckNoRehash(const KeyType& Key, const ValueType& Value)
 	{
-		ValueType& ValueRef = this->Add_CheckNew_NoRehash(Key);
+		ValueType& ValueRef = this->Add_CheckNew_CheckNoRehash(Key);
 		ValueRef = Value;
 		return ValueRef;
 	}
-	FORCEINLINE ValueType& Add_CheckNew_NoRehash(const KeyType& Key, ValueType&& Value)
+	FORCEINLINE ValueType& Add_CheckNew_CheckNoRehash(const KeyType& Key, ValueType&& Value)
 	{
-		ValueType& ValueRef = this->Add_CheckNew_NoRehash(Key);
+		ValueType& ValueRef = this->Add_CheckNew_CheckNoRehash(Key);
 		ValueRef = MoveTemp(Value);
 		return ValueRef;
 	}
@@ -569,13 +569,13 @@ public:
 
 		return Element.Value;
 	}
-	FORCEINLINE ValueType& AddHashed_CheckNew_NoRehash(const uint32 Hash, const KeyType& Key)
+	FORCEINLINE ValueType& AddHashed_CheckNew_CheckNoRehash(const uint32 Hash, const KeyType& Key)
 	{
 		checkVoxelSlow(!this->Contains(Key));
 		checkVoxelSlow(this->HashValue(Key) == Hash);
 		CheckInvariants();
 
-		const int32 NewElementIndex = Elements.Emplace_NoGrow(Key);
+		const int32 NewElementIndex = Elements.Emplace(Key);
 		FElement& Element = Elements[NewElementIndex];
 
 		checkVoxelSlow(HashSize >= GetHashSize(Elements.Num()));
@@ -585,6 +585,11 @@ public:
 		ElementIndex = NewElementIndex;
 
 		return Element.Value;
+	}
+	FORCEINLINE ValueType& AddHashed_CheckNew_EnsureNoRehash(const uint32 Hash, const KeyType& Key)
+	{
+		ensureVoxelSlow(GetHashSize(Elements.Num()) < HashSize);
+		return this->AddHashed_CheckNew(Hash, Key);
 	}
 
 public:

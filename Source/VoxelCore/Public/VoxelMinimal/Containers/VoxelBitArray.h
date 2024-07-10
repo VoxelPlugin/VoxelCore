@@ -210,6 +210,35 @@ public:
 		this->SetNum(InNumBits, false);
 	}
 
+public:
+	void BitwiseOr(const TVoxelBitArray& Other)
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Num(), 128);
+		checkVoxelSlow(Num() == Other.Num());
+
+		EnsurePartialSlackBitsCleared();
+		Other.EnsurePartialSlackBitsCleared();
+
+		for (int32 WordIndex = 0; WordIndex < NumWords(); WordIndex++)
+		{
+			GetWord(WordIndex) |= Other.GetWord(WordIndex);
+		}
+	}
+	void BitwiseAnd(const TVoxelBitArray& Other)
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Num(), 128);
+		checkVoxelSlow(Num() == Other.Num());
+
+		EnsurePartialSlackBitsCleared();
+		Other.EnsurePartialSlackBitsCleared();
+
+		for (int32 WordIndex = 0; WordIndex < NumWords(); WordIndex++)
+		{
+			GetWord(WordIndex) &= Other.GetWord(WordIndex);
+		}
+	}
+
+public:
 	FORCEINLINE void SetRange(SizeType Index, SizeType Num, bool Value)
 	{
 		FVoxelBitArrayHelpers::SetRange(*this, Index, Num, Value);
