@@ -77,10 +77,12 @@ extern VOXELCORE_API bool GVoxelProfilerInfiniteLoop;
 #define VOXEL_DEBUG_ONLY(...)
 #endif
 
-#if VOXEL_DEBUG
-#define ensureThreadSafe(...) ensure(__VA_ARGS__)
+VOXELCORE_API bool Voxel_CanAccessUObject();
+
+#if DO_CHECK
+#define checkUObjectAccess() ensure(Voxel_CanAccessUObject())
 #else
-#define ensureThreadSafe(...)
+#define checkUObjectAccess()
 #endif
 
 #define checkStatic(...) static_assert(__VA_ARGS__, "Static assert failed")

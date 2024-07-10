@@ -15,7 +15,8 @@ struct VOXELCORE_API FVoxelTransformRefNode
 	explicit FVoxelTransformRefNode(const USceneComponent& Component)
 		: WeakComponent(&Component)
 	{
-		ensure(IsInGameThread());
+		checkUObjectAccess();
+
 		DebugName = FName(Component.GetReadableName());
 	}
 

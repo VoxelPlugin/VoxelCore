@@ -55,7 +55,7 @@ FVoxelTransformRefImpl::FVoxelTransformRefImpl(const TConstVoxelArrayView<FVoxel
 void FVoxelTransformRefImpl::TryInitialize_AnyThread()
 {
 	VOXEL_FUNCTION_COUNTER();
-	check(!IsInGameThread());
+	ensure(!IsInGameThread());
 
 	FMatrix NewTransform = FMatrix::Identity;
 	for (const FVoxelTransformRefNode& Node : Nodes)
@@ -88,7 +88,7 @@ void FVoxelTransformRefImpl::TryInitialize_AnyThread()
 void FVoxelTransformRefImpl::Update_GameThread()
 {
 	VOXEL_FUNCTION_COUNTER();
-	check(IsInGameThread() || IsInAsyncLoadingThread());
+	check(IsInGameThread());
 
 	FMatrix NewTransform = FMatrix::Identity;
 	for (const FVoxelTransformRefNode& Node : Nodes)

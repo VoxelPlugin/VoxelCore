@@ -16,7 +16,7 @@ FVoxelTransformRef FVoxelTransformRef::Make(const AActor& Actor)
 
 FVoxelTransformRef FVoxelTransformRef::Make(const USceneComponent& Component)
 {
-	const TSharedRef<FVoxelTransformRefImpl> Impl = GVoxelTransformRefManager->Make_GameThread({ FVoxelTransformRefNode(Component) });
+	const TSharedRef<FVoxelTransformRefImpl> Impl = GVoxelTransformRefManager->Make_AnyThread({ FVoxelTransformRefNode(Component) });
 	return FVoxelTransformRef(false, Impl);
 }
 

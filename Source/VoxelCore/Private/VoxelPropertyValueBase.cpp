@@ -219,7 +219,7 @@ void FVoxelPropertyValueBase::ExportToProperty(const FProperty& Property, void* 
 				return;
 			}
 
-			ensure(IsInGameThread() || IsInAsyncLoadingThread());
+			checkUObjectAccess();
 			ClassProperty.SetObjectPropertyValue(Memory, GetClass());
 		}
 		else if (Property.IsA<FSoftClassProperty>())
@@ -230,7 +230,7 @@ void FVoxelPropertyValueBase::ExportToProperty(const FProperty& Property, void* 
 				return;
 			}
 
-			ensure(IsInGameThread() || IsInAsyncLoadingThread());
+			checkUObjectAccess();
 			ClassProperty.SetObjectPropertyValue(Memory, GetClass());
 		}
 		else
@@ -249,7 +249,7 @@ void FVoxelPropertyValueBase::ExportToProperty(const FProperty& Property, void* 
 				return;
 			}
 
-			ensure(IsInGameThread() || IsInAsyncLoadingThread());
+			checkUObjectAccess();
 			ObjectProperty.SetObjectPropertyValue(Memory, GetObject());
 		}
 		else if (Property.IsA<FSoftObjectProperty>())
@@ -260,7 +260,7 @@ void FVoxelPropertyValueBase::ExportToProperty(const FProperty& Property, void* 
 				return;
 			}
 
-			ensure(IsInGameThread() || IsInAsyncLoadingThread());
+			checkUObjectAccess();
 			ObjectProperty.SetObjectPropertyValue(Memory, GetObject());
 		}
 		else
@@ -827,12 +827,12 @@ bool FVoxelPropertyValueBase::operator==(const FVoxelPropertyValueBase& Other) c
 	}
 	case EVoxelPropertyInternalType::Class:
 	{
-		ensure(IsInGameThread() || IsInAsyncLoadingThread());
+		checkUObjectAccess();
 		return GetClass() == Other.GetClass();
 	}
 	case EVoxelPropertyInternalType::Object:
 	{
-		ensure(IsInGameThread() || IsInAsyncLoadingThread());
+		checkUObjectAccess();
 		return GetObject() == Other.GetObject();
 	}
 	case EVoxelPropertyInternalType::Struct:

@@ -10,11 +10,6 @@ FVoxelTransformRefManager* GVoxelTransformRefManager = new FVoxelTransformRefMan
 
 TSharedRef<FVoxelTransformRefImpl> FVoxelTransformRefManager::Make_AnyThread(const TConstVoxelArrayView<FVoxelTransformRefNode> Nodes)
 {
-	if (IsInGameThread())
-	{
-		return Make_GameThread(Nodes);
-	}
-
 	VOXEL_FUNCTION_COUNTER();
 	VOXEL_SCOPE_LOCK(CriticalSection);
 
@@ -26,7 +21,16 @@ TSharedRef<FVoxelTransformRefImpl> FVoxelTransformRefManager::Make_AnyThread(con
 	}
 
 	const TSharedRef<FVoxelTransformRefImpl> TransformRef = MakeVoxelShareable(new(GVoxelMemory) FVoxelTransformRefImpl(Nodes));
-	TransformRef->TryInitialize_AnyThread();
+	if (IsInGameThread())
+	{
+		TransformRef->Update_GameThread();
+	}
+	else
+	{
+		// We might be on a voxel thread or on the async loading thread
+		TransformRef->TryInitialize_AnyThread();
+	}
+
 	NodeArrayToWeakTransformRef_RequiresLock.FindOrAdd(NodeArray) = TransformRef;
 
 	for (const FVoxelTransformRefNode& Node : Nodes)
@@ -39,35 +43,6 @@ TSharedRef<FVoxelTransformRefImpl> FVoxelTransformRefManager::Make_AnyThread(con
 
 	return TransformRef;
 }
-
-TSharedRef<FVoxelTransformRefImpl> FVoxelTransformRefManager::Make_GameThread(const TConstVoxelArrayView<FVoxelTransformRefNode> Nodes)
-{
-	VOXEL_FUNCTION_COUNTER();
-	VOXEL_SCOPE_LOCK(CriticalSection);
-	check(IsInGameThread() || IsInAsyncLoadingThread());
-
-	const FVoxelTransformRefNodeArray NodeArray(Nodes);
-
-	if (const TSharedPtr<FVoxelTransformRefImpl> TransformRef = NodeArrayToWeakTransformRef_RequiresLock.FindRef(NodeArray).Pin())
-	{
-		return TransformRef.ToSharedRef();
-	}
-
-	const TSharedRef<FVoxelTransformRefImpl> TransformRef = MakeVoxelShareable(new(GVoxelMemory) FVoxelTransformRefImpl(Nodes));
-	TransformRef->Update_GameThread();
-	NodeArrayToWeakTransformRef_RequiresLock.FindOrAdd(NodeArray) = TransformRef;
-
-	for (const FVoxelTransformRefNode& Node : Nodes)
-	{
-		ComponentToWeakTransformRefs_RequiresLock.FindOrAdd(Node.WeakComponent).Add(TransformRef);
-	}
-
-	return TransformRef;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
 
 TSharedPtr<FVoxelTransformRefImpl> FVoxelTransformRefManager::Find_AnyThread_RequiresLock(const FVoxelTransformRefNodeArray& NodeArray) const
 {

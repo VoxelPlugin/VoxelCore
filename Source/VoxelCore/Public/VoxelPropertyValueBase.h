@@ -167,16 +167,16 @@ public:
 
 	FORCEINLINE TSubclassOf<UObject>& GetClass()
 	{
+		checkUObjectAccess();
 		checkVoxelSlow(IsClass());
 		checkVoxelSlow(!Class || Class->IsChildOf(Type.GetBaseClass()));
-		checkVoxelSlow(IsInGameThread() || IsInAsyncLoadingThread());
 		return Class;
 	}
 	FORCEINLINE TObjectPtr<UObject>& GetObject()
 	{
+		checkUObjectAccess();
 		checkVoxelSlow(IsObject());
 		checkVoxelSlow(!Object || Object->IsA(Type.GetObjectClass()));
-		checkVoxelSlow(IsInGameThread() || IsInAsyncLoadingThread());
 		return Object;
 	}
 	FORCEINLINE FVoxelInstancedStruct& GetStruct()

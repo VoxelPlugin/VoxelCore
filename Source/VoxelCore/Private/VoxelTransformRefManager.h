@@ -9,8 +9,6 @@ class FVoxelTransformRefManager : public FVoxelSingleton
 {
 public:
 	TSharedRef<FVoxelTransformRefImpl> Make_AnyThread(TConstVoxelArrayView<FVoxelTransformRefNode> Nodes);
-	TSharedRef<FVoxelTransformRefImpl> Make_GameThread(TConstVoxelArrayView<FVoxelTransformRefNode> Nodes);
-
 	TSharedPtr<FVoxelTransformRefImpl> Find_AnyThread_RequiresLock(const FVoxelTransformRefNodeArray& NodeArray) const;
 
 	void NotifyTransformChanged(const USceneComponent& Component);
