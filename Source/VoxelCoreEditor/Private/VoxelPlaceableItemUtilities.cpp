@@ -135,6 +135,11 @@ VOXEL_RUN_ON_STARTUP_EDITOR()
 				});
 			}
 
+			if (CategorizedEntries.Num() > 0)
+			{
+				VoxelSection->AddSeparator({});
+			}
+
 			for (const auto& It : CategorizedEntries)
 			{
 				const FName Name = It.Key;
