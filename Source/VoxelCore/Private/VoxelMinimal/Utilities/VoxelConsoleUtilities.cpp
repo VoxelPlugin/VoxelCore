@@ -8,7 +8,6 @@
 #endif
 
 VOXEL_CONSOLE_COMMAND(
-	ToggleNamedEvents,
 	"voxel.toggleNamedEvents",
 	"Toggle verbose named events (expensive!)")
 {
@@ -111,7 +110,6 @@ struct FVoxelUnrealInsightsLauncher
 
 #if STATS
 VOXEL_CONSOLE_COMMAND(
-	StartInsights,
 	"voxel.StartInsights",
 	"")
 {
@@ -126,7 +124,6 @@ VOXEL_CONSOLE_COMMAND(
 }
 
 VOXEL_CONSOLE_COMMAND(
-	StopInsights,
 	"voxel.StopInsights",
 	"")
 {

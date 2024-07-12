@@ -89,19 +89,43 @@ public:
 	{
 		return HashTable.GetAllocatedSize() + Elements.GetAllocatedSize();
 	}
-	FORCEINLINE void Reset()
+
+	void Reset()
 	{
 		HashSize = 0;
 		Elements.Reset();
 		HashTable.Reset();
 	}
-	FORCEINLINE void Empty()
+	void Empty()
 	{
 		HashSize = 0;
 		Elements.Empty();
 		HashTable.Empty();
 	}
-	FORCEINLINE void Reserve(const int32 Number)
+	void Shrink()
+	{
+		VOXEL_FUNCTION_COUNTER();
+
+		if (Num() == 0)
+		{
+			// Needed as GetHashSize(0) = 1
+			Empty();
+			return;
+		}
+
+		HashTable.Shrink();
+		Elements.Shrink();
+
+		const int32 NewHashSize = GetHashSize(Num());
+		if (HashSize != NewHashSize)
+		{
+			ensure(HashSize > NewHashSize);
+			HashSize = NewHashSize;
+
+			Rehash();
+		}
+	}
+	void Reserve(const int32 Number)
 	{
 		if (Number <= Elements.Num())
 		{
@@ -117,8 +141,9 @@ public:
 			Rehash();
 		}
 	}
+
 	template<typename PredicateType>
-	FORCENOINLINE void Sort(const PredicateType& Predicate)
+	void Sort(const PredicateType& Predicate)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
 
@@ -129,12 +154,12 @@ public:
 
 		Rehash();
 	}
-	FORCEINLINE void Append(const TConstVoxelArrayView<Type> Array)
+	void Append(const TConstVoxelArrayView<Type> Array)
 	{
 		this->Append<Type>(Array);
 	}
 	template<typename OtherType, typename = std::enable_if_t<TIsConstructible<Type, OtherType>::Value>>
-	FORCENOINLINE void Append(const TConstVoxelArrayView<OtherType> Array)
+	void Append(const TConstVoxelArrayView<OtherType> Array)
 	{
 		this->Reserve(Num() + Array.Num());
 
@@ -144,7 +169,7 @@ public:
 		}
 	}
 	template<typename OtherType, typename = std::enable_if_t<TIsConstructible<Type, OtherType>::Value>>
-	FORCENOINLINE void Append(const TVoxelSet<OtherType>& Set)
+	void Append(const TVoxelSet<OtherType>& Set)
 	{
 		this->Reserve(Num() + Set.Num());
 
@@ -153,7 +178,7 @@ public:
 			this->Add(Value);
 		}
 	}
-	FORCENOINLINE TVoxelSet Intersect(const TVoxelSet& Other) const
+	TVoxelSet Intersect(const TVoxelSet& Other) const
 	{
 		if (Num() < Other.Num())
 		{
@@ -177,7 +202,7 @@ public:
 		}
 		return Result;
 	}
-	FORCENOINLINE TVoxelSet Union(const TVoxelSet& Other) const
+	TVoxelSet Union(const TVoxelSet& Other) const
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num() + Other.Num(), 1024);
 
@@ -195,7 +220,7 @@ public:
 		return Result;
 	}
 	// Returns all the elements not in Other
-	FORCENOINLINE TVoxelSet Difference(const TVoxelSet& Other) const
+	TVoxelSet Difference(const TVoxelSet& Other) const
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
 
@@ -213,7 +238,7 @@ public:
 		}
 		return Result;
 	}
-	FORCENOINLINE bool Includes(const TVoxelSet& Other) const
+	bool Includes(const TVoxelSet& Other) const
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Other, 1024);
 
@@ -231,7 +256,7 @@ public:
 		}
 		return true;
 	}
-	FORCENOINLINE TVoxelSet<Type> Reverse() const
+	TVoxelSet<Type> Reverse() const
 	{
 		TVoxelSet<Type> Result;
 		Result.Reserve(Num());
@@ -241,7 +266,7 @@ public:
 		}
 		return Result;
 	}
-	FORCENOINLINE TVoxelArray<Type> Array() const
+	TVoxelArray<Type> Array() const
 	{
 		TVoxelArray<Type> Result;
 		Result.Reserve(Num());
@@ -251,7 +276,7 @@ public:
 		}
 		return Result;
 	}
-	FORCENOINLINE bool OrderIndependentEqual(const TVoxelSet& Other) const
+	bool OrderIndependentEqual(const TVoxelSet& Other) const
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
 
@@ -270,7 +295,7 @@ public:
 		return true;
 	}
 	template<typename ArrayType>
-	FORCENOINLINE void BulkAdd(const ArrayType& NewElements)
+	void BulkAdd(const ArrayType& NewElements)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(NewElements.Num(), 1024);
 		checkVoxelSlow(Num() == 0);
@@ -285,7 +310,7 @@ public:
 		Rehash();
 	}
 
-	FORCENOINLINE friend FArchive& operator<<(FArchive& Ar, TVoxelSet& Set)
+	friend FArchive& operator<<(FArchive& Ar, TVoxelSet& Set)
 	{
 		Ar << Set.Elements;
 

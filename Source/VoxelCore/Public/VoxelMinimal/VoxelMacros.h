@@ -182,48 +182,44 @@ FORCEINLINE const FName& VoxelStaticName(const T&)
 		Name,  \
 		TEXT(Description))
 
-#define VOXEL_CONSOLE_COMMAND(Name, Command, Description) \
-	INTELLISENSE_ONLY(void Name()); \
-	static void Cmd ## Name(); \
-	static FAutoConsoleCommand AutoCmd ## Name( \
+#define VOXEL_CONSOLE_COMMAND(Command, Description) \
+	static void VoxelConsoleCommand(TVoxelCounterDummy<__COUNTER__>); \
+	static FAutoConsoleCommand PREPROCESSOR_JOIN(VoxelAutoCmd, __COUNTER__)( \
 	    TEXT(Command), \
 	    TEXT(Description), \
 		MakeLambdaDelegate([] \
 		{ \
-			VOXEL_SCOPE_COUNTER(#Name); \
-			Cmd ## Name(); \
+			VOXEL_SCOPE_COUNTER(Command); \
+			VoxelConsoleCommand(TVoxelCounterDummy<__COUNTER__ - 2>()); \
 		})); \
 	\
-	static void Cmd ## Name()
+	static void VoxelConsoleCommand(TVoxelCounterDummy<__COUNTER__ - 3>)
 
-#define VOXEL_CONSOLE_WORLD_COMMAND(Name, Command, Description) \
-	INTELLISENSE_ONLY(void Name()); \
-	static void Cmd ## Name(const TArray<FString>&, UWorld*); \
-	static FAutoConsoleCommand AutoCmd ## Name( \
+#define VOXEL_CONSOLE_WORLD_COMMAND(Command, Description) \
+	static void VoxelConsoleCommand(TVoxelCounterDummy<__COUNTER__>, const TArray<FString>& Args, UWorld* World); \
+	static FAutoConsoleCommand PREPROCESSOR_JOIN(VoxelAutoCmd, __COUNTER__)( \
 	    TEXT(Command), \
 	    TEXT(Description), \
 		MakeLambdaDelegate([](const TArray<FString>& Args, UWorld* World, FOutputDevice&) \
 		{ \
-			VOXEL_SCOPE_COUNTER(#Name); \
-			Cmd ## Name(Args, World); \
+			VOXEL_SCOPE_COUNTER(Command); \
+			VoxelConsoleCommand(TVoxelCounterDummy<__COUNTER__ - 2>(), Args, World); \
 		})); \
 	\
-	static void Cmd ## Name(const TArray<FString>& Args, UWorld* World)
+	static void VoxelConsoleCommand(TVoxelCounterDummy<__COUNTER__ - 3>, const TArray<FString>& Args, UWorld* World)
 
 struct VOXELCORE_API FVoxelConsoleSinkHelper
 {
 	explicit FVoxelConsoleSinkHelper(TFunction<void()> Lambda);
 };
 
-#define VOXEL_CONSOLE_SINK(UniqueId) \
-	INTELLISENSE_ONLY(void UniqueId();) \
-	void VOXEL_APPEND_LINE(PREPROCESSOR_JOIN(VoxelConsoleSink, UniqueId))(); \
-	static const FVoxelConsoleSinkHelper PREPROCESSOR_JOIN(VoxelConsoleSinkHelper, UniqueId)([] \
+#define VOXEL_CONSOLE_SINK() \
+	static void VoxelConsoleSink(TVoxelCounterDummy<__COUNTER__>); \
+	static const FVoxelConsoleSinkHelper PREPROCESSOR_JOIN(VoxelConsoleSinkHelper, __COUNTER__)([] \
 	{ \
-		VOXEL_SCOPE_COUNTER(#UniqueId); \
-		VOXEL_APPEND_LINE(PREPROCESSOR_JOIN(VoxelConsoleSink, UniqueId))(); \
+		VoxelConsoleSink(TVoxelCounterDummy<__COUNTER__ - 2>()); \
 	}); \
-	void VOXEL_APPEND_LINE(PREPROCESSOR_JOIN(VoxelConsoleSink, UniqueId))()
+	void VoxelConsoleSink(TVoxelCounterDummy<__COUNTER__ - 3>)
 
 #define VOXEL_EXPAND(X) X
 

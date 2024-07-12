@@ -1,6 +1,7 @@
 ﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelDependencySink.h"
+#include "VoxelDependency.h"
 
 struct FVoxelDependencySinkData
 {
@@ -31,6 +32,8 @@ FVoxelDependencySink::FVoxelDependencySink()
 FVoxelDependencySink::~FVoxelDependencySink()
 {
 	VOXEL_FUNCTION_COUNTER()
+
+	FVoxelDependencyInvalidationScope InvalidationScope;
 
 	TVoxelChunkedArray<TVoxelUniqueFunction<void()>> QueuedActions;
 	{

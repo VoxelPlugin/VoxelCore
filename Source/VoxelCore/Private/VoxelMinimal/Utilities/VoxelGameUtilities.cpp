@@ -194,6 +194,129 @@ bool FVoxelUtilities::GetCameraView(const UWorld* World, FVector& OutPosition, F
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+bool FVoxelUtilities::ComputeInvokerChunks(
+	TVoxelSet<FIntVector>& OutChunks,
+	TVoxelArray<FSphere> Invokers,
+	const FMatrix& LocalToWorld,
+	const double ChunkSize,
+	const int32 MaxNumChunks)
+{
+	VOXEL_FUNCTION_COUNTER_NUM(Invokers.Num(), 1);
+
+	Invokers.Sort([](const FSphere& A, const FSphere& B)
+	{
+		return A.W > B.W;
+	});
+
+	{
+		VOXEL_SCOPE_COUNTER("Remove duplicates");
+
+		for (int32 IndexA = 0; IndexA < Invokers.Num(); IndexA++)
+		{
+			const FSphere InvokerA = Invokers[IndexA];
+			for (int32 IndexB = 0; IndexB < IndexA; IndexB++)
+			{
+				const FSphere InvokerB = Invokers[IndexB];
+
+				const double RadiusDelta = InvokerB.W - InvokerA.W;
+				ensureVoxelSlow(RadiusDelta >= 0);
+
+				if (FVector::DistSquared(InvokerA.Center, InvokerB.Center) > FMath::Square(RadiusDelta))
+				{
+					continue;
+				}
+
+				// If distance between two centers is less than the difference of radius, then A is fully contained in B
+				Invokers.RemoveAtSwap(IndexA);
+				IndexA--;
+				break;
+			}
+		}
+	}
+
+	struct FChunkedInvoker
+	{
+		FVector Center;
+		double RadiusInChunks;
+	};
+	TVoxelArray<FChunkedInvoker> ChunkedInvokers;
+	ChunkedInvokers.Reserve(Invokers.Num());
+	{
+		VOXEL_SCOPE_COUNTER("Make ChunkedInvokers");
+
+		const FMatrix WorldToLocal = LocalToWorld.Inverse();
+		const float WorldToLocalScale = WorldToLocal.GetMaximumAxisScale();
+
+		for (const FSphere& Invoker : Invokers)
+		{
+			const FVector LocalPosition = WorldToLocal.TransformPosition(Invoker.Center);
+			const double LocalRadius = Invoker.W * WorldToLocalScale;
+
+			FChunkedInvoker ChunkedInvoker;
+			ChunkedInvoker.Center = LocalPosition / ChunkSize;
+			ChunkedInvoker.RadiusInChunks = LocalRadius / ChunkSize;
+			ChunkedInvokers.Add(ChunkedInvoker);
+		}
+	}
+
+	OutChunks.Reset();
+
+	{
+		double Num = 0;
+		for (const FChunkedInvoker& Invoker : ChunkedInvokers)
+		{
+			Num += FMath::Cube(2 * Invoker.RadiusInChunks + 1);
+		}
+		OutChunks.Reserve(FMath::Min<int64>(FMath::CeilToInt64(Num), 32768));
+	}
+
+	for (const FChunkedInvoker& Invoker : ChunkedInvokers)
+	{
+		VOXEL_SCOPE_COUNTER_FORMAT("Add invoker Radius=%f chunks", Invoker.RadiusInChunks);
+
+		// Offset due to chunk position being the chunk lower corner
+		constexpr double ChunkOffset = 0.5;
+		// We want to check the chunk against invoker, not the chunk center
+		// To avoid a somewhat expensive box-to-point distance, we offset the invoker radius by the chunk diagonal
+		// (from chunk center to any chunk corner)
+		constexpr double ChunkHalfDiagonal = UE_SQRT_3 / 2.;
+
+		const FIntVector Min = FloorToInt(Invoker.Center - Invoker.RadiusInChunks - ChunkOffset);
+		const FIntVector Max = CeilToInt(Invoker.Center + Invoker.RadiusInChunks - ChunkOffset);
+		const double RadiusSquared = FMath::Square(Invoker.RadiusInChunks + ChunkHalfDiagonal);
+
+		for (int32 X = Min.X; X <= Max.X; X++)
+		{
+			for (int32 Y = Min.Y; Y <= Max.Y; Y++)
+			{
+				for (int32 Z = Min.Z; Z <= Max.Z; Z++)
+				{
+					const double DistanceSquared = (FVector(X, Y, Z) + ChunkOffset - Invoker.Center).SizeSquared();
+					if (DistanceSquared > RadiusSquared)
+					{
+						continue;
+					}
+
+					OutChunks.Add(FIntVector(X, Y, Z));
+				}
+
+				if (OutChunks.Num() > MaxNumChunks)
+				{
+					return false;
+				}
+			}
+		}
+	}
+
+	OutChunks.Shrink();
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 #if WITH_EDITOR
 class FVoxelActorSelectionTracker : public FVoxelSingleton
 {

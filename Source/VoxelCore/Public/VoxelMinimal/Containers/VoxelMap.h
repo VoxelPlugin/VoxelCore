@@ -146,29 +146,48 @@ public:
 	{
 		return HashTable.GetAllocatedSize() + Elements.GetAllocatedSize();
 	}
-	FORCEINLINE void Reset()
+
+	void Reset()
 	{
 		HashSize = 0;
 		Elements.Reset();
 		HashTable.Reset();
 	}
-	FORCEINLINE void Reset_KeepHashSize()
+	void Reset_KeepHashSize()
 	{
 		Elements.Reset();
 		Rehash();
 	}
-	FORCEINLINE void Empty()
+	void Empty()
 	{
 		HashSize = 0;
 		Elements.Empty();
 		HashTable.Empty();
 	}
-	FORCEINLINE void Shrink()
+	void Shrink()
 	{
+		VOXEL_FUNCTION_COUNTER();
+
+		if (Num() == 0)
+		{
+			// Needed as GetHashSize(0) = 1
+			Empty();
+			return;
+		}
+
 		HashTable.Shrink();
 		Elements.Shrink();
+
+		const int32 NewHashSize = GetHashSize(Num());
+		if (HashSize != NewHashSize)
+		{
+			ensure(HashSize > NewHashSize);
+			HashSize = NewHashSize;
+
+			Rehash();
+		}
 	}
-	FORCEINLINE void Reserve(const int32 Number)
+	void Reserve(const int32 Number)
 	{
 		if (Number <= Elements.Num())
 		{
@@ -185,7 +204,7 @@ public:
 		}
 	}
 
-	FORCENOINLINE bool OrderIndependentEqual(const TVoxelMap& Other) const
+	bool OrderIndependentEqual(const TVoxelMap& Other) const
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
 
@@ -208,7 +227,7 @@ public:
 		}
 		return true;
 	}
-	FORCENOINLINE bool OrderDependentEqual(const TVoxelMap& Other) const
+	bool OrderDependentEqual(const TVoxelMap& Other) const
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
 
@@ -232,7 +251,7 @@ public:
 		return true;
 	}
 
-	FORCENOINLINE void Append(const TVoxelMap& Other)
+	void Append(const TVoxelMap& Other)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 1024);
 
@@ -243,7 +262,7 @@ public:
 			this->FindOrAdd(Element.Key) = Element.Value;
 		}
 	}
-	FORCENOINLINE TVoxelArray<KeyType> KeyArray() const
+	TVoxelArray<KeyType> KeyArray() const
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
 
@@ -255,7 +274,7 @@ public:
 		}
 		return Result;
 	}
-	FORCENOINLINE TVoxelArray<ValueType> ValueArray() const
+	TVoxelArray<ValueType> ValueArray() const
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
 
@@ -268,7 +287,7 @@ public:
 		return Result;
 	}
 
-	FORCENOINLINE TVoxelSet<KeyType> KeySet() const
+	TVoxelSet<KeyType> KeySet() const
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
 
@@ -281,7 +300,7 @@ public:
 		return Result;
 	}
 
-	FORCENOINLINE friend FArchive& operator<<(FArchive& Ar, TVoxelMap& Map)
+	friend FArchive& operator<<(FArchive& Ar, TVoxelMap& Map)
 	{
 		Ar << Map.Elements;
 

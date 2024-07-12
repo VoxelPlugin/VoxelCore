@@ -5,7 +5,6 @@
 #include "Interfaces/IPluginManager.h"
 
 VOXEL_CONSOLE_COMMAND(
-	ReinitializeStyle,
 	"voxel.editor.ReinitializeStyle",
 	"")
 {
@@ -13,7 +12,6 @@ VOXEL_CONSOLE_COMMAND(
 }
 
 VOXEL_CONSOLE_COMMAND(
-	ReloadTextures,
 	"voxel.editor.ReloadTextures",
 	"")
 {
