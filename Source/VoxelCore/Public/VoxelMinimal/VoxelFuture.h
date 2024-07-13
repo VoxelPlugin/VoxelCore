@@ -391,9 +391,11 @@ public:
 		return ReinterpretCastRef<TVoxelFuture<T>>(FVoxelPromise::GetFuture());
 	}
 
-#if INTELLISENSE_PARSER
-	FORCEINLINE void Set(const decltype(nullptr)) const;
-#endif
+	template<typename NullType, typename = std::enable_if_t<std::is_same_v<decltype(nullptr), NullType> && TIsTSharedPtr_V<T>>>
+	FORCEINLINE void Set(const NullType& Value) const
+	{
+		this->Set(T(Value));
+	}
 
 	FORCEINLINE void Set(const T& Value) const
 	{

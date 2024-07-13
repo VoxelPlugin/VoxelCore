@@ -120,9 +120,7 @@ public:
 public:
 	FORCEINLINE T Add_ReturnOld(const T Operand, const std::memory_order MemoryOrder = std::memory_order_seq_cst)
 	{
-		if constexpr (
-			std::is_integral_v<T> ||
-			(__cplusplus >= 202002L && std::is_floating_point_v<T>))
+		if constexpr (std::is_integral_v<T>)
 		{
 			const T OldValue = Atomic.fetch_add(Operand, MemoryOrder);
 			CheckValue(OldValue + Operand);
