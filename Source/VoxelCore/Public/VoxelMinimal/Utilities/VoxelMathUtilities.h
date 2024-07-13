@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include <bit>
 
 FORCEINLINE uint64 operator ""_u64(const uint64 Value)
 {
@@ -396,7 +397,7 @@ namespace FVoxelUtilities
 #if PLATFORM_WINDOWS && !PLATFORM_COMPILER_CLANG
 		return _tzcnt_u32(Bits);
 #else
-		return __tzcnt_u32(Bits);
+		return std::countr_zero(Bits);
 #endif
 	}
 	FORCEINLINE uint32 FirstBitLow(const uint64 Bits)
@@ -404,7 +405,7 @@ namespace FVoxelUtilities
 #if PLATFORM_WINDOWS && !PLATFORM_COMPILER_CLANG
 		return _tzcnt_u64(Bits);
 #else
-		return __tzcnt_u64(Bits);
+		return std::countr_zero(Bits);
 #endif
 	}
 }
