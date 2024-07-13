@@ -74,12 +74,6 @@ AVoxelActorBase::AVoxelActorBase()
 #if WITH_EDITORONLY_DATA
 	bIsSpatiallyLoaded = false;
 #endif
-
-	PrivateTransformRef = MakeSharedCopy(FVoxelTransformRef::Make(*this));
-	PrivateTransformRef->AddOnChanged(MakeWeakObjectPtrDelegate(this, [this](const FMatrix&)
-	{
-		NotifyTransformChanged();
-	}));
 }
 
 AVoxelActorBase::~AVoxelActorBase()
@@ -284,6 +278,16 @@ void AVoxelActorBase::Tick(const float DeltaTime)
 	if (GetWorld()->IsGameWorld())
 	{
 		Super::Tick(DeltaTime);
+	}
+
+	// Check this on Tick to ensure we're in the game thread with a valid transform when initializing
+	if (!PrivateTransformRef)
+	{
+		PrivateTransformRef = MakeSharedCopy(FVoxelTransformRef::Make(*this));
+		PrivateTransformRef->AddOnChanged(MakeWeakObjectPtrDelegate(this, [this](const FMatrix&)
+		{
+			NotifyTransformChanged();
+		}));
 	}
 
 	if (bPrivateCreateQueued &&
