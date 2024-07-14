@@ -127,15 +127,13 @@ FVoxelBox FVoxelBox::FromPositions(
     const TConstVoxelArrayView<float> PositionY,
     const TConstVoxelArrayView<float> PositionZ)
 {
-	VOXEL_FUNCTION_COUNTER_NUM(PositionX.Num(), 32);
+	const int32 Num = PositionX.Num();
+	check(Num == PositionY.Num());
+	check(Num == PositionZ.Num());
+	VOXEL_FUNCTION_COUNTER_NUM(Num, 32);
 
-	if (PositionX.Num() == 0 ||
-		PositionY.Num() == 0 ||
-		PositionZ.Num() == 0)
+	if (Num == 0)
 	{
-		ensure(PositionX.Num() == 0);
-		ensure(PositionY.Num() == 0);
-		ensure(PositionZ.Num() == 0);
 		return {};
 	}
 
@@ -161,15 +159,13 @@ FVoxelBox FVoxelBox::FromPositions(
     const TConstVoxelArrayView<double> PositionY,
     const TConstVoxelArrayView<double> PositionZ)
 {
-	VOXEL_FUNCTION_COUNTER_NUM(PositionX.Num(), 32);
+	const int32 Num = PositionX.Num();
+	check(Num == PositionY.Num());
+	check(Num == PositionZ.Num());
+	VOXEL_FUNCTION_COUNTER_NUM(Num, 32);
 
-	if (PositionX.Num() == 0 ||
-		PositionY.Num() == 0 ||
-		PositionZ.Num() == 0)
+	if (Num == 0)
 	{
-		ensure(PositionX.Num() == 0);
-		ensure(PositionY.Num() == 0);
-		ensure(PositionZ.Num() == 0);
 		return {};
 	}
 

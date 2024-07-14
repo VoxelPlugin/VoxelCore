@@ -12,7 +12,7 @@ const FVoxelIntBox FVoxelIntBox::InvertedInfinite = []
 	return Box;
 }();
 
-FVoxelIntBox FVoxelIntBox::FromPositions(const TVoxelArrayView<const FIntVector> Positions)
+FVoxelIntBox FVoxelIntBox::FromPositions(const TConstVoxelArrayView<FIntVector> Positions)
 {
     VOXEL_FUNCTION_COUNTER();
 
@@ -53,6 +53,41 @@ FVoxelIntBox FVoxelIntBox::FromPositions(const TVoxelArrayView<const FIntVector>
     Bounds.Max = Bounds.Max + 1;
 
     return Bounds;
+}
+
+FVoxelIntBox FVoxelIntBox::FromPositions(
+    const TConstVoxelArrayView<int32> PositionX,
+    const TConstVoxelArrayView<int32> PositionY,
+    const TConstVoxelArrayView<int32> PositionZ)
+{
+	const int32 Num = PositionX.Num();
+	check(Num == PositionY.Num());
+	check(Num == PositionZ.Num());
+	VOXEL_FUNCTION_COUNTER_NUM(Num, 0);
+
+	if (Num == 0)
+	{
+		return {};
+	}
+
+	const FInt32Interval MinMaxX = FVoxelUtilities::GetMinMax(PositionX);
+	const FInt32Interval MinMaxY = FVoxelUtilities::GetMinMax(PositionY);
+	const FInt32Interval MinMaxZ = FVoxelUtilities::GetMinMax(PositionZ);
+
+	FVoxelIntBox Bounds;
+
+	Bounds.Min.X = MinMaxX.Min;
+	Bounds.Min.Y = MinMaxY.Min;
+	Bounds.Min.Z = MinMaxZ.Min;
+
+	Bounds.Max.X = MinMaxX.Max;
+	Bounds.Max.Y = MinMaxY.Max;
+	Bounds.Max.Z = MinMaxZ.Max;
+
+    // Max is exclusive
+    Bounds.Max = Bounds.Max + 1;
+
+	return Bounds;
 }
 
 TArray<FVoxelIntBox, TFixedAllocator<6>> FVoxelIntBox::Difference(const FVoxelIntBox& Other) const

@@ -102,7 +102,12 @@ struct VOXELCORE_API FVoxelIntBox
 		}
 	}
 
-	static FVoxelIntBox FromPositions(TVoxelArrayView<const FIntVector> Positions);
+	static FVoxelIntBox FromPositions(TConstVoxelArrayView<FIntVector> Positions);
+
+	static FVoxelIntBox FromPositions(
+		TConstVoxelArrayView<int32> PositionX,
+		TConstVoxelArrayView<int32> PositionY,
+		TConstVoxelArrayView<int32> PositionZ);
 
 	FORCEINLINE static FVoxelIntBox SafeConstruct(const FIntVector& A, const FIntVector& B)
 	{
