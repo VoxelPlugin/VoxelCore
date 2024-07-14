@@ -37,7 +37,7 @@ struct TVoxelMapElementBase
 private:
 	struct FElementKeyValue
 	{
-		const KeyType Key;
+		const KeyType Key = {};
 		ValueType Value = FVoxelUtilities::MakeSafe<ValueType>();
 		int32 NextElementIndex VOXEL_DEBUG_ONLY(= -16);
 
@@ -50,7 +50,7 @@ private:
 	struct FElementValueKey
 	{
 		ValueType Value = FVoxelUtilities::MakeSafe<ValueType>();
-		const KeyType Key;
+		const KeyType Key = {};
 		int32 NextElementIndex VOXEL_DEBUG_ONLY(= -16);
 
 		FElementValueKey() = default;
