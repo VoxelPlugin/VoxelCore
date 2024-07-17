@@ -190,6 +190,19 @@ bool FVoxelUtilities::GetCameraView(const UWorld* World, FVector& OutPosition, F
 	return true;
 }
 
+TOptional<FVector> FVoxelUtilities::GetCameraPosition(const UWorld* World)
+{
+	FVector Position;
+	FRotator Rotation;
+	float FOV;
+	if (!GetCameraView(World, Position, Rotation, FOV))
+	{
+		return {};
+	}
+
+	return Position;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

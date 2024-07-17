@@ -4,6 +4,7 @@
 #include "VoxelZipReader.h"
 #include "VoxelPluginVersion.h"
 #include "Interfaces/IPluginManager.h"
+#include "HAL/PlatformStackWalk.h"
 #include "Application/ThrottleManager.h"
 #include "Framework/Application/SlateApplication.h"
 
