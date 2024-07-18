@@ -676,10 +676,10 @@ void FVoxelRenderUtilities::AsyncCopyTexture(
 			Format,
 			1,
 			TexCreate_ShaderResource,
-			UE_504_ONLY(ERHIAccess::Unknown,)
+			ERHIAccess::Unknown,
 			MipData.GetData(),
 			1,
-			UE_504_ONLY(TEXT("AsyncCopyTexture"),)
+			TEXT("AsyncCopyTexture"),
 			CompletionEvent);
 
 		if (CompletionEvent.IsValid())

@@ -6,7 +6,7 @@
 
 struct VOXELCORE_API FVoxelChaosTriangleMeshCooker
 {
-	static UE_504_SWITCH(TSharedPtr, TRefCountPtr)<Chaos::FTriangleMeshImplicitObject> Create(
+	static TRefCountPtr<Chaos::FTriangleMeshImplicitObject> Create(
 		TConstVoxelArrayView<int32> Indices,
 		TConstVoxelArrayView<FVector3f> Vertices,
 		TConstVoxelArrayView<uint16> FaceMaterials);

@@ -59,7 +59,7 @@ namespace Chaos
 	struct FTriangleMeshOverlapVisitorNoMTD<FCookTriangleDummy>
 	{
 		template<typename IndexType>
-		static UE_504_SWITCH(TSharedPtr, TRefCountPtr)<FTriangleMeshImplicitObject> CookTriangleMesh(
+		static TRefCountPtr<FTriangleMeshImplicitObject> CookTriangleMesh(
 			const TConstVoxelArrayView<int32> Indices,
 			const TConstVoxelArrayView<FVector3f> Vertices,
 			const TConstVoxelArrayView<uint16> FaceMaterials)
@@ -73,11 +73,7 @@ namespace Chaos
 
 			for (int32 Index = 0; Index < Vertices.Num(); Index++)
 			{
-#if VOXEL_ENGINE_VERSION >= 504
 				Particles.SetX(Index, Vertices[Index]);
-#else
-				Particles.X(Index) = Vertices[Index];
-#endif
 			}
 
 			const int32 NumTriangles = Indices.Num() / 3;
@@ -94,9 +90,9 @@ namespace Chaos
 				};
 
 				if (!FConvexBuilder::IsValidTriangle(
-					Particles.UE_504_SWITCH(X, GetX)(Triangle.X),
-					Particles.UE_504_SWITCH(X, GetX)(Triangle.Y),
-					Particles.UE_504_SWITCH(X, GetX)(Triangle.Z)))
+					Particles.GetX(Triangle.X),
+					Particles.GetX(Triangle.Y),
+					Particles.GetX(Triangle.Z)))
 				{
 					continue;
 				}
@@ -113,11 +109,7 @@ namespace Chaos
 			{
 				VOXEL_SCOPE_COUNTER("Slow cook");
 
-#if VOXEL_ENGINE_VERSION < 504
-				return MakeVoxelShared<FTriangleMeshImplicitObject>(
-#else
 				return new FTriangleMeshImplicitObject(
-#endif
 					MoveTemp(Particles),
 					MoveTemp(Triangles),
 					TArray<uint16>(FaceMaterials),
@@ -229,11 +221,8 @@ namespace Chaos
 			}
 
 			VOXEL_SCOPE_COUNTER("FTriangleMeshImplicitObject::FTriangleMeshImplicitObject");
-#if VOXEL_ENGINE_VERSION < 504
-			return MakeVoxelShareable(new(GVoxelMemory) FTriangleMeshImplicitObject(
-#else
+
 			return (new FTriangleMeshImplicitObject(
-#endif
 				MoveTemp(Particles),
 				MoveTemp(Triangles),
 				TArray<uint16>(FaceMaterials),
@@ -249,7 +238,7 @@ namespace Chaos
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-UE_504_SWITCH(TSharedPtr, TRefCountPtr)<Chaos::FTriangleMeshImplicitObject> FVoxelChaosTriangleMeshCooker::Create(
+TRefCountPtr<Chaos::FTriangleMeshImplicitObject> FVoxelChaosTriangleMeshCooker::Create(
 	const TConstVoxelArrayView<int32> Indices,
 	const TConstVoxelArrayView<FVector3f> Vertices,
 	const TConstVoxelArrayView<uint16> FaceMaterials)
@@ -264,7 +253,7 @@ UE_504_SWITCH(TSharedPtr, TRefCountPtr)<Chaos::FTriangleMeshImplicitObject> FVox
 
 	using FCooker = Chaos::FTriangleMeshOverlapVisitorNoMTD<Chaos::FCookTriangleDummy>;
 
-	UE_504_SWITCH(TSharedPtr, TRefCountPtr)<Chaos::FTriangleMeshImplicitObject> TriangleMesh;
+	TRefCountPtr<Chaos::FTriangleMeshImplicitObject> TriangleMesh;
 	if (Vertices.Num() < MAX_uint16)
 	{
 		return FCooker::CookTriangleMesh<uint16>(Indices, Vertices, FaceMaterials);

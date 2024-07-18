@@ -25,13 +25,13 @@ public:
 				for (const auto& Element : Elements)
 				{
 					Indices.Add(Vertices.Num());
-					Vertices.Add(TriangleMesh.Particles().UE_504_SWITCH(X, GetX)(Element[0]));
+					Vertices.Add(TriangleMesh.Particles().GetX(Element[0]));
 
 					Indices.Add(Vertices.Num());
-					Vertices.Add(TriangleMesh.Particles().UE_504_SWITCH(X, GetX)(Element[1]));
+					Vertices.Add(TriangleMesh.Particles().GetX(Element[1]));
 
 					Indices.Add(Vertices.Num());
-					Vertices.Add(TriangleMesh.Particles().UE_504_SWITCH(X, GetX)(Element[2]));
+					Vertices.Add(TriangleMesh.Particles().GetX(Element[2]));
 				}
 			};
 
@@ -86,7 +86,7 @@ public:
 		StaticMeshVertexBuffer.BindPackedTexCoordVertexBuffer(VertexFactory.Get(), Data);
 		ColorVertexBuffer.BindColorVertexBuffer(VertexFactory.Get(), Data);
 
-		VertexFactory->SetData(UE_504_ONLY(RHICmdList,) Data);
+		VertexFactory->SetData(RHICmdList, Data);
 		VertexFactory->InitResource(RHICmdList);
 	}
 	~FVoxelChaosTriangleMeshRenderData()
@@ -129,14 +129,12 @@ private:
 
 FVoxelChaosTriangleMeshSceneProxy::FVoxelChaosTriangleMeshSceneProxy(
 	const UPrimitiveComponent& Component,
-	const UE_504_SWITCH(TSharedRef, TRefCountPtr)<Chaos::FTriangleMeshImplicitObject>& TriangleMesh)
+	const TRefCountPtr<Chaos::FTriangleMeshImplicitObject>& TriangleMesh)
 	: FPrimitiveSceneProxy(&Component)
 	, TriangleMesh(TriangleMesh)
 {
-#if VOXEL_ENGINE_VERSION >= 504
 	// We create render data on-demand, can't be on a background thread
 	bSupportsParallelGDME = false;
-#endif
 }
 
 void FVoxelChaosTriangleMeshSceneProxy::DestroyRenderThreadResources()
