@@ -157,7 +157,7 @@ TSharedRef<FDistanceFieldVolumeData> FVoxelDistanceFieldWrapper::Build() const
 		}
 
 		OutMip.IndirectionDimensions = Mip.IndirectionSize;
-		OutMip.DistanceFieldToVolumeScaleBias = FVector2f(Mip.DistanceFieldToVolumeScaleBias);
+		OutMip.DistanceFieldToVolumeScaleBias = UE_504_ONLY(FVector2f)(Mip.DistanceFieldToVolumeScaleBias);
 		OutMip.NumDistanceFieldBricks = NumBricks;
 
 		// Account for the border voxels we added
@@ -165,11 +165,11 @@ TSharedRef<FDistanceFieldVolumeData> FVoxelDistanceFieldWrapper::Build() const
 		const FVector VirtualUVSize = FVector(Mip.IndirectionSize * DistanceField::UniqueDataBrickSize - FIntVector(2 * DistanceField::MeshDistanceFieldObjectBorder)) / FVector(Mip.IndirectionSize * DistanceField::UniqueDataBrickSize);
 
 		// [-1, 1] -> [VirtualUVMin, VirtualUVMin + VirtualUVSize]
-		OutMip.VolumeToVirtualUVScale = FVector3f(VirtualUVSize / 2.f);
-		OutMip.VolumeToVirtualUVAdd = FVector3f(VirtualUVSize / 2.f + VirtualUVMin);
+		OutMip.VolumeToVirtualUVScale = UE_504_ONLY(FVector3f)(VirtualUVSize / 2.f);
+		OutMip.VolumeToVirtualUVAdd = UE_504_ONLY(FVector3f)(VirtualUVSize / 2.f + VirtualUVMin);
 	}
 
-	OutData->LocalSpaceMeshBounds = FBox3f(LocalSpaceMeshBounds);
+	OutData->LocalSpaceMeshBounds = UE_504_ONLY(FBox3f)(LocalSpaceMeshBounds);
 	OutData->bMostlyTwoSided = true;
 
 	VOXEL_SCOPE_COUNTER("Final copy");

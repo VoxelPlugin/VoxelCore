@@ -206,17 +206,17 @@ namespace FVoxelUtilities
 
 	template<typename T>
 	using TPropertyType = std::conditional_t<
-		std::is_same_v<T, bool>          , FBoolProperty      , std::conditional_t<
-		std::is_same_v<T, uint8>         , FByteProperty      , std::conditional_t<
-		std::is_same_v<T, float>         , FFloatProperty     , std::conditional_t<
-		std::is_same_v<T, double>        , FDoubleProperty    , std::conditional_t<
-		std::is_same_v<T, int32>         , FIntProperty       , std::conditional_t<
-		std::is_same_v<T, int64>         , FInt64Property     , std::conditional_t<
-		std::is_same_v<T, FName>         , FNameProperty      , std::conditional_t<
-		TIsEnum<T>::Value                , FEnumProperty      , std::conditional_t<
-		TIsDerivedFrom<T, UObject>::Value, FObjectProperty    , std::conditional_t<
-		TIsTObjectPtr<T>::Value          , FObjectProperty    , std::conditional_t<
-		TIsSoftObjectPtr<T>::Value       , FSoftObjectProperty, std::conditional_t<
+		std::is_same_v<T, bool>          , FBoolProperty                                      , std::conditional_t<
+		std::is_same_v<T, uint8>         , FByteProperty                                      , std::conditional_t<
+		std::is_same_v<T, float>         , FFloatProperty                                     , std::conditional_t<
+		std::is_same_v<T, double>        , FDoubleProperty                                    , std::conditional_t<
+		std::is_same_v<T, int32>         , FIntProperty                                       , std::conditional_t<
+		std::is_same_v<T, int64>         , FInt64Property                                     , std::conditional_t<
+		std::is_same_v<T, FName>         , FNameProperty                                      , std::conditional_t<
+		TIsEnum<T>::Value                , FEnumProperty                                      , std::conditional_t<
+		TIsDerivedFrom<T, UObject>::Value, FObjectProperty                                    , std::conditional_t<
+		TIsTObjectPtr<T>::Value          , UE_504_SWITCH(FObjectPtrProperty, FObjectProperty) , std::conditional_t<
+		TIsSoftObjectPtr<T>::Value       , FSoftObjectProperty                                , std::conditional_t<
 		TIsTSubclassOf<T>::Value         , FClassProperty
 			                             , FStructProperty
 		>>>>>>>>>>>>;

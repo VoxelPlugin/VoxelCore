@@ -66,6 +66,7 @@ void SVoxelGraphActionMenu::Construct(
 
 	RefreshAllActions(false);
 
+#if VOXEL_ENGINE_VERSION >= 504
 	if (bAutomaticallySelectSingleAction)
 	{
 		TArray<TSharedPtr<FGraphActionNode>> ActionNodes;
@@ -76,6 +77,7 @@ void SVoxelGraphActionMenu::Construct(
 			OnItemSelected(ActionNodes[0], ESelectInfo::Direct);
 		}
 	}
+#endif
 }
 
 TSharedPtr<FGraphActionNode> SVoxelGraphActionMenu::FindItemByName(

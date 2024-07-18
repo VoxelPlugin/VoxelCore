@@ -516,6 +516,9 @@ uint32 FVoxelUtilities::HashProperty(const FProperty& Property, const void* Data
 	CASE(FClassProperty);
 	CASE(FNameProperty);
 	CASE(FObjectProperty);
+#if VOXEL_ENGINE_VERSION < 504
+	CASE(FObjectPtrProperty);
+#endif
 	CASE(FWeakObjectProperty);
 #undef CASE
 	default: break;

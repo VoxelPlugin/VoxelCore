@@ -22,8 +22,14 @@ struct FPageGPUHeader
 
 struct FPageDiskHeader
 {
+#if VOXEL_ENGINE_VERSION < 504
+	uint32 GpuSize = 0;
+#endif
 	uint32 NumClusters = 0;
 	uint32 NumRawFloat4s = 0;
+#if VOXEL_ENGINE_VERSION < 504
+	uint32 NumTexCoords = 0;
+#endif
 	uint32 NumVertexRefs = 0;
 	uint32 DecodeInfoOffset = 0;
 	uint32 StripBitmaskOffset = 0;
@@ -35,9 +41,14 @@ struct FClusterDiskHeader
 	uint32 IndexDataOffset = 0;
 	uint32 PageClusterMapOffset = 0;
 	uint32 VertexRefDataOffset = 0;
+#if VOXEL_ENGINE_VERSION >= 504
 	uint32 LowBytesOffset = 0;
 	uint32 MidBytesOffset = 0;
 	uint32 HighBytesOffset = 0;
+#else
+	uint32 PositionDataOffset = 0;
+	uint32 AttributeDataOffset = 0;
+#endif
 	uint32 NumVertexRefs = 0;
 	uint32 NumPrevRefVerticesBeforeDwords = 0;
 	uint32 NumPrevNewVerticesBeforeDwords = 0;
@@ -122,8 +133,16 @@ struct FPageSections
 
 struct FUVRange
 {
+#if VOXEL_ENGINE_VERSION >= 504
 	FUintVector2 Min = FUintVector2::ZeroValue;
 	FUintVector2 NumBits = FUintVector2::ZeroValue;
+#else
+	FIntPoint Min = FIntPoint(ForceInit);
+	FIntPoint GapStart = FIntPoint(ForceInit);
+	FIntPoint GapLength = FIntPoint(ForceInit);
+	int32 Precision = 0;
+	int32 Pad = 0;
+#endif
 };
 
 struct FPackedUVRange
@@ -156,7 +175,12 @@ struct FEncodingInfo
 	FIntVector4 ColorBits = FIntVector4(0);
 
 	TVoxelArray<FUVRange, TFixedAllocator<NANITE_MAX_UVS>> UVRanges;
+#if VOXEL_ENGINE_VERSION < 504
+	TVoxelArray<float, TFixedAllocator<NANITE_MAX_UVS>> UVQuantizationScales;
+	TVoxelArray<FIntPoint, TFixedAllocator<NANITE_MAX_UVS>> UVMins;
+#else
 	TVoxelArray<FUintVector2, TFixedAllocator<NANITE_MAX_UVS>> UVMins;
+#endif
 
 	FPageSections GpuSizes;
 };

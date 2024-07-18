@@ -493,8 +493,10 @@ bool FVoxelTextureUtilities::ExtractTextureChannel(
 		return false;
 	}
 
+#if VOXEL_ENGINE_VERSION >= 504
 	// Flush async tasks to ensure FTextureSource::GetMipData is not called while we extract data
 	ConstCast(Texture).BlockOnAnyAsyncBuild();
+#endif
 
 	OutSizeX = Source.GetSizeX();
 	OutSizeY = Source.GetSizeY();

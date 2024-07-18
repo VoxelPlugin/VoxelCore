@@ -8,11 +8,11 @@
 class VOXELCORE_API FVoxelChaosTriangleMeshSceneProxy : public FPrimitiveSceneProxy
 {
 public:
-	const TRefCountPtr<Chaos::FTriangleMeshImplicitObject> TriangleMesh;
+	const UE_504_SWITCH(TSharedRef, TRefCountPtr)<Chaos::FTriangleMeshImplicitObject> TriangleMesh;
 
 	explicit FVoxelChaosTriangleMeshSceneProxy(
 		const UPrimitiveComponent& Component,
-		const TRefCountPtr<Chaos::FTriangleMeshImplicitObject>& TriangleMesh);
+		const UE_504_SWITCH(TSharedRef, TRefCountPtr)<Chaos::FTriangleMeshImplicitObject>& TriangleMesh);
 
 public:
 	//~ Begin FPrimitiveSceneProxy Interface
