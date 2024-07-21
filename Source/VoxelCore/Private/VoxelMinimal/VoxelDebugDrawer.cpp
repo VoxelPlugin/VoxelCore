@@ -24,7 +24,7 @@ FVoxelDebugDrawer::FVoxelDebugDrawer(const TWeakObjectPtr<UWorld>& World)
 
 FVoxelDebugDrawer::~FVoxelDebugDrawer()
 {
-	RunOnGameThread([State = PrivateState]
+	Voxel::GameTask([State = PrivateState]
 	{
 		VOXEL_FUNCTION_COUNTER();
 

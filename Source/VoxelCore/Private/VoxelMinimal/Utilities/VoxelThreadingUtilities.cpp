@@ -47,10 +47,6 @@ VOXEL_RUN_ON_STARTUP_GAME()
 	});
 }
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
 void FlushVoxelGameThreadTasks()
 {
 	VOXEL_FUNCTION_COUNTER();
@@ -67,27 +63,26 @@ void FlushVoxelGameThreadTasks()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void AsyncBackgroundTaskImpl(TVoxelUniqueFunction<void()> Lambda)
-{
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [Lambda = MoveTemp(Lambda)]
-	{
-		VOXEL_FUNCTION_COUNTER();
-		Lambda();
-	});
-}
-
-void AsyncThreadPoolTaskImpl(TVoxelUniqueFunction<void()> Lambda)
-{
-	Async(EAsyncExecution::ThreadPool, [Lambda = MoveTemp(Lambda)]
-	{
-		VOXEL_FUNCTION_COUNTER();
-		Lambda();
-	});
-}
-
-void RunOnGameThread_Async(TVoxelUniqueFunction<void()> Lambda)
+void Voxel::GameTask_SkipDispatcher(TVoxelUniqueFunction<void()> Lambda)
 {
 	GVoxelGameThreadTaskQueue.Enqueue(MoveTemp(Lambda));
+}
+
+void Voxel::RenderTask_SkipDispatcher(TVoxelUniqueFunction<void()> Lambda)
+{
+	VOXEL_ENQUEUE_RENDER_COMMAND(RenderTask_SkipDispatcher)([Lambda = MoveTemp(Lambda)](FRHICommandListImmediate& RHICmdList)
+	{
+		Lambda();
+	});
+}
+
+void Voxel::AsyncTask_SkipDispatcher(TVoxelUniqueFunction<void()> Lambda)
+{
+	::AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [Lambda = MoveTemp(Lambda)]
+	{
+		VOXEL_FUNCTION_COUNTER();
+		Lambda();
+	});
 }
 
 ///////////////////////////////////////////////////////////////////////////////

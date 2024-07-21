@@ -22,20 +22,17 @@ public:
 			break;
 			case EVoxelFutureThread::GameThread:
 			{
-				RunOnGameThread(MoveTemp(Lambda));
+				Voxel::GameTask_SkipDispatcher(MoveTemp(Lambda));
 			}
 			break;
 			case EVoxelFutureThread::RenderThread:
 			{
-				VOXEL_ENQUEUE_RENDER_COMMAND(Future)([Lambda = MoveTemp(Lambda)](FRHICommandListImmediate& RHICmdList)
-				{
-					Lambda();
-				});
+				Voxel::RenderTask_SkipDispatcher(MoveTemp(Lambda));
 			}
 			break;
 			case EVoxelFutureThread::AsyncThread:
 			{
-				AsyncBackgroundTaskImpl(MoveTemp(Lambda));
+				Voxel::AsyncTask_SkipDispatcher(MoveTemp(Lambda));
 			}
 			break;
 			}

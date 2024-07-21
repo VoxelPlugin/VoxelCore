@@ -72,147 +72,90 @@ VOXELCORE_API void FlushVoxelGameThreadTasks();
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-VOXELCORE_API void AsyncBackgroundTaskImpl(TVoxelUniqueFunction<void()> Lambda);
-VOXELCORE_API void AsyncThreadPoolTaskImpl(TVoxelUniqueFunction<void()> Lambda);
-
-// Will never be called right away, even if we are on the game thread
-// Useful to avoid deadlocks
-VOXELCORE_API void RunOnGameThread_Async(TVoxelUniqueFunction<void()> Lambda);
-
-template<typename LambdaType>
-FORCEINLINE void RunOnGameThreadImpl(LambdaType Lambda)
+namespace Voxel
 {
-	if (!IsInGameThreadFast())
+	VOXELCORE_API void GameTask_SkipDispatcher(TVoxelUniqueFunction<void()> Lambda);
+	VOXELCORE_API void RenderTask_SkipDispatcher(TVoxelUniqueFunction<void()> Lambda);
+	VOXELCORE_API void AsyncTask_SkipDispatcher(TVoxelUniqueFunction<void()> Lambda);
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+	FORCEINLINE TVoxelFutureType<ReturnType> GameTask(LambdaType Lambda)
 	{
-		RunOnGameThread_Async(MoveTemp(Lambda));
-		return;
+		if (IsInGameThreadFast())
+		{
+			if constexpr (std::is_void_v<ReturnType>)
+			{
+				Lambda();
+				return FVoxelFuture::Done();
+			}
+			else
+			{
+				return Lambda();
+			}
+		}
+
+		return FVoxelFuture::Execute(EVoxelFutureThread::GameThread, MoveTemp(Lambda));
 	}
 
-	Lambda();
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-template<
-	typename LambdaType,
-	typename ReturnType = LambdaReturnType_T<LambdaType>,
-	typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
-FORCEINLINE TVoxelFutureType<ReturnType> AsyncBackgroundTask(LambdaType Lambda)
-{
-	const TVoxelPromiseType<ReturnType> Promise;
-	AsyncBackgroundTaskImpl([Lambda = MoveTemp(Lambda), Promise]
+	// Will never be called right away, even if we are on the game thread
+	// Useful to avoid deadlocks
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+	FORCEINLINE TVoxelFutureType<ReturnType> GameTask_Async(LambdaType Lambda)
 	{
-		if constexpr (std::is_void_v<ReturnType>)
-		{
-			Lambda();
-			Promise.Set();
-		}
-		else
-		{
-			Promise.Set(Lambda());
-		}
-	});
-	return Promise.GetFuture();
-}
+		return FVoxelFuture::Execute(EVoxelFutureThread::GameThread, MoveTemp(Lambda));
+	}
 
-template<
-	typename LambdaType,
-	typename ReturnType = LambdaReturnType_T<LambdaType>,
-	typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
-FORCEINLINE TVoxelFutureType<ReturnType> AsyncThreadPoolTask(LambdaType Lambda)
-{
-	const TVoxelPromiseType<ReturnType> Promise;
-	AsyncThreadPoolTaskImpl([Lambda = MoveTemp(Lambda), Promise]
-	{
-		if constexpr (std::is_void_v<ReturnType>)
-		{
-			Lambda();
-			Promise.Set();
-		}
-		else
-		{
-			Promise.Set(Lambda());
-		}
-	});
-	return Promise.GetFuture();
-}
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
 
-template<
-	typename LambdaType,
-	typename ReturnType = LambdaReturnType_T<LambdaType>,
-	typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
-FORCEINLINE TVoxelFutureType<ReturnType> RunOnGameThread(LambdaType Lambda)
-{
-	const TVoxelPromiseType<ReturnType> Promise;
-	RunOnGameThreadImpl([Lambda = MoveTemp(Lambda), Promise]
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+	FORCEINLINE TVoxelFutureType<ReturnType> RenderTask(LambdaType Lambda)
 	{
-		if constexpr (std::is_void_v<ReturnType>)
-		{
-			Lambda();
-			Promise.Set();
-		}
-		else
-		{
-			Promise.Set(Lambda());
-		}
-	});
-	return Promise.GetFuture();
-}
+		return FVoxelFuture::Execute(EVoxelFutureThread::RenderThread, MoveTemp(Lambda));
+	}
 
-template<typename LambdaType>
-FORCEINLINE auto MakeRunOnGameThreadLambda(LambdaType Lambda)
-{
-	return [Lambda = MoveTemp(Lambda)]
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = std::enable_if_t<
+			LambdaHasSignature_V<LambdaType, ReturnType(FRHICommandList&)> ||
+			LambdaHasSignature_V<LambdaType, ReturnType(FRHICommandListBase&)> ||
+			LambdaHasSignature_V<LambdaType, ReturnType(FRHICommandListImmediate&)>>,
+		typename = void>
+	FORCEINLINE TVoxelFutureType<ReturnType> RenderTask(LambdaType Lambda)
 	{
-		RunOnGameThread(Lambda);
-	};
-}
+		return FVoxelFuture::Execute(EVoxelFutureThread::RenderThread, [Lambda = MoveTemp(Lambda)]
+		{
+			Lambda(FRHICommandListImmediate::Get());
+		});
+	}
 
-template<
-	typename LambdaType,
-	typename ReturnType = LambdaReturnType_T<LambdaType>,
-	typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
-FORCEINLINE TVoxelFutureType<ReturnType> RunOnRenderThread(LambdaType Lambda)
-{
-	const TVoxelPromiseType<ReturnType> Promise;
-	VOXEL_ENQUEUE_RENDER_COMMAND(RunOnRenderThread)([Lambda = MoveTemp(Lambda), Promise](FRHICommandList&)
-	{
-		if constexpr (std::is_void_v<ReturnType>)
-		{
-			Lambda();
-			Promise.Set();
-		}
-		else
-		{
-			Promise.Set(Lambda());
-		}
-	});
-	return Promise.GetFuture();
-}
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
 
-template<
-	typename LambdaType,
-	typename ReturnType = LambdaReturnType_T<LambdaType>,
-	typename = LambdaHasSignature_T<LambdaType, ReturnType(FRHICommandList&)>,
-	typename = void>
-FORCEINLINE TVoxelFutureType<ReturnType> RunOnRenderThread(LambdaType Lambda)
-{
-	const TVoxelPromiseType<ReturnType> Promise;
-	VOXEL_ENQUEUE_RENDER_COMMAND(RunOnRenderThread)([Lambda = MoveTemp(Lambda), Promise](FRHICommandList& RHICmdList)
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+	FORCEINLINE TVoxelFutureType<ReturnType> AsyncTask(LambdaType Lambda)
 	{
-		if constexpr (std::is_void_v<ReturnType>)
-		{
-			Lambda(RHICmdList);
-			Promise.Set();
-		}
-		else
-		{
-			Promise.Set(Lambda(RHICmdList));
-		}
-	});
-	return Promise.GetFuture();
+		return FVoxelFuture::Execute(EVoxelFutureThread::AsyncThread, MoveTemp(Lambda));
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -226,7 +169,7 @@ TSharedRef<T> MakeVoxelShareable_GameThread(T* Object)
 
 	return TSharedPtr<T>(Object, [](T* InObject)
 	{
-		RunOnGameThread([=]
+		Voxel::GameTask([=]
 		{
 			FVoxelMemory::Delete(InObject);
 		});

@@ -38,7 +38,7 @@ void FVoxelDependencyInvalidationScope::Invalidate()
 	{
 		// Causes race conditions in landscape pipeline
 
-		AsyncBackgroundTask([Invalidations = MakeUniqueCopy(MoveTemp(Invalidations))]
+		Voxel::AsyncTask([Invalidations = MakeUniqueCopy(MoveTemp(Invalidations))]
 		{
 			FVoxelDependencyInvalidationScope Invalidator;
 

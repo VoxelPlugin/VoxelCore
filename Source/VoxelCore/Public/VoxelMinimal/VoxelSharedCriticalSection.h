@@ -4,7 +4,6 @@
 
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelCriticalSection.h"
-#include "VoxelMinimal/Containers/VoxelSet.h"
 
 struct FVoxelSharedCriticalSectionState
 {
@@ -30,6 +29,28 @@ public:
 	}
 
 public:
+	FORCEINLINE bool TryReadLock()
+	{
+		FState OldState = Storage.State.Get(std::memory_order_relaxed);
+
+		if (OldState.NumWriters > 0)
+		{
+			return false;
+		}
+
+		FState NewState = OldState;
+		NewState.NumReaders++;
+
+		if (!Storage.State.CompareExchangeStrong(OldState, NewState))
+		{
+			return false;
+		}
+
+		checkVoxelSlow(Storage.State.Get().NumReaders > 0);
+		checkVoxelSlow(Storage.State.Get().NumWriters == 0);
+
+		return true;
+	}
 	FORCEINLINE void ReadLock()
 	{
 		FState OldState = Storage.State.Get(std::memory_order_relaxed);
@@ -65,6 +86,29 @@ public:
 	}
 
 public:
+	FORCEINLINE bool TryWriteLock()
+	{
+		FState OldState = Storage.State.Get(std::memory_order_relaxed);
+
+		if (OldState.NumReaders > 0 ||
+			OldState.NumWriters > 0)
+		{
+			return false;
+		}
+
+		FState NewState = OldState;
+		NewState.NumWriters++;
+
+		if (!Storage.State.CompareExchangeStrong(OldState, NewState))
+		{
+			return false;
+		}
+
+		checkVoxelSlow(Storage.State.Get().NumReaders == 0);
+		checkVoxelSlow(Storage.State.Get().NumWriters == 1);
+
+		return true;
+	}
 	FORCEINLINE void WriteLock()
 	{
 		FState OldState = Storage.State.Get(std::memory_order_relaxed);

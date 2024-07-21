@@ -195,32 +195,6 @@ public:
 		typename LambdaType,
 		typename ReturnType = LambdaReturnType_T<LambdaType>,
 		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
-	static FORCEINLINE TVoxelFutureType<ReturnType> GameTask(LambdaType Lambda)
-	{
-		return FVoxelFuture::Execute(EVoxelFutureThread::GameThread, MoveTemp(Lambda));
-	}
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
-	static FORCEINLINE TVoxelFutureType<ReturnType> RenderTask(LambdaType Lambda)
-	{
-		return FVoxelFuture::Execute(EVoxelFutureThread::RenderThread, MoveTemp(Lambda));
-	}
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
-	static FORCEINLINE TVoxelFutureType<ReturnType> AsyncTask(LambdaType Lambda)
-	{
-		return FVoxelFuture::Execute(EVoxelFutureThread::AsyncThread, MoveTemp(Lambda));
-	}
-
-public:
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
 	static FORCEINLINE TVoxelFutureType<ReturnType> Execute(
 		const EVoxelFutureThread Thread,
 		LambdaType Lambda)

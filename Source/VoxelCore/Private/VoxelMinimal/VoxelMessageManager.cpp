@@ -75,7 +75,7 @@ void FVoxelMessageManager::LogMessage(const TSharedRef<FVoxelMessage>& Message) 
 
 	const TSharedPtr<IVoxelMessageConsumer> MessageConsumer = FVoxelMessagesThreadSingleton::Get().GetTop().Pin();
 
-	RunOnGameThread([=]
+	Voxel::GameTask([=]
 	{
 		VOXEL_SCOPE_COUNTER("Log");
 

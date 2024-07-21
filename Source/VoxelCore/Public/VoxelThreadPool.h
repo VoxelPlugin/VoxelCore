@@ -14,6 +14,7 @@ public:
 	virtual ~IVoxelTaskExecutor() = default;
 
 	// Return number of executed tasks
+	virtual void FlushGameThreadTasks() = 0;
 	virtual bool ExecuteTasks_AnyThread() = 0;
 	virtual int32 NumTasks() const = 0;
 
@@ -66,6 +67,8 @@ private:
 
 	mutable FVoxelSharedCriticalSection Executors_CriticalSection;
 	TVoxelSet<IVoxelTaskExecutor*> Executors_RequiresLock;
+
+	void LockWriteExecutors();
 
 	friend IVoxelTaskExecutor;
 };

@@ -67,17 +67,23 @@ int32 FVoxelThreadPool::NumTasks() const
 void FVoxelThreadPool::AddExecutor(IVoxelTaskExecutor* Executor)
 {
 	VOXEL_FUNCTION_COUNTER();
-	VOXEL_SCOPE_WRITE_LOCK(Executors_CriticalSection);
+
+	LockWriteExecutors();
 
 	Executors_RequiresLock.Add_CheckNew(Executor);
+
+	Executors_CriticalSection.WriteUnlock();
 }
 
 void FVoxelThreadPool::RemoveExecutor(IVoxelTaskExecutor* Executor)
 {
 	VOXEL_FUNCTION_COUNTER();
-	VOXEL_SCOPE_WRITE_LOCK(Executors_CriticalSection);
+
+	LockWriteExecutors();
 
 	Executors_RequiresLock.RemoveChecked(Executor);
+
+	Executors_CriticalSection.WriteUnlock();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -114,7 +120,7 @@ void FVoxelThreadPool::Tick()
 
 	if (Threads_RequiresLock.Num() != GVoxelNumThreads)
 	{
-		AsyncBackgroundTask([this]
+		Voxel::AsyncTask([this]
 		{
 			VOXEL_SCOPE_LOCK(Threads_CriticalSection);
 
@@ -224,4 +230,29 @@ GetNextTask:
 	}
 
 	goto GetNextTask;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void FVoxelThreadPool::LockWriteExecutors()
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	while (!Executors_CriticalSection.TryWriteLock())
+	{
+		FPlatformProcess::Yield();
+
+		if (IsInGameThreadFast())
+		{
+			VOXEL_SCOPE_READ_LOCK(Executors_CriticalSection);
+
+			// Avoid deadlock when graph executor is waiting on game thread
+			for (IVoxelTaskExecutor* OtherExecutor : Executors_RequiresLock)
+			{
+				OtherExecutor->FlushGameThreadTasks();
+			}
+		}
+	}
 }
