@@ -5,6 +5,7 @@
 #include "VoxelCoreMinimal.h"
 #include "Async/ParallelFor.h"
 #include "VoxelMinimal/VoxelFuture.h"
+#include "VoxelMinimal/Containers/VoxelMap.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 #include "VoxelMinimal/Utilities/VoxelLambdaUtilities.h"
@@ -204,63 +205,35 @@ TSharedRef<T> MakeVoxelShared_RenderThread(ArgTypes&&... Args)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-struct CParallelForLambdaHasIndex
-{
-	template<typename LambdaType, typename ValueType>
-	auto Requires(LambdaType Lambda, ValueType Value, int32 Index) -> decltype(Lambda(Value, Index));
-};
-
-template<typename ArrayType, typename LambdaType>
-std::enable_if_t<sizeof(GetNum(DeclVal<ArrayType>())) != 0> ParallelFor(
-	ArrayType& Array,
-	LambdaType Lambda,
-	const EParallelForFlags Flags = EParallelForFlags::None,
-	const int32 DefaultNumThreads = FTaskGraphInterface::Get().GetNumWorkerThreads())
-{
-	VOXEL_ALLOW_MALLOC_SCOPE();
-
-	const int64 ArrayNum = GetNum(Array);
-	const int64 NumThreads = FMath::Clamp<int64>(DefaultNumThreads, 1, ArrayNum);
-	ParallelFor(NumThreads, [&](const int64 ThreadIndex)
-	{
-		const int64 ElementsPerThreads = FVoxelUtilities::DivideCeil_Positive(ArrayNum, NumThreads);
-
-		const int64 StartIndex = ThreadIndex * ElementsPerThreads;
-		const int64 EndIndex = FMath::Min((ThreadIndex + 1) * ElementsPerThreads, ArrayNum);
-
-		for (int64 ElementIndex = StartIndex; ElementIndex < EndIndex; ElementIndex++)
-		{
-			if constexpr (TModels<CParallelForLambdaHasIndex, LambdaType, decltype(Array[ElementIndex])>::Value)
-			{
-				Lambda(Array[ElementIndex], ElementIndex);
-			}
-			else
-			{
-				Lambda(Array[ElementIndex]);
-			}
-		}
-	}, Flags);
-}
-
-// Will starve the task graph
-template<typename Type, typename SizeType, typename LambdaType>
-void ParallelFor_ArrayView(
+template<
+	typename Type,
+	typename SizeType,
+	typename LambdaType,
+	typename = std::enable_if_t<
+		LambdaHasSignature_V<LambdaType, void(TVoxelArrayView<Type, SizeType>)> ||
+		LambdaHasSignature_V<LambdaType, void(TVoxelArrayView<const Type, SizeType>)> ||
+		LambdaHasSignature_V<LambdaType, void(Type&)> ||
+		LambdaHasSignature_V<LambdaType, void(const Type&)> ||
+		LambdaHasSignature_V<LambdaType, void(Type&, SizeType)> ||
+		LambdaHasSignature_V<LambdaType, void(const Type&, SizeType)>>>
+void ParallelFor(
 	const TVoxelArrayView<Type, SizeType> ArrayView,
-	LambdaType Lambda,
-	const int32 MaxNumThreads = FPlatformMisc::NumberOfCores())
+	LambdaType Lambda)
 {
+	VOXEL_FUNCTION_COUNTER();
+
 	if (ArrayView.Num() == 0)
 	{
 		return;
 	}
 
-	const int64 NumThreads = FMath::Clamp<int64>(MaxNumThreads, 1, ArrayView.Num());
-	ParallelFor(NumThreads, [&](const int64 ThreadIndex)
+	const SizeType NumThreads = FMath::Clamp<SizeType>(FPlatformMisc::NumberOfCoresIncludingHyperthreads(), 1, ArrayView.Num());
+	ParallelFor(NumThreads, [&](const int32 ThreadIndex)
 	{
-		const int64 ElementsPerThreads = FVoxelUtilities::DivideCeil_Positive<int64>(ArrayView.Num(), NumThreads);
+		const SizeType ElementsPerThreads = FVoxelUtilities::DivideCeil_Positive<SizeType>(ArrayView.Num(), NumThreads);
 
-		const int64 StartIndex = ThreadIndex * ElementsPerThreads;
-		const int64 EndIndex = FMath::Min<int64>((ThreadIndex + 1) * ElementsPerThreads, ArrayView.Num());
+		const SizeType StartIndex = ThreadIndex * ElementsPerThreads;
+		const SizeType EndIndex = FMath::Min<SizeType>((ThreadIndex + 1) * ElementsPerThreads, ArrayView.Num());
 
 		if (StartIndex >= EndIndex)
 		{
@@ -268,9 +241,165 @@ void ParallelFor_ArrayView(
 			return;
 		}
 
-		const TVoxelArrayView<Type, SizeType> ThreadArrayView = ArrayView.Slice(StartIndex, EndIndex - StartIndex);
-		Lambda(ThreadArrayView);
+		if constexpr (
+			LambdaHasSignature_V<LambdaType, void(TVoxelArrayView<Type, SizeType>)> ||
+			LambdaHasSignature_V<LambdaType, void(TVoxelArrayView<const Type, SizeType>)>)
+		{
+			Lambda(ArrayView.Slice(StartIndex, EndIndex - StartIndex));
+		}
+		else if constexpr (
+			LambdaHasSignature_V<LambdaType, void(Type&)> ||
+			LambdaHasSignature_V<LambdaType, void(const Type&)>)
+		{
+			for (SizeType Index = StartIndex; Index < EndIndex; Index++)
+			{
+				Lambda(ArrayView[Index]);
+			}
+		}
+		else if constexpr (
+			LambdaHasSignature_V<LambdaType, void(Type&, SizeType)> ||
+			LambdaHasSignature_V<LambdaType, void(const Type&, SizeType)>)
+		{
+			for (SizeType Index = StartIndex; Index < EndIndex; Index++)
+			{
+				Lambda(ArrayView[Index], Index);
+			}
+		}
+		else
+		{
+			checkStatic(std::is_same_v<LambdaType, void>);
+		}
 	});
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template<
+	typename Type,
+	typename Allocator,
+	typename LambdaType,
+	typename SizeType = typename Allocator::SizeType,
+	typename = std::enable_if_t<
+		LambdaHasSignature_V<LambdaType, void(TVoxelArrayView<Type, SizeType>)> ||
+		LambdaHasSignature_V<LambdaType, void(TVoxelArrayView<const Type, SizeType>)> ||
+		LambdaHasSignature_V<LambdaType, void(Type&)> ||
+		LambdaHasSignature_V<LambdaType, void(const Type&)> ||
+		LambdaHasSignature_V<LambdaType, void(Type&, SizeType)> ||
+		LambdaHasSignature_V<LambdaType, void(const Type&, SizeType)>>>
+void ParallelFor(
+	TArray<Type, Allocator>& Array,
+	LambdaType Lambda)
+{
+	ParallelFor(
+		MakeVoxelArrayView(Array),
+		MoveTemp(Lambda));
+}
+
+template<
+	typename Type,
+	typename Allocator,
+	typename LambdaType,
+	typename SizeType = typename Allocator::SizeType,
+	typename = std::enable_if_t<
+		LambdaHasSignature_V<LambdaType, void(TVoxelArrayView<const Type, SizeType>)> ||
+		LambdaHasSignature_V<LambdaType, void(const Type&)> ||
+		LambdaHasSignature_V<LambdaType, void(const Type&, SizeType)>>>
+void ParallelFor(
+	const TArray<Type, Allocator>& Array,
+	LambdaType Lambda)
+{
+	ParallelFor(
+		MakeVoxelArrayView(Array),
+		MoveTemp(Lambda));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template<
+	typename KeyType,
+	typename ValueType,
+	typename ArrayType,
+	typename LambdaType,
+	typename = LambdaHasSignature_T<LambdaType, void(typename TVoxelMap<KeyType, ValueType, ArrayType>::FElement&)>>
+void ParallelFor(
+	TVoxelMap<KeyType, ValueType, ArrayType>& Map,
+	LambdaType Lambda)
+{
+	return ParallelFor(
+		Map.GetElements(),
+		MoveTemp(Lambda));
+}
+
+template<
+	typename KeyType,
+	typename ValueType,
+	typename ArrayType,
+	typename LambdaType,
+	typename = LambdaHasSignature_T<LambdaType, void(const typename TVoxelMap<KeyType, ValueType, ArrayType>::FElement&)>>
+void ParallelFor(
+	const TVoxelMap<KeyType, ValueType, ArrayType>& Map,
+	LambdaType Lambda)
+{
+	return ParallelFor(
+		Map.GetElements(),
+		MoveTemp(Lambda));
+}
+template<
+	typename KeyType,
+	typename ValueType,
+	typename ArrayType,
+	typename LambdaType,
+	typename = LambdaHasSignature_T<LambdaType, void(const KeyType&)>>
+void ParallelFor_Keys(
+	const TVoxelMap<KeyType, ValueType, ArrayType>& Map,
+	LambdaType Lambda)
+{
+	return ParallelFor(
+		Map.GetElements(),
+		[&](const typename TVoxelMap<KeyType, ValueType, ArrayType>::FElement& Element)
+		{
+			Lambda(Element.Key);
+		});
+}
+
+template<
+	typename KeyType,
+	typename ValueType,
+	typename ArrayType,
+	typename LambdaType,
+	typename = LambdaHasSignature_T<LambdaType, void(ValueType&)>>
+void ParallelFor_Values(
+	TVoxelMap<KeyType, ValueType, ArrayType>& Map,
+	LambdaType Lambda)
+{
+	return ParallelFor(
+		Map.GetElements(),
+		[&](typename TVoxelMap<KeyType, ValueType, ArrayType>::FElement& Element)
+		{
+			Lambda(Element.Value);
+		});
+}
+
+template<
+	typename KeyType,
+	typename ValueType,
+	typename ArrayType,
+	typename LambdaType,
+	typename = LambdaHasSignature_T<LambdaType, void(const ValueType&)>>
+void ParallelFor_Values(
+	const TVoxelMap<KeyType, ValueType, ArrayType>& Map,
+	LambdaType Lambda)
+{
+	return ParallelFor(
+		Map.GetElements(),
+		[&](const typename TVoxelMap<KeyType, ValueType, ArrayType>::FElement& Element)
+		{
+			Lambda(Element.Value);
+		});
 }
 
 ///////////////////////////////////////////////////////////////////////////////

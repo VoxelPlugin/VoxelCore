@@ -489,7 +489,22 @@ void FVoxelUtilities::SerializeBulkData(
 		{
 			FBulkDataReader Reader(BulkData, true);
 			Serialize(Reader);
-			ensure(!Reader.IsError() && Reader.AtEnd());
+
+			if (!Reader.IsError() &&
+				Reader.AtEnd())
+			{
+				return;
+			}
+
+			// Don't raise error when cooking
+			if (IsRunningCookCommandlet())
+			{
+				LOG_VOXEL(Warning, "Failed to serialize BulkData on %s", *Object->GetPathName());
+			}
+			else
+			{
+				ensureMsgf(false, TEXT("Failed to serialize BulkData on %s"), *Object->GetPathName());
+			}
 		});
 }
 

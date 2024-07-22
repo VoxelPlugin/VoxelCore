@@ -147,6 +147,14 @@ public:
 	{
 		return HashTable.GetAllocatedSize() + Elements.GetAllocatedSize();
 	}
+	FORCEINLINE TVoxelArrayView<FElement> GetElements()
+	{
+		return Elements;
+	}
+	FORCEINLINE TConstVoxelArrayView<FElement> GetElements() const
+	{
+		return Elements;
+	}
 
 	void Reset()
 	{

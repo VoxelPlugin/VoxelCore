@@ -2,51 +2,6 @@
 
 #include "VoxelTaskDispatcher.h"
 
-class VOXELCORE_API FVoxelDefaultTaskDispatcherSingleton : public FVoxelSingleton
-{
-public:
-	class FTaskDispatcher : public IVoxelTaskDispatcher
-	{
-		//~ Begin IVoxelTaskDispatcher Interface
-		virtual void Dispatch(
-			const EVoxelFutureThread Thread,
-			TVoxelUniqueFunction<void()> Lambda) override
-		{
-			switch (Thread)
-			{
-			default: VOXEL_ASSUME(false);
-			case EVoxelFutureThread::AnyThread:
-			{
-				Lambda();
-			}
-			break;
-			case EVoxelFutureThread::GameThread:
-			{
-				Voxel::GameTask_SkipDispatcher(MoveTemp(Lambda));
-			}
-			break;
-			case EVoxelFutureThread::RenderThread:
-			{
-				Voxel::RenderTask_SkipDispatcher(MoveTemp(Lambda));
-			}
-			break;
-			case EVoxelFutureThread::AsyncThread:
-			{
-				Voxel::AsyncTask_SkipDispatcher(MoveTemp(Lambda));
-			}
-			break;
-			}
-		}
-		//~ End IVoxelTaskDispatcher Interface
-	};
-	const TSharedRef<FTaskDispatcher> TaskDispatcher = MakeVoxelShared<FTaskDispatcher>();
-};
-FVoxelDefaultTaskDispatcherSingleton* GVoxelDefaultTaskDispatcherSingleton = new FVoxelDefaultTaskDispatcherSingleton();
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
 FVoxelTaskDispatcherKeepAliveRef::~FVoxelTaskDispatcherKeepAliveRef()
 {
 	const TSharedPtr<IVoxelTaskDispatcher> Dispatcher = WeakDispatcher.Pin();
@@ -104,5 +59,41 @@ IVoxelTaskDispatcher& FVoxelTaskDispatcherScope::Get()
 
 IVoxelTaskDispatcher& FVoxelTaskDispatcherScope::GetDefault()
 {
-	return *GVoxelDefaultTaskDispatcherSingleton->TaskDispatcher;
+	class FTaskDispatcher : public IVoxelTaskDispatcher
+	{
+		//~ Begin IVoxelTaskDispatcher Interface
+		virtual void Dispatch(
+			const EVoxelFutureThread Thread,
+			TVoxelUniqueFunction<void()> Lambda) override
+		{
+			switch (Thread)
+			{
+			default: VOXEL_ASSUME(false);
+			case EVoxelFutureThread::AnyThread:
+			{
+				Lambda();
+			}
+			break;
+			case EVoxelFutureThread::GameThread:
+			{
+				Voxel::GameTask_SkipDispatcher(MoveTemp(Lambda));
+			}
+			break;
+			case EVoxelFutureThread::RenderThread:
+			{
+				Voxel::RenderTask_SkipDispatcher(MoveTemp(Lambda));
+			}
+			break;
+			case EVoxelFutureThread::AsyncThread:
+			{
+				Voxel::AsyncTask_SkipDispatcher(MoveTemp(Lambda));
+			}
+			break;
+			}
+		}
+		//~ End IVoxelTaskDispatcher Interface
+	};
+	static const TSharedRef<FTaskDispatcher> TaskDispatcher = MakeVoxelShared<FTaskDispatcher>();
+
+	return *TaskDispatcher;
 }
