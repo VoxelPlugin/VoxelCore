@@ -381,6 +381,7 @@ void AVoxelActorBase::CreateRuntime()
 
 	PrivateRuntime = CreateNewRuntime();
 	OnRuntimeCreated.Broadcast();
+	RootComponent->UpdateBounds();
 }
 
 void AVoxelActorBase::DestroyRuntime()
