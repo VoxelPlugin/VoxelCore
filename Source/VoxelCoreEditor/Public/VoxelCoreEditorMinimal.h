@@ -45,6 +45,8 @@
 #include "ThumbnailRendering/ThumbnailManager.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 
+#include "Slate/SRetainerWidget.h"
+
 #include "Framework/SlateDelegates.h"
 #include "Framework/Docking/TabManager.h"
 #include "Framework/Commands/Commands.h"

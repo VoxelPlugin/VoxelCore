@@ -18,6 +18,10 @@ public:
 		FBrick* FindBrick(const FIntVector& Position);
 		FBrick& FindOrAddBrick(const FIntVector& Position);
 
+		void AddBrick(
+			const FIntVector& Position,
+			const TSharedRef<FBrick>& Brick);
+
 		FORCEINLINE uint8 QuantizeDistance(const float Distance) const
 		{
 			// Transform to the tracing shader Volume space

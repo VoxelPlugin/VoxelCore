@@ -5,6 +5,7 @@
 #include "VoxelCoreMinimal.h"
 #include "Templates/ChooseClass.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
+#include "VoxelMinimal/Utilities/VoxelHashUtilities.h"
 
 template<typename Type>
 struct TVoxelSetElement

@@ -35,6 +35,15 @@ FVoxelDistanceFieldWrapper::FBrick& FVoxelDistanceFieldWrapper::FMip::FindOrAddB
 	return *Ptr;
 }
 
+void FVoxelDistanceFieldWrapper::FMip::AddBrick(
+	const FIntVector& Position,
+	const TSharedRef<FBrick>& Brick)
+{
+	TSharedPtr<FBrick>& Ptr = Bricks[FVoxelUtilities::Get3DIndex<int32>(IndirectionSize, Position)];
+	ensure(!Ptr);
+	Ptr = Brick;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

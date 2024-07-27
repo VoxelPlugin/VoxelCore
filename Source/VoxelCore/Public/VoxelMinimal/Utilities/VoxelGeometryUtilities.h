@@ -254,7 +254,7 @@ namespace FVoxelUtilities
 			OutAlphaC >= 0)
 		{
 			// We're inside the triangle
-			return VectorType::Dist(Point, OutAlphaA * A + OutAlphaB * B + OutAlphaC * C);
+			return VectorType::DistSquared(Point, OutAlphaA * A + OutAlphaB * B + OutAlphaC * C);
 		}
 
 		if (OutAlphaA > 0)
@@ -333,6 +333,26 @@ namespace FVoxelUtilities
 			OutAlphaC = 1 - AlphaC_AC;
 			return DistanceAC;
 		}
+	}
+
+	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
+	FORCEINLINE ScalarType PointTriangleDistanceSquared(
+		const VectorType& Point,
+		const VectorType& A,
+		const VectorType& B,
+		const VectorType& C)
+	{
+		ScalarType AlphaA;
+		ScalarType AlphaB;
+		ScalarType AlphaC;
+		return FVoxelUtilities::PointTriangleDistanceSquared(
+			Point,
+			A,
+			B,
+			C,
+			AlphaA,
+			AlphaB,
+			AlphaC);
 	}
 
 	//////////////////////////////////////////////////////////////////////////////

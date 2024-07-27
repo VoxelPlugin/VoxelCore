@@ -140,6 +140,78 @@ public:
 		return Leaves;
 	}
 
+public:
+	template<typename ShouldVisitType, typename VisitType>
+	void Traverse(ShouldVisitType&& ShouldVisit, VisitType&& Visit) const
+	{
+		if (Nodes.Num() == 0)
+		{
+			return;
+		}
+
+		TVoxelInlineArray<int32, 64> QueuedNodes;
+		QueuedNodes.Add(0);
+
+		while (QueuedNodes.Num() > 0)
+		{
+			const int32 NodeIndex = QueuedNodes.Pop();
+
+			const FNode& Node = Nodes[NodeIndex];
+			if (Node.bLeaf)
+			{
+				const FLeaf& Leaf = Leaves[Node.LeafIndex];
+
+				for (int32 Index = 0; Index < Leaf.Elements.Num(); Index++)
+				{
+					if (!ShouldVisit(
+						FVector3f(
+							Leaf.Elements.MinX[Index],
+							Leaf.Elements.MinY[Index],
+							Leaf.Elements.MinZ[Index]),
+						FVector3f(
+							Leaf.Elements.MaxX[Index],
+							Leaf.Elements.MaxY[Index],
+							Leaf.Elements.MaxZ[Index])))
+					{
+						continue;
+					}
+
+					Visit(Leaf.Elements.Payload[Index]);
+				}
+			}
+			else
+			{
+				if (ShouldVisit(Node.ChildBounds0_Min, Node.ChildBounds0_Max))
+				{
+					QueuedNodes.Add(Node.ChildIndex0);
+				}
+				if (ShouldVisit(Node.ChildBounds1_Min, Node.ChildBounds1_Max))
+				{
+					QueuedNodes.Add(Node.ChildIndex1);
+				}
+			}
+		}
+	}
+	template<typename VisitType>
+	void Traverse(
+		const FVector3f& BoundsMin,
+		const FVector3f& BoundsMax,
+		VisitType&& Visit) const
+	{
+		this->Traverse(
+			[&](const FVector3f& Min, const FVector3f& Max)
+			{
+				return
+					Min.X < BoundsMax.X &&
+					Min.Y < BoundsMax.Y &&
+					Min.Z < BoundsMax.Z &&
+					BoundsMin.X < Max.X &&
+					BoundsMin.Y < Max.Y &&
+					BoundsMin.Z < Max.Z;
+			},
+			MoveTemp(Visit));
+	}
+
 private:
 	TVoxelArray<FNode> Nodes;
 	TVoxelArray<FLeaf> Leaves;

@@ -148,7 +148,7 @@ void FVoxelAutoFactoryImpl::RegisterFactoryImpl(UClass* Class, const int32 Index
 	}
 
 	bool bHasOtherFactory = false;
-	for (const TSubclassOf<UFactory> OtherFactoryClass : GetDerivedClasses<UFactory>())
+	for (const TSubclassOf<UFactory>& OtherFactoryClass : GetDerivedClasses<UFactory>())
 	{
 		UFactory* OtherFactory = OtherFactoryClass.GetDefaultObject();
 		if (!OtherFactory->ShouldShowInNewMenu() ||
@@ -179,7 +179,7 @@ VOXEL_RUN_ON_STARTUP_EDITOR()
 {
 	// Disable all dummies until they're used
 
-	for (const TSubclassOf<UVoxelFactory> Class : GetDerivedClasses<UVoxelFactory>())
+	for (const TSubclassOf<UVoxelFactory>& Class : GetDerivedClasses<UVoxelFactory>())
 	{
 		if (Class->GetName().Contains("Dummy"))
 		{
