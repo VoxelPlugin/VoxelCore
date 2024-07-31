@@ -84,31 +84,31 @@ FCluster::FCluster()
 	Colors.Reserve(128);
 }
 
-void FCluster::ComputeBounds()
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FVoxelBox FCluster::GetBounds() const
 {
-	VOXEL_FUNCTION_COUNTER();
-
-	Bounds = FVoxelBox::FromPositions(Positions);
-
-	VOXEL_SCOPE_COUNTER("MaxEdgeLength");
-
-	float MaxEdgeLengthSquared = 0;
-	for (int32 TriangleIndex = 0; TriangleIndex < NumTriangles(); TriangleIndex++)
+	if (!CachedBounds.IsSet())
 	{
-		const FVector3f A = Positions[3 * TriangleIndex + 0];
-		const FVector3f B = Positions[3 * TriangleIndex + 1];
-		const FVector3f C = Positions[3 * TriangleIndex + 2];
+		VOXEL_FUNCTION_COUNTER();
 
-		MaxEdgeLengthSquared = FMath::Max(MaxEdgeLengthSquared, FVector3f::DistSquared(A, B));
-		MaxEdgeLengthSquared = FMath::Max(MaxEdgeLengthSquared, FVector3f::DistSquared(B, C));
-		MaxEdgeLengthSquared = FMath::Max(MaxEdgeLengthSquared, FVector3f::DistSquared(A, C));
+		CachedBounds = FVoxelBox::FromPositions(Positions);
 	}
-	MaxEdgeLength = FMath::Sqrt(MaxEdgeLengthSquared);
+	return CachedBounds.GetValue();
 }
 
-FEncodingInfo FCluster::ComputeEncodingInfo(const FEncodingSettings& Settings) const
+const FEncodingInfo& FCluster::GetEncodingInfo(const FEncodingSettings& Settings) const
 {
+	if (CachedEncodingInfo.IsSet())
+	{
+		return CachedEncodingInfo.GetValue();
+	}
+
 	VOXEL_FUNCTION_COUNTER();
+
+	const FVoxelBox Bounds = GetBounds();
 
 	FEncodingInfo Info;
 	Info.Settings = Settings;
@@ -212,7 +212,6 @@ FEncodingInfo FCluster::ComputeEncodingInfo(const FEncodingSettings& Settings) c
 	GpuSizes.VertReuseBatchInfo = 0;
 	GpuSizes.DecodeInfo = TextureCoordinates.Num() * sizeof(UE_504_SWITCH(FUVRange, FPackedUVRange));
 
-	// TODO Not true if we don't reuse vertices?
 	const int32 BitsPerTriangle = Info.BitsPerIndex + 2 * 5; // Base index + two 5-bit offsets
 	GpuSizes.Index = FMath::DivideAndRoundUp(NumTriangles() * BitsPerTriangle, 32) * sizeof(uint32);
 
@@ -224,12 +223,38 @@ FEncodingInfo FCluster::ComputeEncodingInfo(const FEncodingSettings& Settings) c
 	GpuSizes.Position = FMath::DivideAndRoundUp(NumVertices() * PositionBitsPerVertex, 32) * sizeof(uint32);
 	GpuSizes.Attribute = FMath::DivideAndRoundUp(NumVertices() * Info.BitsPerAttribute, 32) * sizeof(uint32);
 
-	return Info;
+	CachedEncodingInfo = Info;
+
+	return CachedEncodingInfo.GetValue();
 }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 FPackedCluster FCluster::Pack(const FEncodingInfo& Info) const
 {
 	VOXEL_FUNCTION_COUNTER();
+
+	const FVoxelBox Bounds = GetBounds();
+
+	const float MaxEdgeLength = INLINE_LAMBDA
+	{
+		VOXEL_SCOPE_COUNTER("MaxEdgeLength");
+
+		float MaxEdgeLengthSquared = 0;
+		for (int32 TriangleIndex = 0; TriangleIndex < NumTriangles(); TriangleIndex++)
+		{
+			const FVector3f A = Positions[3 * TriangleIndex + 0];
+			const FVector3f B = Positions[3 * TriangleIndex + 1];
+			const FVector3f C = Positions[3 * TriangleIndex + 2];
+
+			MaxEdgeLengthSquared = FMath::Max(MaxEdgeLengthSquared, FVector3f::DistSquared(A, B));
+			MaxEdgeLengthSquared = FMath::Max(MaxEdgeLengthSquared, FVector3f::DistSquared(B, C));
+			MaxEdgeLengthSquared = FMath::Max(MaxEdgeLengthSquared, FVector3f::DistSquared(A, C));
+		}
+		return FMath::Sqrt(MaxEdgeLengthSquared);
+	};
 
 	FPackedCluster Result;
 	FMemory::Memzero(Result);
@@ -309,6 +334,10 @@ FPackedCluster FCluster::Pack(const FEncodingInfo& Info) const
 	return Result;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 void CreatePageData(
 	const TVoxelArrayView<FCluster> Clusters,
 	const FEncodingSettings& EncodingSettings,
@@ -329,15 +358,13 @@ void CreatePageData(
 	{
 		check(Cluster.NumTriangles() <= NANITE_MAX_CLUSTER_TRIANGLES);
 		check(Cluster.TextureCoordinates.Num() == NumUVs);
-
-		Cluster.ComputeBounds();
 	}
 
 	TVoxelArray<FEncodingInfo> EncodingInfos;
 	EncodingInfos.Reserve(Clusters.Num());
 	for (const FCluster& Cluster : Clusters)
 	{
-		EncodingInfos.Add(Cluster.ComputeEncodingInfo(EncodingSettings));
+		EncodingInfos.Add(Cluster.GetEncodingInfo(EncodingSettings));
 	}
 
 	FPageSections PageGpuSizes;
@@ -410,6 +437,8 @@ void CreatePageData(
 	checkVoxelSlow(GpuSectionOffsets.Position == PageGpuSizes.GetAttributeOffset());
 	checkVoxelSlow(GpuSectionOffsets.Attribute == PageGpuSizes.GetTotal());
 
+	ensure(PageGpuSizes.GetTotal() <= NANITE_ROOT_PAGE_GPU_SIZE);
+
 	TVoxelChunkedRef<FPageDiskHeader> PageDiskHeader = AllocateChunkedRef(PageData);
 	PageDiskHeader->NumClusters = Clusters.Num();
 #if VOXEL_ENGINE_VERSION < 504
@@ -476,7 +505,8 @@ void CreatePageData(
 
 	const int32 RawFloat4EndOffset = GetPageOffset();
 
-	PageDiskHeader->NumRawFloat4s = RawFloat4EndOffset - RawFloat4StartOffset;
+	checkVoxelSlow((RawFloat4EndOffset - RawFloat4StartOffset) % sizeof(FVector4f) == 0);
+	PageDiskHeader->NumRawFloat4s = (RawFloat4EndOffset - RawFloat4StartOffset) / sizeof(FVector4f);
 
 	// Index data
 	{
@@ -875,7 +905,5 @@ void CreatePageData(
 		}
 	}
 #endif
-
-	ensure(GetPageOffset() <= NANITE_ROOT_PAGE_GPU_SIZE);
 }
 }

@@ -189,7 +189,7 @@ struct FEncodingInfo
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-struct FCluster
+class FCluster
 {
 public:
 	TVoxelArray<FVector3f> Positions;
@@ -197,13 +197,11 @@ public:
 	TVoxelArray<FColor> Colors;
 	TVoxelArray<TVoxelArray<FVector2f>, TFixedAllocator<NANITE_MAX_UVS>> TextureCoordinates;
 
-	FVoxelBox Bounds;
-	float MaxEdgeLength = 0;
-
 	FCluster();
 
-	void ComputeBounds();
-	FEncodingInfo ComputeEncodingInfo(const FEncodingSettings& Settings) const;
+	FVoxelBox GetBounds() const;
+	const FEncodingInfo& GetEncodingInfo(const FEncodingSettings& Settings) const;
+
 	FPackedCluster Pack(const FEncodingInfo& Info) const;
 
 	FORCEINLINE int32 NumVertices() const
@@ -223,6 +221,10 @@ public:
 		const int32 TrianglesPerBatch = FMath::DivideAndRoundDown(MaxVerticesPerBatch, 3);
 		return FMath::DivideAndRoundUp(NumTriangles(), TrianglesPerBatch);
 	}
+
+private:
+	mutable TOptional<FVoxelBox> CachedBounds;
+	mutable TOptional<FEncodingInfo> CachedEncodingInfo;
 };
 
 void CreatePageData(

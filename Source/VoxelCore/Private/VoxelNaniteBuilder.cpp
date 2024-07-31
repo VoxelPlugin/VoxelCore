@@ -137,16 +137,38 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
 		HierarchyNode.Misc2[0].ResourcePageIndex_NumPages_GroupPartSize = 0xFFFFFFFF;
 	}
 
-	constexpr int32 ClustersPerPage = 5;
+	FEncodingSettings EncodingSettings;
+	EncodingSettings.PositionPrecision = PositionPrecision;
+	checkStatic(FEncodingSettings::NormalBits == NormalBits);
 
 	TVoxelArray<TVoxelArray<FCluster>> Pages;
-	for (int32 PageIndex = 0; PageIndex < FMath::DivideAndRoundUp(AllClusters.Num(), ClustersPerPage); PageIndex++)
 	{
-		TVoxelArray<FCluster>& Page = Pages.Emplace_GetRef();
-		for (int32 ClusterIndex = ClustersPerPage * PageIndex; ClusterIndex < FMath::Min(AllClusters.Num(), ClustersPerPage * (PageIndex + 1)); ClusterIndex++)
+		int32 ClusterIndex = 0;
+		while (ClusterIndex < AllClusters.Num())
 		{
-			Page.Add(MoveTemp(AllClusters[ClusterIndex]));
+			TVoxelArray<FCluster>& Clusters = Pages.Emplace_GetRef();
+			int32 GpuSize = 0;
+
+			while (
+				ClusterIndex < AllClusters.Num() &&
+				Clusters.Num() < NANITE_ROOT_PAGE_MAX_CLUSTERS)
+			{
+				FCluster& Cluster = AllClusters[ClusterIndex];
+
+				const int32 ClusterGpuSize = Cluster.GetEncodingInfo(EncodingSettings).GpuSizes.GetTotal();
+				if (GpuSize + ClusterGpuSize > NANITE_ROOT_PAGE_GPU_SIZE)
+				{
+					break;
+				}
+
+				Clusters.Add(MoveTemp(Cluster));
+				GpuSize += ClusterGpuSize;
+				ClusterIndex++;
+			}
+
+			ensure(GpuSize <= NANITE_ROOT_PAGE_GPU_SIZE);
 		}
+		check(ClusterIndex == AllClusters.Num());
 	}
 
 	TVoxelChunkedArray<uint8> RootData;
@@ -193,11 +215,8 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
 
 		RootData.Append(MakeByteVoxelArrayView(FixupChunk).LeftOf(FixupChunk.GetSize()));
 
-		FEncodingSettings EncodingSettings;
-		EncodingSettings.PositionPrecision = PositionPrecision;
-		checkStatic(FEncodingSettings::NormalBits == NormalBits);
-
 		const int32 PageStartIndex = RootData.Num();
+
 		CreatePageData(
 			Clusters,
 			EncodingSettings,
