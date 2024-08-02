@@ -283,6 +283,47 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
+	FORCEINLINE void WriteBits(
+		uint32& Data,
+		const int32 FirstBit,
+		const int32 NumBits,
+		const uint32 Value)
+	{
+		checkVoxelSlow(0 <= FirstBit && FirstBit + NumBits <= 32);
+		checkVoxelSlow(0 < NumBits);
+		checkVoxelSlow(Value < (uint32(1) << NumBits));
+		checkVoxelSlow(((Value << FirstBit) >> FirstBit) == Value);
+
+		const uint32 Mask = ((uint32(1) << NumBits) - 1) << FirstBit;
+
+		Data &= ~Mask;
+		Data |= Value << FirstBit;
+
+		checkVoxelSlow(ReadBits(Data, FirstBit, NumBits) == Value);
+	}
+	FORCEINLINE void WriteBits(
+		uint64& Data,
+		const int32 FirstBit,
+		const int32 NumBits,
+		const uint64 Value)
+	{
+		checkVoxelSlow(0 <= FirstBit && FirstBit + NumBits <= 64);
+		checkVoxelSlow(0 < NumBits);
+		checkVoxelSlow(Value < (uint64(1) << NumBits));
+		checkVoxelSlow(((Value << FirstBit) >> FirstBit) == Value);
+
+		const uint64 Mask = ((uint64(1) << NumBits) - 1) << FirstBit;
+
+		Data &= ~Mask;
+		Data |= Value << FirstBit;
+
+		checkVoxelSlow(ReadBits(Data, FirstBit, NumBits) == Value);
+	}
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
 	FORCEINLINE float& FloatBits(uint32& Value)
 	{
 		return reinterpret_cast<float&>(Value);

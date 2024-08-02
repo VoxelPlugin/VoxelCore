@@ -54,14 +54,14 @@ namespace FVoxelUtilities
 		return H;
 	}
 
-	template<typename T, typename = std::enable_if_t<TIsTriviallyDestructible<T>::Value && (
+	template<typename T, typename = std::enable_if_t<
+		TIsTriviallyDestructible<T>::Value &&
+		!TIsTArrayView<T>::Value && (
 		sizeof(T) == sizeof(uint8) ||
 		sizeof(T) == sizeof(uint16) ||
 		sizeof(T) % sizeof(uint32) == 0)>>
 	FORCEINLINE uint64 MurmurHash(const T& Value, const uint32 Seed = 0)
 	{
-		checkStatic(!TIsTArrayView<T>::Value);
-
 		uint32 H = 1831214719 * (1460481823 + Seed);
 
 		if constexpr (std::is_same_v<T, bool>)
