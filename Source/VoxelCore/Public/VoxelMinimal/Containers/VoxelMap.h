@@ -616,7 +616,7 @@ public:
 	}
 	FORCEINLINE ValueType& AddHashed_CheckNew_EnsureNoRehash(const uint32 Hash, const KeyType& Key)
 	{
-		ensureVoxelSlow(GetHashSize(Elements.Num()) < HashSize);
+		ensureVoxelSlow(GetHashSize(Elements.Num()) <= HashSize);
 		return this->AddHashed_CheckNew(Hash, Key);
 	}
 
