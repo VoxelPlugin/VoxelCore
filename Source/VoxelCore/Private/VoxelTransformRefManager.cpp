@@ -57,8 +57,20 @@ TSharedPtr<FVoxelTransformRefImpl> FVoxelTransformRefManager::Find_AnyThread_Req
 void FVoxelTransformRefManager::NotifyTransformChanged(const USceneComponent& Component)
 {
 	VOXEL_FUNCTION_COUNTER();
+
+	if (!IsInGameThread())
+	{
+		ensure(IsInParallelGameThread());
+
+		// Happens during SendRenderTransform_Concurrent
+		Voxel::GameTask([&Component]
+		{
+			GVoxelTransformRefManager->NotifyTransformChanged(Component);
+		});
+		return;
+	}
+
 	VOXEL_SCOPE_LOCK(CriticalSection);
-	check(IsInGameThread());
 
 	TVoxelSet<TWeakPtr<FVoxelTransformRefImpl>>* WeakTransformRefs = ComponentToWeakTransformRefs_RequiresLock.Find(&Component);
 	if (!WeakTransformRefs)
