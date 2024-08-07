@@ -18,6 +18,56 @@ FVoxelTaskDispatcherKeepAliveRef::~FVoxelTaskDispatcherKeepAliveRef()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+#if VOXEL_DEBUG
+void IVoxelTaskDispatcher::CheckOwnsFuture(const FVoxelFuture& Future) const
+{
+	ensure(Future.PromiseState->Dispatcher_DebugOnly == AsWeak());
+}
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FVoxelFuture IVoxelTaskDispatcher::Wrap(
+	const FVoxelFuture& Other,
+	IVoxelTaskDispatcher& OtherDispatcher)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	OtherDispatcher.CheckOwnsFuture(Other);
+
+	FVoxelTaskDispatcherScope ThisScope(*this);
+
+	if (Other.IsComplete())
+	{
+		return FVoxelFuture::Done();
+	}
+
+	const FVoxelPromise Promise;
+
+	{
+		FVoxelTaskDispatcherScope OtherScope(OtherDispatcher);
+
+		Other.Then_AnyThread(MakeWeakPtrLambda(this, [this, Promise]
+		{
+			// Do a Dispatch(AsyncThread) to ensure this task dispatcher fully owns the lifetime of what Promise.Set will trigger
+			Dispatch(EVoxelFutureThread::AsyncThread, [this, Promise]
+			{
+				checkVoxelSlow(&FVoxelTaskDispatcherScope::Get() == this);
+
+				Promise.Set();
+			});
+		}));
+	}
+
+	return Promise.GetFuture();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 TSharedRef<FVoxelTaskDispatcherKeepAliveRef> IVoxelTaskDispatcher::AddRef(const TSharedRef<FVoxelPromiseState>& Promise)
 {
 	int32 Index;
@@ -54,10 +104,10 @@ IVoxelTaskDispatcher& FVoxelTaskDispatcherScope::Get()
 		return *Dispatcher;
 	}
 
-	return GetDefault();
+	return GetGlobal();
 }
 
-IVoxelTaskDispatcher& FVoxelTaskDispatcherScope::GetDefault()
+IVoxelTaskDispatcher& FVoxelTaskDispatcherScope::GetGlobal()
 {
 	class FTaskDispatcher : public IVoxelTaskDispatcher
 	{
@@ -90,6 +140,11 @@ IVoxelTaskDispatcher& FVoxelTaskDispatcherScope::GetDefault()
 			}
 			break;
 			}
+		}
+
+		virtual bool IsExiting() const override
+		{
+			return IsEngineExitRequested();
 		}
 		//~ End IVoxelTaskDispatcher Interface
 	};

@@ -48,7 +48,7 @@ class VOXELCORE_API AVoxelActorBase : public AActor
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditDefaultsOnly, Category = "Voxel")
+	UPROPERTY(EditAnywhere, Category = "Voxel")
 	bool bCreateOnBeginPlay = true;
 
 #if WITH_EDITOR

@@ -16,20 +16,42 @@ FVoxelPromiseState::FVoxelPromiseState()
 	if (FVoxelCounter32* NumPromisesPtr = Dispatcher.NumPromisesPtr)
 	{
 		NumPromisesPtr->Increment();
+	}
 
 #if VOXEL_DEBUG
-		VOXEL_SCOPE_LOCK(Dispatcher.StacksCriticalSection);
-		Dispatcher.PromiseStateToStackFrames_RequiresLock.Add_EnsureNew(this, FVoxelUtilities::GetStackFrames(2));
+	Dispatcher_DebugOnly = Dispatcher.AsWeak();
+	DebugStackFrames = FVoxelUtilities::GetStackFrames(2);
+
+	VOXEL_SCOPE_LOCK(Dispatcher.PromisesCriticalSection);
+	Dispatcher.Promises_RequiresLock.Add_EnsureNew(this);
 #endif
-	}
 }
 
 FVoxelPromiseState::~FVoxelPromiseState()
 {
+#if VOXEL_DEBUG
+	// Don't check FVoxelTaskDispatcherScope::Get() in destructor, enforcing destructor scoping is way too messy
+	// (eg single class could store futures from two different dispatchers)
+
+	const TSharedPtr<IVoxelTaskDispatcher> Dispatcher = Dispatcher_DebugOnly.Pin();
+	if (!Dispatcher)
+	{
+		return;
+	}
+
+	ensure(IsComplete() || Dispatcher->IsExiting());
+
+	VOXEL_SCOPE_LOCK(Dispatcher->PromisesCriticalSection);
+	ensure(Dispatcher->Promises_RequiresLock.Remove(this));
+#endif
 }
 
 void FVoxelPromiseState::Set(const FSharedVoidRef& Value)
 {
+#if VOXEL_DEBUG
+	ensure(FVoxelTaskDispatcherScope::Get().AsWeak() == Dispatcher_DebugOnly);
+#endif
+
 	FThreadToContinuation ThreadToContinuation;
 	{
 		VOXEL_SCOPE_LOCK(CriticalSection);
@@ -59,16 +81,15 @@ void FVoxelPromiseState::Set(const FSharedVoidRef& Value)
 	if (Dispatcher.NumPromisesPtr)
 	{
 		Dispatcher.NumPromisesPtr->Decrement();
-
-#if VOXEL_DEBUG
-		VOXEL_SCOPE_LOCK(Dispatcher.StacksCriticalSection);
-		ensure(Dispatcher.PromiseStateToStackFrames_RequiresLock.Remove(this));
-#endif
 	}
 }
 
 void FVoxelPromiseState::Set(const FVoxelFuture& Future)
 {
+#if VOXEL_DEBUG
+	ensure(FVoxelTaskDispatcherScope::Get().AsWeak() == Dispatcher_DebugOnly);
+#endif
+
 	if (Future.IsComplete())
 	{
 		Set(Future.PromiseState->Value_RequiresLock.ToSharedRef());
@@ -85,6 +106,10 @@ void FVoxelPromiseState::AddContinuation(
 	const EVoxelFutureThread Thread,
 	TVoxelUniqueFunction<void(const FSharedVoidRef&)> Continuation)
 {
+#if VOXEL_DEBUG
+	ensure(FVoxelTaskDispatcherScope::Get().AsWeak() == Dispatcher_DebugOnly);
+#endif
+
 	IVoxelTaskDispatcher& Dispatcher = FVoxelTaskDispatcherScope::Get();
 
 	{

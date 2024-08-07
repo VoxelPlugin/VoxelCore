@@ -1,6 +1,7 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
+#include "VoxelMinimal/VoxelSingletonManager.h"
 #include "ShaderCore.h"
 #include "HttpModule.h"
 #include "HttpManager.h"
@@ -74,8 +75,7 @@ public:
 		GOnVoxelModuleUnloaded_DoCleanup.Broadcast();
 		GOnVoxelModuleUnloaded_DoCleanup.Broadcast();
 
-		void DestroyVoxelSingletonManager();
-		DestroyVoxelSingletonManager();
+		FVoxelSingletonManager::Destroy();
 
 		GOnVoxelModuleUnloaded.Broadcast();
 	}

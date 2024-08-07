@@ -298,6 +298,10 @@ void FVoxelNaniteBuilder::ApplyRenderData(UStaticMesh& StaticMesh, TUniquePtr<FS
 #if WITH_EDITOR
 	StaticMesh.NaniteSettings.bEnabled = true;
 #endif
+
+	// Not supported, among other issues FSceneProxy::FSceneProxy crashes because GetNumVertices is always 0
+	StaticMesh.bSupportRayTracing = false;
+
 	StaticMesh.InitResources();
 }
 

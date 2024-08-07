@@ -183,7 +183,7 @@ TSharedRef<T> MakeVoxelShareable_RenderThread(T* Object)
 
 	return TSharedPtr<T>(Object, [](T* InObject)
 	{
-		VOXEL_ENQUEUE_RENDER_COMMAND(MakeVoxelShareable_RenderThread)([=](FRHICommandListImmediate& RHICmdList)
+		Voxel::RenderTask([=]
 		{
 			FVoxelMemory::Delete(InObject);
 		});

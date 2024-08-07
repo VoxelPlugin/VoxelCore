@@ -40,17 +40,39 @@ public:
 		EVoxelFutureThread Thread,
 		TVoxelUniqueFunction<void()> Lambda) = 0;
 
+	virtual bool IsExiting() const = 0;
+
 	bool IsTrackingPromises() const
 	{
 		return NumPromisesPtr != nullptr;
 	}
 
+public:
+#if VOXEL_DEBUG
+	void CheckOwnsFuture(const FVoxelFuture& Future) const;
+#else
+	void CheckOwnsFuture(const FVoxelFuture& Future) const {}
+#endif
+
+public:
+	// Wrap another future created in a different task dispatcher
+	// This ensures any continuation to this future won't leak to the other task dispatcher,
+	// which would mess up task tracking
+	FVoxelFuture Wrap(
+		const FVoxelFuture& Other,
+		IVoxelTaskDispatcher& OtherDispatcher);
+
+	template<typename T>
+	TVoxelFuture<T> Wrap(
+		const TVoxelFuture<T>& Other,
+		IVoxelTaskDispatcher& OtherDispatcher);
+
 protected:
 	FVoxelCounter32* NumPromisesPtr = nullptr;
 
 #if VOXEL_DEBUG
-	FVoxelCriticalSection StacksCriticalSection;
-	TVoxelMap<FVoxelPromiseState*, TVoxelStaticArray_ForceInit<void*, 14>> PromiseStateToStackFrames_RequiresLock;
+	FVoxelCriticalSection PromisesCriticalSection;
+	TVoxelSet<FVoxelPromiseState*> Promises_RequiresLock;
 #endif
 
 private:
@@ -74,9 +96,48 @@ public:
 	~FVoxelTaskDispatcherScope();
 
 	static IVoxelTaskDispatcher& Get();
-	static IVoxelTaskDispatcher& GetDefault();
+	static IVoxelTaskDispatcher& GetGlobal();
+
+	template<
+		typename LambdaType,
+		typename T = typename LambdaReturnType_T<LambdaType>::Type>
+	static TVoxelFuture<T> CallInGlobalScope(LambdaType Lambda)
+	{
+		IVoxelTaskDispatcher& Dispatcher = Get();
+		IVoxelTaskDispatcher& GlobalDispatcher = GetGlobal();
+
+		TVoxelFuture<T> Future;
+		{
+			FVoxelTaskDispatcherScope Scope(GlobalDispatcher);
+			Future = Lambda();
+		}
+		return Dispatcher.Wrap(Future, GlobalDispatcher);
+	}
 
 private:
 	IVoxelTaskDispatcher& Dispatcher;
 	void* const PreviousTLS;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template<typename T>
+TVoxelFuture<T> IVoxelTaskDispatcher::Wrap(
+	const TVoxelFuture<T>& Other,
+	IVoxelTaskDispatcher& OtherDispatcher)
+{
+	FVoxelTaskDispatcherScope Scope(*this);
+
+	const TVoxelPromise<T> Promise;
+
+	Wrap(static_cast<const FVoxelFuture&>(Other), OtherDispatcher).Then_AnyThread([this, Other, Promise]
+	{
+		checkVoxelSlow(&FVoxelTaskDispatcherScope::Get() == this);
+
+		Promise.Set(Other.GetValueChecked());
+	});
+
+	return Promise.GetFuture();
+}

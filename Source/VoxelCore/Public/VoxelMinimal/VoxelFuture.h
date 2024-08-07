@@ -9,6 +9,7 @@
 
 class FVoxelFuture;
 class FVoxelPromise;
+class IVoxelTaskDispatcher;
 class FVoxelTaskDispatcherKeepAliveRef;
 
 template<typename>
@@ -107,10 +108,15 @@ private:
 	FSharedVoidPtr Value_RequiresLock;
 	FThreadToContinuation ThreadToContinuation_RequiresLock;
 	TSharedPtr<FVoxelTaskDispatcherKeepAliveRef> KeepAliveRef_RequiresLock;
+#if VOXEL_DEBUG
+	TWeakPtr<IVoxelTaskDispatcher> Dispatcher_DebugOnly;
+	TVoxelStaticArray_ForceInit<void*, 14> DebugStackFrames;
+#endif
 
 	FVoxelPromiseState();
 
 	friend FVoxelPromise;
+	friend IVoxelTaskDispatcher;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -189,6 +195,7 @@ protected:
 
 	friend FVoxelPromise;
 	friend FVoxelPromiseState;
+	friend IVoxelTaskDispatcher;
 
 public:
 	template<
@@ -249,6 +256,7 @@ template<typename T>
 class TVoxelFuture : public FVoxelFuture
 {
 public:
+	using Type = T;
 	using PromiseType = TVoxelPromise<T>;
 
 	TVoxelFuture() = default;
