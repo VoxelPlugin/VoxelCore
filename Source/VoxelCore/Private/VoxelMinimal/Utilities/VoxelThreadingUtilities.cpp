@@ -92,7 +92,12 @@ void Voxel::AsyncTask_SkipDispatcher(TVoxelUniqueFunction<void()> Lambda)
 thread_local bool GVoxelAllowParallelTasks = false;
 thread_local TVoxelChunkedArray<TVoxelUniqueFunction<void()>> GVoxelTasks;
 
-void FVoxelUtilities::Task(TVoxelUniqueFunction<void()> Lambda)
+bool Voxel::AllowParallelTasks()
+{
+	return GVoxelAllowParallelTasks;
+}
+
+void Voxel::ParallelTask(TVoxelUniqueFunction<void()> Lambda)
 {
 	if (!GVoxelAllowParallelTasks)
 	{
@@ -103,7 +108,7 @@ void FVoxelUtilities::Task(TVoxelUniqueFunction<void()> Lambda)
 	GVoxelTasks.Add(MoveTemp(Lambda));
 }
 
-void FVoxelUtilities::FlushTasks()
+void Voxel::FlushParallelTasks()
 {
 	VOXEL_FUNCTION_COUNTER();
 

@@ -189,7 +189,7 @@ namespace FVoxelUtilities
 		const ScalarType d = VectorType::DotProduct(CA, CB);
 
 		const ScalarType Determinant = SizeCA * SizeCB - d * d;
-		checkVoxelSlow(Determinant > 0.f);
+		ensureVoxelSlow(Determinant > 0.f);
 
 		OutAlphaA = (SizeCB * a - d * b) / Determinant;
 		OutAlphaB = (SizeCA * b - d * a) / Determinant;

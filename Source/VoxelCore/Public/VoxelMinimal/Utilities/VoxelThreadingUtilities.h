@@ -406,10 +406,11 @@ void ParallelFor_Values(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-namespace FVoxelUtilities
+namespace Voxel
 {
-	VOXELCORE_API void Task(TVoxelUniqueFunction<void()> Lambda);
-	VOXELCORE_API void FlushTasks();
+	VOXELCORE_API bool AllowParallelTasks();
+	VOXELCORE_API void ParallelTask(TVoxelUniqueFunction<void()> Lambda);
+	VOXELCORE_API void FlushParallelTasks();
 }
 
 class VOXELCORE_API FVoxelTaskScope
