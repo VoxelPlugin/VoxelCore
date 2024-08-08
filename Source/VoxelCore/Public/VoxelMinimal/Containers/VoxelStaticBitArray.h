@@ -182,10 +182,6 @@ public:
 			Other.GetWordData(),
 			NumWords() * sizeof(uint32));
 	}
-	FORCEINLINE bool operator!=(const TVoxelStaticBitArray& Other) const
-	{
-		return !(*this == Other);
-	}
 
 private:
 	ArrayType Array{ NoInit };

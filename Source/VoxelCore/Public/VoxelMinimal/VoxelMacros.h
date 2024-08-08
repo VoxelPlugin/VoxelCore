@@ -398,7 +398,6 @@ public:
 	FORCEINLINE bool IsValid() const { return Id != 0; }
 
 	FORCEINLINE bool operator==(const TVoxelUniqueId& Other) const { return Id == Other.Id; }
-	FORCEINLINE bool operator!=(const TVoxelUniqueId& Other) const { return Id != Other.Id; }
 
 	FORCEINLINE bool operator<(const TVoxelUniqueId& Other) const { return Id < Other.Id; }
 	FORCEINLINE bool operator>(const TVoxelUniqueId& Other) const { return Id > Other.Id; }
@@ -463,10 +462,6 @@ public:
 	FORCEINLINE bool operator==(const TVoxelIndex& Other) const
 	{
 		return Index == Other.Index;
-	}
-	FORCEINLINE bool operator!=(const TVoxelIndex& Other) const
-	{
-		return Index != Other.Index;
 	}
 
 	FORCEINLINE friend uint32 GetTypeHash(const TVoxelIndex InIndex)

@@ -207,8 +207,4 @@ public:
 
 public:
 	bool operator==(const FVoxelPropertyValueBase& Other) const;
-	bool operator!=(const FVoxelPropertyValueBase& Other) const
-	{
-		return !(*this == Other);
-	}
 };

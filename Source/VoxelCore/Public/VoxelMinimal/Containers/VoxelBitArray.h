@@ -143,11 +143,6 @@ public:
 
 		return FVoxelUtilities::MemoryEqual(GetWordData(), Other.GetWordData(), NumWords() * sizeof(uint32));
 	}
-	template<typename OtherAllocator>
-	FORCEINLINE bool operator!=(const TVoxelBitArray<OtherAllocator>& Other)
-	{
-		return !(*this == Other);
-	}
 
 public:
 	friend FArchive& operator<<(FArchive& Ar, TVoxelBitArray& BitArray)

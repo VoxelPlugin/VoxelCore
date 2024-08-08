@@ -177,10 +177,6 @@ public:
 	{
 		return Other.Index == Index;
 	}
-	FORCEINLINE bool operator!=(const TVoxelSparseArrayIndex Other) const
-	{
-		return Other.Index != Index;
-	}
 
 	FORCEINLINE friend uint32 GetTypeHash(const TVoxelSparseArrayIndex Value)
 	{

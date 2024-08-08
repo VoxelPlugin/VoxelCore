@@ -53,13 +53,6 @@ struct FVoxelColor3
 			G == Other.G &&
 			B == Other.B;
 	}
-	FORCEINLINE bool operator!=(const FVoxelColor3& Other) const
-	{
-		return
-			R != Other.R ||
-			G != Other.G ||
-			B != Other.B;
-	}
 
 	FORCEINLINE uint32 AsInt() const
 	{
@@ -211,13 +204,6 @@ struct FVoxelLinearColor3
 			R == Other.R &&
 			G == Other.G &&
 			B == Other.B;
-	}
-	FORCEINLINE bool operator!=(const FVoxelLinearColor3& Other) const
-	{
-		return
-			R != Other.R ||
-			G != Other.G ||
-			B != Other.B;
 	}
 
 	FORCEINLINE friend uint32 GetTypeHash(const FVoxelLinearColor3& Color)

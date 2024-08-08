@@ -89,10 +89,6 @@ public:
 	{
 		return Super::operator==(Other);
 	}
-	bool operator!=(const FVoxelPropertyTerminalValue& Other) const
-	{
-		return Super::operator!=(Other);
-	}
 
 	friend uint32 GetTypeHash(const FVoxelPropertyTerminalValue& Value)
 	{
@@ -192,10 +188,6 @@ public:
 	bool operator==(const FVoxelPropertyValue& Other) const
 	{
 		return Super::operator==(Other);
-	}
-	bool operator!=(const FVoxelPropertyValue& Other) const
-	{
-		return Super::operator!=(Other);
 	}
 
 	friend uint32 GetTypeHash(const FVoxelPropertyValue& Value)

@@ -42,7 +42,7 @@ public:
 	//~ End UPrimitiveComponent Interface
 };
 
-UCLASS(HideCategories = ("Rendering", "Replication", "Input", "Collision", "LOD", "HLOD", "Cooking", "DataLayers", "Networking", "Physics"))
+UCLASS()
 class VOXELCORE_API AVoxelActorBase : public AActor
 {
 	GENERATED_BODY()

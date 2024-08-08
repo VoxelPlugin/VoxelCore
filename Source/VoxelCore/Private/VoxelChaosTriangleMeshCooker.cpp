@@ -255,6 +255,7 @@ UE_504_SWITCH(TSharedPtr, TRefCountPtr)<Chaos::FTriangleMeshImplicitObject> FVox
 	const TConstVoxelArrayView<uint16> FaceMaterials)
 {
 	VOXEL_FUNCTION_COUNTER();
+	ensure(FaceMaterials.Num() == 0 || FaceMaterials.Num() == Indices.Num() / 3);
 
 	if (Indices.Num() == 0 ||
 		!ensure(Indices.Num() % 3 == 0))

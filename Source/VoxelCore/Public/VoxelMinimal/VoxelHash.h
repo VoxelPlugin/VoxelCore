@@ -16,10 +16,6 @@ public:
 	{
 		return AB == Other.AB && CD == Other.CD && EF == Other.EF;
 	}
-	bool operator!=(const FVoxelHash& Other) const
-	{
-		return AB != Other.AB || CD != Other.CD || EF != Other.EF;
-	}
 
 private:
 	union

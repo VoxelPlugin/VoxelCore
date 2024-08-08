@@ -220,10 +220,6 @@ public:
 	{
 		return CompareItems(GetData(), Other.GetData(), Num());
 	}
-	bool operator!=(const TVoxelStaticArray& Other) const
-	{
-		return !(*this == Other);
-	}
 
 private:
 	uint8 Data[Size * sizeof(T)];

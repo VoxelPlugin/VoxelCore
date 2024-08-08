@@ -209,10 +209,6 @@ public:
 	{
 		return Identical(&Other, PPF_None);
 	}
-	bool operator!=(const FVoxelInstancedStruct& Other) const
-	{
-		return !Identical(&Other, PPF_None);
-	}
 
 protected:
 	UScriptStruct* PrivateScriptStruct = nullptr;
@@ -443,10 +439,6 @@ public:
 	FORCEINLINE bool operator==(const TVoxelInstancedStruct& Other) const
 	{
 		return FVoxelInstancedStruct::operator==(Other);
-	}
-	FORCEINLINE bool operator!=(const TVoxelInstancedStruct& Other) const
-	{
-		return FVoxelInstancedStruct::operator!=(Other);
 	}
 
 private:

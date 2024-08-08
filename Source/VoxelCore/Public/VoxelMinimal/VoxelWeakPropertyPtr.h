@@ -67,12 +67,6 @@ public:
 			WeakObject == Other.WeakObject &&
 			PropertyPtr == Other.PropertyPtr;
 	}
-	FORCEINLINE bool operator!=(const TVoxelWeakPropertyPtr& Other) const
-	{
-		return
-			WeakObject != Other.WeakObject ||
-			PropertyPtr != Other.PropertyPtr;
-	}
 
 	FORCEINLINE friend uint32 GetTypeHash(const TVoxelWeakPropertyPtr& Key)
 	{

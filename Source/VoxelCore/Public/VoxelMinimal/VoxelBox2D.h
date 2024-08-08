@@ -306,10 +306,6 @@ struct VOXELCORE_API FVoxelBox2D
 	{
 		return Min == Other.Min && Max == Other.Max;
 	}
-	FORCEINLINE bool operator!=(const FVoxelBox2D& Other) const
-	{
-		return Min != Other.Min || Max != Other.Max;
-	}
 
 	FORCEINLINE FVoxelBox2D& operator+=(const FVoxelBox2D& Other)
 	{
@@ -414,10 +410,6 @@ struct FVoxelOptionalBox2D
 			return true;
 		}
 		return Box == Other.Box;
-	}
-	FORCEINLINE bool operator!=(const FVoxelOptionalBox2D& Other) const
-	{
-		return !(*this == Other);
 	}
 
 	FORCEINLINE FVoxelOptionalBox2D& operator+=(const FVoxelBox2D& Other)

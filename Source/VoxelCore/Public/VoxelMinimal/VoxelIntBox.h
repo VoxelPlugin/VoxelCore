@@ -620,10 +620,6 @@ struct VOXELCORE_API FVoxelIntBox
 	{
 		return Min == Other.Min && Max == Other.Max;
 	}
-	FORCEINLINE bool operator!=(const FVoxelIntBox& Other) const
-	{
-		return Min != Other.Min || Max != Other.Max;
-	}
 
 	template<
 		typename LambdaType,
@@ -825,10 +821,6 @@ struct FVoxelOptionalIntBox
 			return true;
 		}
 		return Box == Other.Box;
-	}
-	FORCEINLINE bool operator!=(const FVoxelOptionalIntBox& Other) const
-	{
-		return !(*this == Other);
 	}
 
 	FORCEINLINE FVoxelOptionalIntBox& operator+=(const FVoxelIntBox& Other)

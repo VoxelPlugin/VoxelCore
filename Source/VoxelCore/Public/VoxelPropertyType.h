@@ -315,13 +315,6 @@ public:
 			ContainerType == Other.ContainerType &&
 			GetInternalField() == Other.GetInternalField();
 	}
-	FORCEINLINE bool operator!=(const FVoxelPropertyType& Other) const
-	{
-		return
-			InternalType != Other.InternalType ||
-			ContainerType != Other.ContainerType ||
-			GetInternalField() != Other.GetInternalField();
-	}
 
 	FORCEINLINE friend uint32 GetTypeHash(const FVoxelPropertyType& Type)
 	{
