@@ -1204,3 +1204,31 @@ VOXELCORE_API void ExitVoxelAllowLeakScope();
 #else
 #define VOXEL_ALLOW_LEAK_SCOPE()
 #endif
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#define DEFINE_PRIVATE_ACCESS(Class, Property, PropertyType) \
+	namespace Voxel::Private::Property ## Impl::Class ## Impl \
+	{ \
+		template<PropertyType Class::*PropertyPtr> \
+		struct TTemplate \
+		{ \
+			FORCEINLINE friend PropertyType& Ref(Class& Object) \
+			{ \
+				return Object.*PropertyPtr; \
+			} \
+		}; \
+		template struct TTemplate<&Class::Property>; \
+		\
+		PropertyType& Ref(Class& Object); \
+	}
+
+#define PRIVATE_ACCESS_REF(Class, Property) \
+	[](Class& Object) -> auto& \
+	{ \
+		int32 Property = 0; \
+		(void)Property; \
+		return Voxel::Private::Property ## Impl::Class ## Impl::Ref(Object); \
+	}

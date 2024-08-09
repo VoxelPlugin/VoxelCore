@@ -706,6 +706,35 @@ void FVoxelRenderUtilities::AsyncCopyTexture(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+DEFINE_PRIVATE_ACCESS(FRDGBuilder, Textures, FRDGTextureRegistry);
+
+FRDGTextureRef FVoxelRenderUtilities::FindTexture(
+	FRDGBuilder& GraphBuilder,
+	const FString& Name)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	FRDGTextureRef Result = nullptr;
+
+	FRDGTextureRegistry& Textures = PRIVATE_ACCESS_REF(FRDGBuilder, Textures)(GraphBuilder);
+	Textures.Enumerate([&](FRDGTexture* Texture)
+	{
+		if (FStringView(Texture->Name) != Name)
+		{
+			return;
+		}
+
+		ensure(!Result);
+		Result = Texture;
+	});
+
+	return Result;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 namespace Voxel::RenderUtilities
 {
 	BEGIN_VOXEL_COMPUTE_SHADER("Voxel/Utilities", BuildIndirectDispatchArgs)

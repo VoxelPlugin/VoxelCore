@@ -70,6 +70,21 @@ public:
 		checkVoxelSlow(LockerThreadId.Get() == 0);
 		VOXEL_DEBUG_ONLY(LockerThreadId.Set(FPlatformTLS::GetCurrentThreadId()));
 	}
+	FORCEINLINE bool TryLock()
+	{
+		checkVoxelSlow(LockerThreadId.Get() != FPlatformTLS::GetCurrentThreadId());
+
+		if (Storage.bIsLocked.Exchange_ReturnOld(true, std::memory_order_acquire) == true)
+		{
+			return false;
+		}
+
+		checkVoxelSlow(LockerThreadId.Get() == 0);
+		VOXEL_DEBUG_ONLY(LockerThreadId.Set(FPlatformTLS::GetCurrentThreadId()));
+
+		return true;
+	}
+
 	FORCEINLINE void Unlock()
 	{
 		checkVoxelSlow(LockerThreadId.Get() == FPlatformTLS::GetCurrentThreadId());

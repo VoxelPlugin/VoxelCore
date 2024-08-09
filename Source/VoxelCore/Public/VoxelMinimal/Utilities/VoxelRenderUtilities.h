@@ -869,6 +869,10 @@ public:
 		const TSharedRef<const TVoxelArray<uint8>>& Data,
 		const FSimpleDelegate& OnComplete);
 
+	static FRDGTextureRef FindTexture(
+		FRDGBuilder& GraphBuilder,
+		const FString& Name);
+
 public:
 	static void BuildIndirectDispatchArgsFromNum_1D(
 		FRDGBuilder& GraphBuilder,

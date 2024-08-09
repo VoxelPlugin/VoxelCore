@@ -65,10 +65,9 @@ private:
 	FVoxelCriticalSection Threads_CriticalSection;
 	TVoxelArray<TUniquePtr<FThread>> Threads_RequiresLock;
 
-	mutable FVoxelSharedCriticalSection Executors_CriticalSection;
-	TVoxelSet<IVoxelTaskExecutor*> Executors_RequiresLock;
-
-	void LockWriteExecutors();
+	mutable FVoxelCriticalSection Executors_CriticalSection;
+	TVoxelArray<IVoxelTaskExecutor*> Executors_RequiresLock;
+	TVoxelArray<IVoxelTaskExecutor*> ActiveExecutors_RequiresLock;
 
 	friend IVoxelTaskExecutor;
 };
