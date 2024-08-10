@@ -53,7 +53,7 @@ public:
 			return A > B;
 		});
 
-		LOG_VOXEL(Log, "%d promises", StackFrames_RequiresLock.Num());
+		LOG_VOXEL(Log, "%d unfulfilled promises", StackFrames_RequiresLock.Num());
 
 		for (const auto& It : StackFramesToCount)
 		{
@@ -112,6 +112,7 @@ FVoxelPromiseState::~FVoxelPromiseState()
 	if (DebugStackIndex != -1)
 	{
 		GVoxelPromiseTracking.RemoveStackIndex(DebugStackIndex);
+		DebugStackIndex = -1;
 	}
 
 #if VOXEL_DEBUG
@@ -166,6 +167,12 @@ void FVoxelPromiseState::Set(const FSharedVoidRef& Value)
 	if (Dispatcher.NumPromisesPtr)
 	{
 		Dispatcher.NumPromisesPtr->Decrement();
+	}
+
+	if (DebugStackIndex != -1)
+	{
+		GVoxelPromiseTracking.RemoveStackIndex(DebugStackIndex);
+		DebugStackIndex = -1;
 	}
 }
 
