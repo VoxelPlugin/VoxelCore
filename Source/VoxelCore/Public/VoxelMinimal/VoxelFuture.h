@@ -6,6 +6,7 @@
 #include "VoxelMinimal/VoxelUniqueFunction.h"
 #include "VoxelMinimal/VoxelCriticalSection.h"
 #include "VoxelMinimal/Containers/VoxelMap.h"
+#include "VoxelMinimal/Utilities/VoxelSystemUtilities.h"
 
 class FVoxelFuture;
 class FVoxelPromise;
@@ -100,6 +101,10 @@ public:
 		EVoxelFutureThread Thread,
 		TVoxelUniqueFunction<void(const FSharedVoidRef&)> Continuation);
 
+public:
+	static void EnableTracking();
+	static void DumpAllPromises();
+
 private:
 	using FThreadToContinuation = TVoxelInlineArray<TPair<EVoxelFutureThread, TVoxelUniqueFunction<void(const FSharedVoidRef&)>>, 1>;
 
@@ -110,8 +115,9 @@ private:
 	TSharedPtr<FVoxelTaskDispatcherKeepAliveRef> KeepAliveRef_RequiresLock;
 #if VOXEL_DEBUG
 	TWeakPtr<IVoxelTaskDispatcher> Dispatcher_DebugOnly;
-	TVoxelStaticArray_ForceInit<void*, 14> DebugStackFrames;
+	FVoxelStackFrames DebugStackFrames;
 #endif
+	int32 DebugStackIndex = -1;
 
 	FVoxelPromiseState();
 

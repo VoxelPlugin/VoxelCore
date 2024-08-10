@@ -119,9 +119,8 @@ void FVoxelMemoryScope::Clear()
 ///////////////////////////////////////////////////////////////////////////////
 
 #if VOXEL_DEBUG
-using FVoxelMemoryStackFrames = TVoxelStaticArray_ForceInit<void*, 14>;
 FVoxelCriticalSection GVoxelValidAllocationsCriticalSection;
-TVoxelMap<void*, FVoxelMemoryStackFrames, TVoxelMapArrayType<FDefaultAllocator>> GVoxelValidAllocations;
+TVoxelMap<void*, FVoxelStackFrames, TVoxelMapArrayType<FDefaultAllocator>> GVoxelValidAllocations;
 bool GVoxelCheckValidAllocations = false;
 
 VOXEL_RUN_ON_STARTUP_GAME()
@@ -151,7 +150,7 @@ void UpdateVoxelAllocationStackFrames(void* Result, const bool bIsAdd)
 	}
 
 	VOXEL_SCOPE_LOCK(GVoxelValidAllocationsCriticalSection);
-	FVoxelMemoryStackFrames& StackFrames =
+	FVoxelStackFrames& StackFrames =
 		bIsAdd
 		? GVoxelValidAllocations.Add_CheckNew(Result)
 		: GVoxelValidAllocations.FindChecked(Result);

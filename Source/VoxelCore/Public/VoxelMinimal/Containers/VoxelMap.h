@@ -139,6 +139,17 @@ public:
 	}
 
 public:
+	TVoxelMap(std::initializer_list<TPairInitializer<const KeyType&, const ValueType&>> Initializer)
+	{
+		this->Reserve(Initializer.size());
+
+		for (const TPairInitializer<const KeyType&, const ValueType&>& Element : Initializer)
+		{
+			this->FindOrAdd(Element.Key) = Element.Value;
+		}
+	}
+
+public:
 	FORCEINLINE int32 Num() const
 	{
 		return Elements.Num();

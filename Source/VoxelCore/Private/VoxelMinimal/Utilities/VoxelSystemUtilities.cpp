@@ -141,18 +141,18 @@ FString FVoxelUtilities::Unzip(const TArray<uint8>& Data, TMap<FString, TVoxelAr
 	return {};
 }
 
-TVoxelStaticArray_ForceInit<void*, 14> FVoxelUtilities::GetStackFrames(const int32 NumFramesToIgnore)
+FVoxelStackFrames FVoxelUtilities::GetStackFrames(const int32 NumFramesToIgnore)
 {
 	TVoxelStaticArray<void*, 64> TmpStackFramesAllocation(NoInit);
 
-	TVoxelArrayView<void*> TmpStackFrames = MakeVoxelArrayView(TmpStackFramesAllocation).LeftOf(14 + NumFramesToIgnore);
+	TVoxelArrayView<void*> TmpStackFrames = MakeVoxelArrayView(TmpStackFramesAllocation).LeftOf(FVoxelStackFrames::Num() + NumFramesToIgnore);
 	FVoxelUtilities::Memzero(TmpStackFrames);
 
 	FPlatformStackWalk::CaptureStackBackTrace(
 		ReinterpretCastPtr<uint64>(TmpStackFrames.GetData()),
 		TmpStackFrames.Num());
 
-	TVoxelStaticArray_ForceInit<void*, 14> StackFrames;
+	FVoxelStackFrames StackFrames;
 
 	FVoxelUtilities::Memcpy(
 		MakeVoxelArrayView(StackFrames),

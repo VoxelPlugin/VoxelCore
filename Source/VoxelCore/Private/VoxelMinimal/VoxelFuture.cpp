@@ -5,12 +5,92 @@
 
 DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelPromiseState);
 
+struct FVoxelPromiseTracking
+{
+public:
+	bool bEnable = false;
+	FVoxelCriticalSection CriticalSection;
+	TVoxelSparseArray<FVoxelStackFrames> StackFrames_RequiresLock;
+
+public:
+	FORCENOINLINE int32 GetStackIndex()
+	{
+		const FVoxelStackFrames StackFrames = FVoxelUtilities::GetStackFrames(4);
+
+		VOXEL_SCOPE_LOCK(CriticalSection);
+		return StackFrames_RequiresLock.Add(StackFrames);
+	}
+	FORCENOINLINE void RemoveStackIndex(const int32 StackIndex)
+	{
+		VOXEL_SCOPE_LOCK(CriticalSection);
+		StackFrames_RequiresLock.RemoveAt(StackIndex);
+	}
+
+public:
+	void DumpToLog()
+	{
+		VOXEL_FUNCTION_COUNTER();
+
+		if (!bEnable)
+		{
+			return;
+		}
+
+		FPlatformStackWalk::InitStackWalking();
+
+		VOXEL_SCOPE_LOCK(CriticalSection);
+
+		TVoxelMap<FVoxelStackFrames, int32> StackFramesToCount;
+		StackFramesToCount.Reserve(StackFrames_RequiresLock.Num());
+
+		for (const FVoxelStackFrames& StackFrames : StackFrames_RequiresLock)
+		{
+			StackFramesToCount.FindOrAdd(StackFrames)++;
+		}
+
+		StackFramesToCount.ValueSort([](const int32 A, const int32 B)
+		{
+			return A > B;
+		});
+
+		LOG_VOXEL(Log, "%d promises", StackFrames_RequiresLock.Num());
+
+		for (const auto& It : StackFramesToCount)
+		{
+			LOG_VOXEL(Log, "-----------------------------------");
+			LOG_VOXEL(Log, "x%d:", It.Value);
+
+			for (const void* Address : It.Key)
+			{
+				if (!Address)
+				{
+					continue;
+				}
+
+				FProgramCounterSymbolInfoEx SymbolInfo;
+				FPlatformStackWalk::ProgramCounterToSymbolInfoEx(uint64(Address), SymbolInfo);
+
+				FString SymbolText;
+				FPlatformStackWalk::SymbolInfoToHumanReadableStringEx(SymbolInfo, SymbolText);
+
+				LOG_VOXEL(Log, "%p: %s", Address, *SymbolText);
+			}
+		}
+	}
+};
+FVoxelPromiseTracking GVoxelPromiseTracking;
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 FVoxelPromiseState::FVoxelPromiseState()
 {
+	if (GVoxelPromiseTracking.bEnable)
+	{
+		DebugStackIndex = GVoxelPromiseTracking.GetStackIndex();
+	}
+
 	IVoxelTaskDispatcher& Dispatcher = FVoxelTaskDispatcherScope::Get();
 
 	if (FVoxelCounter32* NumPromisesPtr = Dispatcher.NumPromisesPtr)
@@ -29,6 +109,11 @@ FVoxelPromiseState::FVoxelPromiseState()
 
 FVoxelPromiseState::~FVoxelPromiseState()
 {
+	if (DebugStackIndex != -1)
+	{
+		GVoxelPromiseTracking.RemoveStackIndex(DebugStackIndex);
+	}
+
 #if VOXEL_DEBUG
 	// Don't check FVoxelTaskDispatcherScope::Get() in destructor, enforcing destructor scoping is way too messy
 	// (eg single class could store futures from two different dispatchers)
@@ -135,6 +220,21 @@ void FVoxelPromiseState::AddContinuation(
 	{
 		Continuation(Value);
 	});
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void FVoxelPromiseState::EnableTracking()
+{
+	LOG_VOXEL(Log, "Enabling promise tracking");
+	GVoxelPromiseTracking.bEnable = true;
+}
+
+void FVoxelPromiseState::DumpAllPromises()
+{
+	GVoxelPromiseTracking.DumpToLog();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
