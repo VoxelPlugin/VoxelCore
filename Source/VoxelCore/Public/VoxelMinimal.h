@@ -35,7 +35,6 @@
 
 #include "VoxelCoreMinimal.h"
 
-#include "VoxelMinimal/RefCountPtr_RenderThread.h"
 #include "VoxelMinimal/VoxelArchive.h"
 #include "VoxelMinimal/VoxelAtomic.h"
 #include "VoxelMinimal/VoxelAutoFactoryInterface.h"
@@ -65,6 +64,7 @@
 #include "VoxelMinimal/VoxelObjectHelpers.h"
 #include "VoxelMinimal/VoxelOctahedron.h"
 #include "VoxelMinimal/VoxelRange.h"
+#include "VoxelMinimal/VoxelResourceArrayRef.h"
 #include "VoxelMinimal/VoxelSharedPtr.h"
 #include "VoxelMinimal/VoxelSingleton.h"
 #include "VoxelMinimal/VoxelStructView.h"

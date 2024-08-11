@@ -275,8 +275,6 @@ public: \
 
 #define VOXEL_PURE_VIRTUAL(...) { ensureMsgf(false, TEXT("Pure virtual %s called"), *FString(__FUNCTION__)); return __VA_ARGS__; }
 
-#define VOXEL_USE_VARIABLE(Name) ensure(&Name != reinterpret_cast<void*>(0x1234))
-
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -322,12 +320,12 @@ struct TVoxelCounterDummy
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-namespace VoxelInternal
+namespace Voxel::Internal
 {
-	struct FVoxelOnConstruct
+	struct FOnConstruct
 	{
 		template<typename LambdaType>
-		FVoxelOnConstruct operator+(LambdaType&& Lambda)
+		FOnConstruct operator+(LambdaType&& Lambda)
 		{
 			Lambda();
 			return {};
@@ -335,7 +333,13 @@ namespace VoxelInternal
 	};
 }
 
-#define VOXEL_ON_CONSTRUCT() VoxelInternal::FVoxelOnConstruct VOXEL_APPEND_LINE(__OnConstruct) = VoxelInternal::FVoxelOnConstruct() + [this]
+#define VOXEL_ON_CONSTRUCT() Voxel::Internal::FOnConstruct VOXEL_APPEND_LINE(__OnConstruct) = Voxel::Internal::FOnConstruct() + [this]
+
+#define INITIALIZATION_LAMBDA static const Voxel::Internal::FOnConstruct PREPROCESSOR_JOIN(__UniqueId, __COUNTER__) = Voxel::Internal::FOnConstruct() + []
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 #define VOXEL_SLATE_ARGS() \
 	struct FArguments; \

@@ -22,17 +22,16 @@
 #define SV_GroupIndex SV_GroupIndex
 #define SV_VertexID SV_VertexID
 #define SV_InstanceID SV_InstanceID
+#define SV_Position SV_Position
 #define SV_PrimitiveID SV_PrimitiveID
 #define SV_Barycentrics SV_Barycentrics
-#define SV_Position SV_Position
+#define SV_Depth SV_Depth
 #define SV_Target0 SV_Target0
 #define SV_Target1 SV_Target1
 #define SV_Target2 SV_Target2
 #define SV_Target3 SV_Target3
 #define SV_Target4 SV_Target4
 #define SV_Target5 SV_Target5
-#define SV_Target6 SV_Target6
-#define SV_Target7 SV_Target7
 #define TEXCOORD0 TEXCOORD0
 #define TEXCOORD1 TEXCOORD1
 #define TEXCOORD2 TEXCOORD2
@@ -50,6 +49,7 @@
 #define NEEDS_VERTEX_FACTORY_INTERPOLATION NEEDS_VERTEX_FACTORY_INTERPOLATION
 #define USE_DEVELOPMENT_SHADERS 1
 #define THREADGROUP_SIZE 64
+#define PIXELSHADER 1
 #define VF_USE_PRIMITIVE_SCENE_DATA 1
 
 #define PLATFORM_SUPPORTS_SRV_UB_MACRO(...) __VA_ARGS__

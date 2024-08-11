@@ -5,7 +5,6 @@
 
 namespace Voxel::Nanite
 {
-#if VOXEL_ENGINE_VERSION >= 504
 FORCEINLINE uint32 EncodeZigZag(const int32 Value)
 {
 	return uint32((Value << 1) ^ (Value >> 31));
@@ -71,7 +70,6 @@ FORCEINLINE uint32 EncodeUVFloat(const float Value, const uint32 NumMantissaBits
 
 	return Result;
 }
-#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -160,27 +158,6 @@ const FEncodingInfo& FCluster::GetEncodingInfo(const FEncodingSettings& Settings
 		VOXEL_SCOPE_COUNTER("UVs");
 
 		FUVRange& UVRange = Info.UVRanges.Emplace_GetRef();
-#if VOXEL_ENGINE_VERSION < 504
-		constexpr int32 UVBits = 8;
-
-		Info.BitsPerAttribute += 2 * UVBits;
-
-		UVRange.GapStart = FIntPoint(MAX_int32);
-
-		FVector2f Min{ ForceInit };
-		FVector2f Max{ ForceInit };
-		FVoxelUtilities::GetMinMax(TextureCoordinates[UVIndex], Min, Max);
-
-		const float Size = (Max - Min).GetMax();
-		const float PerfectStep = Size / ((1 << UVBits) - 1);
-		const int32 InversePrecision = FMath::CeilToInt(FMath::Log2(PerfectStep));
-		const float Step = FMath::Exp2(float(InversePrecision));
-
-		UVRange.Min = FVoxelUtilities::FloorToInt(Min / Step);
-		UVRange.Precision = -InversePrecision;
-
-		Info.UVQuantizationScales.Add(FMath::Exp2(float(UVRange.Precision)));
-#else
 		FUintVector2 UVMin = FUintVector2(0xFFFFFFFFu, 0xFFFFFFFFu);
 		FUintVector2 UVMax = FUintVector2(0u, 0u);
 
@@ -202,7 +179,6 @@ const FEncodingInfo& FCluster::GetEncodingInfo(const FEncodingSettings& Settings
 		UVRange.NumBits.Y = FMath::CeilLogTwo(UVDelta.Y + 1u);
 
 		Info.BitsPerAttribute += UVRange.NumBits.X + UVRange.NumBits.Y;
-#endif
 		Info.UVMins.Add(UVRange.Min);
 	}
 
@@ -210,7 +186,7 @@ const FEncodingInfo& FCluster::GetEncodingInfo(const FEncodingSettings& Settings
 	GpuSizes.Cluster = sizeof(FPackedCluster);
 	GpuSizes.MaterialTable = 0;
 	GpuSizes.VertReuseBatchInfo = 0;
-	GpuSizes.DecodeInfo = TextureCoordinates.Num() * sizeof(UE_504_SWITCH(FUVRange, FPackedUVRange));
+	GpuSizes.DecodeInfo = TextureCoordinates.Num() * sizeof(FPackedUVRange);
 
 	const int32 BitsPerTriangle = Info.BitsPerIndex + 2 * 5; // Base index + two 5-bit offsets
 	GpuSizes.Index = FMath::DivideAndRoundUp(NumTriangles() * BitsPerTriangle, 32) * sizeof(uint32);
@@ -310,14 +286,6 @@ FPackedCluster FCluster::Pack(const FEncodingInfo& Info) const
 	Result.SetNormalPrecision(Info.Settings.NormalBits);
 	Result.SetNumUVs(TextureCoordinates.Num());
 
-#if VOXEL_ENGINE_VERSION < 504
-	constexpr int32 UVBits = 8;
-
-	for (int32 UVIndex = 0; UVIndex < TextureCoordinates.Num(); UVIndex++)
-	{
-		Result.UV_Prec |= ((UVBits << 4) | UVBits) << (UVIndex * 8);
-	}
-#else
 	check(TextureCoordinates.Num() <= NANITE_MAX_UVS);
 
 	uint32 BitOffset = 0;
@@ -329,7 +297,6 @@ FPackedCluster FCluster::Pack(const FEncodingInfo& Info) const
 		const FUVRange& UVRange = Info.UVRanges[UVIndex];
 		BitOffset += UVRange.NumBits.X + UVRange.NumBits.Y;
 	}
-#endif
 
 	return Result;
 }
@@ -441,13 +408,6 @@ void CreatePageData(
 
 	TVoxelChunkedRef<FPageDiskHeader> PageDiskHeader = AllocateChunkedRef(PageData);
 	PageDiskHeader->NumClusters = Clusters.Num();
-#if VOXEL_ENGINE_VERSION < 504
-	PageDiskHeader->GpuSize = PageGpuSizes.GetTotal();
-	PageDiskHeader->NumRawFloat4s =
-		sizeof(FPageGPUHeader) / 16 +
-		Clusters.Num() * (sizeof(FPackedCluster) + NumUVs * sizeof(FUVRange)) / 16;
-	PageDiskHeader->NumTexCoords = NumUVs;
-#endif
 
 	TVoxelChunkedArrayRef<FClusterDiskHeader> ClusterDiskHeaders = AllocateChunkedArrayRef(PageData, Clusters.Num());
 
@@ -483,9 +443,6 @@ void CreatePageData(
 			{
 				const FUVRange UVRange = Info.UVRanges[UVIndex];
 
-#if VOXEL_ENGINE_VERSION < 504
-				PageData.Append(MakeByteVoxelArrayView(UVRange));
-#else
 				checkVoxelSlow(UVRange.NumBits.X <= NANITE_UV_FLOAT_MAX_BITS && UVRange.NumBits.Y <= NANITE_UV_FLOAT_MAX_BITS);
 				checkVoxelSlow(UVRange.Min.X < (1u << NANITE_UV_FLOAT_MAX_BITS) && UVRange.Min.Y < (1u << NANITE_UV_FLOAT_MAX_BITS));
 
@@ -493,7 +450,6 @@ void CreatePageData(
 				PackedUVRange.Data.X = (UVRange.Min.X << 5) | UVRange.NumBits.X;
 				PackedUVRange.Data.Y = (UVRange.Min.Y << 5) | UVRange.NumBits.Y;
 				PageData.Append(MakeByteVoxelArrayView(PackedUVRange));
-#endif
 			}
 		}
 
@@ -615,94 +571,6 @@ void CreatePageData(
 		}
 	}
 
-#if VOXEL_ENGINE_VERSION < 504
-	{
-		VOXEL_SCOPE_COUNTER("Write Positions");
-
-		const float QuantizationScale = FMath::Exp2(float(EncodingSettings.PositionPrecision));
-
-		FVoxelBitWriter BitWriter_Position;
-
-		for (int32 ClusterIndex = 0; ClusterIndex < Clusters.Num(); ClusterIndex++)
-		{
-			const FCluster& Cluster = Clusters[ClusterIndex];
-			const FEncodingInfo& Info = EncodingInfos[ClusterIndex];
-			FClusterDiskHeader& ClusterDiskHeader = ClusterDiskHeaders[ClusterIndex];
-
-			BitWriter_Position.Reset();
-
-			for (const FVector3f& Position : Cluster.Positions)
-			{
-				const FIntVector IntPosition = FVoxelUtilities::RoundToInt(Position * QuantizationScale) - Info.PositionMin;
-
-				BitWriter_Position.Append(IntPosition.X, Info.PositionBits.X);
-				BitWriter_Position.Append(IntPosition.Y, Info.PositionBits.Y);
-				BitWriter_Position.Append(IntPosition.Z, Info.PositionBits.Z);
-				BitWriter_Position.Flush(1);
-			}
-			BitWriter_Position.Flush(sizeof(uint32));
-
-			ClusterDiskHeader.PositionDataOffset = GetPageOffset();
-			PageData.Append(BitWriter_Position.GetByteData());
-		}
-	}
-
-	{
-		VOXEL_SCOPE_COUNTER("Write Attributes");
-
-		FVoxelBitWriter BitWriter_Attribute;
-
-		for (int32 ClusterIndex = 0; ClusterIndex < Clusters.Num(); ClusterIndex++)
-		{
-			const FCluster& Cluster = Clusters[ClusterIndex];
-			const FEncodingInfo& Info = EncodingInfos[ClusterIndex];
-
-			BitWriter_Attribute.Reset();
-
-			// Quantize and write remaining shading attributes
-			for (int32 VertexIndex = 0; VertexIndex < Cluster.Positions.Num(); VertexIndex++)
-			{
-				// Normal
-				checkStatic(FEncodingSettings::NormalBits == 8);
-				const uint32 PackedNormal = ReinterpretCastRef<uint16>(Cluster.Normals[VertexIndex]);
-				BitWriter_Attribute.Append(PackedNormal, 2 * EncodingSettings.NormalBits);
-
-				// Color
-				if (Cluster.Colors.Num() > 0)
-				{
-					const FColor Color = Cluster.Colors[VertexIndex];
-
-					const int32 R = Color.R - Info.ColorMin.R;
-					const int32 G = Color.G - Info.ColorMin.G;
-					const int32 B = Color.B - Info.ColorMin.B;
-					const int32 A = Color.A - Info.ColorMin.A;
-					BitWriter_Attribute.Append(R, Info.ColorBits.X);
-					BitWriter_Attribute.Append(G, Info.ColorBits.Y);
-					BitWriter_Attribute.Append(B, Info.ColorBits.Z);
-					BitWriter_Attribute.Append(A, Info.ColorBits.W);
-				}
-
-				// UVs
-				for (int32 UVIndex = 0; UVIndex < NumUVs; UVIndex++)
-				{
-					const FVector2f UV = Cluster.TextureCoordinates[UVIndex][VertexIndex];
-					const int32 U = FMath::RoundToInt(UV.X * Info.UVQuantizationScales[UVIndex]) - Info.UVMins[UVIndex].X;
-					const int32 V = FMath::RoundToInt(UV.Y * Info.UVQuantizationScales[UVIndex]) - Info.UVMins[UVIndex].Y;
-
-					constexpr int32 UVBits = 8;
-
-					BitWriter_Attribute.Append(U, UVBits);
-					BitWriter_Attribute.Append(V, UVBits);
-				}
-				BitWriter_Attribute.Flush(1);
-			}
-			BitWriter_Attribute.Flush(sizeof(uint32));
-
-			ClusterDiskHeaders[ClusterIndex].AttributeDataOffset = GetPageOffset();
-			PageData.Append(BitWriter_Attribute.GetByteData());
-		}
-	}
-#else
 	{
 		VOXEL_SCOPE_COUNTER("Write Attributes");
 
@@ -904,6 +772,5 @@ void CreatePageData(
 			}
 		}
 	}
-#endif
 }
 }
