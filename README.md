@@ -5,6 +5,10 @@ It's essentially a layer on top Unreal to make it easier to write high-performan
 
 If you have questions or suggestions about the code, feel free to ask in #cpp in the plugin's Discord: [discord.voxelplugin.com](https://discord.voxelplugin.com)
 
+## Compatibility
+
+Voxel Core currently compiles on **5.4**. Check branches for older engine versions.
+
 ## Getting started
 
 Download this repo, put it in the Plugins folder of your project.
