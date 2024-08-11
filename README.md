@@ -1,7 +1,10 @@
 # Voxel Core
 
 Voxel Core is an open-source plugin with the Core module of [Voxel Plugin](https://voxelplugin.com/).
-It's essentially a layer on top Unreal to make it easier to write high-performance code & customize the editor. 
+It's essentially a layer on top Unreal to make it easier to write high-performance code & customize the editor.
+Unlike what the name might imply, there's barely any voxel-specific code included here - all of that lives in the other Voxel Plugin modules.
+
+This plugin is intented to be used in C++: if your project is blueprint-only, this will be of no use to you.
 
 If you have questions or suggestions about the code, feel free to ask in #cpp in the plugin's Discord: [discord.voxelplugin.com](https://discord.voxelplugin.com)
 
