@@ -5,7 +5,7 @@
 #include "Engine/StaticMesh.h"
 #include "Rendering/NaniteResources.h"
 
-TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
+TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData(TVoxelArray<TVoxelArray<int32>>* OutPageToClusterToVertexOffset)
 {
 	VOXEL_FUNCTION_COUNTER();
 	check(Mesh.Positions.Num() == Mesh.Normals.Num());
@@ -169,6 +169,21 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
 			ensure(GpuSize <= NANITE_ROOT_PAGE_GPU_SIZE);
 		}
 		check(ClusterIndex == AllClusters.Num());
+	}
+
+	if (OutPageToClusterToVertexOffset)
+	{
+		int32 VertexOffset = 0;
+		for (const TVoxelArray<FCluster>& Page : Pages)
+		{
+			TVoxelArray<int32>& ClusterToVertexOffset = OutPageToClusterToVertexOffset->Emplace_GetRef();
+
+			for (const FCluster& Cluster : Page)
+			{
+				ClusterToVertexOffset.Add(VertexOffset);
+				VertexOffset += Cluster.NumVertices();
+			}
+		}
 	}
 
 	TVoxelChunkedArray<uint8> RootData;

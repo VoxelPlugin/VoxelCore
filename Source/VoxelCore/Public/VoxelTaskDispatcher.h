@@ -98,6 +98,7 @@ public:
 	static IVoxelTaskDispatcher& Get();
 	static IVoxelTaskDispatcher& GetGlobal();
 
+	// Call the lambda in the global task dispatcher scope, avoiding any task leak or weird dependencies
 	template<
 		typename LambdaType,
 		typename T = typename LambdaReturnType_T<LambdaType>::Type>

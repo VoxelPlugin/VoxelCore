@@ -105,7 +105,7 @@ void FVoxelBufferPool::UpdateStats()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TSharedRef<FVoxelBufferRef> FVoxelBufferPool::Allocate_AnyThread(int64 Num)
+TSharedRef<FVoxelBufferRef> FVoxelBufferPool::Allocate_AnyThread(const int64 Num)
 {
 	const int32 PoolIndex = NumToPoolIndex(Num);
 
@@ -122,7 +122,10 @@ TSharedRef<FVoxelBufferRef> FVoxelBufferPool::Allocate_AnyThread(int64 Num)
 		Num);
 }
 
-TVoxelFuture<FVoxelBufferRef> FVoxelBufferPool::Upload_AnyThread(const TSharedPtr<FVoxelBufferRef>& ExistingBufferRef, const FSharedVoidPtr& Owner, const TConstVoxelArrayView64<uint8> Data)
+TVoxelFuture<FVoxelBufferRef> FVoxelBufferPool::Upload_AnyThread(
+	const FSharedVoidPtr& Owner,
+	const TConstVoxelArrayView64<uint8> Data,
+	const TSharedPtr<FVoxelBufferRef>& ExistingBufferRef)
 {
 	checkVoxelSlow(Data.Num() % BytesPerElement == 0);
 	checkVoxelSlow(!ExistingBufferRef || ExistingBufferRef->WeakPool == AsWeak());
@@ -130,12 +133,12 @@ TVoxelFuture<FVoxelBufferRef> FVoxelBufferPool::Upload_AnyThread(const TSharedPt
 	const TVoxelPromise<FVoxelBufferRef> Promise;
 
 	UploadQueue.Enqueue(FUpload
-		{
-			Owner,
-			Data,
-			ExistingBufferRef,
-			Promise
-		});
+	{
+		Owner,
+		Data,
+		ExistingBufferRef,
+		MakeSharedCopy(Promise)
+	});
 
 	CheckUploadQueue_AnyThread();
 
@@ -318,12 +321,12 @@ TVoxelArray<FVoxelBufferPool::FCopyInfo> FVoxelBufferPool::ProcessUploads_AnyThr
 			checkVoxelSlow(BufferRef->Num() == Num);
 
 			CopyInfos.Add(FCopyInfo
-				{
-					BufferRef,
-					Upload.BufferRefPromise,
-					UploadBuffer,
-					UploadIndex
-				});
+			{
+				BufferRef,
+				Upload.BufferRefPromise,
+				UploadBuffer,
+				UploadIndex
+			});
 
 			UploadIndex += Num;
 		}
@@ -399,6 +402,6 @@ void FVoxelBufferPool::ProcessCopies_RenderThread(
 			CopyInfo.BufferRef->Num() * BytesPerElement);
 
 		// Upload is complete: notify caller
-		CopyInfo.BufferRefPromise.Set(CopyInfo.BufferRef.ToSharedRef());
+		CopyInfo.BufferRefPromise->Set(CopyInfo.BufferRef.ToSharedRef());
 	}
 }

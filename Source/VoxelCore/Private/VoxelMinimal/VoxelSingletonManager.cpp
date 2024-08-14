@@ -146,6 +146,17 @@ void FVoxelSingletonManager::Tick()
 			Singleton->Tick_Async();
 		}
 	});
+
+	Voxel::RenderTask([this](FRHICommandList& RHICmdList)
+	{
+		VOXEL_SCOPE_COUNTER("FVoxelSingletonManager::Tick_RenderThread");
+		check(IsInRenderingThread());
+
+		for (FVoxelSingleton* Singleton : Singletons)
+		{
+			Singleton->Tick_RenderThread(RHICmdList);
+		}
+	});
 }
 
 ///////////////////////////////////////////////////////////////////////////////

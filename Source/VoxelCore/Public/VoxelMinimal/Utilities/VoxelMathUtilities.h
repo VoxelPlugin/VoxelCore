@@ -236,22 +236,30 @@ namespace FVoxelUtilities
 		return Int / 65535.f;
 	}
 
-	FORCEINLINE bool IsValidINT8(const int32 Value)
+	FORCEINLINE bool IsValidINT8(const int64 Value)
 	{
 		return MIN_int8 <= Value && Value <= MAX_int8;
 	}
-	FORCEINLINE bool IsValidINT16(const int32 Value)
+	FORCEINLINE bool IsValidINT16(const int64 Value)
 	{
 		return MIN_int16 <= Value && Value <= MAX_int16;
 	}
+	FORCEINLINE bool IsValidINT32(const int64 Value)
+	{
+		return MIN_int32 <= Value && Value <= MAX_int32;
+	}
 
-	FORCEINLINE bool IsValidUINT8(const int32 Value)
+	FORCEINLINE bool IsValidUINT8(const int64 Value)
 	{
 		return 0 <= Value && Value <= MAX_uint8;
 	}
-	FORCEINLINE bool IsValidUINT16(const int32 Value)
+	FORCEINLINE bool IsValidUINT16(const int64 Value)
 	{
 		return 0 <= Value && Value <= MAX_uint16;
+	}
+	FORCEINLINE bool IsValidUINT32(const int64 Value)
+	{
+		return 0 <= Value && Value <= MAX_uint32;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////

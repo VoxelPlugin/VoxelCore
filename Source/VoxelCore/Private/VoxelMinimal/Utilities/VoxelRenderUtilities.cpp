@@ -1,6 +1,7 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
+#include "VoxelGPUBufferReadback.h"
 #include "TextureResource.h"
 #include "Engine/Texture2D.h"
 #include "Materials/Material.h"
@@ -248,7 +249,47 @@ FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+void FVoxelUtilities::ResetPreviousLocalToWorld(
+	const UPrimitiveComponent& Component,
+	const FPrimitiveSceneProxy& SceneProxy)
+{
+	// Hack to cancel motion blur when mesh components are reused in the same frame
+	Voxel::RenderTask([&SceneProxy, PreviousLocalToWorld = Component.GetRenderMatrix()]
+	{
+		FScene& Scene = static_cast<FScene&>(SceneProxy.GetScene());
+		Scene.VelocityData.OverridePreviousTransform(SceneProxy.GetPrimitiveComponentId(), PreviousLocalToWorld);
+	});
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+DEFINE_PRIVATE_ACCESS(FRDGBuilder, Buffers, FRDGBufferRegistry);
 DEFINE_PRIVATE_ACCESS(FRDGBuilder, Textures, FRDGTextureRegistry);
+
+FRDGBufferRef FVoxelUtilities::FindBuffer(
+	FRDGBuilder& GraphBuilder,
+	const FString& Name)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	FRDGBufferRef Result = nullptr;
+
+	FRDGBufferRegistry& Buffers = PRIVATE_ACCESS_REF(FRDGBuilder, Buffers)(GraphBuilder);
+	Buffers.Enumerate([&](FRDGBuffer* Buffer)
+	{
+		if (FStringView(Buffer->Name) != Name)
+		{
+			return;
+		}
+
+		ensure(!Result);
+		Result = Buffer;
+	});
+
+	return Result;
+}
 
 FRDGTextureRef FVoxelUtilities::FindTexture(
 	FRDGBuilder& GraphBuilder,
@@ -277,14 +318,56 @@ FRDGTextureRef FVoxelUtilities::FindTexture(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void FVoxelUtilities::ResetPreviousLocalToWorld(
-	const UPrimitiveComponent& Component,
-	const FPrimitiveSceneProxy& SceneProxy)
+class FVoxelReadbackManager : public FVoxelSingleton
 {
-	// Hack to cancel motion blur when mesh components are reused in the same frame
-	Voxel::RenderTask([&SceneProxy, PreviousLocalToWorld = Component.GetRenderMatrix()]
+public:
+	struct FReadback
 	{
-		FScene& Scene = static_cast<FScene&>(SceneProxy.GetScene());
-		Scene.VelocityData.OverridePreviousTransform(SceneProxy.GetPrimitiveComponentId(), PreviousLocalToWorld);
+		TVoxelPromise<TVoxelArray<uint8>> Promise;
+		TSharedRef<FVoxelGPUBufferReadback> Readback;
+	};
+	TVoxelArray<FReadback> Readbacks_RenderThread;
+
+	//~ Begin FVoxelSingleton Interface
+	virtual void Tick_RenderThread(FRHICommandList& RHICmdList) override
+	{
+		VOXEL_FUNCTION_COUNTER();
+
+		for (auto It = Readbacks_RenderThread.CreateIterator(); It; ++It)
+		{
+			if (!It->Readback->IsReady())
+			{
+				continue;
+			}
+
+			It->Promise.Set(It->Readback->AsArray<uint8>());
+			It.RemoveCurrentSwap();
+		}
+	}
+	//~ End FVoxelSingleton Interface
+};
+FVoxelReadbackManager* GVoxelReadbackManager = new FVoxelReadbackManager();
+
+TVoxelFuture<TVoxelArray<uint8>> FVoxelUtilities::Readback(const FBufferRHIRef& SourceBuffer)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	if (!IsInRenderingThread())
+	{
+		return Voxel::RenderTask([=]
+		{
+			return Readback(SourceBuffer);
+		});
+	}
+	check(IsInRenderingThread());
+
+	const TVoxelPromise<TVoxelArray<uint8>> Promise;
+
+	GVoxelReadbackManager->Readbacks_RenderThread.Add(FVoxelReadbackManager::FReadback
+	{
+		Promise,
+		FVoxelGPUBufferReadback::Create(FRHICommandListImmediate::Get(), SourceBuffer)
 	});
+
+	return Promise.GetFuture();
 }

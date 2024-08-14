@@ -100,9 +100,24 @@ public:
 	TSharedRef<FVoxelBufferRef> Allocate_AnyThread(int64 Num);
 
 	TVoxelFuture<FVoxelBufferRef> Upload_AnyThread(
-		const TSharedPtr<FVoxelBufferRef>& ExistingBufferRef,
 		const FSharedVoidPtr& Owner,
-		TConstVoxelArrayView64<uint8> Data);
+		TConstVoxelArrayView64<uint8> Data,
+		const TSharedPtr<FVoxelBufferRef>& ExistingBufferRef = nullptr);
+
+	template<typename T>
+	TVoxelFuture<FVoxelBufferRef> Upload_AnyThread(
+		TVoxelArray<T>&& Data,
+		const TSharedPtr<FVoxelBufferRef>& ExistingBufferRef = nullptr)
+	{
+		check(sizeof(T) == BytesPerElement);
+
+		const TSharedRef<TVoxelArray<T>> SharedData = MakeSharedCopy(MoveTemp(Data));
+
+		return this->Upload_AnyThread(
+			MakeSharedVoidRef(SharedData),
+			MakeByteVoxelArrayView(*SharedData),
+			ExistingBufferRef);
+	}
 
 private:
 	struct FAllocationPool
@@ -179,7 +194,7 @@ private:
 		FSharedVoidPtr Owner;
 		TConstVoxelArrayView64<uint8> Data;
 		TSharedPtr<FVoxelBufferRef> ExistingBufferRef;
-		TVoxelPromise<FVoxelBufferRef> BufferRefPromise;
+		TSharedPtr<TVoxelPromise<FVoxelBufferRef>> BufferRefPromise;
 
 		FORCEINLINE int64 NumBytes() const
 		{
@@ -191,7 +206,7 @@ private:
 	struct FCopyInfo
 	{
 		TSharedPtr<FVoxelBufferRef> BufferRef;
-		TVoxelPromise<FVoxelBufferRef> BufferRefPromise;
+		TSharedPtr<TVoxelPromise<FVoxelBufferRef>> BufferRefPromise;
 		FBufferRHIRef SourceBuffer;
 		int64 SourceOffset = 0;
 	};

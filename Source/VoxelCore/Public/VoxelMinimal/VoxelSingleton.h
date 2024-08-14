@@ -13,8 +13,11 @@ public:
 	UE_NONCOPYABLE(FVoxelSingleton);
 
 	virtual void Initialize() {}
+
 	virtual void Tick() {}
 	virtual void Tick_Async() {}
+	virtual void Tick_RenderThread(FRHICommandList& RHICmdList) {}
+
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) {}
 	virtual bool IsEditorOnly() const { return false; }
 

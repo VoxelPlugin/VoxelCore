@@ -56,13 +56,45 @@ namespace FVoxelUtilities
 		TWeakObjectPtr<UTexture2D> TargetTexture,
 		const TSharedRef<const TVoxelArray<uint8>>& Data);
 
+	VOXELCORE_API void ResetPreviousLocalToWorld(
+		const UPrimitiveComponent& Component,
+		const FPrimitiveSceneProxy& SceneProxy);
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	VOXELCORE_API FRDGBufferRef FindBuffer(
+		FRDGBuilder& GraphBuilder,
+		const FString& Name);
+
 	VOXELCORE_API FRDGTextureRef FindTexture(
 		FRDGBuilder& GraphBuilder,
 		const FString& Name);
 
-	VOXELCORE_API void ResetPreviousLocalToWorld(
-		const UPrimitiveComponent& Component,
-		const FPrimitiveSceneProxy& SceneProxy);
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	VOXELCORE_API TVoxelFuture<TVoxelArray<uint8>> Readback(const FBufferRHIRef& SourceBuffer);
+
+	template<typename T>
+	TVoxelFuture<TVoxelArray<T>> Readback(FRHIBuffer* SourceBuffer)
+	{
+		checkStatic(TIsTriviallyDestructible<T>::Value);
+
+		return Readback(SourceBuffer).Then_AnyThread([](const TVoxelArray<uint8>& Data)
+		{
+			VOXEL_SCOPE_COUNTER("Readback Copy");
+
+			if (!ensure(Data.Num() % sizeof(T) == 0))
+			{
+				return MakeVoxelShared<TVoxelArray<T>>();
+			}
+
+			return MakeVoxelShared<TVoxelArray<T>>(MakeVoxelArrayView(Data).ReinterpretAs<T>());
+		});
+	}
 
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////

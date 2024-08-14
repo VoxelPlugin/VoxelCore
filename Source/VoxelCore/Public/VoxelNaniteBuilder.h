@@ -24,7 +24,7 @@ public:
 	int32 PositionPrecision = 4;
 	static constexpr int32 NormalBits = 8;
 
-	TUniquePtr<FStaticMeshRenderData> CreateRenderData();
+	TUniquePtr<FStaticMeshRenderData> CreateRenderData(TVoxelArray<TVoxelArray<int32>>* OutPageToClusterToVertexOffset = nullptr);
 	UStaticMesh* CreateStaticMesh();
 
 public:
