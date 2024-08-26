@@ -16,7 +16,6 @@
 
 #if INTELLISENSE_PARSER
 #define VOXEL_DEBUG 1
-#define RHI_RAYTRACING 1
 #define INTELLISENSE_ONLY(...) __VA_ARGS__
 #define INTELLISENSE_SKIP(...)
 #define INTELLISENSE_SWITCH(True, False) True
