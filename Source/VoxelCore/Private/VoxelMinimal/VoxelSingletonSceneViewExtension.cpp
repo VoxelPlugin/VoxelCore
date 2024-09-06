@@ -1,4 +1,4 @@
-﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelSingletonSceneViewExtension.h"
 
@@ -85,6 +85,7 @@ void FVoxelSingletonSceneViewExtension::PreInitViews_RenderThread(FRDGBuilder& G
 	}
 }
 
+#if 0
 void FVoxelSingletonSceneViewExtension::PreRenderBasePass_RenderThread(FRDGBuilder& GraphBuilder, const bool bDepthBufferIsPopulated)
 {
 	VOXEL_FUNCTION_COUNTER();
@@ -99,6 +100,7 @@ void FVoxelSingletonSceneViewExtension::PreRenderBasePass_RenderThread(FRDGBuild
 		Singleton->PreRenderBasePass_RenderThread(GraphBuilder, *CurrentView, bDepthBufferIsPopulated);
 	}
 }
+#endif
 
 void FVoxelSingletonSceneViewExtension::PostRenderBasePassDeferred_RenderThread(FRDGBuilder& GraphBuilder, FSceneView& View, const FRenderTargetBindingSlots& RenderTargets, const TRDGUniformBufferRef<FSceneTextureUniformParameters> SceneTextures)
 {

@@ -1,10 +1,11 @@
-﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #pragma once
 
 #include "VoxelMinimal.h"
 #include "StaticMeshResources.h"
 
+#if 0
 struct VOXELCORE_API FVoxelNaniteBuilder
 {
 public:
@@ -34,3 +35,4 @@ public:
 
 	static UStaticMesh* CreateStaticMesh(TUniquePtr<FStaticMeshRenderData> RenderData);
 };
+#endif

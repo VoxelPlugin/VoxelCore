@@ -1,4 +1,4 @@
-﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #pragma once
 
@@ -49,7 +49,9 @@ public:
 	virtual void PreRenderViewFamily_RenderThread(FRDGBuilder& GraphBuilder, FSceneViewFamily& ViewFamily) {}
 	virtual void PreRenderView_RenderThread(FRDGBuilder& GraphBuilder, FSceneView& View) {}
 	virtual void PreInitViews_RenderThread(FRDGBuilder& GraphBuilder) {}
+#if 0
 	virtual void PreRenderBasePass_RenderThread(FRDGBuilder& GraphBuilder, FSceneView& View, bool bDepthBufferIsPopulated) {}
+#endif
 	virtual void PostRenderBasePassDeferred_RenderThread(FRDGBuilder& GraphBuilder, FSceneView& View, const FRenderTargetBindingSlots& RenderTargets, TRDGUniformBufferRef<FSceneTextureUniformParameters> SceneTextures) {}
 	virtual void PostRenderBasePassMobile_RenderThread(FRHICommandList& RHICmdList, FSceneView& View) {}
 	virtual void PrePostProcessPass_RenderThread(FRDGBuilder& GraphBuilder, const FSceneView& View, const FPostProcessingInputs& Inputs) {}

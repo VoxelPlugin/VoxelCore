@@ -1,4 +1,4 @@
-﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelThreadPool.h"
 #include "VoxelMemoryScope.h"
@@ -258,7 +258,7 @@ GetNextTask:
 
 			{
 				VOXEL_SCOPE_LOCK(GVoxelThreadPool->Executors_CriticalSection);
-				ensure(GVoxelThreadPool->ActiveExecutors_RequiresLock.RemoveSingleSwap(Executor, EAllowShrinking::No));
+				ensure(GVoxelThreadPool->ActiveExecutors_RequiresLock.RemoveSingleSwap(Executor, false));
 			}
 		}
 	}

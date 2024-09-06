@@ -1,10 +1,11 @@
-﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelNaniteBuilder.h"
 #include "VoxelNanite.h"
 #include "Engine/StaticMesh.h"
 #include "Rendering/NaniteResources.h"
 
+#if 0
 TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
 {
 	VOXEL_FUNCTION_COUNTER();
@@ -314,3 +315,4 @@ UStaticMesh* FVoxelNaniteBuilder::CreateStaticMesh(TUniquePtr<FStaticMeshRenderD
 	ApplyRenderData(*StaticMesh, MoveTemp(RenderData));
 	return StaticMesh;
 }
+#endif
