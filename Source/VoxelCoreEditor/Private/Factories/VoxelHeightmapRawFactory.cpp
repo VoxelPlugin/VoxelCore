@@ -120,7 +120,7 @@ void UVoxelHeightmapRawFactory::SetReimportPaths(UObject* Obj, const TArray<FStr
 		return;
 	}
 
-	CastChecked<UTexture2D>(Obj)->AssetImportData->Update(NewReimportPaths[1]);
+	CastChecked<UTexture2D>(Obj)->AssetImportData->Update(NewReimportPaths[0]);
 }
 
 EReimportResult::Type UVoxelHeightmapRawFactory::Reimport(UObject* Obj)
