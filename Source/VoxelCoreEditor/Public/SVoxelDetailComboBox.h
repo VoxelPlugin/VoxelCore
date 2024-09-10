@@ -270,12 +270,12 @@ private:
 			{
 				if (!Options.Contains(Option))
 				{
-					return FLinearColor::Red;
+					return FStyleColors::Error;
 				}
 				if (IsOptionValidDelegate.IsBound() &&
 					!IsOptionValidDelegate.Execute(*Option))
 				{
-					return FLinearColor::Red;
+					return FStyleColors::Error;
 				}
 
 				return FSlateColor::UseForeground();
