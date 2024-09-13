@@ -278,6 +278,28 @@ struct VOXELCORE_API FVoxelBox2D
 	{
 		return { Min - Amount, Max + Amount };
 	}
+	FORCEINLINE FVoxelBox2D Extend(const FVector2D& Amount) const
+	{
+		FVoxelBox2D Result;
+		// Skip constructor checks
+		Result.Min = Min - Amount;
+		Result.Max = Max + Amount;
+
+		if (Result.Min.X > Result.Max.X)
+		{
+			const double NewX = (Result.Min.X + Result.Max.X) / 2;
+			Result.Min.X = NewX;
+			Result.Max.X = NewX;
+		}
+		if (Result.Min.Y > Result.Max.Y)
+		{
+			const double NewY = (Result.Min.Y + Result.Max.Y) / 2;
+			Result.Min.Y = NewY;
+			Result.Max.Y = NewY;
+		}
+		return Result;
+	}
+
 	FORCEINLINE FVoxelBox2D Translate(const FVector2D& Position) const
 	{
 		return FVoxelBox2D(Min + Position, Max + Position);
