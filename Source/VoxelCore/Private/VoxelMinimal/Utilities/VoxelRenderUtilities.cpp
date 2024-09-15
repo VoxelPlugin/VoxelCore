@@ -17,6 +17,9 @@ void RHIUpdateTexture2D_Safe(
 	const uint32 SourcePitch,
 	const TConstVoxelArrayView<uint8> SourceData)
 {
+	check(Texture);
+	VOXEL_SCOPE_COUNTER_FORMAT("RHIUpdateTexture2D_Safe %s", *Texture->GetName().ToString());
+
 	// FD3D12Texture::UpdateTexture2D doesn't use SrcX/SrcX
 	check(UpdateRegion.SrcX == 0);
 	check(UpdateRegion.SrcY == 0);

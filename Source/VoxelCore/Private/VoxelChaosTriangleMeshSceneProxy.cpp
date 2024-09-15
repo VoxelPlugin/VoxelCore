@@ -45,7 +45,7 @@ public:
 			}
 		}
 
-		IndexBuffer.SetIndices(Indices.ToConstArray(), EIndexBufferStride::Force32Bit);
+		IndexBuffer.SetIndices(Indices.ToConstArray_Unsafe(), EIndexBufferStride::Force32Bit);
 		PositionVertexBuffer.Init(Vertices.Num(), false);
 		StaticMeshVertexBuffer.Init(Vertices.Num(), 1, false);
 		ColorVertexBuffer.Init(Vertices.Num(), false);

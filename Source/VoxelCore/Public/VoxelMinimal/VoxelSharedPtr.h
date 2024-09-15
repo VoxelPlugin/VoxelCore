@@ -161,23 +161,19 @@ FORCEINLINE void ClearSharedRefReferencer(TSharedRef<T>& Ptr)
 }
 
 template<typename T, typename LambdaType>
-FORCEINLINE TSharedRef<T> MakeShareable_OnDestroy(T* Object, LambdaType&& OnDestroy)
+FORCEINLINE TSharedRef<T> MakeShareable_CustomDestructor(T* Object, LambdaType&& Destructor)
 {
 	return ReinterpretCastRef<TSharedRef<T>>(TSharedPtr<T>(
 		Object,
-		[OnDestroy = MoveTemp(OnDestroy)](T* Object)
+		[Object, OnDestroy = MoveTemp(Destructor)](T* InObject)
 		{
-			OnDestroy();
-			FVoxelMemory::Delete(Object);
-		}));
-}
+			if (!ensure(Object == InObject))
+			{
+				return;
+			}
 
-template<typename T, typename LambdaType, typename... ArgTypes, typename = std::enable_if_t<std::is_constructible_v<T, ArgTypes...>>>
-FORCEINLINE TSharedRef<T> MakeShared_OnDestroy(LambdaType&& OnDestroy, ArgTypes&&... Args)
-{
-	return MakeShareable_OnDestroy(
-		new(GVoxelMemory) T(Forward<ArgTypes>(Args)...),
-		MoveTemp(OnDestroy));
+			OnDestroy();
+		}));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

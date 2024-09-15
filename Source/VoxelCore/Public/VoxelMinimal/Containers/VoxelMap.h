@@ -319,6 +319,18 @@ public:
 		}
 		return Result;
 	}
+	TVoxelSet<ValueType> ValueSet() const
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
+
+		TVoxelSet<ValueType> Result;
+		Result.Reserve(Elements.Num());
+		for (const FElement& Element : Elements)
+		{
+			Result.Add(Element.Value);
+		}
+		return Result;
+	}
 
 	friend FArchive& operator<<(FArchive& Ar, TVoxelMap& Map)
 	{

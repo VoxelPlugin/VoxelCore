@@ -130,13 +130,17 @@ namespace FVoxelUtilities
 			return nullptr;
 		}
 
-		return MakeShared_OnDestroy<TConstVoxelArrayView64<T>>(
-			[&BulkData]
-			{
-				BulkData.Unlock();
-			},
+		TConstVoxelArrayView64<T>* ArrayView = new(GVoxelMemory) TConstVoxelArrayView64<T>(
 			static_cast<const T*>(Data),
 			BulkData.GetBulkDataSize() / sizeof(T));
+
+		return MakeShareable_CustomDestructor(
+			ArrayView,
+			[&BulkData, ArrayView]
+			{
+				BulkData.Unlock();
+				FVoxelMemory::Delete(ArrayView);
+			});
 	}
 
 	//////////////////////////////////////////////////////////////////////////////

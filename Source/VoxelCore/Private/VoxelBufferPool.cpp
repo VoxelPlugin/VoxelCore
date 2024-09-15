@@ -127,6 +127,7 @@ TVoxelFuture<FVoxelBufferRef> FVoxelBufferPool::Upload_AnyThread(
 	const TConstVoxelArrayView64<uint8> Data,
 	const TSharedPtr<FVoxelBufferRef>& ExistingBufferRef)
 {
+	ensure(Data.Num() > 0);
 	checkVoxelSlow(Data.Num() % BytesPerElement == 0);
 	checkVoxelSlow(!ExistingBufferRef || ExistingBufferRef->WeakPool == AsWeak());
 
@@ -236,7 +237,7 @@ TVoxelArray<FVoxelBufferPool::FCopyInfo> FVoxelBufferPool::ProcessUploads_AnyThr
 			NumBytes += Upload->NumBytes();
 			Uploads.Add(MoveTemp(*Upload));
 
-			check(UploadQueue.Pop());
+			ensure(UploadQueue.Pop());
 		}
 
 		// Will trigger if an upload is bigger than MaxNumBytes
@@ -306,6 +307,8 @@ TVoxelArray<FVoxelBufferPool::FCopyInfo> FVoxelBufferPool::ProcessUploads_AnyThr
 	{
 		VOXEL_SCOPE_COUNTER("CopyInfos");
 
+		CopyInfos.Reserve(Uploads.Num());
+
 		int64 UploadIndex = 0;
 		for (const FUpload& Upload : Uploads)
 		{
@@ -320,7 +323,7 @@ TVoxelArray<FVoxelBufferPool::FCopyInfo> FVoxelBufferPool::ProcessUploads_AnyThr
 			checkVoxelSlow(BufferRef->WeakPool == AsWeak());
 			checkVoxelSlow(BufferRef->Num() == Num);
 
-			CopyInfos.Add(FCopyInfo
+			CopyInfos.Add_EnsureNoGrow(FCopyInfo
 			{
 				BufferRef,
 				Upload.BufferRefPromise,

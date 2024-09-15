@@ -5,6 +5,7 @@
 #include "VoxelCoreMinimal.h"
 #include "Templates/MakeUnsigned.h"
 #include "VoxelMinimal/VoxelMemory.h"
+#include "VoxelMinimal/Containers/VoxelArrayView.h"
 
 template<typename InElementType, typename InAllocator = FVoxelAllocator>
 class TVoxelArray : public TArray<InElementType, InAllocator>
@@ -61,11 +62,33 @@ public:
 
 public:
 	// Cannot be used to change the allocation!
-	FORCEINLINE const TArray<InElementType>& ToConstArray() const
+	FORCEINLINE const TArray<InElementType>& ToConstArray_Unsafe() const
 	{
 		return ReinterpretCastRef<TArray<InElementType>>(*this);
 	}
 
+public:
+	FORCEINLINE TVoxelArrayView<InElementType, SizeType> View()
+	{
+		return MakeVoxelArrayView(*this);
+	}
+	FORCEINLINE TConstVoxelArrayView<InElementType, SizeType> View() const
+	{
+		return MakeVoxelArrayView(*this);
+	}
+
+	template<typename T>
+	FORCEINLINE TVoxelArrayView<T, SizeType> View()
+	{
+		return MakeVoxelArrayView(*this).template ReinterpretAs<T>();
+	}
+	template<typename T>
+	FORCEINLINE TConstVoxelArrayView<T, SizeType> View() const
+	{
+		return MakeVoxelArrayView(*this).template ReinterpretAs<T>();
+	}
+
+public:
 	FORCEINLINE ElementType Pop()
 	{
 		RangeCheck(0);
