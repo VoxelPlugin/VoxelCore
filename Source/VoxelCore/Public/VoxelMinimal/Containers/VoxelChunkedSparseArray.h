@@ -23,7 +23,7 @@ public:
 	}
 	FORCEINLINE void Empty()
 	{
-		if (!TIsTriviallyDestructible<Type>::Value)
+		if (!std::is_trivially_destructible_v<Type>)
 		{
 			AllocationFlags.ForAllSetBits([&](const int32 Index)
 			{

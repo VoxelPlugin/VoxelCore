@@ -107,7 +107,7 @@ public:
 
 		while (!Instance && Pool.Instances.Num() > 0)
 		{
-			Instance = Pool.Instances.Pop(false);
+			Instance = Pool.Instances.Pop(UE_505_SWITCH(false, EAllowShrinking::No));
 			DEC_VOXEL_COUNTER(STAT_VoxelNumMaterialInstancesPooled);
 		}
 

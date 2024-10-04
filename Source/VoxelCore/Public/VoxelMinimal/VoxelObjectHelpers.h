@@ -404,7 +404,11 @@ TSharedRef<T> MakeSharedStruct(const UScriptStruct* Struct, const T* StructToCop
 	checkVoxelSlow(Struct->IsChildOf(StaticStructFast<T>()));
 
 	const TSharedRef<T> SharedRef = ReinterpretCastRef<TSharedRef<T>>(MakeSharedStruct(Struct, static_cast<const void*>(StructToCopyFrom)));
+#if VOXEL_ENGINE_VERSION >= 505
+	SharedPointerInternals::EnableSharedFromThis(&SharedRef, &SharedRef.Get());
+#else
 	SharedPointerInternals::EnableSharedFromThis(&SharedRef, &SharedRef.Get(), &SharedRef.Get());
+#endif
 	return SharedRef;
 }
 

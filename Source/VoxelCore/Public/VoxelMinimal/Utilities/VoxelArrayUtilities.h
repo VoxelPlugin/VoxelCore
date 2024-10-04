@@ -62,7 +62,7 @@ namespace FVoxelUtilities
 			VOXEL_GET_TYPE(*GetData(DeclVal<ArrayTypeA>())),
 			VOXEL_GET_TYPE(*GetData(DeclVal<ArrayTypeB>()))
 		> &&
-		TIsTriviallyDestructible<VOXEL_GET_TYPE(*GetData(DeclVal<ArrayTypeA>()))>::Value
+		std::is_trivially_destructible_v<VOXEL_GET_TYPE(*GetData(DeclVal<ArrayTypeA>()))>
 	>>
 	FORCEINLINE bool Equal(ArrayTypeA&& A, ArrayTypeB&& B)
 	{
@@ -116,15 +116,15 @@ namespace FVoxelUtilities
 		FVoxelUtilities::SetNum(Array, int64(Size.X) * int64(Size.Y) * int64(Size.Z));
 	}
 
-	template<typename ArrayType, typename NumType, typename = std::enable_if_t<TIsTriviallyDestructible<VOXEL_GET_TYPE(*::GetData(DeclVal<ArrayType>()))>::Value>>
+	template<typename ArrayType, typename NumType, typename = std::enable_if_t<std::is_trivially_destructible_v<VOXEL_GET_TYPE(*::GetData(DeclVal<ArrayType>()))>>>
 	FORCENOINLINE void SetNumFast(ArrayType& Array, NumType Num)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num, 4096);
 
 		Array.Reserve(Num);
-		Array.SetNumUninitialized(Num, false);
+		Array.SetNumUninitialized(Num, UE_505_SWITCH(false, EAllowShrinking::No));
 	}
-	template<typename ArrayType, typename = std::enable_if_t<TIsTriviallyDestructible<VOXEL_GET_TYPE(*::GetData(DeclVal<ArrayType>()))>::Value>>
+	template<typename ArrayType, typename = std::enable_if_t<std::is_trivially_destructible_v<VOXEL_GET_TYPE(*::GetData(DeclVal<ArrayType>()))>>>
 	FORCEINLINE void SetNumFast(ArrayType& Array, const FIntVector& Size)
 	{
 		FVoxelUtilities::SetNumFast(Array, int64(Size.X) * int64(Size.Y) * int64(Size.Z));
@@ -151,7 +151,7 @@ namespace FVoxelUtilities
 	template<
 		typename ArrayType,
 		typename = std::enable_if_t<
-			TIsTriviallyDestructible<VOXEL_GET_TYPE(*GetData(DeclVal<ArrayType>()))>::Value &&
+			std::is_trivially_destructible_v<VOXEL_GET_TYPE(*GetData(DeclVal<ArrayType>()))> &&
 			!std::is_const_v<std::remove_reference_t<decltype(*GetData(DeclVal<ArrayType>()))>>>>
 	FORCENOINLINE void SetAll(ArrayType&& Array, const VOXEL_GET_TYPE(*GetData(DeclVal<ArrayType>())) Value)
 	{
@@ -191,7 +191,7 @@ namespace FVoxelUtilities
 	void RemoveAt(ArrayType& Array, const IndicesArrayType& SortedIndicesToRemove)
 	{
 		using T = VOXEL_GET_TYPE(*GetData(DeclVal<ArrayType>()));
-		checkStatic(TIsTriviallyDestructible<T>::Value);
+		checkStatic(std::is_trivially_destructible_v<T>);
 
 		if (SortedIndicesToRemove.Num() == 0)
 		{

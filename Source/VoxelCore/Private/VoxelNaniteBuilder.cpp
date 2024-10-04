@@ -5,7 +5,7 @@
 #include "Engine/StaticMesh.h"
 #include "Rendering/NaniteResources.h"
 
-TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData(TVoxelArray<TVoxelArray<int32>>* OutPageToClusterToVertexOffset)
+TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
 {
 	VOXEL_FUNCTION_COUNTER();
 	check(Mesh.Positions.Num() == Mesh.Normals.Num());
@@ -171,23 +171,9 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData(TVoxelAr
 		check(ClusterIndex == AllClusters.Num());
 	}
 
-	if (OutPageToClusterToVertexOffset)
-	{
-		int32 VertexOffset = 0;
-		for (const TVoxelArray<FCluster>& Page : Pages)
-		{
-			TVoxelArray<int32>& ClusterToVertexOffset = OutPageToClusterToVertexOffset->Emplace_GetRef();
-
-			for (const FCluster& Cluster : Page)
-			{
-				ClusterToVertexOffset.Add(VertexOffset);
-				VertexOffset += Cluster.NumVertices();
-			}
-		}
-	}
-
 	TVoxelChunkedArray<uint8> RootData;
 
+	int32 VertexOffset = 0;
 	int32 ClusterIndexOffset = 0;
 	for (int32 PageIndex = 0; PageIndex < Pages.Num(); PageIndex++)
 	{
@@ -235,7 +221,8 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData(TVoxelAr
 		CreatePageData(
 			Clusters,
 			EncodingSettings,
-			RootData);
+			RootData,
+			VertexOffset);
 
 		PageStreamingState.BulkSize = RootData.Num() - PageStreamingState.BulkOffset;
 		PageStreamingState.PageSize = RootData.Num() - PageStartIndex;
@@ -283,6 +270,12 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData(TVoxelAr
 	FStaticMeshLODResources* LODResource = new FStaticMeshLODResources();
 	LODResource->bBuffersInlined = true;
 	LODResource->Sections.Emplace();
+
+	// Ensure UStaticMesh::HasValidRenderData returns true
+	LODResource->VertexBuffers.StaticMeshVertexBuffer.Init(1, 1);
+	LODResource->VertexBuffers.PositionVertexBuffer.Init(1);
+	LODResource->VertexBuffers.ColorVertexBuffer.Init(1);
+
 	RenderData->LODResources.Add(LODResource);
 
 	RenderData->LODVertexFactories.Emplace_GetRef(GMaxRHIFeatureLevel);

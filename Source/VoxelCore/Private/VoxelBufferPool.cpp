@@ -1,6 +1,8 @@
 ﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelBufferPool.h"
+#include "TextureResource.h"
+#include "Engine/Texture2D.h"
 
 DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelBufferRef);
 
@@ -14,7 +16,7 @@ VOXEL_CONSOLE_VARIABLE(
 ///////////////////////////////////////////////////////////////////////////////
 
 FVoxelBufferRef::FVoxelBufferRef(
-	FVoxelBufferPool& Pool,
+	FVoxelBufferPoolBase& Pool,
 	const int32 PoolIndex,
 	const int64 Index,
 	const int64 Num)
@@ -32,7 +34,7 @@ FVoxelBufferRef::FVoxelBufferRef(
 
 FVoxelBufferRef::~FVoxelBufferRef()
 {
-	const TSharedPtr<FVoxelBufferPool> Pool = WeakPool.Pin();
+	const TSharedPtr<FVoxelBufferPoolBase> Pool = WeakPool.Pin();
 	if (!Pool)
 	{
 		return;
@@ -52,7 +54,7 @@ FVoxelBufferRef::~FVoxelBufferRef()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FVoxelBufferPool::FVoxelBufferPool(
+FVoxelBufferPoolBase::FVoxelBufferPoolBase(
 	const int32 BytesPerElement,
 	const EPixelFormat PixelFormat,
 	const TCHAR* BufferName)
@@ -75,7 +77,7 @@ FVoxelBufferPool::FVoxelBufferPool(
 	Voxel_AddAmountToDynamicStat(BufferName, AllocatedMemory.Get());
 }
 
-FVoxelBufferPool::~FVoxelBufferPool()
+FVoxelBufferPoolBase::~FVoxelBufferPoolBase()
 {
 	Voxel_AddAmountToDynamicStat(AllocatedMemory_Name, -AllocatedMemory_Reported.Get());
 	Voxel_AddAmountToDynamicStat(UsedMemory_Name, -UsedMemory_Reported.Get());
@@ -86,7 +88,7 @@ FVoxelBufferPool::~FVoxelBufferPool()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void FVoxelBufferPool::UpdateStats()
+void FVoxelBufferPoolBase::UpdateStats()
 {
 	const int64 AllocatedMemoryNew = AllocatedMemory.Get();
 	const int64 UsedMemoryNew = UsedMemory.Get();
@@ -105,7 +107,7 @@ void FVoxelBufferPool::UpdateStats()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TSharedRef<FVoxelBufferRef> FVoxelBufferPool::Allocate_AnyThread(const int64 Num)
+TSharedRef<FVoxelBufferRef> FVoxelBufferPoolBase::Allocate_AnyThread(const int64 Num)
 {
 	const int32 PoolIndex = NumToPoolIndex(Num);
 
@@ -122,14 +124,24 @@ TSharedRef<FVoxelBufferRef> FVoxelBufferPool::Allocate_AnyThread(const int64 Num
 		Num);
 }
 
-TVoxelFuture<FVoxelBufferRef> FVoxelBufferPool::Upload_AnyThread(
+TVoxelFuture<FVoxelBufferRef> FVoxelBufferPoolBase::Upload_AnyThread(
 	const FSharedVoidPtr& Owner,
 	const TConstVoxelArrayView64<uint8> Data,
 	const TSharedPtr<FVoxelBufferRef>& ExistingBufferRef)
 {
 	ensure(Data.Num() > 0);
 	checkVoxelSlow(Data.Num() % BytesPerElement == 0);
+
+	const int64 Num = Data.Num() / BytesPerElement;
+
 	checkVoxelSlow(!ExistingBufferRef || ExistingBufferRef->WeakPool == AsWeak());
+	checkVoxelSlow(!ExistingBufferRef || ExistingBufferRef->Num() == Num);
+
+	TSharedPtr<FVoxelBufferRef> BufferRef = ExistingBufferRef;
+	if (!BufferRef)
+	{
+		BufferRef = Allocate_AnyThread(Num);
+	}
 
 	const TVoxelPromise<FVoxelBufferRef> Promise;
 
@@ -137,7 +149,7 @@ TVoxelFuture<FVoxelBufferRef> FVoxelBufferPool::Upload_AnyThread(
 	{
 		Owner,
 		Data,
-		ExistingBufferRef,
+		BufferRef,
 		MakeSharedCopy(Promise)
 	});
 
@@ -150,7 +162,7 @@ TVoxelFuture<FVoxelBufferRef> FVoxelBufferPool::Upload_AnyThread(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-int64 FVoxelBufferPool::FAllocationPool::Allocate(FVoxelBufferPool& Pool)
+int64 FVoxelBufferPoolBase::FAllocationPool::Allocate(FVoxelBufferPoolBase& Pool)
 {
 	{
 		VOXEL_SCOPE_LOCK(CriticalSection);
@@ -166,7 +178,7 @@ int64 FVoxelBufferPool::FAllocationPool::Allocate(FVoxelBufferPool& Pool)
 	return Index;
 }
 
-void FVoxelBufferPool::FAllocationPool::Free(const int64 Index)
+void FVoxelBufferPoolBase::FAllocationPool::Free(const int64 Index)
 {
 	VOXEL_SCOPE_LOCK(CriticalSection);
 	FreeIndices_RequiresLock.Add(Index);
@@ -176,7 +188,7 @@ void FVoxelBufferPool::FAllocationPool::Free(const int64 Index)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void FVoxelBufferPool::CheckUploadQueue_AnyThread()
+void FVoxelBufferPoolBase::CheckUploadQueue_AnyThread()
 {
 	if (UploadQueue.IsEmpty())
 	{
@@ -191,15 +203,9 @@ void FVoxelBufferPool::CheckUploadQueue_AnyThread()
 	Voxel::AsyncTask(MakeWeakPtrLambda(this, [this]
 	{
 		ensure(IsProcessingUploads.Get());
-		TVoxelArray<FCopyInfo> CopyInfos = ProcessUploads_AnyThread();
-		ensure(IsProcessingUploads.Get());
 
-		Voxel::RenderTask(MakeWeakPtrLambda(this, [this, CopyInfos = MoveTemp(CopyInfos)](FRHICommandList& RHICmdList)
+		ProcessUploads_AnyThread().Then_AnyThread(MakeWeakPtrLambda(this, [this]
 		{
-			ensure(IsProcessingUploads.Get());
-			ProcessCopies_RenderThread(RHICmdList, CopyInfos);
-			ensure(IsProcessingUploads.Get());
-
 			ensure(IsProcessingUploads.Exchange_ReturnOld(false));
 
 			CheckUploadQueue_AnyThread();
@@ -207,7 +213,7 @@ void FVoxelBufferPool::CheckUploadQueue_AnyThread()
 	}));
 }
 
-TVoxelArray<FVoxelBufferPool::FCopyInfo> FVoxelBufferPool::ProcessUploads_AnyThread()
+FVoxelFuture FVoxelBufferPoolBase::ProcessUploads_AnyThread()
 {
 	VOXEL_FUNCTION_COUNTER();
 	checkVoxelSlow(IsProcessingUploads.Get());
@@ -246,6 +252,27 @@ TVoxelArray<FVoxelBufferPool::FCopyInfo> FVoxelBufferPool::ProcessUploads_AnyThr
 	checkVoxelSlow(NumBytes <= MAX_int32);
 	checkVoxelSlow(NumBytes % BytesPerElement == 0);
 
+	return ProcessUploadsImpl_AnyThread(MoveTemp(Uploads));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FVoxelFuture FVoxelBufferPool::ProcessUploadsImpl_AnyThread(TVoxelArray<FUpload>&& Uploads)
+{
+	VOXEL_FUNCTION_COUNTER();
+	checkVoxelSlow(IsProcessingUploads.Get());
+
+	int64 NumBytes = 0;
+	for (const FUpload& Upload : Uploads)
+	{
+		NumBytes += Upload.NumBytes();
+	}
+
+	checkVoxelSlow(NumBytes <= MAX_int32);
+	checkVoxelSlow(NumBytes % BytesPerElement == 0);
+
 	VOXEL_SCOPE_COUNTER_FORMAT("Num=%lldB", NumBytes);
 
 	// FD3D12DynamicRHI::CreateD3D12Buffer doesn't need RHICmdList
@@ -265,7 +292,7 @@ TVoxelArray<FVoxelBufferPool::FCopyInfo> FVoxelBufferPool::ProcessUploads_AnyThr
 		UploadBuffer = GDynamicRHI->RHICreateBuffer(
 			DummyRHICmdList,
 			BufferDesc,
-			ERHIAccess::CopySrc,
+			ERHIAccess::CopySrc | ERHIAccess::SRVCompute,
 			CreateInfo);
 	}
 
@@ -315,17 +342,12 @@ TVoxelArray<FVoxelBufferPool::FCopyInfo> FVoxelBufferPool::ProcessUploads_AnyThr
 			checkVoxelSlow(Upload.NumBytes() % BytesPerElement == 0);
 			const int64 Num = Upload.NumBytes() / BytesPerElement;
 
-			const TSharedRef<FVoxelBufferRef> BufferRef =
-				Upload.ExistingBufferRef.IsValid()
-				? Upload.ExistingBufferRef.ToSharedRef()
-				: Allocate_AnyThread(Num);
-
-			checkVoxelSlow(BufferRef->WeakPool == AsWeak());
-			checkVoxelSlow(BufferRef->Num() == Num);
+			checkVoxelSlow(Upload.BufferRef->WeakPool == AsWeak());
+			checkVoxelSlow(Upload.BufferRef->Num() == Num);
 
 			CopyInfos.Add_EnsureNoGrow(FCopyInfo
 			{
-				BufferRef,
+				Upload.BufferRef,
 				Upload.BufferRefPromise,
 				UploadBuffer,
 				UploadIndex
@@ -336,7 +358,10 @@ TVoxelArray<FVoxelBufferPool::FCopyInfo> FVoxelBufferPool::ProcessUploads_AnyThr
 		checkVoxelSlow(UploadIndex * BytesPerElement == NumBytes);
 	}
 
-	return CopyInfos;
+	return Voxel::RenderTask(MakeWeakPtrLambda(this, [this, CopyInfos = MoveTemp(CopyInfos)](FRHICommandList& RHICmdList)
+	{
+		ProcessCopies_RenderThread(RHICmdList, CopyInfos);
+	}));
 }
 
 void FVoxelBufferPool::ProcessCopies_RenderThread(
@@ -350,21 +375,22 @@ void FVoxelBufferPool::ProcessCopies_RenderThread(
 	// Do this after dequeuing all copies to make sure we allocate a big enough buffer for them
 	const int64 Num = BufferCount.Get();
 
+	int64 AllocatedNum = FMath::RoundUpToPowerOfTwo64(Num);
+
+	// Avoid DX12 resource pooling to prevent crashes when using CopyBufferRegion
+	AllocatedNum = FMath::Max<int64>(32 * 1024 * 1024, AllocatedNum);
+
+	ensure(AllocatedNum <= 1 << 30);
+	AllocatedMemory.Set(AllocatedNum);
+
 	if (!BufferRHI_RenderThread ||
-		int64(BufferRHI_RenderThread->GetSize()) < Num * BytesPerElement)
+		int64(BufferRHI_RenderThread->GetSize()) < AllocatedNum * BytesPerElement)
 	{
 		VOXEL_SCOPE_COUNTER("Create buffer");
 
 		const FBufferRHIRef OldBufferRHI = BufferRHI_RenderThread;
 
 		FRHIResourceCreateInfo CreateInfo(BufferName);
-
-		int64 AllocatedNum = FMath::RoundUpToPowerOfTwo64(Num);
-		ensure(AllocatedNum <= 1 << 30);
-		AllocatedMemory.Set(AllocatedNum);
-
-		// Avoid DX12 resource pooling to prevent crashes when using CopyBufferRegion
-		AllocatedNum = FMath::Max<int64>(32 * 1024 * 1024, AllocatedNum);
 
 		BufferRHI_RenderThread = RHICmdList.CreateBuffer(
 			AllocatedNum * BytesPerElement,
@@ -407,4 +433,140 @@ void FVoxelBufferPool::ProcessCopies_RenderThread(
 		// Upload is complete: notify caller
 		CopyInfo.BufferRefPromise->Set(CopyInfo.BufferRef.ToSharedRef());
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void FVoxelTextureBufferPool::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	Collector.AddReferencedObject(Texture_GameThread);
+}
+
+FVoxelFuture FVoxelTextureBufferPool::ProcessUploadsImpl_AnyThread(TVoxelArray<FUpload>&& Uploads)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	return Voxel::GameTask(MakeWeakPtrLambda(this, [this, Uploads = MakeSharedCopy(MoveTemp(Uploads))]
+	{
+		if (IsEngineExitRequested())
+		{
+			return FVoxelFuture::Done();
+		}
+
+		UTexture2D* OldTexture = Texture_GameThread;
+		{
+			// Do this after dequeuing all copies to make sure we allocate a big enough buffer for them
+			const int64 Num = BufferCount.Get();
+			const int32 Size = FMath::Max<int32>(1024, FMath::RoundUpToPowerOfTwo(FMath::CeilToInt(FMath::Sqrt(double(Num)))));
+
+			{
+				const int64 AllocatedNum = FMath::Square<int64>(Size);
+				ensure(AllocatedNum <= 1 << 30);
+				AllocatedMemory.Set(AllocatedNum);
+			}
+
+			if (!Texture_GameThread ||
+				Texture_GameThread->GetSizeX() != Size)
+			{
+				Texture_GameThread = FVoxelTextureUtilities::CreateTexture2D(
+					FName(BufferName + FString("_Texture")),
+					Size,
+					Size,
+					false,
+					TF_Default,
+					PixelFormat);
+
+				FVoxelTextureUtilities::RemoveBulkData(Texture_GameThread);
+			}
+		}
+
+		UTexture2D* NewTexture = Texture_GameThread;
+		if (!ensure(NewTexture))
+		{
+			return FVoxelFuture::Done();
+		}
+
+		if (OldTexture &&
+			OldTexture != NewTexture)
+		{
+			FTextureResource* OldResource = OldTexture->GetResource();
+			FTextureResource* NewResource = NewTexture->GetResource();
+
+			FRHICopyTextureInfo CopyInfo;
+			CopyInfo.Size = FIntVector(OldTexture->GetSizeX(), OldTexture->GetSizeY(), 1);
+
+			VOXEL_ENQUEUE_RENDER_COMMAND(FVoxelTextureBufferPool_Reallocate)([OldResource, NewResource, CopyInfo](FRHICommandListImmediate& RHICmdList)
+			{
+				RHICmdList.CopyTexture(
+					OldResource->GetTextureRHI(),
+					NewResource->GetTextureRHI(),
+					CopyInfo);
+			});
+		}
+
+		check(Texture_GameThread);
+
+		FTextureResource* Resource = Texture_GameThread->GetResource();
+		if (!ensure(Resource))
+		{
+			return FVoxelFuture::Done();
+		}
+
+		return Voxel::RenderTask(MakeWeakPtrLambda(this, [this, Resource, Uploads](FRHICommandListImmediate& RHICmdList)
+		{
+			FRHITexture* TextureRHI = Resource->GetTexture2DRHI();
+			if (!ensure(TextureRHI))
+			{
+				return;
+			}
+
+			TextureRHI_RenderThread = TextureRHI;
+
+			const int32 TextureSize = TextureRHI->GetSizeX();
+
+			for (const FUpload& Upload : *Uploads)
+			{
+				checkVoxelSlow(Upload.NumBytes() % BytesPerElement == 0);
+				const int64 Num = Upload.NumBytes() / BytesPerElement;
+
+				checkVoxelSlow(Upload.BufferRef->WeakPool == AsWeak());
+				checkVoxelSlow(Upload.BufferRef->Num() == Num);
+
+				int64 Offset = Upload.BufferRef->GetIndex();
+				TConstVoxelArrayView64<uint8> Data = Upload.Data;
+
+				while (Data.Num() > 0)
+				{
+					check(Data.Num() % BytesPerElement == 0);
+
+					const int64 NumToCopy = FMath::Min(Data.Num() / BytesPerElement, TextureSize - (Offset % TextureSize));
+
+					const FUpdateTextureRegion2D UpdateRegion(
+						Offset % TextureSize,
+						Offset / TextureSize,
+						0,
+						0,
+						NumToCopy,
+						1);
+
+					RHIUpdateTexture2D_Safe(
+						TextureRHI,
+						0,
+						UpdateRegion,
+						NumToCopy * BytesPerElement,
+						Data.LeftOf(NumToCopy * BytesPerElement));
+
+					Offset += NumToCopy;
+					Data = Data.RightOf(NumToCopy * BytesPerElement);
+				}
+
+				// Upload is complete: notify caller
+				Upload.BufferRefPromise->Set(Upload.BufferRef.ToSharedRef());
+			}
+		}));
+	}));
 }

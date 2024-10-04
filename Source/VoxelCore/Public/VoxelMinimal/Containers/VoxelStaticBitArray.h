@@ -188,7 +188,4 @@ private:
 };
 
 template<uint32 Size>
-struct TIsTriviallyDestructible<TVoxelStaticBitArray<Size>>
-{
-	enum { Value = true };
-};
+constexpr bool std::is_trivially_destructible_v_voxel<TVoxelStaticBitArray<Size>> = true;

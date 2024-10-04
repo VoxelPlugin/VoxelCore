@@ -4,13 +4,15 @@
 
 #include "VoxelMinimal.h"
 
+class FVoxelBufferPoolBase;
 class FVoxelBufferPool;
+class FVoxelTextureBufferPool;
 
 class VOXELCORE_API FVoxelBufferRef
 {
 public:
 	FVoxelBufferRef(
-		FVoxelBufferPool& Pool,
+		FVoxelBufferPoolBase& Pool,
 		int32 PoolIndex,
 		int64 Index,
 		int64 Num);
@@ -29,43 +31,28 @@ public:
 	}
 
 private:
-	const TWeakPtr<FVoxelBufferPool> WeakPool;
+	const TWeakPtr<FVoxelBufferPoolBase> WeakPool;
 	const int32 PoolIndex;
 	const int64 Index;
 	const int64 PrivateNum;
 
+	friend FVoxelBufferPoolBase;
 	friend FVoxelBufferPool;
+	friend FVoxelTextureBufferPool;
 };
 
-class VOXELCORE_API FVoxelBufferPool : public TSharedFromThis<FVoxelBufferPool>
+class VOXELCORE_API FVoxelBufferPoolBase : public TSharedFromThis<FVoxelBufferPoolBase>
 {
 public:
 	const int32 BytesPerElement;
 	const EPixelFormat PixelFormat;
+	const TCHAR* const BufferName;
 
-	FVoxelBufferPool(
+	FVoxelBufferPoolBase(
 		int32 BytesPerElement,
 		EPixelFormat PixelFormat,
 		const TCHAR* BufferName);
-	~FVoxelBufferPool();
-
-public:
-	FORCEINLINE FRHIBuffer* GetRHI_RenderThread() const
-	{
-		checkVoxelSlow(IsInParallelRenderingThread());
-		return BufferRHI_RenderThread;
-	}
-	FORCEINLINE FRHIShaderResourceView* GetSRV_RenderThread() const
-	{
-		checkVoxelSlow(IsInParallelRenderingThread());
-		return BufferSRV_RenderThread;
-	}
-
-private:
-	const TCHAR* const BufferName;
-
-	FBufferRHIRef BufferRHI_RenderThread;
-	FShaderResourceViewRHIRef BufferSRV_RenderThread;
+	virtual ~FVoxelBufferPoolBase();
 
 public:
 	FORCEINLINE int64 GetAllocatedMemory() const
@@ -81,7 +68,7 @@ public:
 		return PaddingMemory.Get();
 	}
 
-private:
+protected:
 	const FName AllocatedMemory_Name;
 	const FName UsedMemory_Name;
 	const FName PaddingMemory_Name;
@@ -119,7 +106,7 @@ public:
 			ExistingBufferRef);
 	}
 
-private:
+protected:
 	struct FAllocationPool
 	{
 	public:
@@ -130,7 +117,7 @@ private:
 		{
 		}
 
-		int64 Allocate(FVoxelBufferPool& Pool);
+		int64 Allocate(FVoxelBufferPoolBase& Pool);
 		void Free(int64 Index);
 
 	private:
@@ -186,14 +173,12 @@ private:
 
 	friend FVoxelBufferRef;
 
-private:
-	TVoxelAtomic<bool> IsProcessingUploads = false;
-
+protected:
 	struct FUpload
 	{
 		FSharedVoidPtr Owner;
 		TConstVoxelArrayView64<uint8> Data;
-		TSharedPtr<FVoxelBufferRef> ExistingBufferRef;
+		TSharedPtr<FVoxelBufferRef> BufferRef;
 		TSharedPtr<TVoxelPromise<FVoxelBufferRef>> BufferRefPromise;
 
 		FORCEINLINE int64 NumBytes() const
@@ -201,8 +186,48 @@ private:
 			return Data.Num();
 		}
 	};
+
+	TVoxelAtomic<bool> IsProcessingUploads = false;
+
 	TQueue<FUpload, EQueueMode::Mpsc> UploadQueue;
 
+	void CheckUploadQueue_AnyThread();
+	FVoxelFuture ProcessUploads_AnyThread();
+	virtual FVoxelFuture ProcessUploadsImpl_AnyThread(TVoxelArray<FUpload>&& Uploads) = 0;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+class VOXELCORE_API FVoxelBufferPool : public FVoxelBufferPoolBase
+{
+public:
+	using FVoxelBufferPoolBase::FVoxelBufferPoolBase;
+	virtual ~FVoxelBufferPool() override = default;
+
+public:
+	FORCEINLINE FRHIBuffer* GetRHI_RenderThread() const
+	{
+		checkVoxelSlow(IsInParallelRenderingThread());
+		return BufferRHI_RenderThread;
+	}
+	FORCEINLINE FRHIShaderResourceView* GetSRV_RenderThread() const
+	{
+		checkVoxelSlow(IsInParallelRenderingThread());
+		return BufferSRV_RenderThread;
+	}
+
+protected:
+	//~ Begin FVoxelBufferPoolBase Interface
+	virtual FVoxelFuture ProcessUploadsImpl_AnyThread(TVoxelArray<FUpload>&& Uploads) override;
+	//~ End FVoxelBufferPoolBase Interface
+
+private:
+	FBufferRHIRef BufferRHI_RenderThread;
+	FShaderResourceViewRHIRef BufferSRV_RenderThread;
+
+private:
 	struct FCopyInfo
 	{
 		TSharedPtr<FVoxelBufferRef> BufferRef;
@@ -211,11 +236,41 @@ private:
 		int64 SourceOffset = 0;
 	};
 
-	void CheckUploadQueue_AnyThread();
-
-	TVoxelArray<FCopyInfo> ProcessUploads_AnyThread();
-
 	void ProcessCopies_RenderThread(
 		FRHICommandList& RHICmdList,
 		TConstVoxelArrayView<FCopyInfo> CopyInfos);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+class VOXELCORE_API FVoxelTextureBufferPool : public FVoxelBufferPoolBase
+{
+public:
+	using FVoxelBufferPoolBase::FVoxelBufferPoolBase;
+	virtual ~FVoxelTextureBufferPool() override = default;
+
+	void AddReferencedObjects(FReferenceCollector& Collector);
+
+public:
+	FORCEINLINE UTexture2D* GetTexture_GameThread() const
+	{
+		checkVoxelSlow(IsInGameThread());
+		return Texture_GameThread;
+	}
+	FORCEINLINE FTextureRHIRef GetTextureRHI_RenderThread() const
+	{
+		checkVoxelSlow(IsInParallelRenderingThread());
+		return TextureRHI_RenderThread;
+	}
+
+protected:
+	//~ Begin FVoxelBufferPoolBase Interface
+	virtual FVoxelFuture ProcessUploadsImpl_AnyThread(TVoxelArray<FUpload>&& Uploads) override;
+	//~ End FVoxelBufferPoolBase Interface
+
+private:
+	TObjectPtr<UTexture2D> Texture_GameThread;
+	FTextureRHIRef TextureRHI_RenderThread;
 };

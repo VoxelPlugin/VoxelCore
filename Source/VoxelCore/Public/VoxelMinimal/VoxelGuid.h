@@ -32,6 +32,24 @@ public:
 		return Guid;
 	}
 
+	template<
+		char CharA0, char CharA1, char CharA2, char CharA3, char CharA4, char CharA5, char CharA6, char CharA7,
+		char CharB0, char CharB1, char CharB2, char CharB3, char CharB4, char CharB5, char CharB6, char CharB7,
+		char CharC0, char CharC1, char CharC2, char CharC3, char CharC4, char CharC5, char CharC6, char CharC7,
+		char CharD0, char CharD1, char CharD2, char CharD3, char CharD4, char CharD5, char CharD6, char CharD7,
+		char ZeroChar>
+	static constexpr FVoxelGuid MakeLegacy()
+	{
+		checkStatic(ZeroChar == 0);
+
+		FVoxelGuid Guid;
+		Guid.A = CharsToIntLegacy<CharA0, CharA1, CharA2, CharA3, CharA4, CharA5, CharA6, CharA7>();
+		Guid.B = CharsToIntLegacy<CharB0, CharB1, CharB2, CharB3, CharB4, CharB5, CharB6, CharB7>();
+		Guid.C = CharsToIntLegacy<CharC0, CharC1, CharC2, CharC3, CharC4, CharC5, CharC6, CharC7>();
+		Guid.D = CharsToIntLegacy<CharD0, CharD1, CharD2, CharD3, CharD4, CharD5, CharD6, CharD7>();
+		return Guid;
+	}
+
 	operator FGuid() const
 	{
 		return FGuid(A, B, C, D);
@@ -53,6 +71,21 @@ private:
 	{
 		return
 		{
+			(CharToInt<Char0>() << 28) |
+			(CharToInt<Char1>() << 24) |
+			(CharToInt<Char2>() << 20) |
+			(CharToInt<Char3>() << 16) |
+			(CharToInt<Char4>() << 12) |
+			(CharToInt<Char5>() << 8) |
+			(CharToInt<Char6>() << 4) |
+			(CharToInt<Char7>() << 0)
+		};
+	}
+	template<char Char0, char Char1, char Char2, char Char3, char Char4, char Char5, char Char6, char Char7>
+	static constexpr uint32 CharsToIntLegacy()
+	{
+		return
+		{
 			(CharToInt<Char0>() << 0) |
 			(CharToInt<Char1>() << 4) |
 			(CharToInt<Char2>() << 8) |
@@ -65,10 +98,49 @@ private:
 	}
 };
 
-#define MAKE_VOXEL_GUID(String) [] \
+#define VOXEL_GUID(String) [] \
 	{ \
 		checkStatic(sizeof(String) == 33); \
 		return FVoxelGuid::Make< \
+			String[0], \
+			String[1], \
+			String[2], \
+			String[3], \
+			String[4], \
+			String[5], \
+			String[6], \
+			String[7], \
+			String[8], \
+			String[9], \
+			String[10], \
+			String[11], \
+			String[12], \
+			String[13], \
+			String[14], \
+			String[15], \
+			String[16], \
+			String[17], \
+			String[18], \
+			String[19], \
+			String[20], \
+			String[21], \
+			String[22], \
+			String[23], \
+			String[24], \
+			String[25], \
+			String[26], \
+			String[27], \
+			String[28], \
+			String[29], \
+			String[30], \
+			String[31], \
+			String[32]>(); \
+	}()
+
+#define MAKE_VOXEL_LEGACY_GUID(String) [] \
+	{ \
+		checkStatic(sizeof(String) == 33); \
+		return FVoxelGuid::MakeLegacy< \
 			String[0], \
 			String[1], \
 			String[2], \

@@ -386,7 +386,7 @@ public:
 	FORCEINLINE ValueType FindRef(const KeyType& Key) const
 	{
 		checkStatic(
-			TIsTriviallyDestructible<ValueType>::Value ||
+			std::is_trivially_destructible_v<ValueType> ||
 			TIsTWeakPtr_V<ValueType> ||
 			TIsTSharedPtr_V<ValueType> ||
 			// Hack to detect TSharedPtr wrappers like FVoxelFuture

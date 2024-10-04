@@ -14,7 +14,7 @@ class FMeshElementCollector;
 ///////////////////////////////////////////////////////////////////////////////
 
 FORCEINLINE void RHIUpdateTexture2D_Unsafe(
-	FRHITexture2D* Texture,
+	FRHITexture* Texture,
 	const uint32 MipIndex,
 	const FUpdateTextureRegion2D& UpdateRegion,
 	const uint32 SourcePitch,
@@ -31,7 +31,7 @@ FORCEINLINE void RHIUpdateTexture2D_Unsafe(
 #define RHIUpdateTexture2D UE_DEPRECATED_MACRO(5, "RHIUpdateTexture2D is unsafe, use RHIUpdateTexture2D_Safe instead") RHIUpdateTexture2D
 
 VOXELCORE_API void RHIUpdateTexture2D_Safe(
-	FRHITexture2D* Texture,
+	FRHITexture* Texture,
 	uint32 MipIndex,
 	const FUpdateTextureRegion2D& UpdateRegion,
 	uint32 SourcePitch,
@@ -50,7 +50,7 @@ namespace FVoxelUtilities
 
 	VOXELCORE_API bool UpdateTextureRef(
 		UTexture2D* TextureObject,
-		FRHITexture2D* TextureRHI);
+		FRHITexture* TextureRHI);
 
 	VOXELCORE_API FVoxelFuture AsyncCopyTexture(
 		TWeakObjectPtr<UTexture2D> TargetTexture,
@@ -81,7 +81,7 @@ namespace FVoxelUtilities
 	template<typename T>
 	TVoxelFuture<TVoxelArray<T>> Readback(FRHIBuffer* SourceBuffer)
 	{
-		checkStatic(TIsTriviallyDestructible<T>::Value);
+		checkStatic(std::is_trivially_destructible_v<T>);
 
 		return Readback(SourceBuffer).Then_AnyThread([](const TVoxelArray<uint8>& Data)
 		{
@@ -107,7 +107,8 @@ namespace FVoxelUtilities
 		const ThreadCountType ThreadCount,
 		const int32 GroupSize,
 		SetupParametersType&& SetupParameters,
-		SetupPermutationDomainType&& SetupPermutationDomain = {})
+		SetupPermutationDomainType&& SetupPermutationDomain = {},
+		const ERDGPassFlags PassFlags = ERDGPassFlags::None)
 	{
 		VOXEL_SCOPE_COUNTER_FORMAT("AddComputePass %s", PassName.GetTCHAR());
 
@@ -125,6 +126,7 @@ namespace FVoxelUtilities
 		FComputeShaderUtils::AddPass(
 			GraphBuilder,
 			MoveTemp(PassName),
+			PassFlags | ERDGPassFlags::Compute,
 			Shader,
 			Parameters,
 			FComputeShaderUtils::GetGroupCount(ThreadCount, GroupSize));
@@ -136,7 +138,8 @@ namespace FVoxelUtilities
 		const ThreadCountType ThreadCount,
 		const int32 GroupSize,
 		SetupParametersType&& SetupParameters,
-		SetupPermutationDomainType&& SetupPermutationDomain = {})
+		SetupPermutationDomainType&& SetupPermutationDomain = {},
+		const ERDGPassFlags PassFlags = ERDGPassFlags::None)
 	{
 		FVoxelUtilities::AddComputePass<ShaderType>(
 			GraphBuilder,
@@ -144,7 +147,8 @@ namespace FVoxelUtilities
 			ThreadCount,
 			GroupSize,
 			MoveTemp(SetupParameters),
-			MoveTemp(SetupPermutationDomain));
+			MoveTemp(SetupPermutationDomain),
+			PassFlags);
 	}
 
 	//////////////////////////////////////////////////////////////////////////////

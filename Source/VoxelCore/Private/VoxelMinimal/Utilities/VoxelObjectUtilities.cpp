@@ -700,7 +700,11 @@ const FBoolProperty& FVoxelUtilities::MakeBoolProperty()
 	static const TUniquePtr<FBoolProperty> Property = INLINE_LAMBDA
 	{
 		TUniquePtr<FBoolProperty> Result = MakeUnique<FBoolProperty>(FFieldVariant(), FName(), EObjectFlags());
+#if VOXEL_ENGINE_VERSION >= 505
+		Result->SetElementSize(sizeof(bool));
+#else
 		Result->ElementSize = sizeof(bool);
+#endif
 		return Result;
 	};
 	return *Property;
@@ -711,7 +715,11 @@ const FFloatProperty& FVoxelUtilities::MakeFloatProperty()
 	static const TUniquePtr<FFloatProperty> Property = INLINE_LAMBDA
 	{
 		TUniquePtr<FFloatProperty> Result = MakeUnique<FFloatProperty>(FFieldVariant(), FName(), EObjectFlags());
+#if VOXEL_ENGINE_VERSION >= 505
+		Result->SetElementSize(sizeof(float));
+#else
 		Result->ElementSize = sizeof(float);
+#endif
 		return Result;
 	};
 	return *Property;
@@ -722,7 +730,11 @@ const FIntProperty& FVoxelUtilities::MakeIntProperty()
 	static const TUniquePtr<FIntProperty> Property = INLINE_LAMBDA
 	{
 		TUniquePtr<FIntProperty> Result = MakeUnique<FIntProperty>(FFieldVariant(), FName(), EObjectFlags());
+#if VOXEL_ENGINE_VERSION >= 505
+		Result->SetElementSize(sizeof(int32));
+#else
 		Result->ElementSize = sizeof(int32);
+#endif
 		return Result;
 	};
 	return *Property;
@@ -733,7 +745,11 @@ const FNameProperty& FVoxelUtilities::MakeNameProperty()
 	static const TUniquePtr<FNameProperty> Property = INLINE_LAMBDA
 	{
 		TUniquePtr<FNameProperty> Result = MakeUnique<FNameProperty>(FFieldVariant(), FName(), EObjectFlags());
+#if VOXEL_ENGINE_VERSION >= 505
+		Result->SetElementSize(sizeof(FName));
+#else
 		Result->ElementSize = sizeof(FName);
+#endif
 		return Result;
 	};
 	return *Property;
@@ -743,7 +759,11 @@ TUniquePtr<FEnumProperty> FVoxelUtilities::MakeEnumProperty(const UEnum* Enum)
 {
 	TUniquePtr<FEnumProperty> Property = MakeUnique<FEnumProperty>(FFieldVariant(), FName(), EObjectFlags());
 	Property->SetEnum(ConstCast(Enum));
+#if VOXEL_ENGINE_VERSION >= 505
+	Property->SetElementSize(sizeof(uint8));
+#else
 	Property->ElementSize = sizeof(uint8);
+#endif
 	return Property;
 }
 
@@ -753,7 +773,11 @@ TUniquePtr<FStructProperty> FVoxelUtilities::MakeStructProperty(const UScriptStr
 
 	TUniquePtr<FStructProperty> Property = MakeUnique<FStructProperty>(FFieldVariant(), FName(), EObjectFlags());
 	Property->Struct = ConstCast(Struct);
+#if VOXEL_ENGINE_VERSION >= 505
+	Property->SetElementSize(Struct->GetStructureSize());
+#else
 	Property->ElementSize = Struct->GetStructureSize();
+#endif
 	return Property;
 }
 
@@ -763,7 +787,11 @@ TUniquePtr<FObjectProperty> FVoxelUtilities::MakeObjectProperty(const UClass* Cl
 
 	TUniquePtr<FObjectProperty> Property = MakeUnique<FObjectProperty>(FFieldVariant(), FName(), EObjectFlags());
 	Property->PropertyClass = ConstCast(Class);
+#if VOXEL_ENGINE_VERSION >= 505
+	Property->SetElementSize(sizeof(UObject*));
+#else
 	Property->ElementSize = sizeof(UObject*);
+#endif
 	return Property;
 }
 

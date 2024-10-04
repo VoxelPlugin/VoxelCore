@@ -40,7 +40,7 @@ public:
 	template<typename T>
 	FVoxelHashBuilder& operator<<(const T& Value)
 	{
-		checkStatic(TIsTriviallyDestructible<T>::Value);
+		checkStatic(std::is_trivially_destructible_v<T>);
 		Sha.Update(reinterpret_cast<const uint8*>(&Value), sizeof(Value));
 		return *this;
 	}
@@ -55,7 +55,7 @@ public:
 
 		VOXEL_FUNCTION_COUNTER();
 
-		checkStatic(TIsTriviallyDestructible<T>::Value);
+		checkStatic(std::is_trivially_destructible_v<T>);
 		Sha.Update(reinterpret_cast<const uint8*>(Array.GetData()), Array.Num() * Array.GetTypeSize());
 		return *this;
 	}

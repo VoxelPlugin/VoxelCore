@@ -25,7 +25,7 @@ template<typename T>
 class TVoxelChunkedRef
 {
 public:
-	checkStatic(TIsTriviallyDestructible<T>::Value);
+	checkStatic(std::is_trivially_destructible_v<T>);
 
 	FORCEINLINE TVoxelChunkedRef(
 		TVoxelChunkedArray<uint8>& ByteArray,
@@ -98,7 +98,7 @@ template<typename T>
 class TVoxelChunkedArrayRef
 {
 public:
-	checkStatic(TIsTriviallyDestructible<T>::Value);
+	checkStatic(std::is_trivially_destructible_v<T>);
 
 	FORCEINLINE TVoxelChunkedArrayRef(
 		TVoxelChunkedArray<uint8>& ByteArray,

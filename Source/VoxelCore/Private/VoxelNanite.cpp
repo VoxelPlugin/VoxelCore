@@ -308,7 +308,8 @@ FPackedCluster FCluster::Pack(const FEncodingInfo& Info) const
 void CreatePageData(
 	const TVoxelArrayView<FCluster> Clusters,
 	const FEncodingSettings& EncodingSettings,
-	TVoxelChunkedArray<uint8>& PageData)
+	TVoxelChunkedArray<uint8>& PageData,
+	int32& VertexOffset)
 {
 	VOXEL_FUNCTION_COUNTER();
 	ensure(PageData.Num() % sizeof(uint32) == 0);
@@ -351,6 +352,10 @@ void CreatePageData(
 
 		FPackedCluster& PackedCluster = PackedClusters.Emplace_GetRef();
 		PackedCluster = Cluster.Pack(Info);
+
+		ensure(FVoxelUtilities::IsValidUINT16(VertexOffset));
+		PackedCluster.SetGroupIndex(VertexOffset);
+		VertexOffset += Cluster.NumVertices();
 
 		constexpr int32 NumBits_BatchCount = 4;
 		const int32 NumBatches = Cluster.NumMaterialBatches();

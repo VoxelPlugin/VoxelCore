@@ -18,7 +18,6 @@ void SVoxelGraphActionMenu::Construct(
 
 	TreeView =
 		SNew(STreeView<TSharedPtr<FGraphActionNode>>)
-		.ItemHeight(24)
 		.TreeItemsSource(&(this->FilteredRootAction->Children))
 		.OnGenerateRow(this, &SVoxelGraphActionMenu::MakeWidget, bReadOnly)
 		.OnSelectionChanged(this, &SVoxelGraphActionMenu::OnItemSelected)
@@ -125,10 +124,8 @@ TSharedPtr<FGraphActionNode> SVoxelGraphActionMenu::FindItemByName(
 		for (int32 ChildIdx = 0; ChildIdx < CurrentGraphNode->Children.Num() && !SelectionNode.IsValid(); ++ChildIdx)
 		{
 			const TSharedPtr<FGraphActionNode> CurrentChildNode = CurrentGraphNode->Children[ChildIdx];
-			for (int32 ActionIndex = 0; ActionIndex < CurrentChildNode->Actions.Num(); ActionIndex++)
+			if (const TSharedPtr<FEdGraphSchemaAction> ChildGraphAction = CurrentChildNode->GetPrimaryAction())
 			{
-				FEdGraphSchemaAction* ChildGraphAction = CurrentChildNode->Actions[ActionIndex].Get();
-
 				if (!CurrentChildNode->IsCategoryNode())
 				{
 					if (SectionId == -1 ||
@@ -137,16 +134,14 @@ TSharedPtr<FGraphActionNode> SVoxelGraphActionMenu::FindItemByName(
 						if (ChildGraphAction)
 						{
 							if (OnActionMatchesName.IsBound() &&
-								OnActionMatchesName.Execute(ChildGraphAction, ItemName))
+								OnActionMatchesName.Execute(ChildGraphAction.Get(), ItemName))
 							{
 								SelectionNode = GraphNodes[Index]->Children[ChildIdx];
-								break;
 							}
 						}
 						else if (CurrentChildNode->GetDisplayName().ToString() == FName::NameToDisplayString(ItemName.ToString(), false))
 						{
 							SelectionNode = CurrentChildNode;
-							break;
 						}
 					}
 				}

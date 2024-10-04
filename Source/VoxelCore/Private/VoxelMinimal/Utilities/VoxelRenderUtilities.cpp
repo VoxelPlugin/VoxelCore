@@ -11,7 +11,7 @@
 #include "ScenePrivate.h"
 
 void RHIUpdateTexture2D_Safe(
-	FRHITexture2D* Texture,
+	FRHITexture* Texture,
 	const uint32 MipIndex,
 	const FUpdateTextureRegion2D& UpdateRegion,
 	const uint32 SourcePitch,
@@ -73,7 +73,7 @@ FMaterialRenderProxy* FVoxelUtilities::CreateColoredMaterialRenderProxy(
 
 bool FVoxelUtilities::UpdateTextureRef(
 	UTexture2D* TextureObject,
-	FRHITexture2D* TextureRHI)
+	FRHITexture* TextureRHI)
 {
 	VOXEL_FUNCTION_COUNTER();
 	ensure(IsInRenderingThread());
@@ -159,7 +159,7 @@ FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
 				return FVoxelFuture::Done();
 			}
 
-			const TRefCountPtr<FRHITexture2D> UploadTextureRHI = RHICreateTexture(
+			const TRefCountPtr<FRHITexture> UploadTextureRHI = RHICreateTexture(
 				FRHITextureCreateDesc::Create2D(TEXT("AsyncCopyTexture"))
 				.SetExtent(SizeX, SizeY)
 				.SetFormat(Format)
@@ -218,7 +218,7 @@ FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
 		MipData.Add(ConstCast(Data->GetData()));
 
 		FGraphEventRef CompletionEvent;
-		const FTexture2DRHIRef UploadTextureRHI = RHIAsyncCreateTexture2D(
+		const FTextureRHIRef UploadTextureRHI = RHIAsyncCreateTexture2D(
 			SizeX,
 			SizeY,
 			Format,

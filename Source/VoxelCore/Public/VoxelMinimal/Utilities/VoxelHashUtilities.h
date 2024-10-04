@@ -55,7 +55,7 @@ namespace FVoxelUtilities
 	}
 
 	template<typename T, typename = std::enable_if_t<
-		TIsTriviallyDestructible<T>::Value &&
+		std::is_trivially_destructible_v<T> &&
 		!TIsTArrayView<T>::Value && (
 		sizeof(T) == sizeof(uint8) ||
 		sizeof(T) == sizeof(uint16) ||

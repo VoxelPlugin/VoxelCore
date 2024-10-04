@@ -5,6 +5,9 @@
 #include "StructViewerModule.h"
 #include "Engine/UserDefinedStruct.h"
 #include "Styling/SlateIconFinder.h"
+#if VOXEL_ENGINE_VERSION >= 505
+#include "StructUtils/UserDefinedStruct.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "StructUtilsEditor"
 

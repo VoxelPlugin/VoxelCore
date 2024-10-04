@@ -12,8 +12,8 @@ class alignas(Alignment) TVoxelStaticArray
 public:
 	using ElementType = T;
 
-	checkStatic(!bForceInitToZero || TIsTriviallyDestructible<T>::Value);
-	static constexpr bool bCanNoInit = TIsTriviallyDestructible<T>::Value && !bForceInitToZero;
+	checkStatic(!bForceInitToZero || std::is_trivially_destructible_v<T>);
+	static constexpr bool bCanNoInit = std::is_trivially_destructible_v<T> && !bForceInitToZero;
 
 	// Default constructor, only valid for complex types
 	// For trivially destructible types you need to choose whether to init them (ForceInit) or not (NoInit)
@@ -76,7 +76,7 @@ public:
 	}
 	FORCEINLINE ~TVoxelStaticArray()
 	{
-		if (!TIsTriviallyDestructible<T>::Value)
+		if (!std::is_trivially_destructible_v<T>)
 		{
 			for (auto& Element : *this)
 			{
@@ -212,7 +212,7 @@ public:
 
 	friend FArchive& operator<<(FArchive& Ar, TVoxelStaticArray& Array)
 	{
-		static_assert(TIsTriviallyDestructible<T>::Value, "Need to fix serializer");
+		static_assert(std::is_trivially_destructible_v<T>, "Need to fix serializer");
 		Ar.Serialize(Array.GetData(), Array.Num() * Array.GetTypeSize());
 		return Ar;
 	}
@@ -235,13 +235,10 @@ struct TIsContiguousContainer<TVoxelStaticArray<T, Size, Alignment, bForceInitTo
 };
 
 template<typename T, int32 Size, int32 Alignment, bool bForceInitToZero>
-struct TIsTriviallyDestructible<TVoxelStaticArray<T, Size, Alignment, bForceInitToZero>>
-{
-	static constexpr bool Value = TIsTriviallyDestructible<T>::Value;
-};
-
-template<typename T, int32 Size, int32 Alignment, bool bForceInitToZero>
 struct TCanBulkSerialize<TVoxelStaticArray<T, Size, Alignment, bForceInitToZero>>
 {
 	static constexpr bool Value = TVoxelCanBulkSerialize<T>::Value;
 };
+
+template<typename T, int32 Size, int32 Alignment, bool bForceInitToZero>
+constexpr bool std::is_trivially_destructible_v_voxel<TVoxelStaticArray<T, Size, Alignment, bForceInitToZero>> = std::is_trivially_destructible_v<T>;

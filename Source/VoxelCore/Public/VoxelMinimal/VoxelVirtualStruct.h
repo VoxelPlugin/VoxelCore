@@ -129,11 +129,19 @@ private:
 	mutable TVoxelDuplicateTransient<UScriptStruct*> PrivateStruct;
 };
 
+#if VOXEL_ENGINE_VERSION >= 505
+#define VOXEL_ENABLE_SHARED_FROM_THIS(Name) \
+	SharedPointerInternals::EnableSharedFromThis(&Name, &Name.Get());
+#else
+#define VOXEL_ENABLE_SHARED_FROM_THIS(Name) \
+	SharedPointerInternals::EnableSharedFromThis(&Name, &Name.Get(), &Name.Get());
+#endif
+
 #define GENERATED_VIRTUAL_STRUCT_BODY_ALIASES() \
 	auto MakeSharedCopy() const -> decltype(auto) \
 	{ \
 		const TSharedRef<VOXEL_THIS_TYPE> SharedRef = StaticCastSharedRef<VOXEL_THIS_TYPE>(Super::MakeSharedCopy()); \
-		SharedPointerInternals::EnableSharedFromThis(&SharedRef, &SharedRef.Get(), &SharedRef.Get()); \
+		VOXEL_ENABLE_SHARED_FROM_THIS(SharedRef); \
 		return SharedRef; \
 	} \
 	template<typename T, typename = std::enable_if_t<!TIsReferenceType<T>::Value>> \

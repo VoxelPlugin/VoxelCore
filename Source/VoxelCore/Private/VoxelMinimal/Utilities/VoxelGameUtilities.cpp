@@ -6,6 +6,7 @@
 
 #if WITH_EDITOR
 #include "Selection.h"
+#include "LevelEditorViewport.h"
 #include "EditorViewportClient.h"
 #endif
 
@@ -85,10 +86,16 @@ bool FVoxelUtilities::GetCameraView(const UWorld* World, FVector& OutPosition, F
 	{
 		if (World->IsGameWorld())
 		{
-			const APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(World, 0);
+			APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(World, 0);
 			if (!CameraManager)
 			{
 				return false;
+			}
+
+			if (CameraManager->GetCameraCacheTime() <= 0 &&
+				CameraManager->GetCameraLocation().IsNearlyZero())
+			{
+				CameraManager->UpdateCamera(0.f);
 			}
 
 			OutPosition = CameraManager->GetCameraLocation();
@@ -102,6 +109,12 @@ bool FVoxelUtilities::GetCameraView(const UWorld* World, FVector& OutPosition, F
 	#if WITH_EDITOR
 			const FEditorViewportClient* BestViewportClient = INLINE_LAMBDA -> const FEditorViewportClient*
 			{
+				if (GCurrentLevelEditingViewportClient &&
+					GCurrentLevelEditingViewportClient->GetWorld() == World)
+				{
+					return GCurrentLevelEditingViewportClient;
+				}
+
 				TVoxelInlineArray<const FEditorViewportClient*, 8> ValidClients;
 				for (const FEditorViewportClient* ViewportClient : GEditor->GetAllViewportClients())
 				{

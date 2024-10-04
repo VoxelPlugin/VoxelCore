@@ -206,5 +206,6 @@ private:
 void CreatePageData(
 	TVoxelArrayView<FCluster> Clusters,
 	const FEncodingSettings& EncodingSettings,
-	TVoxelChunkedArray<uint8>& PageData);
+	TVoxelChunkedArray<uint8>& PageData,
+	int32& VertexOffset);
 }

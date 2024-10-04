@@ -57,7 +57,7 @@ FVoxelScopedMessageConsumer::FVoxelScopedMessageConsumer(TFunction<void(const TS
 
 FVoxelScopedMessageConsumer::~FVoxelScopedMessageConsumer()
 {
-	FVoxelMessagesThreadSingleton::Get().MessageConsumers.Pop(false);
+	FVoxelMessagesThreadSingleton::Get().MessageConsumers.Pop(UE_505_SWITCH(false, EAllowShrinking::No));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -115,7 +115,7 @@ void FVoxelMessageManager::LogMessage_GameThread(const TSharedRef<FVoxelMessage>
 		RecentMessages.RemoveAllSwap([&](const FRecentMessage& RecentMessage)
 		{
 			return RecentMessage.Time + 0.5 < Time;
-		}, false);
+		}, UE_505_SWITCH(false, EAllowShrinking::No));
 
 		if (RecentMessages.FindByPredicate([&](const FRecentMessage& RecentMessage)
 			{

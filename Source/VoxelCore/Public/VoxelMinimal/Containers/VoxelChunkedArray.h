@@ -61,7 +61,7 @@ public:
 public:
 	void SetNumUninitialized(const int32 NewNum)
 	{
-		checkStatic(TIsTriviallyDestructible<Type>::Value);
+		checkStatic(std::is_trivially_destructible_v<Type>);
 
 		ArrayNum = NewNum;
 
@@ -90,7 +90,7 @@ public:
 
 		if (NewNum < ArrayNum)
 		{
-			if constexpr (!TIsTriviallyDestructible<Type>::Value)
+			if constexpr (!std::is_trivially_destructible_v<Type>)
 			{
 				for (int32 Index = NewNum; Index < ArrayNum; Index++)
 				{
@@ -131,7 +131,7 @@ public:
 	}
 	void Reset()
 	{
-		if constexpr (!TIsTriviallyDestructible<Type>::Value)
+		if constexpr (!std::is_trivially_destructible_v<Type>)
 		{
 			for (int32 Index = 0; Index < ArrayNum; Index++)
 			{
@@ -174,7 +174,7 @@ public:
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
 
-		if constexpr (TIsTriviallyDestructible<Type>::Value)
+		if constexpr (std::is_trivially_destructible_v<Type>)
 		{
 			TVoxelArray<Type, Allocator> Result;
 			FVoxelUtilities::SetNumFast(Result, Num());
@@ -415,7 +415,7 @@ public:
 	FORCEINLINE int32 AddZeroed(const int32 Count)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Count, 1024);
-		checkStatic(TIsTriviallyDestructible<Type>::Value);
+		checkStatic(std::is_trivially_destructible_v<Type>);
 		checkVoxelSlow(Count >= 0);
 
 		const int32 Index = AddUninitialized(Count);
@@ -441,7 +441,7 @@ public:
 			Count,
 			[&](const int32 ViewIndex, const TVoxelArrayView<Type> View)
 			{
-				if constexpr (TIsTriviallyDestructible<Type>::Value)
+				if constexpr (std::is_trivially_destructible_v<Type>)
 				{
 					FVoxelUtilities::SetAll(View, Value);
 				}
@@ -483,7 +483,7 @@ public:
 
 		const int32 StartIndex = this->AddUninitialized(Other.Num());
 
-		if constexpr (TIsTriviallyDestructible<Type>::Value)
+		if constexpr (std::is_trivially_destructible_v<Type>)
 		{
 			this->ForeachView(
 				StartIndex,
@@ -556,7 +556,7 @@ public:
 		checkVoxelSlow(IsValidIndex(StartIndex));
 		checkVoxelSlow(IsValidIndex(StartIndex + Other.Num() - 1));
 
-		if constexpr (TIsTriviallyDestructible<Type>::Value)
+		if constexpr (std::is_trivially_destructible_v<Type>)
 		{
 			this->ForeachView(
 				StartIndex,

@@ -1235,3 +1235,24 @@ VOXELCORE_API void ExitVoxelAllowLeakScope();
 		(void)Property; \
 		return Voxel::Private::Property ## Impl::Class ## Impl::Ref(Object); \
 	}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+namespace std
+{
+	template<typename T>
+	constexpr bool is_trivially_destructible_v_voxel = std::is_trivially_destructible_v<T>;
+
+	template<typename T>
+	using is_trivially_destructible_voxel = std::bool_constant<std::is_trivially_destructible_v_voxel<T>>;
+}
+
+#if INTELLISENSE_PARSER
+#define is_trivially_destructible_voxel is_trivially_destructible
+#define is_trivially_destructible_v_voxel is_trivially_destructible_v
+#else
+#define is_trivially_destructible is_trivially_destructible_voxel
+#define is_trivially_destructible_v is_trivially_destructible_v_voxel
+#endif

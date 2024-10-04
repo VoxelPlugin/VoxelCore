@@ -497,7 +497,7 @@ void FVoxelCoreBenchmark::Run()
 				{
 					for (int32 Run = 0; Run < NumRuns; Run++)
 					{
-						EngineArray.RemoveAtSwap(0, 1, false);
+						EngineArray.RemoveAtSwap(0, 1, UE_505_SWITCH(false, EAllowShrinking::No));
 					}
 				},
 				[&](const int32 NumRuns)

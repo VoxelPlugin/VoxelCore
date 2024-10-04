@@ -145,7 +145,7 @@ void SVoxelSimpleAssetEditorViewportToolbar::ExtendLeftAlignedToolbarSlots(const
 					   return {};
 					}
 
-					return FText::AsNumber(Viewport->GetViewportClient()->GetCameraSpeedSetting());
+					return FText::AsNumber(Viewport->GetViewportClient()->GetCameraSpeed());
 				})
 				.OnGetMenuContent(ConstCast(this), &SVoxelSimpleAssetEditorViewportToolbar::FillCameraSpeedMenu);
 
@@ -252,7 +252,7 @@ TSharedRef<SWidget> SVoxelSimpleAssetEditorViewportToolbar::FillCameraSpeedMenu(
 						return {};
 					}
 
-					return FText::AsNumber(Viewport->GetViewportClient()->GetCameraSpeedSetting());
+					return FText::AsNumber(Viewport->GetViewportClient()->GetCameraSpeed());
 				})
 				.Font(FAppStyle::GetFontStyle("MenuItem.Font"))
 			]
