@@ -491,20 +491,32 @@ FVoxelFuture FVoxelTextureBufferPool::ProcessUploadsImpl_AnyThread(TVoxelArray<F
 		}
 
 		if (OldTexture &&
-			OldTexture != NewTexture)
+			OldTexture != NewTexture &&
+			ensure(2 * OldTexture->GetSizeX() == NewTexture->GetSizeX()) &&
+			ensure(2 * OldTexture->GetSizeY() == NewTexture->GetSizeY()))
 		{
 			FTextureResource* OldResource = OldTexture->GetResource();
 			FTextureResource* NewResource = NewTexture->GetResource();
 
-			FRHICopyTextureInfo CopyInfo;
-			CopyInfo.Size = FIntVector(OldTexture->GetSizeX(), OldTexture->GetSizeY(), 1);
-
-			VOXEL_ENQUEUE_RENDER_COMMAND(FVoxelTextureBufferPool_Reallocate)([OldResource, NewResource, CopyInfo](FRHICommandListImmediate& RHICmdList)
+			VOXEL_ENQUEUE_RENDER_COMMAND(FVoxelTextureBufferPool_Reallocate)([OldResource, NewResource](FRHICommandListImmediate& RHICmdList)
 			{
-				RHICmdList.CopyTexture(
-					OldResource->GetTextureRHI(),
-					NewResource->GetTextureRHI(),
-					CopyInfo);
+				const int32 SizeX = OldResource->GetSizeX();
+				const int32 SizeY = OldResource->GetSizeY();
+
+				for (int32 Row = 0; Row < SizeY; Row++)
+				{
+					FRHICopyTextureInfo CopyInfo;
+					CopyInfo.Size = FIntVector(SizeX, 1, 1);
+					CopyInfo.SourcePosition.X = 0;
+					CopyInfo.SourcePosition.Y = Row;
+					CopyInfo.DestPosition.X = (Row % 2) * SizeX;
+					CopyInfo.DestPosition.Y = Row / 2;
+
+					RHICmdList.CopyTexture(
+						OldResource->GetTextureRHI(),
+						NewResource->GetTextureRHI(),
+						CopyInfo);
+				}
 			});
 		}
 
