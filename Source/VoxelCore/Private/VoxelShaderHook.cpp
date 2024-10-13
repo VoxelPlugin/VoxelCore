@@ -811,6 +811,16 @@ void FVoxelShaderHookGroup::Invalidate()
 	};
 }
 
+void FVoxelShaderHookGroup::EnsureIsEnabled() const
+{
+	if (!GIsEditor)
+	{
+		return;
+	}
+
+	(void)IsEnabled();
+}
+
 bool FVoxelShaderHookGroup::Apply(bool& bOutCancel)
 {
 	VOXEL_FUNCTION_COUNTER();

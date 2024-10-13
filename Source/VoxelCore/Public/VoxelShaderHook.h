@@ -175,6 +175,7 @@ public:
 	void AddHook(FVoxelShaderHook&& Hook);
 	bool IsEnabled() const;
 	void Invalidate();
+	void EnsureIsEnabled() const;
 	bool Apply(bool& bOutCancel);
 	bool Revert();
 	FString CreatePatch(bool bAddStyling);
@@ -201,13 +202,9 @@ private:
 	{ \
 		static FVoxelShaderHookGroup Hook; \
 		\
-		static bool IsEnabled() \
-		{ \
-			return Hook.IsEnabled(); \
-		} \
 		static void EnsureIsEnabled() \
 		{ \
-			Hook.IsEnabled(); \
+			Hook.EnsureIsEnabled(); \
 		} \
 	};
 
