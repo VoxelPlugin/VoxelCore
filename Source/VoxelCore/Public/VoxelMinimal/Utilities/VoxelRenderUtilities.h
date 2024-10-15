@@ -88,16 +88,23 @@ namespace FVoxelUtilities
 
 	VOXELCORE_API TVoxelFuture<TVoxelArray64<uint8>> Readback(
 		const FBufferRHIRef& SourceBuffer,
-		int64 NumBytes = -1);
+		const TVoxelFuture<int64>& FutureNumBytes = {});
 
 	template<typename T, typename = std::enable_if_t<std::is_trivially_destructible_v<T>>>
 	TVoxelFuture<TVoxelArray<T>> Readback(
 		const FBufferRHIRef& SourceBuffer,
-		const int32 Num = -1)
+		const TVoxelFuture<int32>& FutureNum = {})
 	{
-		const int64 NumBytes = Num != -1 ? Num * sizeof(T) : -1;
+		TVoxelFuture<int64> FutureNumBytes;
+		if (FutureNum.IsValid())
+		{
+			FutureNumBytes = FutureNum.Then_AnyThread([](const int32 Num) -> int64
+			{
+				return int64(Num) * sizeof(T);
+			});
+		}
 
-		return Readback(SourceBuffer, NumBytes).Then_AnyThread([](const TVoxelArray64<uint8>& Data)
+		return Readback(SourceBuffer, FutureNumBytes).Then_AnyThread([](const TVoxelArray64<uint8>& Data)
 		{
 			VOXEL_SCOPE_COUNTER("Readback Copy");
 
@@ -131,17 +138,24 @@ namespace FVoxelUtilities
 	VOXELCORE_API TVoxelFuture<TVoxelArray64<uint8>> Readback(
 		FRDGBuilder& GraphBuilder,
 		const FRDGBufferRef& SourceBuffer,
-		int64 NumBytes = -1);
+		const TVoxelFuture<int64>& FutureNumBytes = {});
 
 	template<typename T, typename = std::enable_if_t<std::is_trivially_destructible_v<T>>>
 	TVoxelFuture<TVoxelArray<T>> Readback(
 		FRDGBuilder& GraphBuilder,
 		const FRDGBufferRef& SourceBuffer,
-		const int32 Num = -1)
+		const TVoxelFuture<int32>& FutureNum = {})
 	{
-		const int64 NumBytes = Num != -1 ? Num * sizeof(T) : -1;
+		TVoxelFuture<int64> FutureNumBytes;
+		if (FutureNum.IsValid())
+		{
+			FutureNumBytes = FutureNum.Then_AnyThread([](const int32 Num) -> int64
+			{
+				return int64(Num) * sizeof(T);
+			});
+		}
 
-		return Readback(GraphBuilder, SourceBuffer, NumBytes).Then_AnyThread([](const TVoxelArray64<uint8>& Data)
+		return Readback(GraphBuilder, SourceBuffer, FutureNumBytes).Then_AnyThread([](const TVoxelArray64<uint8>& Data)
 		{
 			VOXEL_SCOPE_COUNTER("Readback Copy");
 
