@@ -373,14 +373,17 @@ public:
 		TVoxelPromise<TVoxelArray64<uint8>> Promise;
 		TSharedRef<FVoxelGPUBufferReadback> Readback;
 	};
-	TVoxelArray<FReadback> Readbacks_RenderThread;
+
+	FVoxelCriticalSection CriticalSection;
+	TVoxelArray<FReadback> Readbacks_RequiresLock;
 
 	//~ Begin FVoxelSingleton Interface
 	virtual void Tick_RenderThread(FRHICommandList& RHICmdList) override
 	{
 		VOXEL_FUNCTION_COUNTER();
+		VOXEL_SCOPE_LOCK(CriticalSection);
 
-		for (auto It = Readbacks_RenderThread.CreateIterator(); It; ++It)
+		for (auto It = Readbacks_RequiresLock.CreateIterator(); It; ++It)
 		{
 			if (!It->Readback->IsReady())
 			{
@@ -404,23 +407,25 @@ TVoxelFuture<TVoxelArray64<uint8>> FVoxelUtilities::Readback(
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	if (!IsInRenderingThread())
+	if (!IsInParallelRenderingThread())
 	{
 		return Voxel::RenderTask([=]
 		{
 			return Readback(SourceBuffer, NumBytes);
 		});
 	}
-	check(IsInRenderingThread());
+	check(IsInParallelRenderingThread());
 
 	const TVoxelPromise<TVoxelArray64<uint8>> Promise;
-
-	GVoxelReadbackManager->Readbacks_RenderThread.Add(FVoxelReadbackManager::FReadback
 	{
-		Promise,
-		FVoxelGPUBufferReadback::Create(FRHICommandListImmediate::Get(), SourceBuffer, NumBytes)
-	});
+		VOXEL_SCOPE_LOCK(GVoxelReadbackManager->CriticalSection);
 
+		GVoxelReadbackManager->Readbacks_RequiresLock.Add(FVoxelReadbackManager::FReadback
+		{
+			Promise,
+			FVoxelGPUBufferReadback::Create(FRHICommandListImmediate::Get(), SourceBuffer, NumBytes)
+		});
+	}
 	return Promise.GetFuture();
 }
 
@@ -437,6 +442,8 @@ TVoxelFuture<TVoxelArray64<uint8>> FVoxelUtilities::Readback(
 	const FRDGBufferRef& SourceBuffer,
 	const int64 NumBytes)
 {
+	VOXEL_FUNCTION_COUNTER();
+	
 	const TVoxelPromise<TVoxelArray64<uint8>> Promise;
 
 	FVoxelUtilitiesReadbackParameters* Parameters = GraphBuilder.AllocParameters<FVoxelUtilitiesReadbackParameters>();
@@ -448,9 +455,13 @@ TVoxelFuture<TVoxelArray64<uint8>> FVoxelUtilities::Readback(
 		ERDGPassFlags::Readback,
 		[SourceBuffer, NumBytes, Promise](FRHICommandList& RHICmdList)
 		{
-			Readback(SourceBuffer->GetRHI(), NumBytes).Then_AnyThread([Promise](const TSharedRef<TVoxelArray64<uint8>>& Data)
+			VOXEL_FUNCTION_COUNTER();
+			VOXEL_SCOPE_LOCK(GVoxelReadbackManager->CriticalSection);
+
+			GVoxelReadbackManager->Readbacks_RequiresLock.Add(FVoxelReadbackManager::FReadback
 			{
-				Promise.Set(Data);
+				Promise,
+				FVoxelGPUBufferReadback::Create(RHICmdList, SourceBuffer->GetRHI(), NumBytes)
 			});
 		});
 
