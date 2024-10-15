@@ -76,14 +76,28 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	VOXELCORE_API TVoxelFuture<TVoxelArray<uint8>> Readback(const FBufferRHIRef& SourceBuffer);
+	VOXELCORE_API void UploadBuffer(
+		FRDGBuilder& GraphBuilder,
+		const FRDGBufferRef& TargetBuffer,
+		TConstVoxelArrayView64<uint8> Data,
+		const FSharedVoidPtr& KeepAlive);
 
-	template<typename T>
-	TVoxelFuture<TVoxelArray<T>> Readback(FRHIBuffer* SourceBuffer)
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	VOXELCORE_API TVoxelFuture<TVoxelArray64<uint8>> Readback(
+		const FBufferRHIRef& SourceBuffer,
+		int64 NumBytes = -1);
+
+	template<typename T, typename = std::enable_if_t<std::is_trivially_destructible_v<T>>>
+	TVoxelFuture<TVoxelArray<T>> Readback(
+		const FBufferRHIRef& SourceBuffer,
+		const int32 Num = -1)
 	{
-		checkStatic(std::is_trivially_destructible_v<T>);
+		const int64 NumBytes = Num != -1 ? Num * sizeof(T) : -1;
 
-		return Readback(SourceBuffer).Then_AnyThread([](const TVoxelArray<uint8>& Data)
+		return Readback(SourceBuffer, NumBytes).Then_AnyThread([](const TVoxelArray64<uint8>& Data)
 		{
 			VOXEL_SCOPE_COUNTER("Readback Copy");
 
@@ -93,6 +107,66 @@ namespace FVoxelUtilities
 			}
 
 			return MakeVoxelShared<TVoxelArray<T>>(MakeVoxelArrayView(Data).ReinterpretAs<T>());
+		});
+	}
+
+	template<typename T, typename = std::enable_if_t<std::is_trivially_destructible_v<T>>>
+	TVoxelFuture<T> ReadbackUniform(const FBufferRHIRef& SourceBuffer)
+	{
+		return Readback(SourceBuffer).Then_AnyThread([](const TVoxelArray64<uint8>& Data)
+		{
+			if (!ensure(Data.Num() == sizeof(T)))
+			{
+				return FVoxelUtilities::MakeSafe<T>();
+			}
+
+			return MakeVoxelArrayView(Data).ReinterpretAs<T>()[0];
+		});
+	}
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	VOXELCORE_API TVoxelFuture<TVoxelArray64<uint8>> Readback(
+		FRDGBuilder& GraphBuilder,
+		const FRDGBufferRef& SourceBuffer,
+		int64 NumBytes = -1);
+
+	template<typename T, typename = std::enable_if_t<std::is_trivially_destructible_v<T>>>
+	TVoxelFuture<TVoxelArray<T>> Readback(
+		FRDGBuilder& GraphBuilder,
+		const FRDGBufferRef& SourceBuffer,
+		const int32 Num = -1)
+	{
+		const int64 NumBytes = Num != -1 ? Num * sizeof(T) : -1;
+
+		return Readback(GraphBuilder, SourceBuffer, NumBytes).Then_AnyThread([](const TVoxelArray64<uint8>& Data)
+		{
+			VOXEL_SCOPE_COUNTER("Readback Copy");
+
+			if (!ensure(Data.Num() % sizeof(T) == 0))
+			{
+				return MakeVoxelShared<TVoxelArray<T>>();
+			}
+
+			return MakeVoxelShared<TVoxelArray<T>>(MakeVoxelArrayView(Data).ReinterpretAs<T>());
+		});
+	}
+
+	template<typename T, typename = std::enable_if_t<std::is_trivially_destructible_v<T>>>
+	TVoxelFuture<T> ReadbackUniform(
+		FRDGBuilder& GraphBuilder,
+		const FRDGBufferRef& SourceBuffer)
+	{
+		return Readback(GraphBuilder, SourceBuffer).Then_AnyThread([](const TVoxelArray64<uint8>& Data)
+		{
+			if (!ensure(Data.Num() == sizeof(T)))
+			{
+				return FVoxelUtilities::MakeSafe<T>();
+			}
+
+			return MakeVoxelArrayView(Data).ReinterpretAs<T>()[0];
 		});
 	}
 

@@ -321,12 +321,56 @@ FRDGTextureRef FVoxelUtilities::FindTexture(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+BEGIN_SHADER_PARAMETER_STRUCT(FVoxelUtilitiesUploadParameters, )
+	RDG_BUFFER_ACCESS(TargetBuffer, ERHIAccess::CopyDest)
+END_SHADER_PARAMETER_STRUCT()
+
+void FVoxelUtilities::UploadBuffer(
+	FRDGBuilder& GraphBuilder,
+	const FRDGBufferRef& TargetBuffer,
+	const TConstVoxelArrayView64<uint8> Data,
+	const FSharedVoidPtr& KeepAlive)
+{
+	if (!ensure(TargetBuffer) ||
+		!ensure(TargetBuffer->Desc.NumElements * TargetBuffer->Desc.BytesPerElement >= Data.Num()))
+	{
+		return;
+	}
+
+	FVoxelUtilitiesUploadParameters* UploadParameters = GraphBuilder.AllocParameters<FVoxelUtilitiesUploadParameters>();
+	UploadParameters->TargetBuffer = TargetBuffer;
+
+	GraphBuilder.AddPass(
+		RDG_EVENT_NAME("FVoxelUtilities::UploadBuffer"),
+		UploadParameters,
+		ERDGPassFlags::Copy,
+		[=](FRHICommandListImmediate& RHICmdList)
+		{
+			VOXEL_SCOPE_COUNTER_FORMAT("FVoxelUtilities::UploadBuffer %lldB", Data.Num());
+
+			(void)KeepAlive;
+
+			FRHIBuffer* TargetBufferRHI = TargetBuffer->GetRHI();
+
+			void* TargetBufferData = RHICmdList.LockBuffer(TargetBufferRHI, 0, Data.Num(), RLM_WriteOnly);
+			if (ensure(TargetBufferData))
+			{
+				FMemory::Memcpy(TargetBufferData, Data.GetData(), Data.Num());
+			}
+			RHICmdList.UnlockBuffer(TargetBufferRHI);
+		});
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 class FVoxelReadbackManager : public FVoxelSingleton
 {
 public:
 	struct FReadback
 	{
-		TVoxelPromise<TVoxelArray<uint8>> Promise;
+		TVoxelPromise<TVoxelArray64<uint8>> Promise;
 		TSharedRef<FVoxelGPUBufferReadback> Readback;
 	};
 	TVoxelArray<FReadback> Readbacks_RenderThread;
@@ -343,7 +387,10 @@ public:
 				continue;
 			}
 
-			It->Promise.Set(It->Readback->AsArray<uint8>());
+			const TSharedRef<TVoxelArray64<uint8>> Array = MakeVoxelShared<TVoxelArray64<uint8>>(It->Readback->Lock());
+			It->Readback->Unlock();
+
+			It->Promise.Set(Array);
 			It.RemoveCurrentSwap();
 		}
 	}
@@ -351,7 +398,9 @@ public:
 };
 FVoxelReadbackManager* GVoxelReadbackManager = new FVoxelReadbackManager();
 
-TVoxelFuture<TVoxelArray<uint8>> FVoxelUtilities::Readback(const FBufferRHIRef& SourceBuffer)
+TVoxelFuture<TVoxelArray64<uint8>> FVoxelUtilities::Readback(
+	const FBufferRHIRef& SourceBuffer,
+	const int64 NumBytes)
 {
 	VOXEL_FUNCTION_COUNTER();
 
@@ -359,18 +408,51 @@ TVoxelFuture<TVoxelArray<uint8>> FVoxelUtilities::Readback(const FBufferRHIRef& 
 	{
 		return Voxel::RenderTask([=]
 		{
-			return Readback(SourceBuffer);
+			return Readback(SourceBuffer, NumBytes);
 		});
 	}
 	check(IsInRenderingThread());
 
-	const TVoxelPromise<TVoxelArray<uint8>> Promise;
+	const TVoxelPromise<TVoxelArray64<uint8>> Promise;
 
 	GVoxelReadbackManager->Readbacks_RenderThread.Add(FVoxelReadbackManager::FReadback
 	{
 		Promise,
-		FVoxelGPUBufferReadback::Create(FRHICommandListImmediate::Get(), SourceBuffer)
+		FVoxelGPUBufferReadback::Create(FRHICommandListImmediate::Get(), SourceBuffer, NumBytes)
 	});
+
+	return Promise.GetFuture();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+BEGIN_SHADER_PARAMETER_STRUCT(FVoxelUtilitiesReadbackParameters, )
+	RDG_BUFFER_ACCESS(Buffer, ERHIAccess::CopySrc)
+END_SHADER_PARAMETER_STRUCT()
+
+TVoxelFuture<TVoxelArray64<uint8>> FVoxelUtilities::Readback(
+	FRDGBuilder& GraphBuilder,
+	const FRDGBufferRef& SourceBuffer,
+	const int64 NumBytes)
+{
+	const TVoxelPromise<TVoxelArray64<uint8>> Promise;
+
+	FVoxelUtilitiesReadbackParameters* Parameters = GraphBuilder.AllocParameters<FVoxelUtilitiesReadbackParameters>();
+	Parameters->Buffer = SourceBuffer;
+
+	GraphBuilder.AddPass(
+		RDG_EVENT_NAME("FVoxelUtilities::Readback"),
+		Parameters,
+		ERDGPassFlags::Readback,
+		[SourceBuffer, NumBytes, Promise](FRHICommandList& RHICmdList)
+		{
+			Readback(SourceBuffer->GetRHI(), NumBytes).Then_AnyThread([Promise](const TSharedRef<TVoxelArray64<uint8>>& Data)
+			{
+				Promise.Set(Data);
+			});
+		});
 
 	return Promise.GetFuture();
 }

@@ -137,7 +137,7 @@ TVoxelFuture<T> IVoxelTaskDispatcher::Wrap(
 	{
 		checkVoxelSlow(&FVoxelTaskDispatcherScope::Get() == this);
 
-		Promise.Set(Other.GetValueChecked());
+		Promise.Set(Other.GetSharedValueChecked());
 	});
 
 	return Promise.GetFuture();

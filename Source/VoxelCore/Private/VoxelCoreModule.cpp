@@ -71,6 +71,11 @@ public:
 	}
 	virtual void PreUnloadCallback() override
 	{
+#if !WITH_EDITOR && (PLATFORM_MAC || PLATFORM_IOS)
+		// Getting exit crashes on Mac
+		return;
+#endif
+
 		// Run cleanup twice in case first cleanup added voxel nodes back to the pool
 		GOnVoxelModuleUnloaded_DoCleanup.Broadcast();
 		GOnVoxelModuleUnloaded_DoCleanup.Broadcast();

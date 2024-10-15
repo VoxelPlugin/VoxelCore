@@ -1,51 +1,22 @@
-﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #pragma once
 
 #include "VoxelMinimal.h"
 
+// Prefer using FVoxelUtilities::Readback over this
 class VOXELCORE_API FVoxelGPUBufferReadback : public TSharedFromThis<FVoxelGPUBufferReadback>
 {
 public:
 	static TSharedRef<FVoxelGPUBufferReadback> Create(
 		FRHICommandList& RHICmdList,
-		FRHIBuffer* SourceBuffer);
+		FRHIBuffer* SourceBuffer,
+		int64 NumBytes = -1);
 
 	bool IsReady() const;
 
-	TConstVoxelArrayView<uint8> Lock();
+	TConstVoxelArrayView64<uint8> Lock();
 	void Unlock();
-
-public:
-	template<typename T>
-	TVoxelArray<T> AsArray()
-	{
-		VOXEL_FUNCTION_COUNTER();
-
-		const TConstVoxelArrayView<uint8> Data = Lock();
-		ON_SCOPE_EXIT
-		{
-			Unlock();
-		};
-
-		if (!ensure(Data.Num() % sizeof(T) == 0))
-		{
-			return {};
-		}
-
-		return TVoxelArray<T>(Data.ReinterpretAs<T>());
-	}
-	template<typename T>
-	T As()
-	{
-		const TConstVoxelArrayView<uint8> Data = Lock();
-		ON_SCOPE_EXIT
-		{
-			Unlock();
-		};
-
-		return FromByteVoxelArrayView<T>(Data);
-	}
 
 private:
 	const int64 NumBytes;

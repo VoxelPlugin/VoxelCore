@@ -157,6 +157,34 @@ namespace Voxel
 	{
 		return FVoxelFuture::Execute(EVoxelFutureThread::AsyncThread, MoveTemp(Lambda));
 	}
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	VOXELCORE_API void AsyncTask_ThreadPool_Impl(TVoxelUniqueFunction<void()> Lambda);
+
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+	FORCEINLINE TVoxelFutureType<ReturnType> AsyncTask_ThreadPool(LambdaType Lambda)
+	{
+		const TVoxelPromiseType<ReturnType> Promise;
+		AsyncTask_ThreadPool_Impl([Lambda = MoveTemp(Lambda), Promise]
+		{
+			if constexpr (std::is_void_v<ReturnType>)
+			{
+				Lambda();
+				Promise.Set();
+			}
+			else
+			{
+				Promise.Set(Lambda());
+			}
+		});
+		return Promise.GetFuture();
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

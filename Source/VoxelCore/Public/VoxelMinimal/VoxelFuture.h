@@ -286,9 +286,13 @@ public:
 	{
 	}
 
-	FORCEINLINE TSharedRef<T> GetValueChecked() const
+	FORCEINLINE TSharedRef<T> GetSharedValueChecked() const
 	{
 		return ReinterpretCastRef<TSharedRef<T>>(PromiseState->GetValueChecked());
+	}
+	FORCEINLINE T& GetValueChecked() const
+	{
+		return *GetSharedValueChecked();
 	}
 
 public:
