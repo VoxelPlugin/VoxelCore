@@ -48,6 +48,7 @@ public class VoxelCoreEditor : ModuleRules
                 "Landscape",
                 "ToolMenus",
                 "SceneOutliner",
+                "SettingsEditor",
             });
     }
 }
