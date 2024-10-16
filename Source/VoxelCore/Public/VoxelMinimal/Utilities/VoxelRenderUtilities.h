@@ -120,7 +120,7 @@ namespace FVoxelUtilities
 	template<typename T, typename = std::enable_if_t<std::is_trivially_destructible_v<T>>>
 	TVoxelFuture<T> ReadbackUniform(const FBufferRHIRef& SourceBuffer)
 	{
-		return Readback(SourceBuffer).Then_AnyThread([](const TVoxelArray64<uint8>& Data)
+		return Readback(SourceBuffer, sizeof(T)).Then_AnyThread([](const TVoxelArray64<uint8>& Data)
 		{
 			if (!ensure(Data.Num() == sizeof(T)))
 			{
@@ -173,7 +173,7 @@ namespace FVoxelUtilities
 		FRDGBuilder& GraphBuilder,
 		const FRDGBufferRef& SourceBuffer)
 	{
-		return Readback(GraphBuilder, SourceBuffer).Then_AnyThread([](const TVoxelArray64<uint8>& Data)
+		return Readback(GraphBuilder, SourceBuffer, sizeof(T)).Then_AnyThread([](const TVoxelArray64<uint8>& Data)
 		{
 			if (!ensure(Data.Num() == sizeof(T)))
 			{
