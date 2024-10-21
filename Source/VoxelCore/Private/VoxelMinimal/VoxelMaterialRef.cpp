@@ -311,7 +311,7 @@ void FVoxelMaterialRef::SetScalarParameter_GameThread(const FName Name, const fl
 		return;
 	}
 
-	ScalarParameters.Add_EnsureNew(Name, Value);
+	ScalarParameters.FindOrAdd(Name) = Value;
 
 	UMaterialInstanceDynamic* Instance = Cast<UMaterialInstanceDynamic>(GetMaterial());
 	if (!ensure(Instance))
@@ -332,7 +332,7 @@ void FVoxelMaterialRef::SetVectorParameter_GameThread(const FName Name, const FV
 		return;
 	}
 
-	VectorParameters.Add_EnsureNew(Name, Value);
+	VectorParameters.FindOrAdd(Name) = Value;
 
 	UMaterialInstanceDynamic* Instance = Cast<UMaterialInstanceDynamic>(GetMaterial());
 	if (!ensure(Instance))
@@ -353,7 +353,7 @@ void FVoxelMaterialRef::SetTextureParameter_GameThread(const FName Name, UTextur
 		return;
 	}
 
-	TextureParameters.Add_EnsureNew(Name, Value);
+	TextureParameters.FindOrAdd(Name) = Value;
 
 	UMaterialInstanceDynamic* Instance = Cast<UMaterialInstanceDynamic>(GetMaterial());
 	if (!ensure(Instance))
@@ -374,7 +374,7 @@ void FVoxelMaterialRef::SetDynamicParameter_GameThread(const FName Name, const T
 		return;
 	}
 
-	DynamicParameters.Add_EnsureNew(Name, Value);
+	DynamicParameters.FindOrAdd(Name) = Value;
 
 	Value->AddOnChanged(MakeWeakPtrDelegate(this, [this, Name, WeakValue = MakeWeakPtr(Value)]
 	{
