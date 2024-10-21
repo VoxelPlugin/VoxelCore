@@ -26,7 +26,7 @@ public:
 		const FString& Filename,
 		const TCHAR* Parms,
 		FFeedbackContext* Warn,
-		bool& bOutOperationCanceled) override;;
+		bool& bOutOperationCanceled) override;
 	//~ End UFactory Interface
 
 	//~ Begin FReimportHandler Interface

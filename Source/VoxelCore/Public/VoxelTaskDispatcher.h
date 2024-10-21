@@ -101,13 +101,13 @@ public:
 	// Call the lambda in the global task dispatcher scope, avoiding any task leak or weird dependencies
 	template<
 		typename LambdaType,
-		typename T = typename LambdaReturnType_T<LambdaType>::Type>
-	static TVoxelFuture<T> CallInGlobalScope(LambdaType Lambda)
+		typename T = LambdaReturnType_T<LambdaType>>
+	static TVoxelFutureType<T> CallInGlobalScope(LambdaType Lambda)
 	{
 		IVoxelTaskDispatcher& Dispatcher = Get();
 		IVoxelTaskDispatcher& GlobalDispatcher = GetGlobal();
 
-		TVoxelFuture<T> Future;
+		TVoxelFutureType<T> Future;
 		{
 			FVoxelTaskDispatcherScope Scope(GlobalDispatcher);
 			Future = Lambda();

@@ -440,7 +440,7 @@ void AVoxelActorBase::FlushRecreateRuntime()
 USceneComponent* AVoxelActorBase::NewComponent(const UClass* Class)
 {
 	VOXEL_FUNCTION_COUNTER();
-	check(IsInGameThreadFast());
+	check(IsInGameThread());
 
 	ensure(!bPrivateDisableModify);
 	bPrivateDisableModify = true;
@@ -495,7 +495,7 @@ USceneComponent* AVoxelActorBase::NewComponent(const UClass* Class)
 void AVoxelActorBase::RemoveComponent(USceneComponent* Component)
 {
 	VOXEL_FUNCTION_COUNTER();
-	check(IsInGameThreadFast());
+	check(IsInGameThread());
 
 	if (!ensureVoxelSlow(Component))
 	{

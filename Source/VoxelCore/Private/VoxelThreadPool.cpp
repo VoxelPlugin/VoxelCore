@@ -91,7 +91,7 @@ void FVoxelThreadPool::RemoveExecutor(IVoxelTaskExecutor* Executor)
 
 		FPlatformProcess::Yield();
 
-		if (IsInGameThreadFast())
+		if (IsInGameThread())
 		{
 			VOXEL_SCOPE_LOCK(Executors_CriticalSection);
 
@@ -157,19 +157,26 @@ void FVoxelThreadPool::Tick()
 
 	const int32 CurrentNumTasks = NumTasks();
 
-	if (!GVoxelHideTaskCount &&
-		CurrentNumTasks > 0)
+	if (!GVoxelHideTaskCount)
 	{
-		const FString Message = FString::Printf(TEXT("%d voxel tasks left using %d threads"), CurrentNumTasks, GVoxelNumThreads);
-		GEngine->AddOnScreenDebugMessage(uint64(0x557D0C945D26), FApp::GetDeltaTime() * 1.5f, FColor::White, Message);
+		if (CurrentNumTasks > 0)
+		{
+			const FString Message = FString::Printf(TEXT("%d voxel tasks left using %d threads"), CurrentNumTasks, GVoxelNumThreads);
+			GEngine->AddOnScreenDebugMessage(uint64(0x557D0C945D26), 0.1f, FColor::White, Message);
 
 #if WITH_EDITOR
-		extern UNREALED_API FLevelEditorViewportClient* GCurrentLevelEditingViewportClient;
-		if (GCurrentLevelEditingViewportClient)
-		{
-			GCurrentLevelEditingViewportClient->SetShowStats(true);
-		}
+			extern UNREALED_API FLevelEditorViewportClient* GCurrentLevelEditingViewportClient;
+			if (GCurrentLevelEditingViewportClient)
+			{
+				GCurrentLevelEditingViewportClient->SetShowStats(true);
+			}
 #endif
+		}
+		else
+		{
+			// Always clear message
+			GEngine->AddOnScreenDebugMessage(uint64(0x557D0C945D26), 0.f, FColor::White, "");
+		}
 	}
 }
 

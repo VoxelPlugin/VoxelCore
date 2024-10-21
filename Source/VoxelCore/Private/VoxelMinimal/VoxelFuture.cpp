@@ -16,6 +16,7 @@ VOXEL_CONSOLE_COMMAND(
 
 DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelPromiseState);
 
+#if !UE_BUILD_SHIPPING
 struct FVoxelPromiseTracking
 {
 public:
@@ -90,6 +91,7 @@ public:
 	}
 };
 FVoxelPromiseTracking GVoxelPromiseTracking;
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -97,10 +99,12 @@ FVoxelPromiseTracking GVoxelPromiseTracking;
 
 FVoxelPromiseState::FVoxelPromiseState()
 {
+#if !UE_BUILD_SHIPPING
 	if (GVoxelPromiseTracking.bEnable)
 	{
 		DebugStackIndex = GVoxelPromiseTracking.GetStackIndex();
 	}
+#endif
 
 	IVoxelTaskDispatcher& Dispatcher = FVoxelTaskDispatcherScope::Get();
 
@@ -120,11 +124,13 @@ FVoxelPromiseState::FVoxelPromiseState()
 
 FVoxelPromiseState::~FVoxelPromiseState()
 {
+#if !UE_BUILD_SHIPPING
 	if (DebugStackIndex != -1)
 	{
 		GVoxelPromiseTracking.RemoveStackIndex(DebugStackIndex);
 		DebugStackIndex = -1;
 	}
+#endif
 
 #if VOXEL_DEBUG
 	// Don't check FVoxelTaskDispatcherScope::Get() in destructor, enforcing destructor scoping is way too messy
@@ -180,11 +186,13 @@ void FVoxelPromiseState::Set(const FSharedVoidRef& Value)
 		Dispatcher.NumPromisesPtr->Decrement();
 	}
 
+#if !UE_BUILD_SHIPPING
 	if (DebugStackIndex != -1)
 	{
 		GVoxelPromiseTracking.RemoveStackIndex(DebugStackIndex);
 		DebugStackIndex = -1;
 	}
+#endif
 }
 
 void FVoxelPromiseState::Set(const FVoxelFuture& Future)
@@ -246,13 +254,17 @@ void FVoxelPromiseState::AddContinuation(
 
 void FVoxelPromiseState::EnableTracking()
 {
+#if !UE_BUILD_SHIPPING
 	LOG_VOXEL(Log, "Enabling promise tracking");
 	GVoxelPromiseTracking.bEnable = true;
+#endif
 }
 
 void FVoxelPromiseState::DumpAllPromises()
 {
+#if !UE_BUILD_SHIPPING
 	GVoxelPromiseTracking.DumpToLog();
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////

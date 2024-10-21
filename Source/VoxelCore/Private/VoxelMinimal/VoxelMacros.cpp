@@ -14,7 +14,7 @@ VOXEL_CONSOLE_VARIABLE(
 
 bool Voxel_CanAccessUObject()
 {
-	if (IsInGameThreadFast() ||
+	if (IsInGameThread() ||
 		IsInAsyncLoadingThread())
 	{
 		return true;

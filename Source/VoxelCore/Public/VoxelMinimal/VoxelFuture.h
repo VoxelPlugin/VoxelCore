@@ -117,7 +117,9 @@ private:
 	TWeakPtr<IVoxelTaskDispatcher> Dispatcher_DebugOnly;
 	FVoxelStackFrames DebugStackFrames;
 #endif
+#if !UE_BUILD_SHIPPING
 	int32 DebugStackIndex = -1;
+#endif
 
 	FVoxelPromiseState();
 

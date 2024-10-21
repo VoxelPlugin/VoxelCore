@@ -9,6 +9,11 @@ void FVoxelAABBTree::Initialize(TVoxelArray<FElement>&& InElements)
 	check(Nodes.Num() == 0);
 	check(Leaves.Num() == 0);
 
+	if (InElements.Num() == 0)
+	{
+		return;
+	}
+
 #if VOXEL_DEBUG
 	for (const FElement& Element : InElements)
 	{

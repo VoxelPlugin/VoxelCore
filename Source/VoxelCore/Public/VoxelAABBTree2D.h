@@ -55,6 +55,10 @@ public:
 	void Shrink();
 
 public:
+	FORCEINLINE bool IsEmpty() const
+	{
+		return Nodes.Num() == 0;
+	}
 	FORCEINLINE const FVoxelBox2D& GetBounds() const
 	{
 		ensure(RootBounds.IsValidAndNotEmpty());

@@ -60,13 +60,6 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FORCEINLINE bool IsInGameThreadFast()
-{
-	const bool bIsInGameThread = FPlatformTLS::GetCurrentThreadId() == GGameThreadId;
-	ensureVoxelSlowNoSideEffects(bIsInGameThread == IsInGameThread());
-	return bIsInGameThread;
-}
-
 VOXELCORE_API void FlushVoxelGameThreadTasks();
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -89,7 +82,7 @@ namespace Voxel
 		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
 	FORCEINLINE TVoxelFutureType<ReturnType> GameTask(LambdaType Lambda)
 	{
-		if (IsInGameThreadFast())
+		if (IsInGameThread())
 		{
 			if constexpr (std::is_void_v<ReturnType>)
 			{
