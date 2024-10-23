@@ -28,6 +28,10 @@ public:
 	static UTexture2DArray* GetDefaultTexture2DArray();
 
 public:
+	static EMaterialSamplerType GetSamplerType(const UTexture& Texture);
+	static FString GetSamplerFunction(EMaterialSamplerType SamplerType);
+
+public:
 	static UTexture2D* CreateTexture2D(
 		FName DebugName,
 		int32 SizeX,

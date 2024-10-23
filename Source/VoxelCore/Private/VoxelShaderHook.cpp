@@ -237,6 +237,68 @@ FVoxelShaderHook::FVoxelShaderHook(
 
 		Content.ReplaceInline(TEXT("~~~PRAGMA~~~"), TEXT("#"));
 
+		for (int32 Version = MIN_VOXEL_ENGINE_VERSION; Version <= MAX_VOXEL_ENGINE_VERSION; Version++)
+		{
+			const FString MacroText = "UE_" + FString::FromInt(Version) + "_SWITCH(";
+
+			while (true)
+			{
+				const int32 MacroStartIndex = Content.Find(*MacroText);
+				if (MacroStartIndex == -1)
+				{
+					break;
+				}
+
+				const int32 StartIndex = MacroStartIndex + MacroText.Len();
+				check(Content[StartIndex - 1] == TEXT('('));
+
+				int32 CommaIndex = -1;
+				int32 Index = StartIndex;
+				int32 Num = 1;
+
+				while (Num > 0)
+				{
+					checkf(Content.IsValidIndex(Index), TEXT("Missing ) in UE_5XX_SWITCH"));
+
+					if (Num == 1 &&
+						Content[Index] == TEXT(','))
+					{
+						checkf(CommaIndex == -1, TEXT("Invalid , in UE_5XX_SWITCH"));
+						CommaIndex = Index;
+					}
+
+					if (Content[Index] == TEXT('('))
+					{
+						Num++;
+					}
+					if (Content[Index] == TEXT(')'))
+					{
+						Num--;
+					}
+
+					Index++;
+				}
+				checkf(CommaIndex != -1, TEXT("Missing , in UE_5XX_SWITCH"));
+
+				const int32 MacroEndIndex = Index;
+				const int32 EndIndex = MacroEndIndex - 1;
+				const int32 SecondStartIndex = CommaIndex + 1;
+
+				FString NewText;
+				if (VOXEL_ENGINE_VERSION >= Version)
+				{
+					NewText = FStringView(Content).SubStr(SecondStartIndex, EndIndex - SecondStartIndex);
+				}
+				else
+				{
+					NewText = FStringView(Content).SubStr(StartIndex, CommaIndex - StartIndex);
+				}
+
+				Content.RemoveAt(MacroStartIndex, MacroEndIndex - MacroStartIndex - NewText.Len());
+				FStringView(NewText).CopyString(&Content[MacroStartIndex], NewText.Len(), 0);
+			}
+		}
+
 		FString LineEnding;
 		if (Content.Find("\r\n") == -1)
 		{

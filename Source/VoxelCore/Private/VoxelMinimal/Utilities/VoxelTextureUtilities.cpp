@@ -32,6 +32,74 @@ UTexture2DArray* FVoxelTextureUtilities::GetDefaultTexture2DArray()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+EMaterialSamplerType FVoxelTextureUtilities::GetSamplerType(const UTexture& Texture)
+{
+	switch (Texture.CompressionSettings)
+	{
+	case TC_Normalmap: return SAMPLERTYPE_Normal;
+	case TC_Grayscale: return Texture.SRGB ? SAMPLERTYPE_Grayscale : SAMPLERTYPE_LinearGrayscale;
+	case TC_Masks: return SAMPLERTYPE_Masks;
+	case TC_Alpha: return SAMPLERTYPE_Alpha;
+	default: return Texture.SRGB ? SAMPLERTYPE_Color : SAMPLERTYPE_LinearColor;
+	}
+}
+
+FString FVoxelTextureUtilities::GetSamplerFunction(const EMaterialSamplerType SamplerType)
+{
+	switch (SamplerType)
+	{
+	default: ensure(false);
+	case SAMPLERTYPE_External:
+	{
+		return "ProcessMaterialExternalTextureLookup";
+	}
+	case SAMPLERTYPE_Color:
+	{
+		return "ProcessMaterialColorTextureLookup";
+	}
+	case SAMPLERTYPE_VirtualColor:
+	{
+		return "ProcessMaterialVirtualColorTextureLookup";
+	}
+	case SAMPLERTYPE_LinearColor:
+	case SAMPLERTYPE_VirtualLinearColor:
+	{
+		return "ProcessMaterialLinearColorTextureLookup";
+	}
+	case SAMPLERTYPE_Alpha:
+	case SAMPLERTYPE_VirtualAlpha:
+	case SAMPLERTYPE_DistanceFieldFont:
+	{
+		return "ProcessMaterialAlphaTextureLookup";
+	}
+	case SAMPLERTYPE_Grayscale:
+	case SAMPLERTYPE_VirtualGrayscale:
+	{
+		return "ProcessMaterialGreyscaleTextureLookup";
+	}
+	case SAMPLERTYPE_LinearGrayscale:
+	case SAMPLERTYPE_VirtualLinearGrayscale:
+	{
+		return "ProcessMaterialLinearGreyscaleTextureLookup";
+	}
+	case SAMPLERTYPE_Normal:
+	case SAMPLERTYPE_VirtualNormal:
+	{
+		return "UnpackNormalMap";
+	}
+	case SAMPLERTYPE_Masks:
+	case SAMPLERTYPE_VirtualMasks:
+	case SAMPLERTYPE_Data:
+	{
+		return "";
+	}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 UTexture2D* FVoxelTextureUtilities::CreateTexture2D(
 	const FName DebugName,
 	const int32 SizeX,
@@ -105,8 +173,13 @@ UTexture2D* FVoxelTextureUtilities::CreateTexture2D(
 
 	Texture->SetPlatformData(PlatformData);
 
-	VOXEL_SCOPE_COUNTER("UpdateResource");
-	Texture->UpdateResource();
+	{
+		VOXEL_SCOPE_COUNTER("UpdateResource");
+		Texture->UpdateResource();
+	}
+
+	// We don't need to keep bulk data around
+	Mip->BulkData.RemoveBulkData();
 
 	return Texture;
 }
@@ -237,8 +310,16 @@ UTexture2DArray* FVoxelTextureUtilities::CreateTextureArray(
 		PlatformData->Mips.Add(Mip);
 	}
 
-	VOXEL_SCOPE_COUNTER("UpdateResource");
-	TextureArray->UpdateResource();
+	{
+		VOXEL_SCOPE_COUNTER("UpdateResource");
+		TextureArray->UpdateResource();
+	}
+
+	for (FTexture2DMipMap& Mip : PlatformData->Mips)
+	{
+		// We don't need to keep bulk data around
+		Mip.BulkData.RemoveBulkData();
+	}
 
 	return TextureArray;
 }
