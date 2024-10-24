@@ -21,4 +21,21 @@ public:
 	// Can be set using voxel.NumThreads
 	UPROPERTY(Config, EditAnywhere, Category = "Config", meta = (ClampMin = 1, ConsoleVariable = "voxel.NumThreads"))
 	int32 NumberOfThreads = 0;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Safety", meta = (ClampMin = 1))
+	bool bEnablePerformanceMonitoring = true;
+
+	// Number of frames to collect the average frame rate from
+	UPROPERTY(Config, EditAnywhere, Category = "Safety", meta = (ClampMin = 2))
+	int32 FramesToAverage = 128;
+
+	// Minimum average FPS allowed in specified number of frames
+	UPROPERTY(Config, EditAnywhere, Category = "Safety", meta = (ClampMin = 1))
+	int32 MinFPS = 8;
+
+	//~ Begin UObject Interface
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
+	//~ End UObject Interface
 };
