@@ -2,8 +2,10 @@
 
 #include "VoxelEditorMinimal.h"
 #include "VoxelMessage.h"
+#include "VoxelCoreCommands.h"
 #include "SVoxelNotification.h"
 #include "MessageLogModule.h"
+#include "IMessageLogListing.h"
 #include "Logging/MessageLog.h"
 
 class FVoxelMessagesEditor : public FVoxelEditorSingleton
@@ -23,6 +25,11 @@ public:
 		InitOptions.bShowPages = false;
 		InitOptions.bAllowClear = true;
 		MessageLogModule.RegisterLogListing("Voxel", INVTEXT("Voxel"), InitOptions);
+
+		GVoxelOnRefreshAll.AddLambda([]
+		{
+			FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog").GetLogListing("Voxel")->ClearMessages();
+		});
 	}
 	//~ End FVoxelEditorSingleton Interface
 

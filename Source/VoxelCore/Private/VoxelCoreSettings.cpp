@@ -9,7 +9,7 @@ void UVoxelCoreSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 
 	if (PropertyChangedEvent.GetMemberPropertyName() == GET_OWN_MEMBER_NAME(FramesToAverage))
 	{
-		FramesToAverage = 1 << FMath::CeilLogTwo(FramesToAverage);
+		FramesToAverage = FMath::RoundUpToPowerOfTwo(FramesToAverage);
 	}
 }
 #endif

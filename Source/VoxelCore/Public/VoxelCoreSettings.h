@@ -17,11 +17,13 @@ public:
 		SectionName = "Voxel Plugin Core";
 	}
 
+public:
 	// Number of threads allocated for the voxel background processing. Setting it too high may impact performance
 	// Can be set using voxel.NumThreads
 	UPROPERTY(Config, EditAnywhere, Category = "Config", meta = (ClampMin = 1, ConsoleVariable = "voxel.NumThreads"))
 	int32 NumberOfThreads = 0;
 
+public:
 	UPROPERTY(Config, EditAnywhere, Category = "Safety", meta = (ClampMin = 1))
 	bool bEnablePerformanceMonitoring = true;
 
@@ -33,6 +35,7 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Safety", meta = (ClampMin = 1))
 	int32 MinFPS = 8;
 
+public:
 	//~ Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
