@@ -56,6 +56,7 @@
 #include "VoxelMinimal/VoxelHash.h"
 #include "VoxelMinimal/VoxelInstancedStruct.h"
 #include "VoxelMinimal/VoxelIntBox.h"
+#include "VoxelMinimal/VoxelIntBox2D.h"
 #include "VoxelMinimal/VoxelISPC.h"
 #include "VoxelMinimal/VoxelIterate.h"
 #include "VoxelMinimal/VoxelMaterialRef.h"

@@ -208,9 +208,3 @@ FORCEINLINE FSharedVoidRef MakeSharedVoid()
 {
 	return MakeSharedVoidRef(MakeVoxelShared<int32>());
 }
-
-template<typename LambdaType>
-FORCEINLINE FSharedVoidRef MakeSharedVoid_OnDestroy(LambdaType&& OnDestroy)
-{
-	return MakeSharedVoidRef(MakeShared_OnDestroy<int32>(MoveTemp(OnDestroy)));
-}

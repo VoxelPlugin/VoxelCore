@@ -88,8 +88,14 @@ struct VOXELCORE_API FVoxelIntBox
 	}
 
 	template<typename T>
-	explicit FVoxelIntBox(const TArray<T>& Data)
+	explicit FVoxelIntBox(const TConstVoxelArrayView<T> Data)
 	{
+		if (std::is_same_v<T, FIntVector>)
+		{
+			*this = FromPositions(Data);
+			return;
+		}
+
 		if (!ensure(Data.Num() > 0))
 		{
 			Min = Max = FIntVector::ZeroValue;
@@ -97,6 +103,7 @@ struct VOXELCORE_API FVoxelIntBox
 		}
 
 		*this = FVoxelIntBox(Data[0]);
+
 		for (int32 Index = 1; Index < Data.Num(); Index++)
 		{
 			*this = *this + Data[Index];
@@ -166,9 +173,9 @@ struct VOXELCORE_API FVoxelIntBox
 	}
 	FORCEINLINE uint64 Count_uint64() const
 	{
-		checkVoxelSlow(uint64(Max.X - Min.X) < (1llu << 21));
-		checkVoxelSlow(uint64(Max.Y - Min.Y) < (1llu << 21));
-		checkVoxelSlow(uint64(Max.Z - Min.Z) < (1llu << 21));
+		checkVoxelSlow(int64(Max.X) - int64(Min.X) < (1llu << 21));
+		checkVoxelSlow(int64(Max.Y) - int64(Min.Y) < (1llu << 21));
+		checkVoxelSlow(int64(Max.Z) - int64(Min.Z) < (1llu << 21));
 
 		return
 			uint64(Max.X - Min.X) *
@@ -206,7 +213,7 @@ struct VOXELCORE_API FVoxelIntBox
 	/**
 	 * Get the corners that are inside the box (max - 1)
 	 */
-	TVoxelStaticArray<FIntVector, 8> GetCorners(const int32 MaxBorderSize) const
+	FORCEINLINE TVoxelStaticArray<FIntVector, 8> GetCorners(const int32 MaxBorderSize) const
 	{
 		return {
 			FIntVector(Min.X, Min.Y, Min.Z),
@@ -227,10 +234,6 @@ struct VOXELCORE_API FVoxelIntBox
 	{
 		return FVoxelBox(Min, Max);
 	}
-	FORCEINLINE FVoxelBox ToVoxelBox_NoPadding() const
-	{
-		return FVoxelBox(Min, Max - 1);
-	}
 	FORCEINLINE FBox ToFBox() const
 	{
 		return FBox(FVector(Min), FVector(Max));
@@ -246,9 +249,12 @@ struct VOXELCORE_API FVoxelIntBox
 	}
 
 	template<typename T>
-	FORCEINLINE bool ContainsTemplate(T X, T Y, T Z) const
+	FORCEINLINE bool ContainsTemplate(const T X, const T Y, const T Z) const
 	{
-		return ((X >= Min.X) && (X < Max.X) && (Y >= Min.Y) && (Y < Max.Y) && (Z >= Min.Z) && (Z < Max.Z));
+		return
+			(X >= Min.X) && (X < Max.X) &&
+			(Y >= Min.Y) && (Y < Max.Y) &&
+			(Z >= Min.Z) && (Z < Max.Z);
 	}
 	template<typename T>
 	FORCEINLINE std::enable_if_t<std::is_same_v<T, FVector3f> || std::is_same_v<T, FVector3d> || std::is_same_v<T, FIntVector>, bool> ContainsTemplate(const T& V) const
@@ -591,22 +597,6 @@ struct VOXELCORE_API FVoxelIntBox
 	FORCEINLINE FVoxelIntBox RemoveTranslation() const
 	{
 		return FVoxelIntBox(0, Max - Min);
-	}
-	// Will move the box so that GetCenter = 0,0,0. Will extend it if its size is odd
-	FVoxelIntBox Center() const
-	{
-		FIntVector NewMin = Min;
-		FIntVector NewMax = Max;
-		if (FVector(FIntVector(GetCenter())) != GetCenter())
-		{
-			NewMax = NewMax + 1;
-		}
-		ensure(FVector(FIntVector(GetCenter())) == GetCenter());
-		const FIntVector Offset = FIntVector(GetCenter());
-		NewMin -= Offset;
-		NewMax -= Offset;
-		ensure(NewMin + NewMax == FIntVector(0));
-		return FVoxelIntBox(NewMin, NewMax);
 	}
 
 	FORCEINLINE FVoxelIntBox& operator*=(const int32 Scale)

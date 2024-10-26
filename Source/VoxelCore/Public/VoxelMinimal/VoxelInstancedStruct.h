@@ -182,11 +182,17 @@ public:
 	}
 
 	template<typename T>
-	TSharedRef<T> AsShared() const
+	TSharedRef<T> AsShared()
 	{
 		checkVoxelSlow(IsA<T>())
 		return ReinterpretCastRef<TSharedRef<T>>(PrivateStructMemory);
 	}
+	template<typename T>
+	TSharedRef<const T> AsShared() const
+	{
+		return ConstCast(this)->AsShared<const T>();
+	}
+
 	template<typename T>
 	TSharedRef<T> MakeSharedCopy() const
 	{
@@ -336,13 +342,15 @@ public:
 	using FVoxelInstancedStruct::AddStructReferencedObjects;
 	using FVoxelInstancedStruct::Reset;
 
-	FORCEINLINE TSharedRef<T> AsShared()
+	template<typename OtherType = T, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
+	FORCEINLINE TSharedRef<OtherType> AsShared()
 	{
-		return FVoxelInstancedStruct::AsShared<T>();
+		return FVoxelInstancedStruct::AsShared<OtherType>();
 	}
-	FORCEINLINE TSharedRef<const T> AsShared() const
+	template<typename OtherType = T, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
+	FORCEINLINE TSharedRef<const OtherType> AsShared() const
 	{
-		return FVoxelInstancedStruct::AsShared<const T>();
+		return FVoxelInstancedStruct::AsShared<const OtherType>();
 	}
 
 public:

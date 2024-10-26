@@ -12,7 +12,7 @@ namespace FVoxelUtilities
 		return FMath::FloorToInt64(Value);
 	}
 	template<typename T>
-	FORCEINLINE int64 FloorToInt32(T Value)
+	FORCEINLINE int32 FloorToInt32(T Value)
 	{
 #if VOXEL_DEBUG
 		const int64 Int = FMath::FloorToInt64(Value);
@@ -27,7 +27,7 @@ namespace FVoxelUtilities
 		return FMath::CeilToInt64(Value);
 	}
 	template<typename T>
-	FORCEINLINE int64 CeilToInt32(T Value)
+	FORCEINLINE int32 CeilToInt32(T Value)
 	{
 #if VOXEL_DEBUG
 		const int64 Int = FMath::CeilToInt64(Value);
@@ -42,7 +42,7 @@ namespace FVoxelUtilities
 		return FMath::RoundToInt64(Value);
 	}
 	template<typename T>
-	FORCEINLINE int64 RoundToInt32(T Value)
+	FORCEINLINE int32 RoundToInt32(T Value)
 	{
 #if VOXEL_DEBUG
 		const int64 Int = FMath::RoundToInt64(Value);
