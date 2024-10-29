@@ -1,6 +1,6 @@
 ﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
 
-#include "VoxelTaskDispatcher.h"
+#include "VoxelTaskDispatcherInterface.h"
 
 FVoxelTaskDispatcherKeepAliveRef::~FVoxelTaskDispatcherKeepAliveRef()
 {

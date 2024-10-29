@@ -15,7 +15,7 @@ public:
 };
 
 #define VOXEL_INITIALIZE_STYLE(Name) \
-	INTELLISENSE_ONLY(void Name();) \
+	INTELLISENSE_ONLY(struct FDummy_ ## Name { void Name(); };) \
 	class FVoxel ## Name ## Style : public FVoxelSlateStyleSet \
 	{ \
 	public: \

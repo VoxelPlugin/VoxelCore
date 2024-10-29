@@ -1,7 +1,7 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
-#include "VoxelTaskDispatcher.h"
+#include "VoxelTaskDispatcherInterface.h"
 
 VOXEL_CONSOLE_COMMAND(
 	"voxel.EnablePromiseTracking",

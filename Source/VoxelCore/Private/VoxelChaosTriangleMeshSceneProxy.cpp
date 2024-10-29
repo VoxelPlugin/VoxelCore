@@ -78,7 +78,7 @@ public:
 		StaticMeshVertexBuffer.InitResource(RHICmdList);
 		ColorVertexBuffer.InitResource(RHICmdList);
 
-		VertexFactory = MakeUnique<FLocalVertexFactory>(GMaxRHIFeatureLevel, "FVoxelLandscapeCollider_Chaos_RenderData");
+		VertexFactory = MakeUnique<FLocalVertexFactory>(GMaxRHIFeatureLevel, "FVoxelCollider_Chaos_RenderData");
 
 		FLocalVertexFactory::FDataType Data;
 		PositionVertexBuffer.BindPositionVertexBuffer(VertexFactory.Get(), Data);

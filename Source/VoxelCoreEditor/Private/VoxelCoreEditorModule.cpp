@@ -11,7 +11,7 @@ VOXEL_RUN_ON_STARTUP_EDITOR()
 	for (TObjectIterator<UField> ClassIt; ClassIt; ++ClassIt)
 	{
 		UField* Field = *ClassIt;
-		if (Field->GetOuter()->GetName() == "/Script/VoxelRaytracedCubic")
+		if (Field->GetOuter()->GetName() == "/Script/VoxelLandscape")
 		{
 			const FString Prefix =
 				Cast<UScriptStruct>(Field)
@@ -20,10 +20,11 @@ VOXEL_RUN_ON_STARTUP_EDITOR()
 				? "ClassRedirects"
 				: Cast<UEnum>(Field)
 				? "EnumRedirects"
-				: "";
+				: (ensure(false), "");
+
 			if (!Prefix.IsEmpty())
 			{
-				String += FString::Printf(TEXT("+%s=(OldName=\"/Script/Voxel.%s\", NewName=\"/Script/VoxelRaytracedCubic.%s\")\n"), *Prefix, *Field->GetName(), *Field->GetName());
+				String += FString::Printf(TEXT("+%s=(OldName=\"/Script/VoxelLandscape.%s\",NewName=\"/Script/Voxel.%s\")\n"), *Prefix, *Field->GetName(), *Field->GetName());
 			}
 		}
 	}

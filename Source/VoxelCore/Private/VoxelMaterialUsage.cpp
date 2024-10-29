@@ -10,7 +10,7 @@ VOXEL_RUN_ON_STARTUP_EDITOR()
 	Property.SetMetaData("DisplayName", "Use with Lidar or Voxel Plugin");
 
 	Property.SetMetaData("Tooltip",
-		"Indicates that the material and its instances can be use with LiDAR Point Clouds & with Voxel Plugin landscapes.\n"
+		"Indicates that the material and its instances can be use with LiDAR Point Clouds & with Voxel Plugin.\n"
 		"This will result in the shaders required to support LiDAR and Voxel Plugin being compiled which will increase shader compile time and memory usage.");
 }
 #endif
