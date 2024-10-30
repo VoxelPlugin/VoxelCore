@@ -3,6 +3,11 @@
 #include "VoxelMinimal.h"
 #include "DrawDebugHelpers.h"
 
+VOXEL_CONSOLE_VARIABLE(
+	VOXELCORE_API, float, GVoxelDebugThicknessMultiplier, 1.f,
+	"voxel.debug.ThicknessMultiplier",
+	"");
+
 FVoxelDebugDrawer::FVoxelDebugDrawer()
 {
 }
@@ -75,7 +80,7 @@ FVoxelDebugDrawer& FVoxelDebugDrawer::DrawLine(
 			false,
 			State.LifeTime,
 			0,
-			State.Thickness);
+			State.Thickness * GVoxelDebugThicknessMultiplier);
 	});
 
 	return *this;
