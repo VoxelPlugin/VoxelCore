@@ -3,6 +3,7 @@
 #include "VoxelMinimal.h"
 #include "VoxelGPUBufferReadback.h"
 #include "TextureResource.h"
+#include "DataDrivenShaderPlatformInfo.h"
 #include "Engine/Texture2D.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialRenderProxy.h"
@@ -262,6 +263,30 @@ void FVoxelUtilities::ResetPreviousLocalToWorld(
 		FScene& Scene = static_cast<FScene&>(SceneProxy.GetScene());
 		Scene.VelocityData.OverridePreviousTransform(SceneProxy.GetPrimitiveComponentId(), PreviousLocalToWorld);
 	});
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+bool FVoxelUtilities::CanUseBarycentricsSemantic(const EShaderPlatform ShaderPlatform)
+{
+	const ERHIFeatureSupport BarycentricsSemanticSupport = FDataDrivenShaderPlatformInfo::GetSupportsBarycentricsSemantic(ShaderPlatform);
+
+	// Only use the barycentric permutation when support is runtime guaranteed or if we're dependent and the global cap flag is set.
+	if (BarycentricsSemanticSupport == ERHIFeatureSupport::RuntimeGuaranteed ||
+		(BarycentricsSemanticSupport == ERHIFeatureSupport::RuntimeDependent && GRHIGlobals.SupportsBarycentricsSemantic))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool FVoxelUtilities::ShouldCompileBarycentricsSemantic(const EShaderPlatform ShaderPlatform)
+{
+	const ERHIFeatureSupport BarycentricsSemanticSupport = FDataDrivenShaderPlatformInfo::GetSupportsBarycentricsSemantic(ShaderPlatform);
+	return BarycentricsSemanticSupport != ERHIFeatureSupport::Unsupported;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
