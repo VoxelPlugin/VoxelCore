@@ -684,11 +684,7 @@ void FVoxelUtilities::AddStructReferencedObjects(FReferenceCollector& Collector,
 		StructView.GetStruct()->GetCppStructOps()->AddStructReferencedObjects()(StructView.GetMemory(), Collector);
 	}
 
-	for (TPropertyValueIterator<const FObjectProperty> It(StructView.GetStruct(), StructView.GetMemory()); It; ++It)
-	{
-		TObjectPtr<UObject>* ObjectPtr = static_cast<TObjectPtr<UObject>*>(ConstCast(It.Value()));
-		Collector.AddReferencedObject(*ObjectPtr);
-	}
+	Collector.AddPropertyReferences(StructView.GetStruct(), StructView.GetMemory());
 }
 
 ///////////////////////////////////////////////////////////////////////////////

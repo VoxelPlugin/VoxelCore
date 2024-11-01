@@ -101,9 +101,6 @@ void FVoxelInstancedStructDataDetails::OnStructValuePreChange()
 
 void FVoxelInstancedStructDataDetails::OnStructValuePostChange()
 {
-	// Copy the modified struct data back to the source instances
-	SyncEditableInstanceToSource();
-
 	// Forward the change event to the real struct handle
 	if (StructProperty && StructProperty->IsValidHandle())
 	{
@@ -123,72 +120,6 @@ void FVoxelInstancedStructDataDetails::OnStructHandlePostChange()
 	}
 }
 
-void FVoxelInstancedStructDataDetails::SyncEditableInstanceFromSource(bool* OutStructMismatch)
-{
-	if (OutStructMismatch)
-	{
-		*OutStructMismatch = false;
-	}
-
-	if (StructProperty && StructProperty->IsValidHandle())
-	{
-		const UScriptStruct* ExpectedStructType = StructInstanceData ? Cast<UScriptStruct>(StructInstanceData->GetStruct()) : nullptr;
-		StructProperty->EnumerateConstRawData([this, ExpectedStructType, OutStructMismatch](const void* RawData, const int32 /*DataIndex*/, const int32 NumDatas)
-		{
-			if (RawData && NumDatas == 1)
-			{
-				const FVoxelInstancedStruct* InstancedStruct = static_cast<const FVoxelInstancedStruct*>(RawData);
-
-				// Only copy the data if this source is still using the expected struct type
-				const UScriptStruct* StructTypePtr = InstancedStruct->GetScriptStruct();
-				if (StructTypePtr == ExpectedStructType)
-				{
-					if (StructTypePtr)
-					{
-						StructTypePtr->CopyScriptStruct(StructInstanceData->GetStructMemory(), InstancedStruct->GetStructMemory());
-					}
-				}
-				else if (OutStructMismatch)
-				{
-					*OutStructMismatch = true;
-				}
-			}
-			return false;
-		});
-	}
-
-	LastSyncEditableInstanceFromSourceSeconds = FPlatformTime::Seconds();
-}
-
-void FVoxelInstancedStructDataDetails::SyncEditableInstanceToSource(bool* OutStructMismatch)
-{
-	if (OutStructMismatch)
-	{
-		*OutStructMismatch = false;
-	}
-
-	if (StructProperty && StructProperty->IsValidHandle())
-	{
-		const UScriptStruct* ExpectedStructType = StructInstanceData ? Cast<UScriptStruct>(StructInstanceData->GetStruct()) : nullptr;
-		FVoxelEditorUtilities::ForeachData<FVoxelInstancedStruct>(StructProperty, [this, ExpectedStructType, OutStructMismatch](FVoxelInstancedStruct& InstancedStruct)
-		{
-			// Only copy the data if this source is still using the expected struct type
-			const UScriptStruct* StructTypePtr = InstancedStruct.GetScriptStruct();
-			if (StructTypePtr == ExpectedStructType)
-			{
-				if (StructTypePtr)
-				{
-					StructTypePtr->CopyScriptStruct(InstancedStruct.GetStructMemory(), StructInstanceData->GetStructMemory());
-				}
-			}
-			else if (OutStructMismatch)
-			{
-				*OutStructMismatch = true;
-			}
-		});
-	}
-}
-
 void FVoxelInstancedStructDataDetails::SetOnRebuildChildren(const FSimpleDelegate InOnRegenerateChildren)
 {
 	OnRegenerateChildren = InOnRegenerateChildren;
@@ -201,27 +132,13 @@ void FVoxelInstancedStructDataDetails::GenerateHeaderRowContent(FDetailWidgetRow
 
 void FVoxelInstancedStructDataDetails::GenerateChildContent(IDetailChildrenBuilder& ChildBuilder)
 {
-	// Create a struct instance to edit, for the common struct type of the sources being edited
-	StructInstanceData.Reset();
-
-	if (const UScriptStruct* CommonStructType = GetCommonScriptStruct(StructProperty))
+	if (!LastStruct)
 	{
-		StructInstanceData = MakeVoxelShared<FVoxelInstancedStructOnScope>();
-		StructInstanceData->Struct = FVoxelInstancedStruct(ConstCast(CommonStructType));
-
-		// Make sure the struct also has a valid package set, so that properties that rely on this (like FText) work correctly
-		{
-			TArray<UPackage*> OuterPackages;
-			StructProperty->GetOuterPackages(OuterPackages);
-			if (OuterPackages.Num() > 0)
-			{
-				StructInstanceData->SetPackage(OuterPackages[0]);
-			}
-		}
-
-		// Otherwise struct data won't be ready in the struct customization call
-		SyncEditableInstanceFromSource();
+		LastStruct = GetCommonScriptStruct(StructProperty);
 	}
+
+	// Create a struct instance to edit, for the common struct type of the sources being edited
+	StructInstanceData = MakeVoxelShared<FVoxelInstancedStructProvider>(StructProperty);
 
 	// Add the rows for the struct
 	if (StructInstanceData)
@@ -246,10 +163,7 @@ void FVoxelInstancedStructDataDetails::Tick(float DeltaTime)
 {
 	if (LastSyncEditableInstanceFromSourceSeconds + 0.1 < FPlatformTime::Seconds())
 	{
-		bool bStructMismatch = false;
-		SyncEditableInstanceFromSource(&bStructMismatch);
-
-		if (bStructMismatch)
+		if (LastStruct != GetCommonScriptStruct(StructProperty))
 		{
 			// If the editable struct no longer has the same struct type as the underlying source,
 			// then we need to refresh to update the child property rows for the new type
@@ -433,6 +347,120 @@ void FVoxelInstancedStructDetails::OnStructPicked(const UScriptStruct* InStruct)
 	}
 
 	ComboButton->SetIsOpen(false);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+bool FVoxelInstancedStructProvider::IsValid() const
+{
+	bool bHasValidData = false;
+	EnumerateInstances([&](const UScriptStruct* ScriptStruct, uint8* Memory, UPackage* Package)
+	{
+		if (ScriptStruct && Memory)
+		{
+			bHasValidData = true;
+			return false; // Stop
+		}
+		return true; // Continue
+	});
+
+	return bHasValidData;
+}
+
+const UStruct* FVoxelInstancedStructProvider::GetBaseStructure() const
+{
+	// Taken from UClass::FindCommonBase
+	auto FindCommonBaseStruct = [](const UScriptStruct* StructA, const UScriptStruct* StructB)
+	{
+		const UScriptStruct* CommonBaseStruct = StructA;
+		while (CommonBaseStruct && StructB && !StructB->IsChildOf(CommonBaseStruct))
+		{
+			CommonBaseStruct = Cast<UScriptStruct>(CommonBaseStruct->GetSuperStruct());
+		}
+		return CommonBaseStruct;
+	};
+
+	const UScriptStruct* CommonStruct = nullptr;
+	EnumerateInstances([&CommonStruct, &FindCommonBaseStruct](const UScriptStruct* ScriptStruct, uint8* Memory, UPackage* Package)
+	{
+		if (ScriptStruct)
+		{
+			CommonStruct = FindCommonBaseStruct(ScriptStruct, CommonStruct);
+		}
+		return true; // Continue
+	});
+
+	return CommonStruct;
+}
+
+void FVoxelInstancedStructProvider::GetInstances(TArray<TSharedPtr<FStructOnScope>>& OutInstances, const UStruct* ExpectedBaseStructure) const
+{
+	// The returned instances need to be compatible with base structure.
+	// This function returns empty instances in case they are not compatible, with the idea that we have as many instances as we have outer objects.
+	EnumerateInstances([&OutInstances, ExpectedBaseStructure](const UScriptStruct* ScriptStruct, uint8* Memory, UPackage* Package)
+	{
+		TSharedPtr<FStructOnScope> Result;
+
+		if (ExpectedBaseStructure && ScriptStruct && ScriptStruct->IsChildOf(ExpectedBaseStructure))
+		{
+			Result = MakeShared<FStructOnScope>(ScriptStruct, Memory);
+			Result->SetPackage(Package);
+		}
+
+		OutInstances.Add(Result);
+
+		return true; // Continue
+	});
+}
+
+uint8* FVoxelInstancedStructProvider::GetValueBaseAddress(uint8* ParentValueAddress, const UStruct* ExpectedBaseStructure) const
+{
+	if (!ParentValueAddress)
+	{
+		return nullptr;
+	}
+
+	FVoxelInstancedStruct& InstancedStruct = *reinterpret_cast<FVoxelInstancedStruct*>(ParentValueAddress);
+	if (ExpectedBaseStructure &&
+		InstancedStruct.GetScriptStruct() &&
+		InstancedStruct.GetScriptStruct()->IsChildOf(ExpectedBaseStructure))
+	{
+		return static_cast<uint8*>(InstancedStruct.GetStructMemory());
+	}
+
+	return nullptr;
+}
+
+void FVoxelInstancedStructProvider::EnumerateInstances(TFunctionRef<bool(const UScriptStruct* ScriptStruct, uint8* Memory, UPackage* Package)> InFunc) const
+{
+	if (!StructProperty.IsValid())
+	{
+		return;
+	}
+
+	TArray<UPackage*> Packages;
+	StructProperty->GetOuterPackages(Packages);
+
+	StructProperty->EnumerateRawData([&InFunc, &Packages](void* RawData, const int32 DataIndex, const int32 /*NumDatas*/)
+	{
+		const UScriptStruct* ScriptStruct = nullptr;
+		uint8* Memory = nullptr;
+		UPackage* Package = nullptr;
+		if (FVoxelInstancedStruct* InstancedStruct = static_cast<FVoxelInstancedStruct*>(RawData))
+		{
+			ScriptStruct = InstancedStruct->GetScriptStruct();
+			Memory = static_cast<uint8*>(InstancedStruct->GetStructMemory());
+
+			if (ensureMsgf(Packages.IsValidIndex(DataIndex), TEXT("Expecting packges and raw data to match.")))
+			{
+				Package = Packages[DataIndex];
+			}
+		}
+
+		return InFunc(ScriptStruct, Memory, Package);
+	});
 }
 
 #undef LOCTEXT_NAMESPACE

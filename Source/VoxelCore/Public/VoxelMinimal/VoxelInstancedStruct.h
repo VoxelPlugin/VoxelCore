@@ -338,7 +338,6 @@ public:
 public:
 	using FVoxelInstancedStruct::GetScriptStruct;
 	using FVoxelInstancedStruct::IsValid;
-	using FVoxelInstancedStruct::IsA;
 	using FVoxelInstancedStruct::AddStructReferencedObjects;
 	using FVoxelInstancedStruct::Reset;
 
@@ -407,6 +406,10 @@ public:
 	FORCEINLINE bool IsA() const
 	{
 		return FVoxelInstancedStruct::IsA<OtherType>();
+	}
+	FORCEINLINE bool IsA(const UScriptStruct* Struct) const
+	{
+		return FVoxelInstancedStruct::IsA(Struct);
 	}
 	FORCEINLINE bool IsValid() const
 	{

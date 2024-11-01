@@ -100,6 +100,8 @@ void FVoxelThreadPool::RemoveExecutor(IVoxelTaskExecutor* Executor)
 			{
 				OtherExecutor->FlushGameThreadTasks();
 			}
+
+			FlushVoxelGameThreadTasks();
 		}
 	}
 }

@@ -125,9 +125,11 @@ const FEncodingInfo& FCluster::GetEncodingInfo(const FEncodingSettings& Settings
 		Info.PositionBits.Y = FMath::CeilLogTwo(Max.Y - Min.Y + 1);
 		Info.PositionBits.Z = FMath::CeilLogTwo(Max.Z - Min.Z + 1);
 
-		if (!ensureMsgf(Info.PositionBits.GetMax() <= NANITE_MAX_POSITION_QUANTIZATION_BITS, TEXT("PositionPrecision too high")))
+		if (Info.PositionBits.GetMax() > NANITE_MAX_POSITION_QUANTIZATION_BITS)
 		{
-			Info.PositionBits = FIntVector(NANITE_MAX_POSITION_QUANTIZATION_BITS);
+			VOXEL_MESSAGE(Error, "PositionPrecision too high on voxel Nanite mesh");
+
+			Info.PositionBits = FVoxelUtilities::ComponentMin(Info.PositionBits, FIntVector(NANITE_MAX_POSITION_QUANTIZATION_BITS));
 		}
 	}
 

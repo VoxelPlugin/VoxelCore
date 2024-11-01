@@ -404,8 +404,10 @@ void AVoxelActorBase::DestroyRuntime()
 
 	OnRuntimeDestroyed.Broadcast();
 
-	PrivateRuntime->Destroy();
+	ensure(!PrivateRuntime->bPrivateIsDestroyed);
+	PrivateRuntime->Destroy(*this);
 	PrivateRuntime->bPrivateIsDestroyed = true;
+
 	PrivateRuntime.Reset();
 
 	for (const TWeakObjectPtr<USceneComponent> WeakComponent : PrivateComponents)

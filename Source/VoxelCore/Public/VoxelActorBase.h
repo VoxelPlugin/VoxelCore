@@ -5,6 +5,7 @@
 #include "VoxelMinimal.h"
 #include "VoxelActorBase.generated.h"
 
+class AVoxelActorBase;
 class FVoxelTransformRef;
 
 class VOXELCORE_API IVoxelActorRuntime : public TSharedFromThis<IVoxelActorRuntime>
@@ -18,7 +19,7 @@ public:
 		return bPrivateIsDestroyed;
 	}
 
-	virtual void Destroy() {}
+	virtual void Destroy(AVoxelActorBase& Outer) {}
 	virtual void Tick() {}
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) {}
 

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelEditorMinimal.h"
+#include "IStructureDataProvider.h"
 
 class IPropertyHandle;
 class IDetailPropertyRow;
@@ -37,49 +38,29 @@ private:
 	TSharedPtr<SComboButton> ComboButton;
 };
 
-class FVoxelInstancedStructOnScope : public FStructOnScope
+class FVoxelInstancedStructProvider : public IStructureDataProvider
 {
 public:
-	FVoxelInstancedStruct Struct;
+	const TSharedPtr<IPropertyHandle> StructProperty;
 
-	FVoxelInstancedStructOnScope() = default;
-	UE_NONCOPYABLE(FVoxelInstancedStructOnScope);
+	explicit FVoxelInstancedStructProvider(const TSharedPtr<IPropertyHandle>& StructProperty)
+		: StructProperty(StructProperty)
+	{
+	}
 
-	//~ Begin FStructOnScope Interface
-	virtual void Initialize() override
+	virtual bool IsValid() const override;
+	virtual const UStruct* GetBaseStructure() const override;
+	virtual void GetInstances(TArray<TSharedPtr<FStructOnScope>>& OutInstances, const UStruct* ExpectedBaseStructure) const override;
+
+	virtual bool IsPropertyIndirection() const override
 	{
-		unimplemented();
+		return true;
 	}
-	virtual bool OwnsStructMemory() const override
-	{
-		ensure(false);
-		return false;
-	}
-	virtual uint8* GetStructMemory() override
-	{
-		return static_cast<uint8*>(Struct.GetStructMemory());
-	}
-	virtual const uint8* GetStructMemory() const override
-	{
-		return static_cast<const uint8*>(Struct.GetStructMemory());
-	}
-	virtual const UStruct* GetStruct() const override
-	{
-		return Struct.GetScriptStruct();
-	}
-	virtual bool IsValid() const override
-	{
-		return Struct.IsValid();
-	}
-	virtual void Destroy() override
-	{
-		ensure(false);
-	}
-	virtual void Reset() override
-	{
-		Struct.Reset();
-	}
-	//~ End FStructOnScope Interface
+
+	virtual uint8* GetValueBaseAddress(uint8* ParentValueAddress, const UStruct* ExpectedBaseStructure) const override;
+
+private:
+	void EnumerateInstances(TFunctionRef<bool(const UScriptStruct* ScriptStruct, uint8* Memory, UPackage* Package)> InFunc) const;
 };
 
 /**
@@ -113,15 +94,13 @@ private:
 	void OnStructValuePostChange();
 	void OnStructHandlePostChange();
 
-	/** Sync the current state of the editable struct instance to/from the source instance(s) */
-	void SyncEditableInstanceFromSource(bool* OutStructMismatch = nullptr);
-	void SyncEditableInstanceToSource(bool* OutStructMismatch = nullptr);
-
 	/** Handle to the struct property being edited */
 	TSharedPtr<IPropertyHandle> StructProperty;
 
 	/** Struct instance that is being edited; this is a copy of the source struct data to avoid lifetime issues when the underlying source is updated/deleted */
-	TSharedPtr<FVoxelInstancedStructOnScope> StructInstanceData;
+	TSharedPtr<FVoxelInstancedStructProvider> StructInstanceData;
+
+	const UScriptStruct* LastStruct = nullptr;
 
 	/** Delegate that can be used to refresh the child rows of the current struct (eg, when changing struct type) */
 	FSimpleDelegate OnRegenerateChildren;

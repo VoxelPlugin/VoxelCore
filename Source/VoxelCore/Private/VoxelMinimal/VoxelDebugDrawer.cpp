@@ -100,7 +100,7 @@ FVoxelDebugDrawer& FVoxelDebugDrawer::DrawBox(
 
 	if (bScaleBySize)
 	{
-		PrivateState->Thickness *= Box.Size().GetAbsMax() / 10000.f;
+		PrivateState->Thickness *= FMath::Sqrt(Box.Size().GetAbsMax()) / 10.f;
 	}
 
 	const auto Get = [&](const double X, const double Y, const double Z) -> FVector
