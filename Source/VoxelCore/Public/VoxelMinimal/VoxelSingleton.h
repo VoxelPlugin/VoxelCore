@@ -47,11 +47,11 @@ public:
 	virtual void OnBeginFrame_RenderThread() {}
 	virtual void OnEndFrame_RenderThread() {}
 
-	virtual void SetupViewFamily_GameThread(FSceneViewFamily& ViewFamily) {}
-	virtual void SetupView_GameThread(FSceneViewFamily& ViewFamily, FSceneView& View) {}
-	virtual void SetupViewPoint_RenderThread(APlayerController* Player, FMinimalViewInfo& ViewInfo) {}
-	virtual void SetupViewProjectionMatrix_RenderThread(FSceneViewProjectionData& InOutProjectionData) {}
-	virtual void BeginRenderViewFamily_GameThread(FSceneViewFamily& ViewFamily) {}
+	virtual void SetupViewFamily(FSceneViewFamily& ViewFamily) {}
+	virtual void SetupView(FSceneViewFamily& ViewFamily, FSceneView& View) {}
+	virtual void SetupViewPoint(APlayerController* Player, FMinimalViewInfo& ViewInfo) {}
+	virtual void SetupViewProjectionMatrix(FSceneViewProjectionData& InOutProjectionData) {}
+	virtual void BeginRenderViewFamily(FSceneViewFamily& ViewFamily) {}
 	virtual void PreRenderViewFamily_RenderThread(FRDGBuilder& GraphBuilder, FSceneViewFamily& ViewFamily) {}
 	virtual void PreRenderView_RenderThread(FRDGBuilder& GraphBuilder, FSceneView& View) {}
 	virtual void PreInitViews_RenderThread(FRDGBuilder& GraphBuilder) {}

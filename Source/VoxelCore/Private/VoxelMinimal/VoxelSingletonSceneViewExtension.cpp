@@ -39,55 +39,50 @@ void FVoxelSingletonSceneViewExtension::OnEndFrame_RenderThread()
 void FVoxelSingletonSceneViewExtension::SetupViewFamily(FSceneViewFamily& ViewFamily)
 {
 	VOXEL_FUNCTION_COUNTER();
-	check(IsInGameThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
-		Singleton->SetupViewFamily_GameThread(ViewFamily);
+		Singleton->SetupViewFamily(ViewFamily);
 	}
 }
 
 void FVoxelSingletonSceneViewExtension::SetupView(FSceneViewFamily& ViewFamily, FSceneView& View)
 {
 	VOXEL_FUNCTION_COUNTER();
-	check(IsInGameThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
-		Singleton->SetupView_GameThread(ViewFamily, View);
+		Singleton->SetupView(ViewFamily, View);
 	}
 }
 
 void FVoxelSingletonSceneViewExtension::SetupViewPoint(APlayerController* Player, FMinimalViewInfo& ViewInfo)
 {
 	VOXEL_FUNCTION_COUNTER();
-	check(IsInRenderingThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
-		Singleton->SetupViewPoint_RenderThread(Player, ViewInfo);
+		Singleton->SetupViewPoint(Player, ViewInfo);
 	}
 }
 
 void FVoxelSingletonSceneViewExtension::SetupViewProjectionMatrix(FSceneViewProjectionData& InOutProjectionData)
 {
 	VOXEL_FUNCTION_COUNTER();
-	check(IsInRenderingThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
-		Singleton->SetupViewProjectionMatrix_RenderThread(InOutProjectionData);
+		Singleton->SetupViewProjectionMatrix(InOutProjectionData);
 	}
 }
 
 void FVoxelSingletonSceneViewExtension::BeginRenderViewFamily(FSceneViewFamily& ViewFamily)
 {
 	VOXEL_FUNCTION_COUNTER();
-	check(IsInGameThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
-		Singleton->BeginRenderViewFamily_GameThread(ViewFamily);
+		Singleton->BeginRenderViewFamily(ViewFamily);
 	}
 }
 
