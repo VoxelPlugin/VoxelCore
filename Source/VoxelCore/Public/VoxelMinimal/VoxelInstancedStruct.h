@@ -194,6 +194,22 @@ public:
 	}
 
 	template<typename T>
+	TSharedPtr<T> AsSharedPtr()
+	{
+		if (!IsA<T>())
+		{
+			return nullptr;
+		}
+
+		return ReinterpretCastRef<TSharedPtr<T>>(PrivateStructMemory);
+	}
+	template<typename T>
+	TSharedPtr<const T> AsSharedPtr() const
+	{
+		return ConstCast(this)->AsSharedPtr<const T>();
+	}
+
+	template<typename T>
 	TSharedRef<T> MakeSharedCopy() const
 	{
 		return MakeSharedStruct<T>(GetScriptStruct(), &Get<T>());
@@ -348,6 +364,17 @@ public:
 	}
 	template<typename OtherType = T, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
 	FORCEINLINE TSharedRef<const OtherType> AsShared() const
+	{
+		return FVoxelInstancedStruct::AsShared<const OtherType>();
+	}
+
+	template<typename OtherType = T, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
+	FORCEINLINE TSharedPtr<OtherType> AsSharedPtr()
+	{
+		return FVoxelInstancedStruct::AsSharedPtr<OtherType>();
+	}
+	template<typename OtherType = T, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
+	FORCEINLINE TSharedPtr<const OtherType> AsSharedPtr() const
 	{
 		return FVoxelInstancedStruct::AsShared<const OtherType>();
 	}

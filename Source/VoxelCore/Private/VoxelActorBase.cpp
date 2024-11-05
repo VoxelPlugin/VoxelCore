@@ -57,7 +57,15 @@ void UVoxelActorBaseRootComponent::UpdateBounds()
 
 FBoxSphereBounds UVoxelActorBaseRootComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
-	const FVoxelBox LocalBounds = GetOuterAVoxelActorBase()->GetLocalBounds();
+	VOXEL_FUNCTION_COUNTER();
+
+	const AVoxelActorBase* Owner = Cast<AVoxelActorBase>(GetOwner());
+	if (!Owner)
+	{
+		return {};
+	}
+
+	const FVoxelBox LocalBounds = Owner->GetLocalBounds();
 	return FBoxSphereBounds(LocalBounds.TransformBy(LocalToWorld).ToFBox());
 }
 

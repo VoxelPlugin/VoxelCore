@@ -29,7 +29,7 @@ private:
 	friend class AVoxelActorBase;
 };
 
-UCLASS(Within = VoxelActorBase)
+UCLASS()
 class VOXELCORE_API UVoxelActorBaseRootComponent : public UPrimitiveComponent
 {
 	GENERATED_BODY()

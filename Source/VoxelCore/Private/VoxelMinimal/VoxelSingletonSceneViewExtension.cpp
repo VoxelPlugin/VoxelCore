@@ -2,59 +2,99 @@
 
 #include "VoxelSingletonSceneViewExtension.h"
 
-void FVoxelSingletonSceneViewExtension::SetupViewFamily(FSceneViewFamily& ViewFamily)
+void FVoxelSingletonSceneViewExtension::OnBeginFrame_RenderThread()
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInRenderingThread());
+	check(!CurrentFrameNumber.IsSet());
+
+	static int32 FrameCounter = 0;
+	CurrentFrameNumber = ++FrameCounter;
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
-		Singleton->SetupViewFamily(ViewFamily);
+		Singleton->OnBeginFrame_RenderThread();
+	}
+}
+
+void FVoxelSingletonSceneViewExtension::OnEndFrame_RenderThread()
+{
+	VOXEL_FUNCTION_COUNTER();
+	check(IsInRenderingThread());
+
+	static int32 FrameCounter = 0;
+	check(CurrentFrameNumber == ++FrameCounter);
+	CurrentFrameNumber.Reset();
+
+	for (FVoxelRenderSingleton* Singleton : Singletons)
+	{
+		Singleton->OnEndFrame_RenderThread();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void FVoxelSingletonSceneViewExtension::SetupViewFamily(FSceneViewFamily& ViewFamily)
+{
+	VOXEL_FUNCTION_COUNTER();
+	check(IsInGameThread());
+
+	for (FVoxelRenderSingleton* Singleton : Singletons)
+	{
+		Singleton->SetupViewFamily_GameThread(ViewFamily);
 	}
 }
 
 void FVoxelSingletonSceneViewExtension::SetupView(FSceneViewFamily& ViewFamily, FSceneView& View)
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInGameThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
-		Singleton->SetupView(ViewFamily, View);
+		Singleton->SetupView_GameThread(ViewFamily, View);
 	}
 }
 
 void FVoxelSingletonSceneViewExtension::SetupViewPoint(APlayerController* Player, FMinimalViewInfo& ViewInfo)
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInRenderingThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
-		Singleton->SetupViewPoint(Player, ViewInfo);
+		Singleton->SetupViewPoint_RenderThread(Player, ViewInfo);
 	}
 }
 
 void FVoxelSingletonSceneViewExtension::SetupViewProjectionMatrix(FSceneViewProjectionData& InOutProjectionData)
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInRenderingThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
-		Singleton->SetupViewProjectionMatrix(InOutProjectionData);
+		Singleton->SetupViewProjectionMatrix_RenderThread(InOutProjectionData);
 	}
 }
 
 void FVoxelSingletonSceneViewExtension::BeginRenderViewFamily(FSceneViewFamily& ViewFamily)
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInGameThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
-		Singleton->BeginRenderViewFamily(ViewFamily);
+		Singleton->BeginRenderViewFamily_GameThread(ViewFamily);
 	}
 }
 
 void FVoxelSingletonSceneViewExtension::PreRenderViewFamily_RenderThread(FRDGBuilder& GraphBuilder, FSceneViewFamily& ViewFamily)
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInRenderingThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
@@ -65,6 +105,7 @@ void FVoxelSingletonSceneViewExtension::PreRenderViewFamily_RenderThread(FRDGBui
 void FVoxelSingletonSceneViewExtension::PreRenderView_RenderThread(FRDGBuilder& GraphBuilder, FSceneView& View)
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInRenderingThread());
 
 	ensure(!CurrentView);
 	CurrentView = &View;
@@ -78,6 +119,7 @@ void FVoxelSingletonSceneViewExtension::PreRenderView_RenderThread(FRDGBuilder& 
 void FVoxelSingletonSceneViewExtension::PreInitViews_RenderThread(FRDGBuilder& GraphBuilder)
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInRenderingThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
@@ -88,6 +130,7 @@ void FVoxelSingletonSceneViewExtension::PreInitViews_RenderThread(FRDGBuilder& G
 void FVoxelSingletonSceneViewExtension::PreRenderBasePass_RenderThread(FRDGBuilder& GraphBuilder, const bool bDepthBufferIsPopulated)
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInRenderingThread());
 
 	if (!ensure(CurrentView))
 	{
@@ -103,6 +146,7 @@ void FVoxelSingletonSceneViewExtension::PreRenderBasePass_RenderThread(FRDGBuild
 void FVoxelSingletonSceneViewExtension::PostRenderBasePassDeferred_RenderThread(FRDGBuilder& GraphBuilder, FSceneView& View, const FRenderTargetBindingSlots& RenderTargets, const TRDGUniformBufferRef<FSceneTextureUniformParameters> SceneTextures)
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInRenderingThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
@@ -113,6 +157,7 @@ void FVoxelSingletonSceneViewExtension::PostRenderBasePassDeferred_RenderThread(
 void FVoxelSingletonSceneViewExtension::PostRenderBasePassMobile_RenderThread(FRHICommandList& RHICmdList, FSceneView& View)
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInRenderingThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
@@ -123,6 +168,7 @@ void FVoxelSingletonSceneViewExtension::PostRenderBasePassMobile_RenderThread(FR
 void FVoxelSingletonSceneViewExtension::PrePostProcessPass_RenderThread(FRDGBuilder& GraphBuilder, const FSceneView& View, const FPostProcessingInputs& Inputs)
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInRenderingThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
@@ -133,16 +179,18 @@ void FVoxelSingletonSceneViewExtension::PrePostProcessPass_RenderThread(FRDGBuil
 void FVoxelSingletonSceneViewExtension::SubscribeToPostProcessingPass(const EPostProcessingPass Pass, FAfterPassCallbackDelegateArray& InOutPassCallbacks, const bool bIsPassEnabled)
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInRenderingThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
-		Singleton->SubscribeToPostProcessingPass(Pass, InOutPassCallbacks, bIsPassEnabled);
+		Singleton->SubscribeToPostProcessingPass_RenderThread(Pass, InOutPassCallbacks, bIsPassEnabled);
 	}
 }
 
 void FVoxelSingletonSceneViewExtension::PostRenderViewFamily_RenderThread(FRDGBuilder& GraphBuilder, FSceneViewFamily& ViewFamily)
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInRenderingThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
@@ -153,6 +201,7 @@ void FVoxelSingletonSceneViewExtension::PostRenderViewFamily_RenderThread(FRDGBu
 void FVoxelSingletonSceneViewExtension::PostRenderView_RenderThread(FRDGBuilder& GraphBuilder, FSceneView& View)
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInRenderingThread());
 
 	ensure(CurrentView == &View);
 	CurrentView = nullptr;
@@ -166,6 +215,7 @@ void FVoxelSingletonSceneViewExtension::PostRenderView_RenderThread(FRDGBuilder&
 void FVoxelSingletonSceneViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily)
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInRenderingThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
@@ -176,6 +226,7 @@ void FVoxelSingletonSceneViewExtension::PreRenderViewFamily_RenderThread(FRHICom
 void FVoxelSingletonSceneViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& View)
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInRenderingThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
@@ -186,6 +237,7 @@ void FVoxelSingletonSceneViewExtension::PreRenderView_RenderThread(FRHICommandLi
 void FVoxelSingletonSceneViewExtension::PostRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& View)
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInRenderingThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
@@ -196,6 +248,7 @@ void FVoxelSingletonSceneViewExtension::PostRenderView_RenderThread(FRHICommandL
 void FVoxelSingletonSceneViewExtension::PostRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily)
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInRenderingThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
@@ -206,6 +259,7 @@ void FVoxelSingletonSceneViewExtension::PostRenderViewFamily_RenderThread(FRHICo
 void FVoxelSingletonSceneViewExtension::PostRenderBasePass_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& View)
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInRenderingThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{

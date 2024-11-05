@@ -44,11 +44,14 @@ class VOXELCORE_API FVoxelRenderSingleton : public FVoxelSingleton
 public:
 	FVoxelRenderSingleton();
 
-	virtual void SetupViewFamily(FSceneViewFamily& ViewFamily) {}
-	virtual void SetupView(FSceneViewFamily& ViewFamily, FSceneView& View) {}
-	virtual void SetupViewPoint(APlayerController* Player, FMinimalViewInfo& ViewInfo) {}
-	virtual void SetupViewProjectionMatrix(FSceneViewProjectionData& InOutProjectionData) {}
-	virtual void BeginRenderViewFamily(FSceneViewFamily& ViewFamily) {}
+	virtual void OnBeginFrame_RenderThread() {}
+	virtual void OnEndFrame_RenderThread() {}
+
+	virtual void SetupViewFamily_GameThread(FSceneViewFamily& ViewFamily) {}
+	virtual void SetupView_GameThread(FSceneViewFamily& ViewFamily, FSceneView& View) {}
+	virtual void SetupViewPoint_RenderThread(APlayerController* Player, FMinimalViewInfo& ViewInfo) {}
+	virtual void SetupViewProjectionMatrix_RenderThread(FSceneViewProjectionData& InOutProjectionData) {}
+	virtual void BeginRenderViewFamily_GameThread(FSceneViewFamily& ViewFamily) {}
 	virtual void PreRenderViewFamily_RenderThread(FRDGBuilder& GraphBuilder, FSceneViewFamily& ViewFamily) {}
 	virtual void PreRenderView_RenderThread(FRDGBuilder& GraphBuilder, FSceneView& View) {}
 	virtual void PreInitViews_RenderThread(FRDGBuilder& GraphBuilder) {}
@@ -56,7 +59,7 @@ public:
 	virtual void PostRenderBasePassDeferred_RenderThread(FRDGBuilder& GraphBuilder, FSceneView& View, const FRenderTargetBindingSlots& RenderTargets, TRDGUniformBufferRef<FSceneTextureUniformParameters> SceneTextures) {}
 	virtual void PostRenderBasePassMobile_RenderThread(FRHICommandList& RHICmdList, FSceneView& View) {}
 	virtual void PrePostProcessPass_RenderThread(FRDGBuilder& GraphBuilder, const FSceneView& View, const FPostProcessingInputs& Inputs) {}
-	virtual void SubscribeToPostProcessingPass(ISceneViewExtension::EPostProcessingPass Pass, FAfterPassCallbackDelegateArray& InOutPassCallbacks, bool bIsPassEnabled) {}
+	virtual void SubscribeToPostProcessingPass_RenderThread(ISceneViewExtension::EPostProcessingPass Pass, FAfterPassCallbackDelegateArray& InOutPassCallbacks, bool bIsPassEnabled) {}
 	virtual void PostRenderViewFamily_RenderThread(FRDGBuilder& GraphBuilder, FSceneViewFamily& ViewFamily) {}
 	virtual void PostRenderView_RenderThread(FRDGBuilder& GraphBuilder, FSceneView& View) {}
 	virtual void PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily) {}

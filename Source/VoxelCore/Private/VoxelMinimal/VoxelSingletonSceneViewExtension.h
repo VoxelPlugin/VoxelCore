@@ -11,6 +11,9 @@ public:
 
 	TVoxelArray<FVoxelRenderSingleton*> Singletons;
 
+	void OnBeginFrame_RenderThread();
+	void OnEndFrame_RenderThread();
+
 	//~ Begin FSceneViewExtensionBase Interface
 	virtual void SetupViewFamily(FSceneViewFamily& ViewFamily) override;
 	virtual void SetupView(FSceneViewFamily& ViewFamily, FSceneView& View) override;
@@ -36,4 +39,5 @@ public:
 
 private:
 	FSceneView* CurrentView = nullptr;
+	TOptional<int32> CurrentFrameNumber;
 };

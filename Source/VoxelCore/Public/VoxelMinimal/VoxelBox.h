@@ -8,16 +8,16 @@
 #include "VoxelMinimal/Utilities/VoxelVectorUtilities.h"
 #include "VoxelBox.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct VOXELCORE_API FVoxelBox
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
-	FVector3d Min = FVector3d(ForceInit);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Voxel")
+	FVector Min = FVector3d(ForceInit);
 
-	UPROPERTY()
-	FVector3d Max = FVector3d(ForceInit);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Voxel")
+	FVector Max = FVector3d(ForceInit);
 
 	static const FVoxelBox Infinite;
 	static const FVoxelBox InvertedInfinite;

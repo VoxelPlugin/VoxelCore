@@ -83,6 +83,23 @@ FVoxelSingletonManager::FVoxelSingletonManager()
 	{
 		ViewExtension = FSceneViewExtensions::NewExtension<FVoxelSingletonSceneViewExtension>();
 
+		const TSharedRef<FSharedVoidPtr> SharedSharedRef = MakeSharedCopy(MakeSharedVoid().ToSharedPtr());
+
+		// Ensure BeginFrame is called as many times as EndFrame
+		FCoreDelegates::OnEndFrameRT.Add(MakeWeakPtrDelegate(*SharedSharedRef, [this, SharedSharedRef]
+		{
+			SharedSharedRef->Reset();
+
+			FCoreDelegates::OnBeginFrameRT.AddLambda([this]
+			{
+				ViewExtension->OnBeginFrame_RenderThread();
+			});
+			FCoreDelegates::OnEndFrameRT.AddLambda([this]
+			{
+				ViewExtension->OnEndFrame_RenderThread();
+			});
+		}));
+
 		for (FVoxelSingleton* Singleton : Singletons)
 		{
 			if (!Singleton->bIsRenderSingleton)
