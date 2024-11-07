@@ -8,6 +8,7 @@
 class IPropertyHandle;
 class IDetailPropertyRow;
 class FStructOnScope;
+class FVoxelPropertyTypeCustomizationUtils;
 struct FVoxelInstancedStruct;
 
 /**
@@ -80,7 +81,8 @@ class FVoxelInstancedStructDataDetails : public IDetailCustomNodeBuilder, public
 public:
 	FVoxelInstancedStructDataDetails(
 		const TSharedPtr<IPropertyHandle>& InStructProperty,
-		const TSharedRef<FVoxelInstancedStructProvider>& StructProvider);
+		const TSharedRef<FVoxelInstancedStructProvider>& StructProvider,
+		const IPropertyTypeCustomizationUtils& PropertyUtils);
 
 	//~ Begin IDetailCustomNodeBuilder interface
 	virtual void SetOnRebuildChildren(FSimpleDelegate InOnRegenerateChildren) override;
@@ -115,6 +117,7 @@ private:
 	bool bIsHandlingStructValuePostChange = false;
 
 	bool bIsInitialGeneration = true;
+	TSharedPtr<FVoxelPropertyTypeCustomizationUtils> PropertyUtils;
 	
 protected:
 	void OnStructLayoutChanges();

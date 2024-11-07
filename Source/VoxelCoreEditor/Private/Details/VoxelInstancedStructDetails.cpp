@@ -13,6 +13,139 @@
 
 DEFINE_VOXEL_STRUCT_LAYOUT(FVoxelInstancedStruct, FVoxelInstancedStructDetails);
 
+namespace FPropertyLayoutAccessor
+{
+	struct FPropertyTypeLayoutCallbackAccessor
+	{
+		FOnGetPropertyTypeCustomizationInstance PropertyTypeLayoutDelegate;
+		TSharedPtr<IPropertyTypeIdentifier> PropertyTypeIdentifier;
+
+		bool IsValid() const
+		{
+			return PropertyTypeLayoutDelegate.IsBound();
+		}
+
+		TSharedRef<IPropertyTypeCustomization> GetCustomizationInstance() const
+		{
+			return PropertyTypeLayoutDelegate.Execute();
+		}
+	};
+
+	struct FPropertyTypeLayoutCallbackListAccessor
+	{
+		FPropertyTypeLayoutCallbackAccessor BaseCallback;
+		TArray<FPropertyTypeLayoutCallbackAccessor> IdentifierList;
+	};
+
+	class FPropertyEditorModuleAccessor : public IModuleInterface
+	{
+		class FPropertyEditorOpenedEvent : public TMulticastDelegate<void()> { friend class FPropertyEditorModuleAccessor; };
+		TArray< TWeakPtr<class SDetailsView> > AllDetailViews;
+		TArray< TWeakPtr<class SSingleProperty> > AllSinglePropertyViews;
+		FCustomDetailLayoutNameMap ClassNameToDetailLayoutNameMap;
+		TMap<FName, FPropertyTypeLayoutCallbackListAccessor> GlobalPropertyTypeToLayoutMap;
+		TMap<FName, TSharedPtr<FClassSectionMapping>> ClassSectionMappings;
+		FPropertyEditorOpenedEvent PropertyEditorOpened;
+		TMap<FName, FStructProperty*> RegisteredStructToProxyMap;
+		TSharedPtr<class FAssetThumbnailPool> GlobalThumbnailPool;
+		UStruct* StructOnScopePropertyOwner = nullptr;
+		FOnGenerateGlobalRowExtension OnGenerateGlobalRowExtension;
+		bool bCanUsePropertyMatrixOverride = true;
+
+	public:
+		bool IsCustomizedStruct(const UStruct* Struct) const
+		{
+			bool bFound = false;
+			if (Struct && !Struct->IsA<UUserDefinedStruct>())
+			{
+				if( !bFound )
+				{
+					bFound = GlobalPropertyTypeToLayoutMap.Contains( Struct->GetFName() );
+				}
+		
+				if( !bFound )
+				{
+					static const FName NAME_PresentAsTypeMetadata(TEXT("PresentAsType"));
+					if (const FString* DisplayType = Struct->FindMetaData(NAME_PresentAsTypeMetadata))
+					{
+						if( !bFound )
+						{
+							bFound = GlobalPropertyTypeToLayoutMap.Contains( FName(*DisplayType) );
+						}
+					}
+				}
+			}
+	
+			return bFound;
+		}
+
+		FPropertyTypeLayoutCallbackAccessor FindPropertyTypeLayoutCallback(FName PropertyTypeName, const IPropertyHandle& PropertyHandle)
+		{
+			if (PropertyTypeName != NAME_None)
+			{
+				if (const FPropertyTypeLayoutCallbackListAccessor* LayoutCallbacks = GlobalPropertyTypeToLayoutMap.Find(PropertyTypeName))
+				{
+					const FPropertyTypeLayoutCallbackAccessor& Callback = LayoutCallbacks->BaseCallback;
+					return Callback;
+				}
+			}
+
+			return FPropertyTypeLayoutCallbackAccessor();
+		}
+	};
+
+	bool IsCustomizedStruct(const UScriptStruct* Struct)
+	{
+		FPropertyEditorModule& ParentPlugin = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		const FPropertyEditorModuleAccessor& Helper = *reinterpret_cast<FPropertyEditorModuleAccessor*>(&ParentPlugin);
+
+		return Helper.IsCustomizedStruct(Struct);
+	}
+
+	TSharedPtr<IPropertyTypeCustomization> GetCustomization(const UScriptStruct* Struct, const TSharedPtr<IPropertyHandle>& Handle)
+	{
+		if (!ensure(Struct))
+		{
+			return nullptr;
+		}
+
+		FPropertyEditorModule& ParentPlugin = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		FPropertyEditorModuleAccessor& Helper = *reinterpret_cast<FPropertyEditorModuleAccessor*>(&ParentPlugin);
+
+		const FPropertyTypeLayoutCallbackAccessor& Callback = Helper.FindPropertyTypeLayoutCallback(Struct->GetFName(), *Handle);
+		if (!Callback.IsValid())
+		{
+			return nullptr;
+		}
+
+		return Callback.GetCustomizationInstance();
+	}
+}
+
+class FVoxelPropertyTypeCustomizationUtils : public IPropertyTypeCustomizationUtils
+{
+public:
+	FVoxelPropertyTypeCustomizationUtils(const IPropertyTypeCustomizationUtils& Utils)
+		: ThumbnailPool(Utils.GetThumbnailPool())
+		, PropertyUtilities(Utils.GetPropertyUtilities())
+	{}
+
+	//~ Begin IPropertyTypeCustomizationUtils Interface
+	virtual TSharedPtr<FAssetThumbnailPool> GetThumbnailPool() const override
+	{
+		return ThumbnailPool;
+	}
+	virtual TSharedPtr<IPropertyUtilities> GetPropertyUtilities() const override
+	{
+		return PropertyUtilities;
+	}
+	//~ End IPropertyTypeCustomizationUtils Interface
+
+private:
+	TSharedPtr<FAssetThumbnailPool> ThumbnailPool;
+	TSharedPtr<IPropertyUtilities> PropertyUtilities;
+};
+
 class FInstancedStructFilter : public IStructViewerFilter
 {
 public:
@@ -93,8 +226,10 @@ inline FPropertyAccess::Result GetCommonScriptStruct(const TSharedPtr<IPropertyH
 
 FVoxelInstancedStructDataDetails::FVoxelInstancedStructDataDetails(
 	const TSharedPtr<IPropertyHandle>& InStructProperty,
-	const TSharedRef<FVoxelInstancedStructProvider>& StructProvider)
+	const TSharedRef<FVoxelInstancedStructProvider>& StructProvider,
+	const IPropertyTypeCustomizationUtils& PropertyUtils)
 	: StructProvider(StructProvider)
+	, PropertyUtils(MakeShared<FVoxelPropertyTypeCustomizationUtils>(PropertyUtils))
 {
 	check(CastFieldChecked<FStructProperty>(InStructProperty->GetProperty())->Struct == FVoxelInstancedStruct::StaticStruct());
 
@@ -183,6 +318,31 @@ void FVoxelInstancedStructDataDetails::GenerateChildContent(IDetailChildrenBuild
 	}
 
 	CachedInstanceTypes = GetInstanceTypes();
+
+	const UScriptStruct* ActiveStruct = nullptr;
+	TSet<const UScriptStruct*> InstanceTypes;
+	for (const TWeakObjectPtr<const UStruct>& WeakStruct : CachedInstanceTypes)
+	{
+		if (const UScriptStruct* Struct = Cast<UScriptStruct>(WeakStruct.Get()))
+		{
+			ActiveStruct = Struct;
+			InstanceTypes.Add(Struct);
+		}
+	}
+
+	// Allow customization if showing only one type of struct
+	if (InstanceTypes.Num() == 1)
+	{
+		if (FPropertyLayoutAccessor::IsCustomizedStruct(ActiveStruct))
+		{
+			if (const TSharedPtr<IPropertyTypeCustomization> Customization = FPropertyLayoutAccessor::GetCustomization(ActiveStruct, StructProperty))
+			{
+				const TSharedPtr<IPropertyHandle> RootHandle = StructProperty->GetChildHandle(0);
+				Customization->CustomizeChildren(RootHandle.ToSharedRef(), ChildBuilder, *PropertyUtils);
+				return;
+			}
+		}
+	}
 
 	TArray<TSharedPtr<IPropertyHandle>> AdvancedProperties;
 	for (const TSharedPtr<IPropertyHandle>& ChildHandle : ChildProperties)
@@ -321,7 +481,7 @@ void FVoxelInstancedStructDetails::CustomizeChildren(TSharedRef<class IPropertyH
 		return;
 	}
 
-	const TSharedRef<FVoxelInstancedStructDataDetails> DataDetails = MakeVoxelShared<FVoxelInstancedStructDataDetails>(StructProperty, NewStructProvider);
+	const TSharedRef<FVoxelInstancedStructDataDetails> DataDetails = MakeVoxelShared<FVoxelInstancedStructDataDetails>(StructProperty, NewStructProvider, StructCustomizationUtils);
 	StructBuilder.AddCustomBuilder(DataDetails);
 }
 
