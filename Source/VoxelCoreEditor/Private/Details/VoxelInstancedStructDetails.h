@@ -24,7 +24,10 @@ public:
 	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
 
 private:
+	void OnObjectsReinstanced(const TMap<UObject*, UObject*>& ObjectMap);
+
 	FText GetDisplayValueString() const;
+	FText GetTooltipText() const;
 	const FSlateBrush* GetDisplayValueIcon() const;
 	TSharedRef<SWidget> GenerateStructPicker();
 	void OnStructPicked(const UScriptStruct* InStruct);
@@ -36,6 +39,9 @@ private:
 	UScriptStruct* BaseScriptStruct = nullptr;
 
 	TSharedPtr<SComboButton> ComboButton;
+	TSharedPtr<IPropertyUtilities> PropUtils;
+	
+	FDelegateHandle OnObjectsReinstancedHandle;
 };
 
 class FVoxelInstancedStructProvider : public IStructureDataProvider
@@ -69,7 +75,7 @@ private:
  * Can be used in a implementation of a IPropertyTypeCustomization CustomizeChildren() to display editable FVoxelInstancedStruct contents.
  * OnChildRowAdded() is called right after each property is added, which allows the property row to be customizable.
  */
-class FVoxelInstancedStructDataDetails : public IDetailCustomNodeBuilder, public FSelfRegisteringEditorUndoClient, public TSharedFromThis<FVoxelInstancedStructDataDetails>
+class FVoxelInstancedStructDataDetails : public IDetailCustomNodeBuilder, public TSharedFromThis<FVoxelInstancedStructDataDetails>
 {
 public:
 	FVoxelInstancedStructDataDetails(TSharedPtr<IPropertyHandle> InStructProperty);
@@ -84,30 +90,28 @@ public:
 	virtual FName GetName() const override;
 	//~ End IDetailCustomNodeBuilder interface
 
-	/** FEditorUndoClient interface */
-	virtual void PostUndo(bool bSuccess) override;
-	virtual void PostRedo(bool bSuccess) override;
-
 private:
 	/** Pre/Post change notifications for struct value changes */
-	void OnStructValuePreChange();
-	void OnStructValuePostChange();
 	void OnStructHandlePostChange();
 
+	/** Returns type of the instanced struct for each instance/object being edited. */
+	TArray<TWeakObjectPtr<const UStruct>> GetInstanceTypes() const;
+
+	/** Cached instance types, used to invalidate the layout when types change. */
+	TArray<TWeakObjectPtr<const UStruct>> CachedInstanceTypes;
+	
 	/** Handle to the struct property being edited */
 	TSharedPtr<IPropertyHandle> StructProperty;
 
-	/** Struct instance that is being edited; this is a copy of the source struct data to avoid lifetime issues when the underlying source is updated/deleted */
-	TSharedPtr<FVoxelInstancedStructProvider> StructInstanceData;
-
-	const UScriptStruct* LastStruct = nullptr;
+	/** Struct provider for the structs. */
+	TSharedPtr<FVoxelInstancedStructProvider> StructProvider;
 
 	/** Delegate that can be used to refresh the child rows of the current struct (eg, when changing struct type) */
 	FSimpleDelegate OnRegenerateChildren;
 
-	/** The last time that SyncEditableInstanceFromSource was called, in FPlatformTime::Seconds() */
-	double LastSyncEditableInstanceFromSourceSeconds = 0.0;
-
 	/** True if we're currently handling a StructValuePostChange */
 	bool bIsHandlingStructValuePostChange = false;
+	
+protected:
+	void OnStructLayoutChanges();
 };

@@ -53,30 +53,38 @@ public:
 	}
 };
 
-inline const UScriptStruct* GetCommonScriptStruct(TSharedPtr<IPropertyHandle> StructProperty)
+inline FPropertyAccess::Result GetCommonScriptStruct(const TSharedPtr<IPropertyHandle>& StructProperty, const UScriptStruct*& OutCommonStruct)
 {
-	const UScriptStruct* CommonStructType = nullptr;
-
-	StructProperty->EnumerateConstRawData([&CommonStructType](const void* RawData, const int32 /*DataIndex*/, const int32 /*NumDatas*/)
+	bool bHasResult = false;
+	bool bHasMultipleValues = false;
+	
+	StructProperty->EnumerateConstRawData([&OutCommonStruct, &bHasResult, &bHasMultipleValues](const void* RawData, const int32 /*DataIndex*/, const int32 /*NumDatas*/)
 	{
-		if (RawData)
+		if (const FVoxelInstancedStruct* InstancedStruct = static_cast<const FVoxelInstancedStruct*>(RawData))
 		{
-			const FVoxelInstancedStruct* InstancedStruct = static_cast<const FVoxelInstancedStruct*>(RawData);
+			const UScriptStruct* Struct = InstancedStruct->GetScriptStruct();
 
-			const UScriptStruct* StructTypePtr = InstancedStruct->GetScriptStruct();
-			if (CommonStructType && CommonStructType != StructTypePtr)
+			if (!bHasResult)
 			{
-				// Multiple struct types on the sources - show nothing set
-				CommonStructType = nullptr;
-				return false;
+				OutCommonStruct = Struct;
 			}
-			CommonStructType = StructTypePtr;
+			else if (OutCommonStruct != Struct)
+			{
+				bHasMultipleValues = true;
+			}
+
+			bHasResult = true;
 		}
 
 		return true;
 	});
 
-	return CommonStructType;
+	if (bHasMultipleValues)
+	{
+		return FPropertyAccess::MultipleValues;
+	}
+	
+	return bHasResult ? FPropertyAccess::Success : FPropertyAccess::Fail;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -90,33 +98,48 @@ FVoxelInstancedStructDataDetails::FVoxelInstancedStructDataDetails(TSharedPtr<IP
 	StructProperty = InStructProperty;
 }
 
-void FVoxelInstancedStructDataDetails::OnStructValuePreChange()
-{
-	// Forward the change event to the real struct handle
-	if (StructProperty && StructProperty->IsValidHandle())
-	{
-		StructProperty->NotifyPreChange();
-	}
-}
-
-void FVoxelInstancedStructDataDetails::OnStructValuePostChange()
-{
-	// Forward the change event to the real struct handle
-	if (StructProperty && StructProperty->IsValidHandle())
-	{
-		TGuardValue<bool> HandlingStructValuePostChangeGuard(bIsHandlingStructValuePostChange, true);
-
-		StructProperty->NotifyPostChange(EPropertyChangeType::ValueSet);
-		StructProperty->NotifyFinishedChangingProperties();
-	}
-}
-
 void FVoxelInstancedStructDataDetails::OnStructHandlePostChange()
 {
-	if (!bIsHandlingStructValuePostChange)
+	if (StructProvider.IsValid())
 	{
-		// External change; force a sync next Tick
-		LastSyncEditableInstanceFromSourceSeconds = 0.0;
+		TArray<TWeakObjectPtr<const UStruct>> InstanceTypes = GetInstanceTypes();
+		if (InstanceTypes != CachedInstanceTypes)
+		{
+			OnRegenerateChildren.ExecuteIfBound();
+		}
+	}
+}
+
+TArray<TWeakObjectPtr<const UStruct>> FVoxelInstancedStructDataDetails::GetInstanceTypes() const
+{
+	TArray<TWeakObjectPtr<const UStruct>> Result;
+	
+	StructProperty->EnumerateConstRawData([&Result](const void* RawData, const int32 /*DataIndex*/, const int32 /*NumDatas*/)
+	{
+		TWeakObjectPtr<const UStruct>& Type = Result.AddDefaulted_GetRef();
+		if (const FVoxelInstancedStruct* InstancedStruct = static_cast<const FVoxelInstancedStruct*>(RawData))
+		{
+			Result.Add(InstancedStruct->GetScriptStruct());
+		}
+		else
+		{
+			Result.Add(nullptr);
+		}
+		return true;
+	});
+
+	return Result;
+}
+
+void FVoxelInstancedStructDataDetails::OnStructLayoutChanges()
+{
+	if (StructProvider.IsValid())
+	{
+		const TArray<TWeakObjectPtr<const UStruct>> InstanceTypes = GetInstanceTypes();
+		if (InstanceTypes != CachedInstanceTypes)
+		{
+			OnRegenerateChildren.ExecuteIfBound();
+		}
 	}
 }
 
@@ -132,43 +155,27 @@ void FVoxelInstancedStructDataDetails::GenerateHeaderRowContent(FDetailWidgetRow
 
 void FVoxelInstancedStructDataDetails::GenerateChildContent(IDetailChildrenBuilder& ChildBuilder)
 {
-	if (!LastStruct)
-	{
-		LastStruct = GetCommonScriptStruct(StructProperty);
-	}
-
-	// Create a struct instance to edit, for the common struct type of the sources being edited
-	StructInstanceData = MakeVoxelShared<FVoxelInstancedStructProvider>(StructProperty);
-
 	// Add the rows for the struct
-	if (StructInstanceData)
+	const TSharedRef<FVoxelInstancedStructProvider> NewStructProvider = MakeShared<FVoxelInstancedStructProvider>(StructProperty);
+	
+	const TArray<TSharedPtr<IPropertyHandle>> ChildProperties = StructProperty->AddChildStructure(NewStructProvider);
+	for (const TSharedPtr<IPropertyHandle>& ChildHandle : ChildProperties)
 	{
-		const FSimpleDelegate OnStructValuePreChangeDelegate = FSimpleDelegate::CreateSP(this, &FVoxelInstancedStructDataDetails::OnStructValuePreChange);
-		const FSimpleDelegate OnStructValuePostChangeDelegate = FSimpleDelegate::CreateSP(this, &FVoxelInstancedStructDataDetails::OnStructValuePostChange);
-
-		TArray<TSharedPtr<IPropertyHandle>> ChildProperties = StructProperty->AddChildStructure(StructInstanceData.ToSharedRef());
-		for (const TSharedPtr<IPropertyHandle>& ChildHandle : ChildProperties)
-		{
-			ChildHandle->SetOnPropertyValuePreChange(OnStructValuePreChangeDelegate);
-			ChildHandle->SetOnChildPropertyValuePreChange(OnStructValuePreChangeDelegate);
-			ChildHandle->SetOnPropertyValueChanged(OnStructValuePostChangeDelegate);
-			ChildHandle->SetOnChildPropertyValueChanged(OnStructValuePostChangeDelegate);
-
-			ChildBuilder.AddProperty(ChildHandle.ToSharedRef());
-		}
+		ChildBuilder.AddProperty(ChildHandle.ToSharedRef());
 	}
+
+	StructProvider = NewStructProvider;
+
+	CachedInstanceTypes = GetInstanceTypes();
 }
 
 void FVoxelInstancedStructDataDetails::Tick(float DeltaTime)
 {
-	if (LastSyncEditableInstanceFromSourceSeconds + 0.1 < FPlatformTime::Seconds())
+	// If the instance types change (e.g. due to selecting new struct type), we'll need to update the layout.
+	TArray<TWeakObjectPtr<const UStruct>> InstanceTypes = GetInstanceTypes();
+	if (InstanceTypes != CachedInstanceTypes)
 	{
-		if (LastStruct != GetCommonScriptStruct(StructProperty))
-		{
-			// If the editable struct no longer has the same struct type as the underlying source,
-			// then we need to refresh to update the child property rows for the new type
-			OnRegenerateChildren.ExecuteIfBound();
-		}
+		OnRegenerateChildren.ExecuteIfBound();
 	}
 }
 
@@ -176,18 +183,6 @@ FName FVoxelInstancedStructDataDetails::GetName() const
 {
 	static const FName Name("InstancedStructDataDetails");
 	return Name;
-}
-
-void FVoxelInstancedStructDataDetails::PostUndo(bool bSuccess)
-{
-	// Undo; force a sync next Tick
-	LastSyncEditableInstanceFromSourceSeconds = 0.0;
-}
-
-void FVoxelInstancedStructDataDetails::PostRedo(bool bSuccess)
-{
-	// Redo; force a sync next Tick
-	LastSyncEditableInstanceFromSourceSeconds = 0.0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -206,19 +201,20 @@ void FVoxelInstancedStructDetails::CustomizeHeader(const TSharedRef<IPropertyHan
 	static const FName NAME_ShowOnlyInnerProperties = "ShowOnlyInnerProperties";
 
 	StructProperty = StructPropertyHandle;
+	PropUtils = StructCustomizationUtils.GetPropertyUtilities();
 
-	const FProperty* MetaDataProperty = StructProperty->GetMetaDataProperty();
+	OnObjectsReinstancedHandle = FCoreUObjectDelegates::OnObjectsReinstanced.AddSP(this, &FVoxelInstancedStructDetails::OnObjectsReinstanced);
 
-	if (StructProperty->HasMetaData(NAME_ShowOnlyInnerProperties))
+	if (StructPropertyHandle->HasMetaData(NAME_ShowOnlyInnerProperties))
 	{
 		return;
 	}
 
-	const bool bEnableStructSelection = !MetaDataProperty->HasMetaData(NAME_StructTypeConst);
+	const bool bEnableStructSelection = !StructPropertyHandle->HasMetaData(NAME_StructTypeConst);
 
 	BaseScriptStruct = nullptr;
 	{
-		FString BaseStructName = MetaDataProperty->GetMetaData(NAME_BaseStruct);
+		FString BaseStructName = StructPropertyHandle->GetMetaData(NAME_BaseStruct);
 		if (!BaseStructName.IsEmpty())
 		{
 			BaseScriptStruct = UClass::TryFindTypeSlow<UScriptStruct>(BaseStructName);
@@ -263,7 +259,7 @@ void FVoxelInstancedStructDetails::CustomizeHeader(const TSharedRef<IPropertyHan
 				[
 					SNew(STextBlock)
 					.Text(this, &FVoxelInstancedStructDetails::GetDisplayValueString)
-					.ToolTipText(this, &FVoxelInstancedStructDetails::GetDisplayValueString)
+					.ToolTipText(this, &FVoxelInstancedStructDetails::GetTooltipText)
 					.Font(IDetailLayoutBuilder::GetDetailFont())
 				]
 			]
@@ -276,36 +272,84 @@ void FVoxelInstancedStructDetails::CustomizeChildren(TSharedRef<class IPropertyH
 	StructBuilder.AddCustomBuilder(DataDetails);
 }
 
+void FVoxelInstancedStructDetails::OnObjectsReinstanced(const TMap<UObject*, UObject*>& ObjectMap)
+{
+	// Force update the details when BP is compiled, since we may cached hold references to the old object or class.
+	if (!ObjectMap.IsEmpty() && PropUtils.IsValid())
+	{
+		PropUtils->RequestRefresh();
+	}
+}
+
 FText FVoxelInstancedStructDetails::GetDisplayValueString() const
 {
-	const UScriptStruct* ScriptStruct = GetCommonScriptStruct(StructProperty);
-	if (ScriptStruct)
+	const UScriptStruct* CommonStruct = nullptr;
+	const FPropertyAccess::Result Result = GetCommonScriptStruct(StructProperty, CommonStruct);
+
+	switch (Result)
 	{
-		return ScriptStruct->GetDisplayNameText();
+	case FPropertyAccess::MultipleValues:
+	{
+		return LOCTEXT("MultipleValues", "Multiple Values");
 	}
-	return LOCTEXT("NullScriptStruct", "None");
+	case FPropertyAccess::Success:
+	{
+		if (CommonStruct)
+		{
+			return CommonStruct->GetDisplayNameText();
+		}
+		return LOCTEXT("NullScriptStruct", "None");
+	}
+	default:
+	{
+		return {};
+	}
+	}
+}
+
+FText FVoxelInstancedStructDetails::GetTooltipText() const
+{
+	const UScriptStruct* CommonStruct = nullptr;
+	const FPropertyAccess::Result Result = GetCommonScriptStruct(StructProperty, CommonStruct);
+	if (CommonStruct &&
+		Result == FPropertyAccess::Success)
+	{
+		return CommonStruct->GetToolTipText();
+	}
+	
+	return GetDisplayValueString();
 }
 
 const FSlateBrush* FVoxelInstancedStructDetails::GetDisplayValueIcon() const
 {
-	return FSlateIconFinder::FindIconBrushForClass(UScriptStruct::StaticClass());
+	const UScriptStruct* CommonStruct = nullptr;
+	const FPropertyAccess::Result Result = GetCommonScriptStruct(StructProperty, CommonStruct);
+	if (Result == FPropertyAccess::Success)
+	{
+		return FSlateIconFinder::FindIconBrushForClass(UScriptStruct::StaticClass());
+	}
+	
+	return nullptr;
 }
 
 TSharedRef<SWidget> FVoxelInstancedStructDetails::GenerateStructPicker()
 {
+	static const FName NAME_ExcludeBaseStruct = "ExcludeBaseStruct";
 	static const FName NAME_HideViewOptions = "HideViewOptions";
 	static const FName NAME_ShowTreeView = "ShowTreeView";
 
-	const FProperty* MetaDataProperty = StructProperty->GetMetaDataProperty();
-
-	const bool bAllowNone = !(MetaDataProperty->PropertyFlags & CPF_NoClear);
-	const bool bHideViewOptions = MetaDataProperty->HasMetaData(NAME_HideViewOptions);
-	const bool bShowTreeView = MetaDataProperty->HasMetaData(NAME_ShowTreeView);
+	const bool bExcludeBaseStruct = StructProperty->HasMetaData(NAME_ExcludeBaseStruct);
+	const bool bAllowNone = !(StructProperty->GetMetaDataProperty()->PropertyFlags & CPF_NoClear);
+	const bool bHideViewOptions = StructProperty->HasMetaData(NAME_HideViewOptions);
+	const bool bShowTreeView = StructProperty->HasMetaData(NAME_ShowTreeView);
 
 	TSharedRef<FInstancedStructFilter> StructFilter = MakeVoxelShared<FInstancedStructFilter>();
 	StructFilter->BaseStruct = BaseScriptStruct;
-	StructFilter->bAllowUserDefinedStructs = false;
-	StructFilter->bAllowBaseStruct = false;
+	StructFilter->bAllowUserDefinedStructs = BaseScriptStruct == nullptr;
+	StructFilter->bAllowBaseStruct = !bExcludeBaseStruct;
+
+	const UScriptStruct* SelectedStruct = nullptr;
+	GetCommonScriptStruct(StructProperty, SelectedStruct);
 
 	FStructViewerInitializationOptions Options;
 	Options.bShowNoneOption = bAllowNone;
@@ -313,6 +357,7 @@ TSharedRef<SWidget> FVoxelInstancedStructDetails::GenerateStructPicker()
 	Options.NameTypeToDisplay = EStructViewerNameTypeToDisplay::DisplayName;
 	Options.DisplayMode = bShowTreeView ? EStructViewerDisplayMode::TreeView : EStructViewerDisplayMode::ListView;
 	Options.bAllowViewOptions = !bHideViewOptions;
+	Options.SelectedStruct = SelectedStruct;
 
 	FOnStructPicked OnPicked(FOnStructPicked::CreateRaw(this, &FVoxelInstancedStructDetails::OnStructPicked));
 
@@ -324,7 +369,8 @@ TSharedRef<SWidget> FVoxelInstancedStructDetails::GenerateStructPicker()
 			.AutoHeight()
 			.MaxHeight(500)
 			[
-				FModuleManager::LoadModuleChecked<FStructViewerModule>("StructViewer").CreateStructViewer(Options, OnPicked)
+				FModuleManager::LoadModuleChecked<FStructViewerModule>("StructViewer")
+				.CreateStructViewer(Options, OnPicked)
 			]
 		];
 }
@@ -344,6 +390,12 @@ void FVoxelInstancedStructDetails::OnStructPicked(const UScriptStruct* InStruct)
 
 		StructProperty->NotifyPostChange(EPropertyChangeType::ValueSet);
 		StructProperty->NotifyFinishedChangingProperties();
+
+		// Property tree will be invalid after changing the struct type, force update.
+		if (PropUtils.IsValid())
+		{
+			PropUtils->ForceRefresh();
+		}
 	}
 
 	ComboButton->SetIsOpen(false);
