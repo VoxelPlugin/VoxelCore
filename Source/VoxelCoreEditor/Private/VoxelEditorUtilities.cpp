@@ -148,13 +148,14 @@ void FVoxelEditorUtilities::HideAndMoveToCategory(
 	const FName SourceCategory,
 	const FName DestCategory,
 	const TSet<FName>& ExplicitProperties,
-	const bool bCreateGroup)
+	const bool bCreateGroup,
+	const ECategoryPriority::Type Priority)
 {
 	IDetailCategoryBuilder& SourceCategoryBuilder = DetailLayout.EditCategory(SourceCategory);
 	TArray<TSharedRef<IPropertyHandle>> Properties;
 	SourceCategoryBuilder.GetDefaultProperties(Properties);
 
-	IDetailCategoryBuilder& DestCategoryBuilder = DetailLayout.EditCategory(DestCategory, {}, ECategoryPriority::Uncommon);
+	IDetailCategoryBuilder& DestCategoryBuilder = DetailLayout.EditCategory(DestCategory, {}, Priority);
 
 	DetailLayout.HideCategory(SourceCategory);
 

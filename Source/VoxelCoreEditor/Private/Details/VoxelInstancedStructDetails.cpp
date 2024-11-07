@@ -91,7 +91,10 @@ inline FPropertyAccess::Result GetCommonScriptStruct(const TSharedPtr<IPropertyH
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FVoxelInstancedStructDataDetails::FVoxelInstancedStructDataDetails(TSharedPtr<IPropertyHandle> InStructProperty)
+FVoxelInstancedStructDataDetails::FVoxelInstancedStructDataDetails(
+	const TSharedPtr<IPropertyHandle>& InStructProperty,
+	const TSharedRef<FVoxelInstancedStructProvider>& StructProvider)
+	: StructProvider(StructProvider)
 {
 	check(CastFieldChecked<FStructProperty>(InStructProperty->GetProperty())->Struct == FVoxelInstancedStruct::StaticStruct());
 
@@ -155,18 +158,60 @@ void FVoxelInstancedStructDataDetails::GenerateHeaderRowContent(FDetailWidgetRow
 
 void FVoxelInstancedStructDataDetails::GenerateChildContent(IDetailChildrenBuilder& ChildBuilder)
 {
-	// Add the rows for the struct
-	const TSharedRef<FVoxelInstancedStructProvider> NewStructProvider = MakeShared<FVoxelInstancedStructProvider>(StructProperty);
-	
-	const TArray<TSharedPtr<IPropertyHandle>> ChildProperties = StructProperty->AddChildStructure(NewStructProvider);
+	TArray<TSharedPtr<IPropertyHandle>> ChildProperties;
+	if (bIsInitialGeneration)
+	{
+		TSharedPtr<IPropertyHandle> RootHandle = StructProperty->GetChildHandle(0);
+
+		uint32 NumChildren = 0;
+		RootHandle->GetNumChildren(NumChildren);
+
+		FVoxelUtilities::SetNum(ChildProperties, NumChildren);
+
+		for (uint32 Index = 0; Index < NumChildren; Index++)
+		{
+			ChildProperties[Index] = RootHandle->GetChildHandle(Index);
+		}
+
+		bIsInitialGeneration = false;
+	}
+	else
+	{
+		const TSharedRef<FVoxelInstancedStructProvider> NewStructProvider = MakeShared<FVoxelInstancedStructProvider>(StructProperty);
+		StructProvider = NewStructProvider;
+		StructProperty->AddChildStructure(NewStructProvider);
+	}
+
+	CachedInstanceTypes = GetInstanceTypes();
+
+	TArray<TSharedPtr<IPropertyHandle>> AdvancedProperties;
 	for (const TSharedPtr<IPropertyHandle>& ChildHandle : ChildProperties)
 	{
+		if (ChildHandle->GetProperty()->HasAnyPropertyFlags(CPF_AdvancedDisplay))
+		{
+			AdvancedProperties.Add(ChildHandle);
+			continue;
+		}
+
 		ChildBuilder.AddProperty(ChildHandle.ToSharedRef());
 	}
 
-	StructProvider = NewStructProvider;
-
-	CachedInstanceTypes = GetInstanceTypes();
+	// All properties are advanced
+	if (AdvancedProperties.Num() == ChildProperties.Num())
+	{
+		for (const TSharedPtr<IPropertyHandle>& ChildHandle : ChildProperties)
+		{
+			ChildBuilder.AddProperty(ChildHandle.ToSharedRef());
+		}
+	}
+	else
+	{
+		IDetailGroup& AdvancedGroup = ChildBuilder.AddGroup("Advanced", INVTEXT("Advanced"));
+		for (const TSharedPtr<IPropertyHandle>& ChildHandle : AdvancedProperties)
+		{
+			AdvancedGroup.AddPropertyRow(ChildHandle.ToSharedRef());
+		}
+	}
 }
 
 void FVoxelInstancedStructDataDetails::Tick(float DeltaTime)
@@ -268,7 +313,15 @@ void FVoxelInstancedStructDetails::CustomizeHeader(const TSharedRef<IPropertyHan
 
 void FVoxelInstancedStructDetails::CustomizeChildren(TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
-	TSharedRef<FVoxelInstancedStructDataDetails> DataDetails = MakeVoxelShared<FVoxelInstancedStructDataDetails>(StructProperty);
+	const TSharedRef<FVoxelInstancedStructProvider> NewStructProvider = MakeShared<FVoxelInstancedStructProvider>(StructProperty);
+	const TArray<TSharedPtr<IPropertyHandle>> ChildProperties = StructProperty->AddChildStructure(NewStructProvider);
+
+	if (ChildProperties.Num() == 0)
+	{
+		return;
+	}
+
+	const TSharedRef<FVoxelInstancedStructDataDetails> DataDetails = MakeVoxelShared<FVoxelInstancedStructDataDetails>(StructProperty, NewStructProvider);
 	StructBuilder.AddCustomBuilder(DataDetails);
 }
 

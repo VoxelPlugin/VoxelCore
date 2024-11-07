@@ -72,7 +72,8 @@ public:
 		FName SourceCategory,
 		FName DestCategory,
 		const TSet<FName>& ExplicitProperties = {},
-		bool bCreateGroup = true);
+		bool bCreateGroup = true,
+		ECategoryPriority::Type Priority = ECategoryPriority::Uncommon);
 
 public:
 	static FSimpleDelegate MakeRefreshDelegate(IDetailCustomization* DetailCustomization, const FVoxelDetailInterface& DetailInterface);

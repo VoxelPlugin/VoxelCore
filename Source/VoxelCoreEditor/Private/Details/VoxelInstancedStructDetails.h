@@ -78,7 +78,9 @@ private:
 class FVoxelInstancedStructDataDetails : public IDetailCustomNodeBuilder, public TSharedFromThis<FVoxelInstancedStructDataDetails>
 {
 public:
-	FVoxelInstancedStructDataDetails(TSharedPtr<IPropertyHandle> InStructProperty);
+	FVoxelInstancedStructDataDetails(
+		const TSharedPtr<IPropertyHandle>& InStructProperty,
+		const TSharedRef<FVoxelInstancedStructProvider>& StructProvider);
 
 	//~ Begin IDetailCustomNodeBuilder interface
 	virtual void SetOnRebuildChildren(FSimpleDelegate InOnRegenerateChildren) override;
@@ -111,6 +113,8 @@ private:
 
 	/** True if we're currently handling a StructValuePostChange */
 	bool bIsHandlingStructValuePostChange = false;
+
+	bool bIsInitialGeneration = true;
 	
 protected:
 	void OnStructLayoutChanges();
