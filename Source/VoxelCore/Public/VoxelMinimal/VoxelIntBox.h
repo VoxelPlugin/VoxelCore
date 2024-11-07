@@ -423,7 +423,7 @@ struct VOXELCORE_API FVoxelIntBox
 	}
 
 	// union(return value, Other) = this
-	TArray<FVoxelIntBox, TFixedAllocator<6>> Difference(const FVoxelIntBox& Other) const;
+	TVoxelArray<FVoxelIntBox, TFixedAllocator<6>> Difference(const FVoxelIntBox& Other) const;
 
 	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
 	FORCEINLINE ScalarType ComputeSquaredDistanceFromBoxToPoint(const VectorType& Point) const

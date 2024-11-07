@@ -235,6 +235,9 @@ struct VOXELCORE_API FVoxelBox2D
 		return FVoxelBox2D(NewMin, NewMax);
 	}
 
+	// union(return value, Other) = this
+	TVoxelArray<FVoxelBox2D, TFixedAllocator<4>> Difference(const FVoxelBox2D& Other) const;
+
 	FORCEINLINE double ComputeSquaredDistanceFromBoxToPoint(const FVector2D& Point) const
 	{
 		// Accumulates the distance as we iterate axis

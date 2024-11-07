@@ -90,14 +90,14 @@ FVoxelIntBox FVoxelIntBox::FromPositions(
 	return Bounds;
 }
 
-TArray<FVoxelIntBox, TFixedAllocator<6>> FVoxelIntBox::Difference(const FVoxelIntBox& Other) const
+TVoxelArray<FVoxelIntBox, TFixedAllocator<6>> FVoxelIntBox::Difference(const FVoxelIntBox& Other) const
 {
     if (!Intersect(Other))
     {
         return { *this };
     }
 
-    TArray<FVoxelIntBox, TFixedAllocator<6>> OutBoxes;
+    TVoxelArray<FVoxelIntBox, TFixedAllocator<6>> OutBoxes;
 
     if (Min.Z < Other.Min.Z)
     {

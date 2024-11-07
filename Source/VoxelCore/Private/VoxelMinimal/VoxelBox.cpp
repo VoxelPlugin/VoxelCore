@@ -190,6 +190,61 @@ FVoxelBox FVoxelBox::FromPositions(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+TVoxelArray<FVoxelBox, TFixedAllocator<6>> FVoxelBox::Difference(const FVoxelBox& Other) const
+{
+    if (!Intersect(Other))
+    {
+        return { *this };
+    }
+
+    TVoxelArray<FVoxelBox, TFixedAllocator<6>> OutBoxes;
+
+    if (Min.Z < Other.Min.Z)
+    {
+        // Add bottom
+        OutBoxes.Emplace(Min, FVector(Max.X, Max.Y, Other.Min.Z));
+    }
+    if (Other.Max.Z < Max.Z)
+    {
+        // Add top
+        OutBoxes.Emplace(FVector(Min.X, Min.Y, Other.Max.Z), Max);
+    }
+
+    const double MinZ = FMath::Max(Min.Z, Other.Min.Z);
+    const double MaxZ = FMath::Min(Max.Z, Other.Max.Z);
+
+    if (Min.X < Other.Min.X)
+    {
+        // Add X min
+        OutBoxes.Emplace(FVector(Min.X, Min.Y, MinZ), FVector(Other.Min.X, Max.Y, MaxZ));
+    }
+    if (Other.Max.X < Max.X)
+    {
+        // Add X max
+        OutBoxes.Emplace(FVector(Other.Max.X, Min.Y, MinZ), FVector(Max.X, Max.Y, MaxZ));
+    }
+
+    const double MinX = FMath::Max(Min.X, Other.Min.X);
+    const double MaxX = FMath::Min(Max.X, Other.Max.X);
+
+    if (Min.Y < Other.Min.Y)
+    {
+        // Add Y min
+        OutBoxes.Emplace(FVector(MinX, Min.Y, MinZ), FVector(MaxX, Other.Min.Y, MaxZ));
+    }
+    if (Other.Max.Y < Max.Y)
+    {
+        // Add Y max
+        OutBoxes.Emplace(FVector(MinX, Other.Max.Y, MinZ), FVector(MaxX, Max.Y, MaxZ));
+    }
+
+    return OutBoxes;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 FVoxelBox FVoxelBox::TransformBy(const FMatrix& Transform) const
 {
 	if (IsInfinite())

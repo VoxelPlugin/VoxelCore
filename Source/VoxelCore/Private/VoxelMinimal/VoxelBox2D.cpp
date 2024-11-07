@@ -124,6 +124,47 @@ FVoxelBox2D FVoxelBox2D::FromPositions(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+TVoxelArray<FVoxelBox2D, TFixedAllocator<4>> FVoxelBox2D::Difference(const FVoxelBox2D& Other) const
+{
+    if (!Intersect(Other))
+    {
+        return { *this };
+    }
+
+    TVoxelArray<FVoxelBox2D, TFixedAllocator<4>> OutBoxes;
+
+    if (Min.X < Other.Min.X)
+    {
+        // Add X min
+        OutBoxes.Emplace(FVector2D(Min.X, Min.Y), FVector2D(Other.Min.X, Max.Y));
+    }
+    if (Other.Max.X < Max.X)
+    {
+        // Add X max
+        OutBoxes.Emplace(FVector2D(Other.Max.X, Min.Y), FVector2D(Max.X, Max.Y));
+    }
+
+    const double MinX = FMath::Max(Min.X, Other.Min.X);
+    const double MaxX = FMath::Min(Max.X, Other.Max.X);
+
+    if (Min.Y < Other.Min.Y)
+    {
+        // Add Y min
+        OutBoxes.Emplace(FVector2D(MinX, Min.Y), FVector2D(MaxX, Other.Min.Y));
+    }
+    if (Other.Max.Y < Max.Y)
+    {
+        // Add Y max
+        OutBoxes.Emplace(FVector2D(MinX, Other.Max.Y), FVector2D(MaxX, Max.Y));
+    }
+
+    return OutBoxes;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 FVoxelBox2D FVoxelBox2D::TransformBy(const FTransform2d& Transform) const
 {
 	if (IsInfinite())

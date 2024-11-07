@@ -86,6 +86,7 @@ TSharedRef<IVoxelWorldSubsystem> IVoxelWorldSubsystem::GetInternal(
 	const FName Name,
 	TSharedRef<IVoxelWorldSubsystem>(*Constructor)())
 {
+	ensureVoxelSlow(World != FObjectKey());
 	VOXEL_SCOPE_LOCK(GVoxelWorldSubsystemManager->CriticalSection);
 
 	TSharedPtr<IVoxelWorldSubsystem>& Subsystem = GVoxelWorldSubsystemManager->WorldToNameToSubsystem_RequiresLock.FindOrAdd(World).FindOrAdd(Name);
