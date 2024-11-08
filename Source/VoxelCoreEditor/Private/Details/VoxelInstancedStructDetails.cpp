@@ -13,115 +13,6 @@
 
 DEFINE_VOXEL_STRUCT_LAYOUT(FVoxelInstancedStruct, FVoxelInstancedStructDetails);
 
-namespace FPropertyLayoutAccessor
-{
-	struct FPropertyTypeLayoutCallbackAccessor
-	{
-		FOnGetPropertyTypeCustomizationInstance PropertyTypeLayoutDelegate;
-		TSharedPtr<IPropertyTypeIdentifier> PropertyTypeIdentifier;
-
-		bool IsValid() const
-		{
-			return PropertyTypeLayoutDelegate.IsBound();
-		}
-
-		TSharedRef<IPropertyTypeCustomization> GetCustomizationInstance() const
-		{
-			return PropertyTypeLayoutDelegate.Execute();
-		}
-	};
-
-	struct FPropertyTypeLayoutCallbackListAccessor
-	{
-		FPropertyTypeLayoutCallbackAccessor BaseCallback;
-		TArray<FPropertyTypeLayoutCallbackAccessor> IdentifierList;
-	};
-
-	class FPropertyEditorModuleAccessor : public IModuleInterface
-	{
-		class FPropertyEditorOpenedEvent : public TMulticastDelegate<void()> { friend class FPropertyEditorModuleAccessor; };
-		TArray< TWeakPtr<class SDetailsView> > AllDetailViews;
-		TArray< TWeakPtr<class SSingleProperty> > AllSinglePropertyViews;
-		FCustomDetailLayoutNameMap ClassNameToDetailLayoutNameMap;
-		TMap<FName, FPropertyTypeLayoutCallbackListAccessor> GlobalPropertyTypeToLayoutMap;
-		TMap<FName, TSharedPtr<FClassSectionMapping>> ClassSectionMappings;
-		FPropertyEditorOpenedEvent PropertyEditorOpened;
-		TMap<FName, FStructProperty*> RegisteredStructToProxyMap;
-		TSharedPtr<class FAssetThumbnailPool> GlobalThumbnailPool;
-		UStruct* StructOnScopePropertyOwner = nullptr;
-		FOnGenerateGlobalRowExtension OnGenerateGlobalRowExtension;
-		bool bCanUsePropertyMatrixOverride = true;
-
-	public:
-		bool IsCustomizedStruct(const UStruct* Struct) const
-		{
-			bool bFound = false;
-			if (Struct && !Struct->IsA<UUserDefinedStruct>())
-			{
-				if( !bFound )
-				{
-					bFound = GlobalPropertyTypeToLayoutMap.Contains( Struct->GetFName() );
-				}
-		
-				if( !bFound )
-				{
-					static const FName NAME_PresentAsTypeMetadata(TEXT("PresentAsType"));
-					if (const FString* DisplayType = Struct->FindMetaData(NAME_PresentAsTypeMetadata))
-					{
-						if( !bFound )
-						{
-							bFound = GlobalPropertyTypeToLayoutMap.Contains( FName(*DisplayType) );
-						}
-					}
-				}
-			}
-	
-			return bFound;
-		}
-
-		FPropertyTypeLayoutCallbackAccessor FindPropertyTypeLayoutCallback(FName PropertyTypeName, const IPropertyHandle& PropertyHandle)
-		{
-			if (PropertyTypeName != NAME_None)
-			{
-				if (const FPropertyTypeLayoutCallbackListAccessor* LayoutCallbacks = GlobalPropertyTypeToLayoutMap.Find(PropertyTypeName))
-				{
-					const FPropertyTypeLayoutCallbackAccessor& Callback = LayoutCallbacks->BaseCallback;
-					return Callback;
-				}
-			}
-
-			return FPropertyTypeLayoutCallbackAccessor();
-		}
-	};
-
-	bool IsCustomizedStruct(const UScriptStruct* Struct)
-	{
-		FPropertyEditorModule& ParentPlugin = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		const FPropertyEditorModuleAccessor& Helper = *reinterpret_cast<FPropertyEditorModuleAccessor*>(&ParentPlugin);
-
-		return Helper.IsCustomizedStruct(Struct);
-	}
-
-	TSharedPtr<IPropertyTypeCustomization> GetCustomization(const UScriptStruct* Struct, const TSharedPtr<IPropertyHandle>& Handle)
-	{
-		if (!ensure(Struct))
-		{
-			return nullptr;
-		}
-
-		FPropertyEditorModule& ParentPlugin = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		FPropertyEditorModuleAccessor& Helper = *reinterpret_cast<FPropertyEditorModuleAccessor*>(&ParentPlugin);
-
-		const FPropertyTypeLayoutCallbackAccessor& Callback = Helper.FindPropertyTypeLayoutCallback(Struct->GetFName(), *Handle);
-		if (!Callback.IsValid())
-		{
-			return nullptr;
-		}
-
-		return Callback.GetCustomizationInstance();
-	}
-}
-
 class FVoxelPropertyTypeCustomizationUtils : public IPropertyTypeCustomizationUtils
 {
 public:
@@ -294,9 +185,10 @@ void FVoxelInstancedStructDataDetails::GenerateHeaderRowContent(FDetailWidgetRow
 void FVoxelInstancedStructDataDetails::GenerateChildContent(IDetailChildrenBuilder& ChildBuilder)
 {
 	TArray<TSharedPtr<IPropertyHandle>> ChildProperties;
+	TSharedPtr<IPropertyHandle> RootHandle;
 	if (bIsInitialGeneration)
 	{
-		TSharedPtr<IPropertyHandle> RootHandle = StructProperty->GetChildHandle(0);
+		RootHandle = StructProperty->GetChildHandle(0);
 
 		uint32 NumChildren = 0;
 		RootHandle->GetNumChildren(NumChildren);
@@ -314,7 +206,15 @@ void FVoxelInstancedStructDataDetails::GenerateChildContent(IDetailChildrenBuild
 	{
 		const TSharedRef<FVoxelInstancedStructProvider> NewStructProvider = MakeShared<FVoxelInstancedStructProvider>(StructProperty);
 		StructProvider = NewStructProvider;
-		StructProperty->AddChildStructure(NewStructProvider);
+		ChildProperties = StructProperty->AddChildStructure(NewStructProvider);
+
+		uint32 NumChildren = 0;
+		StructProperty->GetNumChildren(NumChildren);
+
+		if (ensure(NumChildren > 0))
+		{
+			RootHandle = StructProperty->GetChildHandle(NumChildren - 1);
+		}
 	}
 
 	CachedInstanceTypes = GetInstanceTypes();
@@ -331,13 +231,16 @@ void FVoxelInstancedStructDataDetails::GenerateChildContent(IDetailChildrenBuild
 	}
 
 	// Allow customization if showing only one type of struct
-	if (InstanceTypes.Num() == 1)
+	if (InstanceTypes.Num() == 1 &&
+		RootHandle)
 	{
-		if (FPropertyLayoutAccessor::IsCustomizedStruct(ActiveStruct))
+		FPropertyEditorModule& PropertyEditor = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		if (PropertyEditor.IsCustomizedStruct(ActiveStruct, {}))
 		{
-			if (const TSharedPtr<IPropertyTypeCustomization> Customization = FPropertyLayoutAccessor::GetCustomization(ActiveStruct, StructProperty))
+			const FPropertyTypeLayoutCallback Callback = PropertyEditor.FindPropertyTypeLayoutCallback(ActiveStruct->GetFName(), *StructProperty, {});
+			if (Callback.IsValid())
 			{
-				const TSharedPtr<IPropertyHandle> RootHandle = StructProperty->GetChildHandle(0);
+				const TSharedRef<IPropertyTypeCustomization> Customization = Callback.GetCustomizationInstance();
 				Customization->CustomizeChildren(RootHandle.ToSharedRef(), ChildBuilder, *PropertyUtils);
 				return;
 			}
