@@ -267,7 +267,7 @@ void FVoxelInstancedStructDataDetails::GenerateChildContent(IDetailChildrenBuild
 			ChildBuilder.AddProperty(ChildHandle.ToSharedRef());
 		}
 	}
-	else
+	else if (AdvancedProperties.Num() > 0)
 	{
 		IDetailGroup& AdvancedGroup = ChildBuilder.AddGroup("Advanced", INVTEXT("Advanced"));
 		for (const TSharedPtr<IPropertyHandle>& ChildHandle : AdvancedProperties)
