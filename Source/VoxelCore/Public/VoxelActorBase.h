@@ -43,7 +43,7 @@ public:
 	//~ End UPrimitiveComponent Interface
 };
 
-UCLASS()
+UCLASS(Abstract)
 class VOXELCORE_API AVoxelActorBase : public AActor
 {
 	GENERATED_BODY()
