@@ -96,12 +96,7 @@ void FVoxelThreadPool::RemoveExecutor(IVoxelTaskExecutor* Executor)
 			VOXEL_SCOPE_LOCK(Executors_CriticalSection);
 
 			// Avoid deadlock when graph executor is waiting on game thread
-			for (IVoxelTaskExecutor* OtherExecutor : Executors_RequiresLock)
-			{
-				OtherExecutor->FlushGameThreadTasks();
-			}
-
-			FlushVoxelGameThreadTasks();
+			Voxel::FlushGameTasks();
 		}
 	}
 }
@@ -263,7 +258,7 @@ GetNextTask:
 				GVoxelThreadPool->ActiveExecutors_RequiresLock.Add(Executor);
 			}
 
-			bAnyExecuted |= Executor->ExecuteTasks_AnyThread();
+			bAnyExecuted |= Executor->TryExecuteTasks_AnyThread();
 
 			{
 				VOXEL_SCOPE_LOCK(GVoxelThreadPool->Executors_CriticalSection);

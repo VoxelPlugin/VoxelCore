@@ -41,21 +41,45 @@ VOXEL_RUN_ON_STARTUP_GAME()
 {
 	new FVoxelGameThreadTaskTicker();
 
+	Voxel::OnFlushGameTasks.AddLambda([](bool& bAnyTaskProcessed)
+	{
+		check(IsInGameThread());
+
+		TVoxelUniqueFunction<void()> Lambda;
+		while (GVoxelGameThreadTaskQueue.Dequeue(Lambda))
+		{
+			bAnyTaskProcessed = true;
+
+			Lambda();
+		}
+	});
+
 	GOnVoxelModuleUnloaded_DoCleanup.AddLambda([]
 	{
-		FlushVoxelGameThreadTasks();
+		Voxel::FlushGameTasks();
 	});
 }
 
-void FlushVoxelGameThreadTasks()
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+TMulticastDelegate<void(bool& bAnyTaskProcessed)> Voxel::OnFlushGameTasks;
+
+void Voxel::FlushGameTasks()
 {
 	VOXEL_FUNCTION_COUNTER();
 	check(IsInGameThread());
 
-	TVoxelUniqueFunction<void()> Lambda;
-	while (GVoxelGameThreadTaskQueue.Dequeue(Lambda))
+	while (true)
 	{
-		Lambda();
+		bool bAnyTaskProcessed = false;
+		OnFlushGameTasks.Broadcast(bAnyTaskProcessed);
+
+		if (!bAnyTaskProcessed)
+		{
+			break;
+		}
 	}
 }
 
