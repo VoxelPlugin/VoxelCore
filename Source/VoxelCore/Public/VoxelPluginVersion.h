@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "VoxelMinimal.h"
 
 struct FVoxelPluginVersion
 {
@@ -26,8 +26,7 @@ struct FVoxelPluginVersion
     int32 Major = 0;
     int32 Minor = 0;
     int32 Hotfix = 0;
-    int32 PreviewWeek = 0;
-    int32 PreviewHotfix = 0;
+    int32 Preview = 0;
 
 	int32 DevCounter = 0;
 	bool bNoSource = false;
@@ -42,8 +41,6 @@ struct FVoxelPluginVersion
 			Major == Other.Major &&
 			Minor == Other.Minor &&
 			Hotfix == Other.Hotfix &&
-			PreviewWeek == Other.PreviewWeek &&
-			PreviewHotfix == Other.PreviewHotfix &&
 			DevCounter == Other.DevCounter &&
 			bNoSource == Other.bNoSource &&
 			bDebug == Other.bDebug &&
@@ -109,7 +106,7 @@ struct FVoxelPluginVersion
 		}
 
 		TArray<FString> VersionAndPreview;
-		Version.ParseIntoArray(VersionAndPreview, TEXT("p-"));
+		Version.ParseIntoArray(VersionAndPreview, TEXT("p"));
 		CHECK(VersionAndPreview.Num() == 1 || VersionAndPreview.Num() == 2);
 
 		if (VersionAndPreview.Num() == 1)
@@ -137,23 +134,13 @@ struct FVoxelPluginVersion
 			VersionAndPreview[0].ParseIntoArray(MinorMajor, TEXT("."));
 			CHECK(MinorMajor.Num() == 2);
 
-			TArray<FString> PreviewAndHotfix;
-			VersionAndPreview[1].ParseIntoArray(PreviewAndHotfix, TEXT("."));
-			CHECK(PreviewAndHotfix.Num() == 1 || PreviewAndHotfix.Num() == 2);
-
 			Major = FCString::Atoi(*MinorMajor[0]);
 			Minor = FCString::Atoi(*MinorMajor[1]);
 			CHECK(FString::FromInt(Major) == MinorMajor[0]);
 			CHECK(FString::FromInt(Minor) == MinorMajor[1]);
 
-			PreviewWeek = FCString::Atoi(*PreviewAndHotfix[0]);
-			CHECK(FString::FromInt(PreviewWeek) == PreviewAndHotfix[0]);
-
-			if (PreviewAndHotfix.Num() == 2)
-			{
-				PreviewHotfix = FCString::Atoi(*PreviewAndHotfix[1]);
-				CHECK(FString::FromInt(PreviewHotfix) == PreviewAndHotfix[1]);
-			}
+			Preview = FCString::Atoi(*VersionAndPreview[1]);
+			CHECK(FString::FromInt(Preview) == VersionAndPreview[1]);
 
 			return true;
 		}
@@ -173,22 +160,19 @@ struct FVoxelPluginVersion
 			return;
 		}
 
-		PreviewHotfix = Counter % 10;
-		Counter /= 10;
+		Preview = Counter % 100;
+		Counter /= 100;
 
-		PreviewWeek = Counter % 1000;
-		Counter /= 1000;
+		Hotfix = Counter % 100;
+		Counter /= 100;
 
-		Hotfix = Counter % 10;
-		Counter /= 10;
-
-		Minor = Counter % 10;
-		Counter /= 10;
+		Minor = Counter % 100;
+		Counter /= 100;
 
 		Major = Counter % 10;
 		ensure(Counter == Major);
 
-		Type = PreviewWeek == 999 ? EType::Release : EType::Preview;
+		Type = Preview == 0 ? EType::Release : EType::Preview;
 	}
 	FString GetBranch() const
 	{
@@ -215,17 +199,14 @@ struct FVoxelPluginVersion
 
 		int32 Counter = Major;
 
-		Counter *= 10;
+		Counter *= 100;
 		Counter += Minor;
 
-		Counter *= 10;
+		Counter *= 100;
 		Counter += Type == EType::Preview ? 0 : Hotfix;
 
-		Counter *= 1000;
-		Counter += Type == EType::Preview ? PreviewWeek : 999;
-
-		Counter *= 10;
-		Counter += Type == EType::Preview ? PreviewHotfix : 0;
+		Counter *= 100;
+		Counter += Type == EType::Preview ? Preview : 0;
 
 		return Counter;
 	}
@@ -247,7 +228,7 @@ struct FVoxelPluginVersion
 		else if (Type == EType::Preview)
 		{
 			ensure(Hotfix == 0);
-			Result = FString::Printf(TEXT("%d.%dp-%d.%d"), Major, Minor, PreviewWeek, PreviewHotfix);
+			Result = FString::Printf(TEXT("%d.%dp%d"), Major, Minor, Preview);
 		}
 		else
 		{
