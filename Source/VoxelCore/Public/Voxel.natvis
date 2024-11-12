@@ -338,9 +338,9 @@
   <!-- FVoxelTransformRef visualizer -->
   <Type Name="FVoxelTransformRef">
     <DisplayString Condition="!Impl.Object">Identity</DisplayString>
-    <DisplayString Condition="Impl.Object">{((UnrealEditor-VoxelGraphCore-Win64-DebugGame.dll!FVoxelTransformRefImpl*)Impl.Object)->Name,sb}</DisplayString>
+    <DisplayString Condition="Impl.Object">{((UnrealEditor-VoxelCore-Win64-DebugGame.dll!FVoxelTransformRefImpl*)Impl.Object)->Name,sb}</DisplayString>
     <Expand>
-      <ExpandedItem Condition="Impl.Object">((UnrealEditor-VoxelGraphCore-Win64-DebugGame.dll!FVoxelTransformRefImpl*)Impl.Object)->Transform.M</ExpandedItem>
+      <ExpandedItem Condition="Impl.Object">((UnrealEditor-VoxelCore-Win64-DebugGame.dll!FVoxelTransformRefImpl*)Impl.Object)->Transform.M</ExpandedItem>
     </Expand>
   </Type>
 
