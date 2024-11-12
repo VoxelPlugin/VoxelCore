@@ -1,6 +1,7 @@
 ﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelTaskDispatcherInterface.h"
+#include "VoxelGlobalTaskDispatcher.h"
 
 FVoxelTaskDispatcherKeepAliveRef::~FVoxelTaskDispatcherKeepAliveRef()
 {
@@ -109,46 +110,7 @@ IVoxelTaskDispatcher& FVoxelTaskDispatcherScope::Get()
 
 IVoxelTaskDispatcher& FVoxelTaskDispatcherScope::GetGlobal()
 {
-	class FTaskDispatcher : public IVoxelTaskDispatcher
-	{
-		//~ Begin IVoxelTaskDispatcher Interface
-		virtual void Dispatch(
-			const EVoxelFutureThread Thread,
-			TVoxelUniqueFunction<void()> Lambda) override
-		{
-			switch (Thread)
-			{
-			default: VOXEL_ASSUME(false);
-			case EVoxelFutureThread::AnyThread:
-			{
-				Lambda();
-			}
-			break;
-			case EVoxelFutureThread::GameThread:
-			{
-				Voxel::GameTask_SkipDispatcher(MoveTemp(Lambda));
-			}
-			break;
-			case EVoxelFutureThread::RenderThread:
-			{
-				Voxel::RenderTask_SkipDispatcher(MoveTemp(Lambda));
-			}
-			break;
-			case EVoxelFutureThread::AsyncThread:
-			{
-				Voxel::AsyncTask_SkipDispatcher(MoveTemp(Lambda));
-			}
-			break;
-			}
-		}
-
-		virtual bool IsExiting() const override
-		{
-			return IsEngineExitRequested();
-		}
-		//~ End IVoxelTaskDispatcher Interface
-	};
-	static const TSharedRef<FTaskDispatcher> TaskDispatcher = MakeVoxelShared<FTaskDispatcher>();
+	static const TSharedRef<FVoxelGlobalTaskDispatcher> TaskDispatcher = MakeVoxelShared<FVoxelGlobalTaskDispatcher>();
 
 	return *TaskDispatcher;
 }

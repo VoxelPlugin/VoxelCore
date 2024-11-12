@@ -48,7 +48,8 @@ void IVoxelTaskExecutor::TriggerThreads()
 
 FVoxelThreadPool::~FVoxelThreadPool()
 {
-	ensure(Executors_RequiresLock.Num() == 0);
+	// 1 for the global executor
+	ensure(Executors_RequiresLock.Num() == 1);
 }
 
 int32 FVoxelThreadPool::NumTasks() const
@@ -135,7 +136,7 @@ void FVoxelThreadPool::Tick()
 
 	if (Threads_RequiresLock.Num() != GVoxelNumThreads)
 	{
-		Voxel::AsyncTask([this]
+		Voxel::AsyncTask_SkipDispatcher([this]
 		{
 			VOXEL_SCOPE_LOCK(Threads_CriticalSection);
 
