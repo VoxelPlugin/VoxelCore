@@ -265,6 +265,7 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
 
 	TUniquePtr<FStaticMeshRenderData> RenderData = MakeUnique<FStaticMeshRenderData>();
 	RenderData->Bounds = Bounds.ToFBox();
+	RenderData->NumInlinedLODs = 1;
 	RenderData->NaniteResourcesPtr = MakePimpl<Nanite::FResources>(MoveTemp(Resources));
 
 	FStaticMeshLODResources* LODResource = new FStaticMeshLODResources();
