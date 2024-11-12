@@ -344,14 +344,14 @@ VOXELCORE_API FString GetStringMetaDataHierarchical(const UStruct* Struct, FName
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-VOXELCORE_API TVoxelDereferencingRange<TFieldRange<FProperty>> GetStructProperties(const UStruct& Struct);
-VOXELCORE_API TVoxelDereferencingRange<TFieldRange<FProperty>> GetStructProperties(const UStruct* Struct);
+VOXELCORE_API TVoxelDereferencingRange<TFieldRange<FProperty>> GetStructProperties(const UStruct& Struct, EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default);
+VOXELCORE_API TVoxelDereferencingRange<TFieldRange<FProperty>> GetStructProperties(const UStruct* Struct, EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default);
 
-VOXELCORE_API TVoxelDereferencingRange<TFieldRange<FProperty>> GetClassProperties(const UClass& Class);
-VOXELCORE_API TVoxelDereferencingRange<TFieldRange<FProperty>> GetClassProperties(const UClass* Class);
+VOXELCORE_API TVoxelDereferencingRange<TFieldRange<FProperty>> GetClassProperties(const UClass& Class, EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default);
+VOXELCORE_API TVoxelDereferencingRange<TFieldRange<FProperty>> GetClassProperties(const UClass* Class, EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default);
 
-VOXELCORE_API TVoxelDereferencingRange<TFieldRange<FProperty>> GetFunctionProperties(const UFunction& Function);
-VOXELCORE_API TVoxelDereferencingRange<TFieldRange<FProperty>> GetFunctionProperties(const UFunction* Function);
+VOXELCORE_API TVoxelDereferencingRange<TFieldRange<FProperty>> GetFunctionProperties(const UFunction& Function, EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default);
+VOXELCORE_API TVoxelDereferencingRange<TFieldRange<FProperty>> GetFunctionProperties(const UFunction* Function, EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default);
 
 template<typename T>
 FORCEINLINE TVoxelDereferencingRange<TFieldRange<FProperty>> GetClassProperties()

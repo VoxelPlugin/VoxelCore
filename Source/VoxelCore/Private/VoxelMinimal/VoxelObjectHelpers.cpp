@@ -132,37 +132,37 @@ FString GetStringMetaDataHierarchical(const UStruct* Struct, const FName Name)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TVoxelDereferencingRange<TFieldRange<FProperty>> GetStructProperties(const UStruct& Struct)
+TVoxelDereferencingRange<TFieldRange<FProperty>> GetStructProperties(const UStruct& Struct, const EFieldIterationFlags IterationFlags)
 {
-	return TFieldRange<FProperty>(&Struct);
+	return TFieldRange<FProperty>(&Struct, IterationFlags);
 }
 
-TVoxelDereferencingRange<TFieldRange<FProperty>> GetStructProperties(const UStruct* Struct)
+TVoxelDereferencingRange<TFieldRange<FProperty>> GetStructProperties(const UStruct* Struct, const EFieldIterationFlags IterationFlags)
 {
 	check(Struct);
-	return TFieldRange<FProperty>(Struct);
+	return TFieldRange<FProperty>(Struct, IterationFlags);
 }
 
-TVoxelDereferencingRange<TFieldRange<FProperty>> GetClassProperties(const UClass& Class)
+TVoxelDereferencingRange<TFieldRange<FProperty>> GetClassProperties(const UClass& Class, const EFieldIterationFlags IterationFlags)
 {
-	return TFieldRange<FProperty>(&Class);
+	return TFieldRange<FProperty>(&Class, IterationFlags);
 }
 
-TVoxelDereferencingRange<TFieldRange<FProperty>> GetClassProperties(const UClass* Class)
+TVoxelDereferencingRange<TFieldRange<FProperty>> GetClassProperties(const UClass* Class, const EFieldIterationFlags IterationFlags)
 {
 	check(Class);
-	return TFieldRange<FProperty>(Class);
+	return TFieldRange<FProperty>(Class, IterationFlags);
 }
 
-TVoxelDereferencingRange<TFieldRange<FProperty>> GetFunctionProperties(const UFunction& Function)
+TVoxelDereferencingRange<TFieldRange<FProperty>> GetFunctionProperties(const UFunction& Function, const EFieldIterationFlags IterationFlags)
 {
-	return TFieldRange<FProperty>(&Function);
+	return TFieldRange<FProperty>(&Function, IterationFlags);
 }
 
-TVoxelDereferencingRange<TFieldRange<FProperty>> GetFunctionProperties(const UFunction* Function)
+TVoxelDereferencingRange<TFieldRange<FProperty>> GetFunctionProperties(const UFunction* Function, const EFieldIterationFlags IterationFlags)
 {
 	check(Function);
-	return TFieldRange<FProperty>(Function);
+	return TFieldRange<FProperty>(Function, IterationFlags);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
