@@ -241,18 +241,28 @@ void AVoxelActorBase::PreEditChange(FProperty* PropertyThatWillChange)
 
 	// Temporarily remove runtime components to avoid expensive re-registration
 
-	for (const TWeakObjectPtr<USceneComponent>& Component : PrivateComponents)
+	TSet<UActorComponent*>& Components = ConstCast(GetComponents());
+
 	{
-		ensure(Component.IsValid());
-		ensure(ConstCast(GetComponents()).Remove(Component.Get()));
+		VOXEL_SCOPE_COUNTER_NUM("Remove", PrivateComponents.Num(), 1);
+
+		for (const TWeakObjectPtr<USceneComponent>& Component : PrivateComponents)
+		{
+			ensure(Component.IsValid());
+			ensure(Components.Remove(Component.Get()));
+		}
 	}
 
 	Super::PreEditChange(PropertyThatWillChange);
 
-	for (const TWeakObjectPtr<USceneComponent>& Component : PrivateComponents)
 	{
-		ensure(Component.IsValid());
-		ConstCast(GetComponents()).Add(Component.Get());
+		VOXEL_SCOPE_COUNTER_NUM("Add", PrivateComponents.Num(), 1);
+
+		for (const TWeakObjectPtr<USceneComponent>& Component : PrivateComponents)
+		{
+			ensure(Component.IsValid());
+			Components.Add(Component.Get());
+		}
 	}
 }
 
@@ -262,18 +272,28 @@ void AVoxelActorBase::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 
 	// Temporarily remove runtime components to avoid expensive re-registration
 
-	for (const TWeakObjectPtr<USceneComponent>& Component : PrivateComponents)
+	TSet<UActorComponent*>& Components = ConstCast(GetComponents());
+
 	{
-		ensure(Component.IsValid());
-		ensure(ConstCast(GetComponents()).Remove(Component.Get()));
+		VOXEL_SCOPE_COUNTER_NUM("Remove", PrivateComponents.Num(), 1);
+
+		for (const TWeakObjectPtr<USceneComponent>& Component : PrivateComponents)
+		{
+			ensure(Component.IsValid());
+			ensure(Components.Remove(Component.Get()));
+		}
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	for (const TWeakObjectPtr<USceneComponent>& Component : PrivateComponents)
 	{
-		ensure(Component.IsValid());
-		ConstCast(GetComponents()).Add(Component.Get());
+		VOXEL_SCOPE_COUNTER_NUM("Add", PrivateComponents.Num(), 1);
+
+		for (const TWeakObjectPtr<USceneComponent>& Component : PrivateComponents)
+		{
+			ensure(Component.IsValid());
+			Components.Add(Component.Get());
+		}
 	}
 }
 #endif
