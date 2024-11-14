@@ -117,6 +117,62 @@ float FVoxelUtilities::GetMax(const TConstVoxelArrayView<float> Data)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+float FVoxelUtilities::GetAbsMin(const TConstVoxelArrayView<float> Data)
+{
+	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
+
+	if (!ensure(Data.Num() > 0))
+	{
+		return 0.f;
+	}
+
+	return ispc::ArrayUtilities_GetAbsMin(Data.GetData(), Data.Num());
+}
+
+float FVoxelUtilities::GetAbsMax(const TConstVoxelArrayView<float> Data)
+{
+	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
+
+	if (!ensure(Data.Num() > 0))
+	{
+		return 0.f;
+	}
+
+	return ispc::ArrayUtilities_GetAbsMax(Data.GetData(), Data.Num());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+float FVoxelUtilities::GetAbsMinSafe(const TConstVoxelArrayView<float> Data)
+{
+	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
+
+	if (!ensure(Data.Num() > 0))
+	{
+		return 0.f;
+	}
+
+	return ispc::ArrayUtilities_GetAbsMinSafe(Data.GetData(), Data.Num());
+}
+
+float FVoxelUtilities::GetAbsMaxSafe(const TConstVoxelArrayView<float> Data)
+{
+	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
+
+	if (!ensure(Data.Num() > 0))
+	{
+		return 0.f;
+	}
+
+	return ispc::ArrayUtilities_GetAbsMaxSafe(Data.GetData(), Data.Num());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 FInt32Interval FVoxelUtilities::GetMinMax(TConstVoxelArrayView<uint8> Data)
 {
 	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);

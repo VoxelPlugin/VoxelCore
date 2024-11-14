@@ -493,6 +493,13 @@ namespace FVoxelUtilities
 	VOXELCORE_API float GetMin(TConstVoxelArrayView<float> Data);
 	VOXELCORE_API float GetMax(TConstVoxelArrayView<float> Data);
 
+	VOXELCORE_API float GetAbsMin(TConstVoxelArrayView<float> Data);
+	VOXELCORE_API float GetAbsMax(TConstVoxelArrayView<float> Data);
+
+	// Will skip NaNs and infinite values
+	VOXELCORE_API float GetAbsMinSafe(TConstVoxelArrayView<float> Data);
+	VOXELCORE_API float GetAbsMaxSafe(TConstVoxelArrayView<float> Data);
+
 	VOXELCORE_API FInt32Interval GetMinMax(TConstVoxelArrayView<uint8> Data);
 	VOXELCORE_API FInt32Interval GetMinMax(TConstVoxelArrayView<uint16> Data);
 	VOXELCORE_API FInt32Interval GetMinMax(TConstVoxelArrayView<int32> Data);

@@ -237,6 +237,8 @@ void AVoxelActorBase::PostEditUndo()
 
 void AVoxelActorBase::PreEditChange(FProperty* PropertyThatWillChange)
 {
+	VOXEL_FUNCTION_COUNTER();
+
 	// Temporarily remove runtime components to avoid expensive re-registration
 
 	for (const TWeakObjectPtr<USceneComponent>& Component : PrivateComponents)
@@ -256,6 +258,8 @@ void AVoxelActorBase::PreEditChange(FProperty* PropertyThatWillChange)
 
 void AVoxelActorBase::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
+	VOXEL_FUNCTION_COUNTER();
+
 	// Temporarily remove runtime components to avoid expensive re-registration
 
 	for (const TWeakObjectPtr<USceneComponent>& Component : PrivateComponents)

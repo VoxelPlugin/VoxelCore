@@ -185,6 +185,152 @@ export uniform float ArrayUtilities_GetMax(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+export uniform float ArrayUtilities_GetAbsMin(
+	const uniform float Values[],
+	const uniform int32 Num)
+{
+	const uniform int32 AlignedNum = programCount * (Num / programCount);
+
+	uniform float Result;
+	if (AlignedNum != 0)
+	{
+		varying float Value = abs(Values[0]);
+		for (uniform int32 Index = 0; Index < AlignedNum; Index += programCount)
+		{
+			Value = min(Value, abs(Values[Index + programIndex]));
+		}
+		Result = reduce_min(Value);
+	}
+	else
+	{
+		Result = abs(Values[0]);
+	}
+
+	for (uniform int32 Index = AlignedNum; Index < Num; Index++)
+	{
+		Result = min(Result, abs(Values[Index]));
+	}
+	return Result;
+}
+
+export uniform float ArrayUtilities_GetAbsMax(
+	const uniform float Values[],
+	const uniform int32 Num)
+{
+	const uniform int32 AlignedNum = programCount * (Num / programCount);
+
+	uniform float Result;
+	if (AlignedNum != 0)
+	{
+		varying float Value = abs(Values[0]);
+		for (uniform int32 Index = 0; Index < AlignedNum; Index += programCount)
+		{
+			Value = max(Value, abs(Values[Index + programIndex]));
+		}
+		Result = reduce_max(Value);
+	}
+	else
+	{
+		Result = abs(Values[0]);
+	}
+
+	for (uniform int32 Index = AlignedNum; Index < Num; Index++)
+	{
+		Result = max(Result, abs(Values[Index]));
+	}
+	return Result;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+export uniform float ArrayUtilities_GetAbsMinSafe(
+	const uniform float Values[],
+	const uniform int32 Num)
+{
+	const uniform int32 AlignedNum = programCount * (Num / programCount);
+
+	uniform float Result;
+	if (AlignedNum != 0)
+	{
+		varying float LocalResult = MAX_flt;
+		for (uniform int32 Index = 0; Index < AlignedNum; Index += programCount)
+		{
+			const varying float Value = Values[Index + programIndex];
+			if (!IsFinite(Value))
+			{
+				continue;
+			}
+
+			LocalResult = min(LocalResult, abs(Value));
+		}
+		Result = reduce_min(LocalResult);
+	}
+	else
+	{
+		Result = MAX_flt;
+	}
+
+	for (uniform int32 Index = AlignedNum; Index < Num; Index++)
+	{
+		const uniform float Value = Values[Index];
+		if (!IsFinite(Value))
+		{
+			continue;
+		}
+
+		Result = min(Result, abs(Value));
+	}
+
+	return Result;
+}
+
+export uniform float ArrayUtilities_GetAbsMaxSafe(
+	const uniform float Values[],
+	const uniform int32 Num)
+{
+	const uniform int32 AlignedNum = programCount * (Num / programCount);
+
+	uniform float Result;
+	if (AlignedNum != 0)
+	{
+		varying float LocalResult = -MAX_flt;
+		for (uniform int32 Index = 0; Index < AlignedNum; Index += programCount)
+		{
+			const varying float Value = Values[Index + programIndex];
+			if (!IsFinite(Value))
+			{
+				continue;
+			}
+
+			LocalResult = max(LocalResult, abs(Value));
+		}
+		Result = reduce_max(LocalResult);
+	}
+	else
+	{
+		Result = -MAX_flt;
+	}
+
+	for (uniform int32 Index = AlignedNum; Index < Num; Index++)
+	{
+		const uniform float Value = Values[Index];
+		if (!IsFinite(Value))
+		{
+			continue;
+		}
+
+		Result = max(Result, abs(Value));
+	}
+
+	return Result;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 export void ArrayUtilities_GetMinMax_uint8(
 	const uniform uint8 Values[],
 	const uniform int32 Num,

@@ -107,6 +107,47 @@ FIntVector operator-(T A, const FIntVector& V) = delete;
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+FORCEINLINE FInt64Vector3 operator-(const FInt64Vector3& Vector)
+{
+	return FInt64Vector3(-Vector.X, -Vector.Y, -Vector.Z);
+}
+
+FORCEINLINE FInt64Vector3 operator-(const FInt64Vector3& Vector, const int32 Value)
+{
+	return Vector - FInt64Vector3(Value);
+}
+FORCEINLINE FInt64Vector3 operator-(const int32 Value, const FInt64Vector3& Vector)
+{
+	return FInt64Vector3(Value) - Vector;
+}
+
+FORCEINLINE FInt64Vector3 operator-(const FInt64Vector3& Vector, const uint32 Value)
+{
+	return Vector - FInt64Vector3(Value);
+}
+FORCEINLINE FInt64Vector3 operator-(const uint32 Value, const FInt64Vector3& Vector)
+{
+	return FInt64Vector3(Value) - Vector;
+}
+
+FORCEINLINE FInt64Vector3 operator-(const FInt64Vector3& Vector, const int64 Value)
+{
+	return Vector - FInt64Vector3(Value);
+}
+FORCEINLINE FInt64Vector3 operator-(const int64 Value, const FInt64Vector3& Vector)
+{
+	return FInt64Vector3(Value) - Vector;
+}
+
+template<typename T>
+FInt64Vector3 operator-(const FInt64Vector3& V, T A) = delete;
+template<typename T>
+FInt64Vector3 operator-(T A, const FInt64Vector3& V) = delete;
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 FORCEINLINE FIntVector operator+(const FIntVector& Vector, const int32 Value)
 {
 	return Vector + FIntVector(Value);

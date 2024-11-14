@@ -56,9 +56,7 @@ namespace FVoxelUtilities
 		TWeakObjectPtr<UTexture2D> TargetTexture,
 		const TSharedRef<const TVoxelArray<uint8>>& Data);
 
-	VOXELCORE_API void ResetPreviousLocalToWorld(
-		const UPrimitiveComponent& Component,
-		const FPrimitiveSceneProxy& SceneProxy);
+	VOXELCORE_API void ResetPreviousLocalToWorld(const UPrimitiveComponent& Component);
 
 	VOXELCORE_API bool CanUseBarycentricsSemantic(EShaderPlatform ShaderPlatform);
 	VOXELCORE_API bool ShouldCompileBarycentricsSemantic(EShaderPlatform ShaderPlatform);

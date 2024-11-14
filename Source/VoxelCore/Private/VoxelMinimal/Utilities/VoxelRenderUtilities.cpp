@@ -253,15 +253,27 @@ FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void FVoxelUtilities::ResetPreviousLocalToWorld(
-	const UPrimitiveComponent& Component,
-	const FPrimitiveSceneProxy& SceneProxy)
+void FVoxelUtilities::ResetPreviousLocalToWorld(const UPrimitiveComponent& Component)
 {
-	// Hack to cancel motion blur when mesh components are reused in the same frame
-	Voxel::RenderTask([&SceneProxy, PreviousLocalToWorld = Component.GetRenderMatrix()]
+	const UWorld* World = Component.GetWorld();
+	if (!ensureVoxelSlow(World))
 	{
-		FScene& Scene = static_cast<FScene&>(SceneProxy.GetScene());
-		Scene.VelocityData.OverridePreviousTransform(SceneProxy.GetPrimitiveComponentId(), PreviousLocalToWorld);
+		return;
+	}
+
+	FSceneInterface* Scene = World->Scene;
+	if (!ensureVoxelSlow(Scene))
+	{
+		return;
+	}
+
+	// Hack to cancel motion blur when mesh components are reused in the same frame
+	Voxel::RenderTask([
+		Scene,
+		PrimitiveSceneId = Component.GetPrimitiveSceneId(),
+		PreviousLocalToWorld = Component.GetRenderMatrix()]
+	{
+		static_cast<FScene&>(*Scene).VelocityData.OverridePreviousTransform(PrimitiveSceneId, PreviousLocalToWorld);
 	});
 }
 

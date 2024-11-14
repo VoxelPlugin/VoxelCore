@@ -881,6 +881,15 @@ FORCEINLINE generic bool IsIdentity(const generic float4 Rotation)
 		Rotation.w == 1.f;
 }
 
+FORCEINLINE generic bool IsIdentity(const generic double4 Rotation)
+{
+	return
+		Rotation.x == 0.d &&
+		Rotation.y == 0.d &&
+		Rotation.z == 0.d &&
+		Rotation.w == 1.d;
+}
+
 FORCEINLINE generic float4 MakeQuaternionFromEuler(
 	const generic float Pitch,
 	const generic float Yaw,
@@ -1049,6 +1058,14 @@ FORCEINLINE generic float3 UnrotateVector(const generic float3 Position, const g
 	// See FQuat::UnrotateVector
 	const generic float3 Q = MakeFloat3(-Rotation.x, -Rotation.y, -Rotation.z);
 	const generic float3 T = 2.f * cross(Q, Position);
+
+	return Position + (Rotation.w * T) + cross(Q, T);
+}
+FORCEINLINE generic double3 UnrotateVector(const generic double3 Position, const generic double4 Rotation)
+{
+	// See FQuat::UnrotateVector
+	const generic double3 Q = MakeDouble3(-Rotation.x, -Rotation.y, -Rotation.z);
+	const generic double3 T = 2.f * cross(Q, Position);
 
 	return Position + (Rotation.w * T) + cross(Q, T);
 }

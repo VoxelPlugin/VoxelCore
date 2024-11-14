@@ -72,20 +72,18 @@ public:
 			LOG_VOXEL(Log, "-----------------------------------");
 			LOG_VOXEL(Log, "x%d:", It.Value);
 
-			for (const void* Address : It.Key)
+			for (int32 Index = 0; Index < It.Key.Num(); Index++)
 			{
+				void* Address = It.Key[Index];
 				if (!Address)
 				{
 					continue;
 				}
 
-				FProgramCounterSymbolInfoEx SymbolInfo;
-				FPlatformStackWalk::ProgramCounterToSymbolInfoEx(uint64(Address), SymbolInfo);
+				ANSICHAR HumanReadableString[4096];
+				FPlatformStackWalk::ProgramCounterToHumanReadableString(Index, uint64(Address), HumanReadableString, 4096);
 
-				FString SymbolText;
-				FPlatformStackWalk::SymbolInfoToHumanReadableStringEx(SymbolInfo, SymbolText);
-
-				LOG_VOXEL(Log, "%p: %s", Address, *SymbolText);
+				LOG_VOXEL(Log, "%p: %S", Address, HumanReadableString);
 			}
 		}
 	}
