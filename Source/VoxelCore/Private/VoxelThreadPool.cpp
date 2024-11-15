@@ -189,7 +189,7 @@ FVoxelThreadPool::FThread::FThread()
 	static int32 ThreadIndex = 0;
 	const FString Name = FString::Printf(TEXT("Voxel Thread %d"), ThreadIndex++);
 
-	Thread = TUniquePtr<FRunnableThread>(FRunnableThread::Create(
+	Thread = TUniquePtr<FRunnableThread>(FForkProcessHelper::CreateForkableThread(
 		this,
 		*Name,
 		1024 * 1024,
