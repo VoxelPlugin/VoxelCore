@@ -11,7 +11,9 @@ class FVoxelGlobalTaskDispatcher
 	, public IVoxelTaskExecutor
 {
 public:
-	FVoxelGlobalTaskDispatcher();
+	const bool bIsBackground;
+
+	explicit FVoxelGlobalTaskDispatcher(bool bIsBackground);
 
 	//~ Begin IVoxelTaskDispatcher Interface
 	virtual void Dispatch(
@@ -26,7 +28,15 @@ public:
 	virtual int32 NumTasks() const override;
 	//~ End IVoxelTaskExecutor Interface
 
+	int32 NumTasks_Actual() const
+	{
+		return AsyncTasks_RequiresLock.Num();
+	}
+
 private:
 	FVoxelCriticalSection CriticalSection;
 	TVoxelArray<TVoxelUniqueFunction<void()>> AsyncTasks_RequiresLock;
 };
+
+extern TSharedPtr<FVoxelGlobalTaskDispatcher> GVoxelGlobalForegroundTaskDispatcher;
+extern TSharedPtr<FVoxelGlobalTaskDispatcher> GVoxelGlobalBackgroundTaskDispatcher;

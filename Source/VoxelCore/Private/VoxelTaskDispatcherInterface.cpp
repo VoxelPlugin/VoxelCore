@@ -108,9 +108,14 @@ IVoxelTaskDispatcher& FVoxelTaskDispatcherScope::Get()
 	return GetGlobal();
 }
 
-IVoxelTaskDispatcher& FVoxelTaskDispatcherScope::GetGlobal()
+IVoxelTaskDispatcher& FVoxelTaskDispatcherScope::GetGlobal(const bool bBackground)
 {
-	static const TSharedRef<FVoxelGlobalTaskDispatcher> TaskDispatcher = MakeVoxelShared<FVoxelGlobalTaskDispatcher>();
-
-	return *TaskDispatcher;
+	if (bBackground)
+	{
+		return *GVoxelGlobalBackgroundTaskDispatcher;
+	}
+	else
+	{
+		return *GVoxelGlobalForegroundTaskDispatcher;
+	}
 }

@@ -4,15 +4,11 @@
 
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelBox.h"
-#include "VoxelMinimal/Containers/VoxelStaticArray.h"
 #include "VoxelMinimal/Utilities/VoxelVectorUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelLambdaUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelIntVectorUtilities.h"
 #include "VoxelIntBox.generated.h"
 
-/**
- * A Box with int32 coordinates
- */
 USTRUCT()
 struct VOXELCORE_API FVoxelIntBox
 {
@@ -87,50 +83,12 @@ struct VOXELCORE_API FVoxelIntBox
 	{
 	}
 
-	template<typename T>
-	explicit FVoxelIntBox(const TConstVoxelArrayView<T> Data)
-	{
-		if (std::is_same_v<T, FIntVector>)
-		{
-			*this = FromPositions(Data);
-			return;
-		}
-
-		if (!ensure(Data.Num() > 0))
-		{
-			Min = Max = FIntVector::ZeroValue;
-			return;
-		}
-
-		*this = FVoxelIntBox(Data[0]);
-
-		for (int32 Index = 1; Index < Data.Num(); Index++)
-		{
-			*this = *this + Data[Index];
-		}
-	}
-
 	static FVoxelIntBox FromPositions(TConstVoxelArrayView<FIntVector> Positions);
 
 	static FVoxelIntBox FromPositions(
 		TConstVoxelArrayView<int32> PositionX,
 		TConstVoxelArrayView<int32> PositionY,
 		TConstVoxelArrayView<int32> PositionZ);
-
-	FORCEINLINE static FVoxelIntBox SafeConstruct(const FIntVector& A, const FIntVector& B)
-	{
-		FVoxelIntBox Box;
-		Box.Min = FVoxelUtilities::ComponentMin(A, B);
-		Box.Max = FVoxelUtilities::ComponentMax3(A, B, Box.Min + FIntVector(1, 1, 1));
-		return Box;
-	}
-	FORCEINLINE static FVoxelIntBox SafeConstruct(const FVector& A, const FVector& B)
-	{
-		FVoxelIntBox Box;
-		Box.Min = FVoxelUtilities::FloorToInt(FVoxelUtilities::ComponentMin(A, B));
-		Box.Max = FVoxelUtilities::CeilToInt(FVoxelUtilities::ComponentMax3(A, B, FVector(Box.Min + FIntVector(1, 1, 1))));
-		return Box;
-	}
 
 	template<typename T>
 	FORCEINLINE static FVoxelIntBox FromFloatBox_NoPadding(T Box)
@@ -159,10 +117,6 @@ struct VOXELCORE_API FVoxelIntBox
 	FORCEINLINE FVector GetCenter() const
 	{
 		return FVector(Min + Max) / 2.f;
-	}
-	FORCEINLINE FIntVector GetIntCenter() const
-	{
-		return (Min + Max) / 2;
 	}
 	FORCEINLINE double Count_double() const
 	{
@@ -210,26 +164,8 @@ struct VOXELCORE_API FVoxelIntBox
 			Max.Z > InfiniteMax;
 	}
 
-	/**
-	 * Get the corners that are inside the box (max - 1)
-	 */
-	FORCEINLINE TVoxelStaticArray<FIntVector, 8> GetCorners(const int32 MaxBorderSize) const
-	{
-		return {
-			FIntVector(Min.X, Min.Y, Min.Z),
-			FIntVector(Max.X - MaxBorderSize, Min.Y, Min.Z),
-			FIntVector(Min.X, Max.Y - MaxBorderSize, Min.Z),
-			FIntVector(Max.X - MaxBorderSize, Max.Y - MaxBorderSize, Min.Z),
-			FIntVector(Min.X, Min.Y, Max.Z - MaxBorderSize),
-			FIntVector(Max.X - MaxBorderSize, Min.Y, Max.Z - MaxBorderSize),
-			FIntVector(Min.X, Max.Y - MaxBorderSize, Max.Z - MaxBorderSize),
-			FIntVector(Max.X - MaxBorderSize, Max.Y - MaxBorderSize, Max.Z - MaxBorderSize)
-		};
-	}
-	FString ToString() const
-	{
-		return FString::Printf(TEXT("(%d/%d, %d/%d, %d/%d)"), Min.X, Max.X, Min.Y, Max.Y, Min.Z, Max.Z);
-	}
+	FString ToString() const;
+
 	FORCEINLINE FVoxelBox ToVoxelBox() const
 	{
 		return FVoxelBox(Min, Max);
@@ -248,65 +184,38 @@ struct VOXELCORE_API FVoxelIntBox
 		return Min.X < Max.X && Min.Y < Max.Y && Min.Z < Max.Z;
 	}
 
-	template<typename T>
-	FORCEINLINE bool ContainsTemplate(const T X, const T Y, const T Z) const
+	FORCEINLINE bool Contains(const int32 X, const int32 Y, const int32 Z) const
 	{
 		return
 			(X >= Min.X) && (X < Max.X) &&
 			(Y >= Min.Y) && (Y < Max.Y) &&
 			(Z >= Min.Z) && (Z < Max.Z);
 	}
-	template<typename T>
-	FORCEINLINE std::enable_if_t<std::is_same_v<T, FVector3f> || std::is_same_v<T, FVector3d> || std::is_same_v<T, FIntVector>, bool> ContainsTemplate(const T& V) const
+	FORCEINLINE bool Contains(const FIntVector& Point) const
 	{
-		return ContainsTemplate(V.X, V.Y, V.Z);
-	}
-	template<typename T>
-	FORCEINLINE std::enable_if_t<std::is_same_v<T, FBox> || std::is_same_v<T, FVoxelIntBox>, bool> ContainsTemplate(const T& Other) const
-	{
-		return Min.X <= Other.Min.X && Min.Y <= Other.Min.Y && Min.Z <= Other.Min.Z &&
-			   Max.X >= Other.Max.X && Max.Y >= Other.Max.Y && Max.Z >= Other.Max.Z;
-	}
-
-	FORCEINLINE bool Contains(const int32 X, const int32 Y, const int32 Z) const
-	{
-		return ContainsTemplate(X, Y, Z);
-	}
-	FORCEINLINE bool Contains(const FIntVector& V) const
-	{
-		return ContainsTemplate(V);
+		return
+			(Point.X >= Min.X) && (Point.X < Max.X) &&
+			(Point.Y >= Min.Y) && (Point.Y < Max.Y) &&
+			(Point.Z >= Min.Z) && (Point.Z < Max.Z);
 	}
 	FORCEINLINE bool Contains(const FVoxelIntBox& Other) const
 	{
-		return ContainsTemplate(Other);
-	}
-
-	// Not an overload as the float behavior can be a bit tricky. Use ContainsTemplate if the input type is unknown
-	FORCEINLINE bool ContainsFloat(const float X, const float Y, const float Z) const
-	{
-		return ContainsTemplate(X, Y, Z);
-	}
-	FORCEINLINE bool ContainsFloat(const FVector3f& V) const
-	{
-		return ContainsTemplate(V);
-	}
-	FORCEINLINE bool ContainsFloat(const FVector3d& V) const
-	{
-		return ContainsTemplate(V);
-	}
-	FORCEINLINE bool ContainsFloat(const FBox& Other) const
-	{
-		return ContainsTemplate(Other);
+		return
+			Min.X <= Other.Min.X &&
+			Min.Y <= Other.Min.Y &&
+			Min.Z <= Other.Min.Z &&
+			Max.X >= Other.Max.X &&
+			Max.Y >= Other.Max.Y &&
+			Max.Z >= Other.Max.Z;
 	}
 
 	template<typename T>
 	bool Contains(T X, T Y, T Z) const = delete;
 
-	template<typename T>
-	FORCEINLINE T Clamp(T P, const int32 Step = 1) const
+	FORCEINLINE FIntVector Clamp(FIntVector Point, const int32 Step = 1) const
 	{
-		Clamp(P.X, P.Y, P.Z, Step);
-		return P;
+		Clamp(Point.X, Point.Y, Point.Z, Step);
+		return Point;
 	}
 	FORCEINLINE void Clamp(int32& X, int32& Y, int32& Z, const int32 Step = 1) const
 	{
@@ -315,20 +224,11 @@ struct VOXELCORE_API FVoxelIntBox
 		Z = FMath::Clamp(Z, Min.Z, Max.Z - Step);
 		ensureVoxelSlowNoSideEffects(Contains(X, Y, Z));
 	}
-	template<typename T>
-	FORCEINLINE void Clamp(T& X, T& Y, T& Z) const
-	{
-		// Note: use - 1 even if that's not the closest value for which Contains would return true
-		// because it's really hard to figure out that value (largest float f such that f < i)
-		X = FMath::Clamp<T>(X, Min.X, Max.X - 1);
-		Y = FMath::Clamp<T>(Y, Min.Y, Max.Y - 1);
-		Z = FMath::Clamp<T>(Z, Min.Z, Max.Z - 1);
-		ensureVoxelSlowNoSideEffects(ContainsTemplate(X, Y, Z));
-	}
+
 	FORCEINLINE FVoxelIntBox Clamp(const FVoxelIntBox& Other) const
 	{
 		// It's not valid to call Clamp if we're not intersecting Other
-		ensureVoxelSlowNoSideEffects(Intersect(Other));
+		ensureVoxelSlowNoSideEffects(Intersects(Other));
 
 		FVoxelIntBox Result;
 
@@ -344,8 +244,7 @@ struct VOXELCORE_API FVoxelIntBox
 		return Result;
 	}
 
-	template<typename TBox>
-	FORCEINLINE bool Intersect(const TBox& Other) const
+	FORCEINLINE bool Intersects(const FVoxelIntBox& Other) const
 	{
 		if ((Min.X >= Other.Max.X) || (Other.Min.X >= Max.X))
 		{
@@ -364,123 +263,115 @@ struct VOXELCORE_API FVoxelIntBox
 
 		return true;
 	}
-	/**
-	 * Useful for templates taking a box or coordinates
-	 */
-	template<typename TNumeric>
-	FORCEINLINE bool Intersect(TNumeric X, TNumeric Y, TNumeric Z) const
+	FORCEINLINE bool IntersectsSphere(const FVector& Center, const double Radius) const
 	{
-		return ContainsTemplate(X, Y, Z);
+		return SquaredDistanceToPoint(Center) <= FMath::Square(Radius);
 	}
 
-	/**
-	 * Useful for templates taking a box or coordinates
-	 */
-	template<typename TNumeric, typename TVector>
-	FORCEINLINE bool IntersectSphere(TVector Center, TNumeric Radius) const
+	FORCEINLINE FVoxelIntBox IntersectWith(const FVoxelIntBox& Other) const
 	{
-		// See FMath::SphereAABBIntersection
-		return ComputeSquaredDistanceFromBoxToPoint<TNumeric>(Center) <= FMath::Square(Radius);
-	}
+		const FIntVector NewMin = FVoxelUtilities::ComponentMax(Min, Other.Min);
+		const FIntVector NewMax = FVoxelUtilities::ComponentMin(Max, Other.Max);
 
-	// Return the intersection of the two boxes
-	FVoxelIntBox Overlap(const FVoxelIntBox& Other) const
-	{
-		if (!Intersect(Other))
+		if (NewMin.X >= NewMax.X ||
+			NewMin.Y >= NewMax.Y ||
+			NewMin.Z >= NewMax.Z)
 		{
-			return FVoxelIntBox();
+			return {};
 		}
 
-		// otherwise they overlap
-		// so find overlapping box
-		FIntVector MinVector, MaxVector;
-
-		MinVector.X = FMath::Max(Min.X, Other.Min.X);
-		MaxVector.X = FMath::Min(Max.X, Other.Max.X);
-
-		MinVector.Y = FMath::Max(Min.Y, Other.Min.Y);
-		MaxVector.Y = FMath::Min(Max.Y, Other.Max.Y);
-
-		MinVector.Z = FMath::Max(Min.Z, Other.Min.Z);
-		MaxVector.Z = FMath::Min(Max.Z, Other.Max.Z);
-
-		return FVoxelIntBox(MinVector, MaxVector);
+		return FVoxelIntBox(NewMin, NewMax);
 	}
-	FVoxelIntBox Union(const FVoxelIntBox& Other) const
+	FORCEINLINE FVoxelIntBox UnionWith(const FVoxelIntBox& Other) const
 	{
-		FIntVector MinVector, MaxVector;
-
-		MinVector.X = FMath::Min(Min.X, Other.Min.X);
-		MaxVector.X = FMath::Max(Max.X, Other.Max.X);
-
-		MinVector.Y = FMath::Min(Min.Y, Other.Min.Y);
-		MaxVector.Y = FMath::Max(Max.Y, Other.Max.Y);
-
-		MinVector.Z = FMath::Min(Min.Z, Other.Min.Z);
-		MaxVector.Z = FMath::Max(Max.Z, Other.Max.Z);
-
-		return FVoxelIntBox(MinVector, MaxVector);
+		return FVoxelIntBox(
+			FVoxelUtilities::ComponentMin(Min, Other.Min),
+			FVoxelUtilities::ComponentMax(Max, Other.Max));
 	}
 
 	// union(return value, Other) = this
 	TVoxelArray<FVoxelIntBox, TFixedAllocator<6>> Difference(const FVoxelIntBox& Other) const;
 
-	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
-	FORCEINLINE ScalarType ComputeSquaredDistanceFromBoxToPoint(const VectorType& Point) const
+	FORCEINLINE double SquaredDistanceToPoint(const FVector& Point) const
 	{
 		// Accumulates the distance as we iterate axis
-		ScalarType DistSquared = 0;
+		double DistSquared = 0;
 
 		// Check each axis for min/max and add the distance accordingly
 		if (Point.X < Min.X)
 		{
-			DistSquared += FMath::Square<ScalarType>(Min.X - Point.X);
+			DistSquared += FMath::Square<double>(Min.X - Point.X);
 		}
 		else if (Point.X > Max.X)
 		{
-			DistSquared += FMath::Square<ScalarType>(Point.X - Max.X);
+			DistSquared += FMath::Square<double>(Point.X - Max.X);
 		}
 
 		if (Point.Y < Min.Y)
 		{
-			DistSquared += FMath::Square<ScalarType>(Min.Y - Point.Y);
+			DistSquared += FMath::Square<double>(Min.Y - Point.Y);
 		}
 		else if (Point.Y > Max.Y)
 		{
-			DistSquared += FMath::Square<ScalarType>(Point.Y - Max.Y);
+			DistSquared += FMath::Square<double>(Point.Y - Max.Y);
 		}
 
 		if (Point.Z < Min.Z)
 		{
-			DistSquared += FMath::Square<ScalarType>(Min.Z - Point.Z);
+			DistSquared += FMath::Square<double>(Min.Z - Point.Z);
 		}
 		else if (Point.Z > Max.Z)
 		{
-			DistSquared += FMath::Square<ScalarType>(Point.Z - Max.Z);
+			DistSquared += FMath::Square<double>(Point.Z - Max.Z);
 		}
 
 		return DistSquared;
 	}
-	FORCEINLINE uint64 ComputeSquaredDistanceFromBoxToPoint(const FIntVector& Point) const
+	FORCEINLINE uint64 SquaredDistanceToPoint(const FIntVector& Point) const
 	{
-		return ComputeSquaredDistanceFromBoxToPoint<FIntVector, uint64>(Point);
-	}
-	FORCEINLINE double DistanceFromBoxToPoint(const FVector3d& Point) const
-	{
-		return FMath::Sqrt(ComputeSquaredDistanceFromBoxToPoint(Point));
-	}
+		// Accumulates the distance as we iterate axis
+		uint64 DistSquared = 0;
 
-	// We try to make the following true:
-	// Box.ApproximateDistanceToBox(Box.ShiftBy(X)) == X
-	float ApproximateDistanceToBox(const FVoxelIntBox& Other) const
+		// Check each axis for min/max and add the distance accordingly
+		if (Point.X < Min.X)
+		{
+			DistSquared += FMath::Square<uint64>(Min.X - Point.X);
+		}
+		else if (Point.X > Max.X)
+		{
+			DistSquared += FMath::Square<uint64>(Point.X - Max.X);
+		}
+
+		if (Point.Y < Min.Y)
+		{
+			DistSquared += FMath::Square<uint64>(Min.Y - Point.Y);
+		}
+		else if (Point.Y > Max.Y)
+		{
+			DistSquared += FMath::Square<uint64>(Point.Y - Max.Y);
+		}
+
+		if (Point.Z < Min.Z)
+		{
+			DistSquared += FMath::Square<uint64>(Min.Z - Point.Z);
+		}
+		else if (Point.Z > Max.Z)
+		{
+			DistSquared += FMath::Square<uint64>(Point.Z - Max.Z);
+		}
+
+		return DistSquared;
+	}
+	FORCEINLINE double DistanceToPoint(const FVector& Point) const
 	{
-		return (FVoxelUtilities::Size(Min - Other.Min) + FVoxelUtilities::Size(Max - Other.Max)) / 2;
+		return FMath::Sqrt(SquaredDistanceToPoint(Point));
 	}
 
 	FORCEINLINE bool IsMultipleOf(const int32 Step) const
 	{
-		return Min.X % Step == 0 && Min.Y % Step == 0 && Min.Z % Step == 0 &&
-			   Max.X % Step == 0 && Max.Y % Step == 0 && Max.Z % Step == 0;
+		return
+			Min % Step == 0 &&
+			Max % Step == 0;
 	}
 
 	// OldBox included in NewBox, but NewBox not included in OldBox
@@ -552,7 +443,7 @@ struct VOXELCORE_API FVoxelIntBox
 						FIntVector(ChunkSize * (X + 0), ChunkSize * (Y + 0), ChunkSize * (Z + 0)),
 						FIntVector(ChunkSize * (X + 1), ChunkSize * (Y + 1), ChunkSize * (Z + 1)));
 
-					Chunk = Chunk.Overlap(*this);
+					Chunk = Chunk.IntersectWith(*this);
 
 					if constexpr (std::is_void_v<ReturnType>)
 					{
@@ -573,6 +464,7 @@ struct VOXELCORE_API FVoxelIntBox
 	FORCEINLINE FVoxelIntBox Scale(float S) const = delete;
 	FORCEINLINE FVoxelIntBox Scale(const int32 S) const
 	{
+		ensureVoxelSlow(S >= 0);
 		return { Min * S, Max * S };
 	}
 	FORCEINLINE FVoxelIntBox Scale(const FVector& S) const = delete;
@@ -599,10 +491,9 @@ struct VOXELCORE_API FVoxelIntBox
 		return FVoxelIntBox(0, Max - Min);
 	}
 
-	FORCEINLINE FVoxelIntBox& operator*=(const int32 Scale)
+	FORCEINLINE FVoxelIntBox& operator*=(const int32 S)
 	{
-		Min *= Scale;
-		Max *= Scale;
+		*this = Scale(S);
 		return *this;
 	}
 
@@ -638,69 +529,6 @@ struct VOXELCORE_API FVoxelIntBox
 				}
 			}
 		}
-	}
-
-	// MaxBorderSize: if we do a 180 rotation for example, min and max are inverted
-	// If we don't work on values that are actually inside the box, the resulting box will be wrong
-	FVoxelIntBox ApplyTransform(const FMatrix44f& Transform, const int32 MaxBorderSize = 1) const
-	{
-		return ApplyTransformImpl([&](const FIntVector& Position)
-		{
-			return Transform.TransformPosition(FVector3f(Position));
-		}, MaxBorderSize);
-	}
-	FVoxelIntBox ApplyTransform(const FTransform3f& Transform, const int32 MaxBorderSize = 1) const
-	{
-		return ApplyTransformImpl([&](const FIntVector& Position)
-		{
-			return Transform.TransformPosition(FVector3f(Position));
-		}, MaxBorderSize);
-	}
-
-	FVoxelIntBox ApplyTransform(const FMatrix44d& Transform, const int32 MaxBorderSize = 1) const
-	{
-		return ApplyTransformImpl([&](const FIntVector& Position)
-		{
-			return Transform.TransformPosition(FVector3d(Position));
-		}, MaxBorderSize);
-	}
-	FVoxelIntBox ApplyTransform(const FTransform3d& Transform, const int32 MaxBorderSize = 1) const
-	{
-		return ApplyTransformImpl([&](const FIntVector& Position)
-		{
-			return Transform.TransformPosition(FVector3d(Position));
-		}, MaxBorderSize);
-	}
-
-	template<typename T>
-	FVoxelIntBox ApplyTransformImpl(T GetNewPosition, const int32 MaxBorderSize = 1) const
-	{
-		const auto Corners = GetCorners(MaxBorderSize);
-
-		FIntVector NewMin(MAX_int32);
-		FIntVector NewMax(MIN_int32);
-		for (int32 Index = 0; Index < 8; Index++)
-		{
-			const FVector P = FVector(GetNewPosition(Corners[Index]));
-			NewMin = FVoxelUtilities::ComponentMin(NewMin, FVoxelUtilities::FloorToInt(P));
-			NewMax = FVoxelUtilities::ComponentMax(NewMax, FVoxelUtilities::CeilToInt(P));
-		}
-		return FVoxelIntBox(NewMin, NewMax + MaxBorderSize);
-	}
-	template<typename T>
-	FBox ApplyTransformFloatImpl(T GetNewPosition, const int32 MaxBorderSize = 1) const
-	{
-		const auto Corners = GetCorners(MaxBorderSize);
-
-		FVector NewMin = GetNewPosition(Corners[0]);
-		FVector NewMax = NewMin;
-		for (int32 Index = 1; Index < 8; Index++)
-		{
-			const FVector P = GetNewPosition(Corners[Index]);
-			NewMin = FVoxelUtilities::ComponentMin(NewMin, P);
-			NewMax = FVoxelUtilities::ComponentMax(NewMax, P);
-		}
-		return FBox(NewMin, NewMax + MaxBorderSize);
 	}
 
 	FORCEINLINE FVoxelIntBox& operator+=(const FVoxelIntBox& Other)

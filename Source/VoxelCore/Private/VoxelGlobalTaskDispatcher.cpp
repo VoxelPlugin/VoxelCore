@@ -2,7 +2,11 @@
 
 #include "VoxelGlobalTaskDispatcher.h"
 
-FVoxelGlobalTaskDispatcher::FVoxelGlobalTaskDispatcher()
+TSharedPtr<FVoxelGlobalTaskDispatcher> GVoxelGlobalForegroundTaskDispatcher;
+TSharedPtr<FVoxelGlobalTaskDispatcher> GVoxelGlobalBackgroundTaskDispatcher;
+
+FVoxelGlobalTaskDispatcher::FVoxelGlobalTaskDispatcher(const bool bIsBackground)
+	: bIsBackground(bIsBackground)
 {
 	GVoxelThreadPool->AddExecutor(this);
 }
@@ -21,12 +25,20 @@ void FVoxelGlobalTaskDispatcher::Dispatch(
 	break;
 	case EVoxelFutureThread::GameThread:
 	{
-		Voxel::GameTask_SkipDispatcher(MoveTemp(Lambda));
+		Voxel::GameTask_SkipDispatcher([this, Lambda = MoveTemp(Lambda)]
+		{
+			FVoxelTaskDispatcherScope Scope(*this);
+			Lambda();
+		});
 	}
 	break;
 	case EVoxelFutureThread::RenderThread:
 	{
-			Voxel::RenderTask_SkipDispatcher(MoveTemp(Lambda));
+		Voxel::RenderTask_SkipDispatcher([this, Lambda = MoveTemp(Lambda)]
+		{
+			FVoxelTaskDispatcherScope Scope(*this);
+			Lambda();
+		});
 	}
 	break;
 	case EVoxelFutureThread::AsyncThread:
@@ -87,6 +99,12 @@ bool FVoxelGlobalTaskDispatcher::TryExecuteTasks_AnyThread()
 		Lambda();
 
 		bAnyExecuted = true;
+
+		if (bIsBackground)
+		{
+			// Only execute one task at a time if we're low priority
+			return bAnyExecuted;
+		}
 	}
 }
 

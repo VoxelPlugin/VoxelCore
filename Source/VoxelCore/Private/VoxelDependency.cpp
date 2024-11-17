@@ -179,7 +179,7 @@ void FVoxelDependency::GetInvalidatedTrackers(
 	{
 		if (bCheckBounds &&
 			TrackerRef.bHasBounds &&
-			!Bounds.Intersect(TrackerRef.Bounds))
+			!Bounds.Intersects(TrackerRef.Bounds))
 		{
 			return;
 		}

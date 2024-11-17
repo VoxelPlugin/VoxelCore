@@ -203,7 +203,7 @@ public:
 				const FLeaf& Leaf = Leaves[Node.LeafIndex];
 				for (const FElement& Element : Leaf.Elements)
 				{
-					if (!Element.Bounds.Intersect(OverlapBounds))
+					if (!Element.Bounds.Intersects(OverlapBounds))
 					{
 						continue;
 					}
@@ -216,11 +216,11 @@ public:
 			}
 			else
 			{
-				if (Node.ChildBounds0.Intersect(OverlapBounds))
+				if (Node.ChildBounds0.Intersects(OverlapBounds))
 				{
 					QueuedNodes.Add(Node.ChildIndex0);
 				}
-				if (Node.ChildBounds1.Intersect(OverlapBounds))
+				if (Node.ChildBounds1.Intersects(OverlapBounds))
 				{
 					QueuedNodes.Add(Node.ChildIndex1);
 				}
@@ -278,7 +278,7 @@ public:
 		this->Traverse(
 			[&](const FVoxelBox& OtherBounds)
 			{
-				return OtherBounds.Intersect(Bounds);
+				return OtherBounds.Intersects(Bounds);
 			},
 			MoveTemp(Visit));
 	}

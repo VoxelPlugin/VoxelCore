@@ -199,6 +199,11 @@ void FVoxelPromiseState::Set(const FVoxelFuture& Future)
 	ensure(FVoxelTaskDispatcherScope::Get().AsWeak() == Dispatcher_DebugOnly);
 #endif
 
+	if (!ensure(Future.IsValid()))
+	{
+		return;
+	}
+
 	if (Future.IsComplete())
 	{
 		Set(Future.PromiseState->Value_RequiresLock.ToSharedRef());

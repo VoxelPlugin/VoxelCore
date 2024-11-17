@@ -94,7 +94,7 @@ void FVoxelTransformRefImpl::Update_GameThread()
 	for (const FVoxelTransformRefNode& Node : Nodes)
 	{
 		const USceneComponent* Component = Node.GetComponent();
-		if (!ensureVoxelSlow(Component))
+		if (!/*ensureVoxelSlow*/(Component))
 		{
 			continue;
 		}

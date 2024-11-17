@@ -331,7 +331,9 @@ public:
 		return this->GetChunkView(FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index)).LeftOf(Count);
 	}
 
-	template<typename LambdaType, typename = LambdaHasSignature_T<LambdaType, void(int32, TVoxelArrayView<Type>)>>
+	template<typename LambdaType, typename = std::enable_if_t<
+		LambdaHasSignature_V<LambdaType, void(int32, TVoxelArrayView<Type>)> ||
+		LambdaHasSignature_V<LambdaType, bool(int32, TVoxelArrayView<Type>)>>>
 	FORCEINLINE void ForeachView(
 		const int32 StartIndex,
 		const int32 Count,
@@ -345,12 +347,25 @@ public:
 			const int32 ChunkOffset = FVoxelUtilities::GetChunkOffset<NumPerChunk>(Index);
 			const int32 NumInChunk = FMath::Min(NumPerChunk - ChunkOffset, EndIndex - Index);
 
-			Lambda(Index, GetChunkView(ChunkIndex).Slice(ChunkOffset, NumInChunk));
+			if constexpr (std::is_void_v<LambdaReturnType_T<LambdaType>>)
+			{
+				Lambda(Index, GetChunkView(ChunkIndex).Slice(ChunkOffset, NumInChunk));
+			}
+			else
+			{
+				if (!Lambda(Index, GetChunkView(ChunkIndex).Slice(ChunkOffset, NumInChunk)))
+				{
+					return;
+				}
+			}
+
 			Index += NumInChunk;
 		}
 		checkVoxelSlow(Index == EndIndex);
 	}
-	template<typename LambdaType, typename = LambdaHasSignature_T<LambdaType, void(int32, TConstVoxelArrayView<Type>)>>
+	template<typename LambdaType, typename = std::enable_if_t<
+		LambdaHasSignature_V<LambdaType, void(int32, TConstVoxelArrayView<Type>)> ||
+		LambdaHasSignature_V<LambdaType, bool(int32, TConstVoxelArrayView<Type>)>>>
 	FORCEINLINE void ForeachView(
 		const int32 StartIndex,
 		const int32 Count,
@@ -364,19 +379,33 @@ public:
 			const int32 ChunkOffset = FVoxelUtilities::GetChunkOffset<NumPerChunk>(Index);
 			const int32 NumInChunk = FMath::Min(NumPerChunk - ChunkOffset, EndIndex - Index);
 
-			Lambda(Index, GetChunkView(ChunkIndex).Slice(ChunkOffset, NumInChunk));
+			if constexpr (std::is_void_v<LambdaReturnType_T<LambdaType>>)
+			{
+				Lambda(Index, GetChunkView(ChunkIndex).Slice(ChunkOffset, NumInChunk));
+			}
+			else
+			{
+				if (!Lambda(Index, GetChunkView(ChunkIndex).Slice(ChunkOffset, NumInChunk)))
+				{
+					return;
+				}
+			}
+
 			Index += NumInChunk;
 		}
 		checkVoxelSlow(Index == EndIndex);
 	}
 
-
-	template<typename LambdaType, typename = LambdaHasSignature_T<LambdaType, void(int32, TVoxelArrayView<Type>)>>
+	template<typename LambdaType, typename = std::enable_if_t<
+		LambdaHasSignature_V<LambdaType, void(int32, TVoxelArrayView<Type>)> ||
+		LambdaHasSignature_V<LambdaType, bool(int32, TVoxelArrayView<Type>)>>>
 	FORCEINLINE void ForeachView(LambdaType Lambda)
 	{
 		this->ForeachView(0, Num(), MoveTemp(Lambda));
 	}
-	template<typename LambdaType, typename = LambdaHasSignature_T<LambdaType, void(int32, TConstVoxelArrayView<Type>)>>
+	template<typename LambdaType, typename = std::enable_if_t<
+		LambdaHasSignature_V<LambdaType, void(int32, TConstVoxelArrayView<Type>)> ||
+		LambdaHasSignature_V<LambdaType, bool(int32, TConstVoxelArrayView<Type>)>>>
 	FORCEINLINE void ForeachView(LambdaType Lambda) const
 	{
 		this->ForeachView(0, Num(), MoveTemp(Lambda));
@@ -549,6 +578,33 @@ public:
 		}
 
 		return Value;
+	}
+
+	FORCEINLINE int32 Find(const Type& Item) const
+	{
+		int32 Index = -1;
+		this->ForeachView([&](const int32 ViewIndex, const TConstVoxelArrayView<Type> View)
+		{
+			for (const Type& Value : View)
+			{
+				if (Value != Item)
+				{
+					continue;
+				}
+
+				Index = ViewIndex + int32(&Value - View.GetData());
+				return false;
+			}
+
+			return true;
+		});
+
+		checkVoxelSlow(Index == -1 || (*this)[Index] == Item);
+		return Index;
+	}
+	FORCEINLINE bool Contains(const Type& Item) const
+	{
+		return this->Find(Item) != -1;
 	}
 
 	FORCEINLINE void CopyFrom(const int32 StartIndex, const TConstVoxelArrayView<Type> Other)

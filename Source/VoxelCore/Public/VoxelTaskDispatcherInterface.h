@@ -96,7 +96,7 @@ public:
 	~FVoxelTaskDispatcherScope();
 
 	static IVoxelTaskDispatcher& Get();
-	static IVoxelTaskDispatcher& GetGlobal();
+	static IVoxelTaskDispatcher& GetGlobal(bool bBackground = false);
 
 	// Call the lambda in the global task dispatcher scope, avoiding any task leak or weird dependencies
 	template<

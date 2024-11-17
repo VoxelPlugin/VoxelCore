@@ -2,6 +2,8 @@
 
 #include "VoxelThreadPool.h"
 #include "VoxelMemoryScope.h"
+#include "VoxelGlobalTaskDispatcher.h"
+#include "VoxelTaskDispatcherInterface.h"
 #include "Engine/Engine.h"
 #include "HAL/RunnableThread.h"
 #if WITH_EDITOR
@@ -29,6 +31,11 @@ VOXEL_CONSOLE_VARIABLE(
 	"voxel.HideTaskCount",
 	"");
 
+VOXEL_CONSOLE_VARIABLE(
+	VOXELCORE_API, bool, GVoxelVerboseTaskCount, false,
+	"voxel.VerboseTaskCount",
+	"");
+
 FVoxelThreadPool* GVoxelThreadPool = new FVoxelThreadPool();
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -48,8 +55,8 @@ void IVoxelTaskExecutor::TriggerThreads()
 
 FVoxelThreadPool::~FVoxelThreadPool()
 {
-	// 1 for the global executor
-	ensure(Executors_RequiresLock.Num() == 1);
+	// 2 for the global executors
+	ensure(Executors_RequiresLock.Num() == 2);
 }
 
 int32 FVoxelThreadPool::NumTasks() const
@@ -121,6 +128,9 @@ void FVoxelThreadPool::Initialize()
 	FCoreDelegates::OnPreExit.AddLambda(Callback);
 	FCoreDelegates::OnExit.AddLambda(Callback);
 	GOnVoxelModuleUnloaded_DoCleanup.AddLambda(Callback);
+
+	GVoxelGlobalForegroundTaskDispatcher = MakeVoxelShared<FVoxelGlobalTaskDispatcher>(false);
+	GVoxelGlobalBackgroundTaskDispatcher = MakeVoxelShared<FVoxelGlobalTaskDispatcher>(true);
 }
 
 void FVoxelThreadPool::Tick()
@@ -157,10 +167,9 @@ void FVoxelThreadPool::Tick()
 
 	if (!GVoxelHideTaskCount)
 	{
-		if (CurrentNumTasks > 0)
+		const auto ShowStats = [&](const uint64 Id, const FString& Text)
 		{
-			const FString Message = FString::Printf(TEXT("%d voxel tasks left using %d threads"), CurrentNumTasks, GVoxelNumThreads);
-			GEngine->AddOnScreenDebugMessage(uint64(0x557D0C945D26), 0.1f, FColor::White, Message);
+			GEngine->AddOnScreenDebugMessage(Id, 0.1f, FColor::White, Text);
 
 #if WITH_EDITOR
 			extern UNREALED_API FLevelEditorViewportClient* GCurrentLevelEditingViewportClient;
@@ -169,11 +178,24 @@ void FVoxelThreadPool::Tick()
 				GCurrentLevelEditingViewportClient->SetShowStats(true);
 			}
 #endif
+		};
+
+		if (CurrentNumTasks > 0)
+		{
+			ShowStats(uint64(0x557D0C945D26), FString::Printf(TEXT("%d voxel tasks left using %d threads"), CurrentNumTasks, GVoxelNumThreads));
 		}
 		else
 		{
-			// Always clear message
-			GEngine->AddOnScreenDebugMessage(uint64(0x557D0C945D26), 0.f, FColor::White, "");
+			ShowStats(uint64(0x557D0C945D26), {});
+		}
+
+		if (GVoxelVerboseTaskCount)
+		{
+			const int32 NumForegroundTasks = GVoxelGlobalForegroundTaskDispatcher->NumTasks_Actual();
+			const int32 NumBackgroundTasks = GVoxelGlobalBackgroundTaskDispatcher->NumTasks_Actual();
+
+			ShowStats(uint64(0x322D765FAC1E), FString::Printf(TEXT("%d foreground voxel tasks left using %d threads"), NumForegroundTasks, GVoxelNumThreads));
+			ShowStats(uint64(0xC2C1E182DD07), FString::Printf(TEXT("%d background voxel tasks left using %d threads"), NumBackgroundTasks, GVoxelNumThreads));
 		}
 	}
 }

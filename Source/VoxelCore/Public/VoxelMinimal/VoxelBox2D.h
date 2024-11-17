@@ -79,22 +79,6 @@ struct VOXELCORE_API FVoxelBox2D
 	{
 	}
 
-	template<typename T>
-	explicit FVoxelBox2D(const TArray<T>& Data)
-	{
-		if (!ensure(Data.Num() > 0))
-		{
-			Min = Max = FVector2D::ZeroVector;
-			return;
-		}
-
-		*this = FVoxelBox2D(Data[0]);
-		for (int32 Index = 1; Index < Data.Num(); Index++)
-		{
-			*this = *this + Data[Index];
-		}
-	}
-
 	static FVoxelBox2D FromPositions(TConstVoxelArrayView<FIntPoint> Positions);
 	static FVoxelBox2D FromPositions(TConstVoxelArrayView<FVector2f> Positions);
 	static FVoxelBox2D FromPositions(TConstVoxelArrayView<FVector2d> Positions);
@@ -116,25 +100,23 @@ struct VOXELCORE_API FVoxelBox2D
 		return (Min + Max) / 2;
 	}
 
-	FString ToString() const
-	{
-		return FString::Printf(TEXT("(%f/%f, %f/%f)"), Min.X, Max.X, Min.Y, Max.Y);
-	}
-	FBox2D ToFBox() const
+	FString ToString() const;
+
+	FORCEINLINE FBox2D ToFBox() const
 	{
 		return FBox2D(FVector2D(Min), FVector2D(Max));
 	}
-	FBox2f ToFBox2f() const
+	FORCEINLINE FBox2f ToFBox2f() const
 	{
 		return FBox2f(FVector2f(Min), FVector2f(Max));
 	}
-	FVoxelBox ToBox3D(const double MinZ, const double MaxZ) const
+	FORCEINLINE FVoxelBox ToBox3D(const double MinZ, const double MaxZ) const
 	{
 		return FVoxelBox(
 			FVector3d(Min.X, Min.Y, MinZ),
 			FVector3d(Max.X, Max.Y, MaxZ));
 	}
-	FVoxelBox ToBox3D_Infinite() const
+	FORCEINLINE FVoxelBox ToBox3D_Infinite() const
 	{
 		return ToBox3D(FVoxelBox::Infinite.Min.Z, FVoxelBox::Infinite.Max.Z);
 	}
@@ -142,10 +124,10 @@ struct VOXELCORE_API FVoxelBox2D
 	FORCEINLINE bool IsValid() const
 	{
 		return
-			ensure(FMath::IsFinite(Min.X)) &&
-			ensure(FMath::IsFinite(Min.Y)) &&
-			ensure(FMath::IsFinite(Max.X)) &&
-			ensure(FMath::IsFinite(Max.Y)) &&
+			ensureVoxelSlow(FMath::IsFinite(Min.X)) &&
+			ensureVoxelSlow(FMath::IsFinite(Min.Y)) &&
+			ensureVoxelSlow(FMath::IsFinite(Max.X)) &&
+			ensureVoxelSlow(FMath::IsFinite(Max.Y)) &&
 			Min.X <= Max.X &&
 			Min.Y <= Max.Y;
 	}
@@ -187,7 +169,7 @@ struct VOXELCORE_API FVoxelBox2D
 			(Min.Y <= Other.Min.Y) && (Other.Max.Y <= Max.Y);
 	}
 
-	FORCEINLINE bool Intersect(const FVoxelBox2D& Other) const
+	FORCEINLINE bool Intersects(const FVoxelBox2D& Other) const
 	{
 		if (Min.X >= Other.Max.X || Other.Min.X >= Max.X)
 		{
@@ -202,43 +184,30 @@ struct VOXELCORE_API FVoxelBox2D
 		return true;
 	}
 
-	// Return the intersection of the two boxes
-	FVoxelBox2D Overlap(const FVoxelBox2D& Other) const
+	FORCEINLINE FVoxelBox2D IntersectWith(const FVoxelBox2D& Other) const
 	{
-		if (!Intersect(Other))
+		const FVector2D NewMin = FVoxelUtilities::ComponentMax(Min, Other.Min);
+		const FVector2D NewMax = FVoxelUtilities::ComponentMin(Max, Other.Max);
+
+		if (NewMin.X >= NewMax.X ||
+			NewMin.Y >= NewMax.Y)
 		{
 			return {};
 		}
 
-		FVector2D NewMin;
-		FVector2D NewMax;
-
-		NewMin.X = FMath::Max(Min.X, Other.Min.X);
-		NewMax.X = FMath::Min(Max.X, Other.Max.X);
-
-		NewMin.Y = FMath::Max(Min.Y, Other.Min.Y);
-		NewMax.Y = FMath::Min(Max.Y, Other.Max.Y);
-
 		return FVoxelBox2D(NewMin, NewMax);
 	}
-	FVoxelBox2D Union(const FVoxelBox2D& Other) const
+	FORCEINLINE FVoxelBox2D UnionWith(const FVoxelBox2D& Other) const
 	{
-		FVector2D NewMin;
-		FVector2D NewMax;
-
-		NewMin.X = FMath::Min(Min.X, Other.Min.X);
-		NewMax.X = FMath::Max(Max.X, Other.Max.X);
-
-		NewMin.Y = FMath::Min(Min.Y, Other.Min.Y);
-		NewMax.Y = FMath::Max(Max.Y, Other.Max.Y);
-
-		return FVoxelBox2D(NewMin, NewMax);
+		return FVoxelBox2D(
+			FVoxelUtilities::ComponentMin(Min, Other.Min),
+			FVoxelUtilities::ComponentMax(Max, Other.Max));
 	}
 
 	// union(return value, Other) = this
 	TVoxelArray<FVoxelBox2D, TFixedAllocator<4>> Difference(const FVoxelBox2D& Other) const;
 
-	FORCEINLINE double ComputeSquaredDistanceFromBoxToPoint(const FVector2D& Point) const
+	FORCEINLINE double SquaredDistanceToPoint(const FVector2D& Point) const
 	{
 		// Accumulates the distance as we iterate axis
 		double DistSquared = 0;
@@ -264,18 +233,28 @@ struct VOXELCORE_API FVoxelBox2D
 
 		return DistSquared;
 	}
-	FORCEINLINE double DistanceFromBoxToPoint(const FVector2D& Point) const
+	FORCEINLINE double DistanceToPoint(const FVector2D& Point) const
 	{
-		return FMath::Sqrt(ComputeSquaredDistanceFromBoxToPoint(Point));
+		return FMath::Sqrt(SquaredDistanceToPoint(Point));
 	}
 
 	FORCEINLINE FVoxelBox2D Scale(const double S) const
 	{
-		return { Min * S, Max * S };
+		const FVector2D A = Min * S;
+		const FVector2D B = Max * S;
+
+		return FVoxelBox2D(
+			FVoxelUtilities::ComponentMin(A, B),
+			FVoxelUtilities::ComponentMax(A, B));
 	}
 	FORCEINLINE FVoxelBox2D Scale(const FVector2D& S) const
 	{
-		return { Min * S, Max * S };
+		const FVector2D A = Min * S;
+		const FVector2D B = Max * S;
+
+		return FVoxelBox2D(
+			FVoxelUtilities::ComponentMin(A, B),
+			FVoxelUtilities::ComponentMax(A, B));
 	}
 	FORCEINLINE FVoxelBox2D Extend(const double Amount) const
 	{
@@ -314,16 +293,14 @@ struct VOXELCORE_API FVoxelBox2D
 
 	FVoxelBox2D TransformBy(const FTransform2d& Transform) const;
 
-	FORCEINLINE FVoxelBox2D& operator*=(const double Scale)
+	FORCEINLINE FVoxelBox2D& operator*=(const double S)
 	{
-		Min *= Scale;
-		Max *= Scale;
+		*this = Scale(S);
 		return *this;
 	}
-	FORCEINLINE FVoxelBox2D& operator/=(const double Scale)
+	FORCEINLINE FVoxelBox2D& operator/=(const double S)
 	{
-		Min /= Scale;
-		Max /= Scale;
+		*this = Scale(1. / S);
 		return *this;
 	}
 

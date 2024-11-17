@@ -332,7 +332,7 @@ public:
 		while (NumNodesToTraverse > 0)
 		{
 			const FNodeRef NodeRef = NodesToTraverse[--NumNodesToTraverse];
-			if (!NodeRef.GetBounds().Intersect(Bounds))
+			if (!NodeRef.GetBounds().Intersects(Bounds))
 			{
 				continue;
 			}
