@@ -186,7 +186,12 @@ bool FVoxelInstancedStruct::Serialize(FArchive& Ar)
 			}
 		}
 	}
-	else if (Ar.IsSaving())
+	else if (
+		Ar.IsSaving() ||
+		// Make sure object references are accounted for
+		// This is critical for FindReferences or example packaging to work
+		Ar.IsObjectReferenceCollector() ||
+		Ar.IsCountingMemory())
 	{
 		FString StructName;
 		if (GetScriptStruct())
