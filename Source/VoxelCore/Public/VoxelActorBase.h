@@ -143,8 +143,21 @@ public:
 	USceneComponent* NewComponent(const UClass* Class);
 	void RemoveComponent(USceneComponent* Component);
 
+public:
+	void RemoveComponents(
+		UClass* Class,
+		TConstVoxelArrayView<USceneComponent*> Components);
+
+	template<typename T, typename = std::enable_if_t<TIsDerivedFrom<T, USceneComponent>::Value>>
+	void RemoveComponents(TConstVoxelArrayView<T*> Components)
+	{
+		this->RemoveComponents(
+			StaticClassFast<T>(),
+			Components.template ReinterpretAs<USceneComponent*>());
+	}
+
 private:
 	bool bPrivateDisableModify = false;
 	TVoxelSet<TWeakObjectPtr<USceneComponent>> PrivateComponents;
-	TVoxelMap<const UClass*, TVoxelArray<TWeakObjectPtr<USceneComponent>>> PrivateClassToWeakComponents;
+	TVoxelMap<const UClass*, TVoxelChunkedArray<TWeakObjectPtr<USceneComponent>>> PrivateClassToWeakComponents;
 };

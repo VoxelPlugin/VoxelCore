@@ -486,7 +486,7 @@ USceneComponent* AVoxelActorBase::NewComponent(const UClass* Class)
 
 	USceneComponent* Component = nullptr;
 
-	if (TVoxelArray<TWeakObjectPtr<USceneComponent>>* Pool = PrivateClassToWeakComponents.Find(Class))
+	if (TVoxelChunkedArray<TWeakObjectPtr<USceneComponent>>* Pool = PrivateClassToWeakComponents.Find(Class))
 	{
 		while (
 			!Component &&
@@ -544,4 +544,41 @@ void AVoxelActorBase::RemoveComponent(USceneComponent* Component)
 
 	ensure(PrivateComponents.Contains(Component));
 	PrivateClassToWeakComponents.FindOrAdd(Component->GetClass()).Add(Component);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void AVoxelActorBase::RemoveComponents(
+	UClass* Class,
+	const TConstVoxelArrayView<USceneComponent*> Components)
+{
+	VOXEL_FUNCTION_COUNTER_NUM(Components.Num(), 1);
+	check(IsInGameThread());
+
+#if VOXEL_DEBUG
+	for (USceneComponent* Component : Components)
+	{
+		check(Component);
+		check(Component->IsA(Class));
+		ensure(PrivateComponents.Contains(Component));
+	}
+#endif
+
+	if (!ensureVoxelSlow(IsRuntimeCreated()))
+	{
+		for (USceneComponent* Component : Components)
+		{
+			Component->DestroyComponent();
+		}
+		return;
+	}
+
+	TVoxelChunkedArray<TWeakObjectPtr<USceneComponent>>& WeakComponents = PrivateClassToWeakComponents.FindOrAdd(Class);
+
+	for (USceneComponent* Component : Components)
+	{
+		WeakComponents.Add(Component);
+	}
 }

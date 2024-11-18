@@ -15,6 +15,8 @@ public:
 	//~ Begin FVoxelTicker Interface
 	virtual void Tick() override
 	{
+		VOXEL_FUNCTION_COUNTER();
+
 		const double StartTime = FPlatformTime::Seconds();
 
 		while (true)

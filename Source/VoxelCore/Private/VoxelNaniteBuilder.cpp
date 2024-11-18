@@ -311,6 +311,7 @@ void FVoxelNaniteBuilder::ApplyRenderData(UStaticMesh& StaticMesh, TUniquePtr<FS
 	// Not supported, among other issues FSceneProxy::FSceneProxy crashes because GetNumVertices is always 0
 	StaticMesh.bSupportRayTracing = false;
 
+	VOXEL_SCOPE_COUNTER("UStaticMesh::InitResources");
 	StaticMesh.InitResources();
 }
 
