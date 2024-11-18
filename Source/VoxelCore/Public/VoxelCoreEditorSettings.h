@@ -20,10 +20,18 @@ public:
 	//~ End UVoxelDeveloperSettings Interface
 
 #if WITH_EDITORONLY_DATA
-	UPROPERTY(Config, EditAnywhere, Category = "Config", meta = (InlineEditConditionToggle))
-	bool bUseNumberOfThreadsInEditor = false;
+	// If true, will use the game settings (ie, voxel.NumThreads) as the number of threads
+	// It's recommended to keep this false for faster iteration in editor
+	// PIE will always use the game settings
+	UPROPERTY(Config, EditAnywhere, Category = "Config")
+	bool bUseGameThreadingSettingsInEditor = false;
 
-	UPROPERTY(Config, EditAnywhere, Category = "Config", meta = (EditCondition = "bUseNumberOfThreadsInEditor", ClampMin = 1))
+	// The number of threads will be set to NumberOfCores - 2
+	UPROPERTY(Config, EditAnywhere, Category = "Config", meta = (EditCondition = "!bUseGameThreadingSettingsInEditor"))
+	bool bAutomaticallyScaleNumberOfThreads = true;
+
+	// Manual override for the number of threads to use in editor
+	UPROPERTY(Config, EditAnywhere, Category = "Config", meta = (EditCondition = "!bUseGameThreadingSettingsInEditor && !bAutomaticallyScaleNumberOfThreads", ClampMin = 1))
 	int32 NumberOfThreadsInEditor = 2;
 #endif
 };

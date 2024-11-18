@@ -6,6 +6,7 @@
 #include "HAL/Runnable.h"
 
 extern VOXELCORE_API int32 GVoxelNumThreads;
+extern VOXELCORE_API TOptional<int32> GVoxelNumThreadsOverride;
 
 class VOXELCORE_API IVoxelTaskExecutor
 {

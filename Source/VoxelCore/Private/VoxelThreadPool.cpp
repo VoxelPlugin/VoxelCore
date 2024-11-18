@@ -4,17 +4,18 @@
 #include "VoxelMemoryScope.h"
 #include "VoxelCoreEditorSettings.h"
 #include "VoxelGlobalTaskDispatcher.h"
-#include "VoxelTaskDispatcherInterface.h"
 #include "Engine/Engine.h"
 #include "HAL/RunnableThread.h"
 #if WITH_EDITOR
 #include "LevelEditorViewport.h"
 #endif
 
+VOXELCORE_API TOptional<int32> GVoxelNumThreadsOverride;
+
 VOXEL_CONSOLE_VARIABLE(
 	VOXELCORE_API, int32, GVoxelNumThreads, 2,
 	"voxel.NumThreads",
-	"The number of threads to use to process voxel tasks");
+	"The number of threads to use to process voxel tasks in game");
 
 VOXEL_CONSOLE_VARIABLE(
 	VOXELCORE_API, int32, GVoxelThreadPriority, 2,
@@ -143,19 +144,31 @@ void FVoxelThreadPool::Tick()
 		return;
 	}
 
-	GVoxelNumThreads = FMath::Clamp(GVoxelNumThreads, 1, 128);
-
 	int32 NumThreads = GVoxelNumThreads;
 
 #if WITH_EDITOR
 	if (GEditor &&
 		!GEditor->PlayWorld &&
 		!GIsPlayInEditorWorld &&
-		GetDefault<UVoxelCoreEditorSettings>()->bUseNumberOfThreadsInEditor)
+		!GetDefault<UVoxelCoreEditorSettings>()->bUseGameThreadingSettingsInEditor)
 	{
-		NumThreads = FMath::Clamp(GetDefault<UVoxelCoreEditorSettings>()->NumberOfThreadsInEditor, 1, 128);
+		if (GetDefault<UVoxelCoreEditorSettings>()->bAutomaticallyScaleNumberOfThreads)
+		{
+			NumThreads = FPlatformMisc::NumberOfCores() - 2;
+		}
+		else
+		{
+			NumThreads = GetDefault<UVoxelCoreEditorSettings>()->NumberOfThreadsInEditor;
+		}
 	}
 #endif
+
+	if (GVoxelNumThreadsOverride.IsSet())
+	{
+		NumThreads = GVoxelNumThreadsOverride.GetValue();
+	}
+
+	NumThreads = FMath::Clamp(NumThreads, 1, 128);
 
 	if (Threads_RequiresLock.Num() != NumThreads)
 	{
