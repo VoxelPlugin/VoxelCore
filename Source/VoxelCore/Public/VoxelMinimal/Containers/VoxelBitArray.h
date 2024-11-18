@@ -463,5 +463,5 @@ const uint32* RESTRICT GetData(const TVoxelBitArray<Allocator>& Array)
 //	return Array.Num();
 //}
 
-using FVoxelBitArray32 = TVoxelBitArray<FVoxelAllocator>;
+using FVoxelBitArray = TVoxelBitArray<FVoxelAllocator>;
 using FVoxelBitArray64 = TVoxelBitArray<FVoxelAllocator64>;

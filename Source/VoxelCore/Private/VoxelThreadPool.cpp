@@ -2,6 +2,7 @@
 
 #include "VoxelThreadPool.h"
 #include "VoxelMemoryScope.h"
+#include "VoxelCoreEditorSettings.h"
 #include "VoxelGlobalTaskDispatcher.h"
 #include "VoxelTaskDispatcherInterface.h"
 #include "Engine/Engine.h"
@@ -144,19 +145,31 @@ void FVoxelThreadPool::Tick()
 
 	GVoxelNumThreads = FMath::Clamp(GVoxelNumThreads, 1, 128);
 
-	if (Threads_RequiresLock.Num() != GVoxelNumThreads)
+	int32 NumThreads = GVoxelNumThreads;
+
+#if WITH_EDITOR
+	if (GEditor &&
+		!GEditor->PlayWorld &&
+		!GIsPlayInEditorWorld &&
+		GetDefault<UVoxelCoreEditorSettings>()->bUseNumberOfThreadsInEditor)
 	{
-		Voxel::AsyncTask_SkipDispatcher([this]
+		NumThreads = FMath::Clamp(GetDefault<UVoxelCoreEditorSettings>()->NumberOfThreadsInEditor, 1, 128);
+	}
+#endif
+
+	if (Threads_RequiresLock.Num() != NumThreads)
+	{
+		Voxel::AsyncTask_SkipDispatcher([this, NumThreads]
 		{
 			VOXEL_SCOPE_LOCK(Threads_CriticalSection);
 
-			while (Threads_RequiresLock.Num() < GVoxelNumThreads)
+			while (Threads_RequiresLock.Num() < NumThreads)
 			{
 				Threads_RequiresLock.Add(MakeUnique<FThread>());
 				Event.Trigger();
 			}
 
-			while (Threads_RequiresLock.Num() > GVoxelNumThreads)
+			while (Threads_RequiresLock.Num() > NumThreads)
 			{
 				Threads_RequiresLock.Pop();
 			}
@@ -182,7 +195,7 @@ void FVoxelThreadPool::Tick()
 
 		if (CurrentNumTasks > 0)
 		{
-			ShowStats(uint64(0x557D0C945D26), FString::Printf(TEXT("%d voxel tasks left using %d threads"), CurrentNumTasks, GVoxelNumThreads));
+			ShowStats(uint64(0x557D0C945D26), FString::Printf(TEXT("%d voxel tasks left using %d threads"), CurrentNumTasks, NumThreads));
 		}
 		else
 		{
@@ -194,8 +207,8 @@ void FVoxelThreadPool::Tick()
 			const int32 NumForegroundTasks = GVoxelGlobalForegroundTaskDispatcher->NumTasks_Actual();
 			const int32 NumBackgroundTasks = GVoxelGlobalBackgroundTaskDispatcher->NumTasks_Actual();
 
-			ShowStats(uint64(0x322D765FAC1E), FString::Printf(TEXT("%d foreground voxel tasks left using %d threads"), NumForegroundTasks, GVoxelNumThreads));
-			ShowStats(uint64(0xC2C1E182DD07), FString::Printf(TEXT("%d background voxel tasks left using %d threads"), NumBackgroundTasks, GVoxelNumThreads));
+			ShowStats(uint64(0x322D765FAC1E), FString::Printf(TEXT("%d foreground voxel tasks left using %d threads"), NumForegroundTasks, NumThreads));
+			ShowStats(uint64(0xC2C1E182DD07), FString::Printf(TEXT("%d background voxel tasks left using %d threads"), NumBackgroundTasks, NumThreads));
 		}
 	}
 }

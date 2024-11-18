@@ -1,7 +1,7 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
-#include "VoxelMinimal/VoxelSingletonManager.h"
+#include "VoxelSingletonManager.h"
 #include "ShaderCore.h"
 #include "HttpModule.h"
 #include "HttpManager.h"

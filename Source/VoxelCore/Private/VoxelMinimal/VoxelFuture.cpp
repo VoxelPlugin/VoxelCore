@@ -80,8 +80,8 @@ public:
 					continue;
 				}
 
-				ANSICHAR HumanReadableString[4096];
-				FPlatformStackWalk::ProgramCounterToHumanReadableString(Index, uint64(Address), HumanReadableString, 4096);
+				ANSICHAR HumanReadableString[8192];
+				FPlatformStackWalk::ProgramCounterToHumanReadableString(Index, uint64(Address), HumanReadableString, 8192);
 
 				LOG_VOXEL(Log, "%p: %S", Address, HumanReadableString);
 			}

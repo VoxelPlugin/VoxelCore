@@ -167,6 +167,6 @@ private:
 	};
 	int32 ArrayNum = 0;
 	int32 FirstFreeIndex = -1;
-	FVoxelBitArray32 AllocationFlags;
+	FVoxelBitArray AllocationFlags;
 	TVoxelChunkedArray<FElement, MaxBytesPerChunk> Array;
 };

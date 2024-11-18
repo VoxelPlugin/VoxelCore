@@ -347,7 +347,7 @@ void FVoxelCoreBenchmark::Run()
 			constexpr int32 NumInnerRuns = 1000000;
 
 			TBitArray EngineArray;
-			FVoxelBitArray32 VoxelArray;
+			FVoxelBitArray VoxelArray;
 
 			RunBenchmark(
 				"TBitArray::Add",
@@ -382,7 +382,7 @@ void FVoxelCoreBenchmark::Run()
 			constexpr int32 NumInnerRuns = 1000000;
 
 			TBitArray EngineArray;
-			FVoxelBitArray32 VoxelArray;
+			FVoxelBitArray VoxelArray;
 			EngineArray.Reserve(NumInnerRuns);
 			VoxelArray.Reserve(NumInnerRuns);
 
@@ -416,7 +416,7 @@ void FVoxelCoreBenchmark::Run()
 			constexpr int32 NumInnerRuns = 1000000;
 
 			TBitArray EngineArray;
-			FVoxelBitArray32 VoxelArray;
+			FVoxelBitArray VoxelArray;
 			EngineArray.Reserve(NumInnerRuns);
 			VoxelArray.Reserve(NumInnerRuns);
 
