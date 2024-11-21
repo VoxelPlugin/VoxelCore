@@ -87,6 +87,7 @@ void FVoxelThreadPool::RemoveExecutor(IVoxelTaskExecutor* Executor)
 {
 	VOXEL_FUNCTION_COUNTER();
 
+	double LastLogTime = 0;
 	while (true)
 	{
 		{
@@ -101,10 +102,14 @@ void FVoxelThreadPool::RemoveExecutor(IVoxelTaskExecutor* Executor)
 
 		FPlatformProcess::Yield();
 
+		if (FPlatformTime::Seconds() - LastLogTime > 0.5)
+		{
+			LastLogTime = FPlatformTime::Seconds();
+			LOG_VOXEL(Log, "Waiting for task executor to exit...");
+		}
+
 		if (IsInGameThread())
 		{
-			VOXEL_SCOPE_LOCK(Executors_CriticalSection);
-
 			// Avoid deadlock when graph executor is waiting on game thread
 			Voxel::FlushGameTasks();
 		}
