@@ -1,7 +1,6 @@
 ﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelEditorMinimal.h"
-#include "VoxelActorBase.h"
 #include "EditorDirectories.h"
 #include "DesktopPlatformModule.h"
 #include "ISettingsEditorModule.h"

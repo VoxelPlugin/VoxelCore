@@ -4,6 +4,7 @@
 
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelBox.h"
+#include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Utilities/VoxelVectorUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelLambdaUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelIntVectorUtilities.h"

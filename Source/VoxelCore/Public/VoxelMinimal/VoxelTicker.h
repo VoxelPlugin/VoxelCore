@@ -14,6 +14,9 @@ public:
 
 	virtual void Tick() = 0;
 
+public:
+	static void TickAll();
+
 private:
 	FVoxelTickerData* TickerData = nullptr;
 };

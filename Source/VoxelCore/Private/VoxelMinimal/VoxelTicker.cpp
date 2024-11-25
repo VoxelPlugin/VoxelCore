@@ -16,8 +16,7 @@ public:
 
 	FVoxelTickerManager() = default;
 
-	//~ Begin FTickerObjectBase Interface
-	virtual bool Tick(float DeltaTime) override
+	void Tick()
 	{
 		VOXEL_SCOPE_COUNTER_FORMAT("FVoxelTicker::Tick Num=%d", TickerDatas.Num());
 
@@ -33,7 +32,12 @@ public:
 
 			TickerData.Ticker->Tick();
 		}
+	}
 
+	//~ Begin FTickerObjectBase Interface
+	virtual bool Tick(float DeltaTime) override
+	{
+		Tick();
 		return true;
 	}
 	//~ End FTickerObjectBase Interface
@@ -86,4 +90,15 @@ FVoxelTicker::~FVoxelTicker()
 	}
 
 	TickerData->bIsDestroyed = true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void FVoxelTicker::TickAll()
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	GVoxelTickerManager->Tick();
 }

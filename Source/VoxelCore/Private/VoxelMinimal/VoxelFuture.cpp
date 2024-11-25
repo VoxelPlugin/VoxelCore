@@ -81,7 +81,10 @@ public:
 				}
 
 				ANSICHAR HumanReadableString[8192];
-				FPlatformStackWalk::ProgramCounterToHumanReadableString(Index, uint64(Address), HumanReadableString, 8192);
+				if (!FPlatformStackWalk::ProgramCounterToHumanReadableString(Index, uint64(Address), HumanReadableString, 8192))
+				{
+					HumanReadableString[0] = '\0';
+				}
 
 				LOG_VOXEL(Log, "%p: %S", Address, HumanReadableString);
 			}
