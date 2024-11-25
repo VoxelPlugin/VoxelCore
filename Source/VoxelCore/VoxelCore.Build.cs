@@ -53,6 +53,7 @@ public class VoxelCore : ModuleRules
 				"SlateCore",
 				"Json",
 				"JsonUtilities",
+				"MoviePlayer",
 #if UE_5_4_OR_LATER
 				"EventLoop",
 #endif
