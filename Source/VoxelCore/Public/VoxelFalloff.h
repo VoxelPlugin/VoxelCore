@@ -5,7 +5,7 @@
 #include "VoxelMinimal.h"
 #include "VoxelFalloff.generated.h"
 
-UENUM(BlueprintType)
+UENUM(BlueprintType, meta = (VoxelSegmentedEnum))
 enum class EVoxelFalloffType : uint8
 {
 	None UMETA(ToolTip = "No falloff", Icon = "Icons.Denied"),

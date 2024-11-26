@@ -12,13 +12,13 @@
 class UTexture2D;
 class UTexture2DArray;
 
-UENUM(BlueprintType)
+UENUM(BlueprintType, meta = (VoxelSegmentedEnum))
 enum class EVoxelTextureChannel : uint8
 {
-	R,
-	G,
-	B,
-	A
+	R UMETA(Color = "AccentRed", Font = "PropertyWindow.BoldFont"),
+	G UMETA(Color = "AccentGreen", Font = "PropertyWindow.BoldFont"),
+	B UMETA(Color = "AccentBlue", Font = "PropertyWindow.BoldFont"),
+	A UMETA(Color = "AccentGray", Font = "PropertyWindow.BoldFont")
 };
 
 struct VOXELCORE_API FVoxelTextureUtilities
