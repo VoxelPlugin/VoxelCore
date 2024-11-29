@@ -12,7 +12,9 @@ UScriptStruct* FindCoreStruct(const TCHAR* Name)
 	return FindObjectChecked<UScriptStruct>(Package, Name);
 }
 
-void ForEachAssetOfClass(const UClass* ClassToLookFor, TFunctionRef<void(UObject*)> Operation)
+void ForEachAssetDataOfClass(
+	const UClass* ClassToLookFor,
+	const TFunctionRef<void(const FAssetData&)> Operation)
 {
 	VOXEL_FUNCTION_COUNTER();
 
@@ -34,15 +36,25 @@ void ForEachAssetOfClass(const UClass* ClassToLookFor, TFunctionRef<void(UObject
 
 	for (const FAssetData& AssetData : AssetDatas)
 	{
+		Operation(AssetData);
+	}
+}
+
+void ForEachAssetOfClass(
+	const UClass* ClassToLookFor,
+	const TFunctionRef<void(UObject*)> Operation)
+{
+	ForEachAssetDataOfClass(ClassToLookFor, [&](const FAssetData& AssetData)
+	{
 		UObject* Asset = AssetData.GetAsset();
 		if (!ensure(Asset) ||
 			!ensure(Asset->IsA(ClassToLookFor)))
 		{
-			continue;
+			return;
 		}
 
 		Operation(Asset);
-	}
+	});
 }
 
 TArray<UScriptStruct*> GetDerivedStructs(const UScriptStruct* BaseStruct, const bool bIncludeBase)

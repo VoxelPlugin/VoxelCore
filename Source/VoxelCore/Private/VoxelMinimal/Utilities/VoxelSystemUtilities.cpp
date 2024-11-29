@@ -19,7 +19,7 @@ void FVoxelUtilities::DelayedCall(TFunction<void()> Call, const float Delay)
 	// Delay will be inaccurate if not on game thread but that's fine
 	Voxel::GameTask([=]
 	{
-		FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([=](float)
+		FTSTicker::GetCoreTicker().AddTicker(MakeLambdaDelegate([=](float)
 		{
 			VOXEL_FUNCTION_COUNTER();
 			Call();

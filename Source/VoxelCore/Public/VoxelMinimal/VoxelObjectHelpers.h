@@ -260,9 +260,19 @@ FORCEINLINE UClass* StaticClassFast()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+VOXELCORE_API void ForEachAssetDataOfClass(
+	const UClass* ClassToLookFor,
+	TFunctionRef<void(const FAssetData&)> Operation);
+
 VOXELCORE_API void ForEachAssetOfClass(
 	const UClass* ClassToLookFor,
 	TFunctionRef<void(UObject*)> Operation);
+
+template<typename T>
+void ForEachAssetDataOfClass(TFunctionRef<void(const FAssetData&)> Operation)
+{
+	ForEachAssetDataOfClass(T::StaticClass(), Operation);
+}
 
 template<typename T, typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<T&>()))>>>
 void ForEachAssetOfClass(LambdaType&& Operation)
