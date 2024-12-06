@@ -5,7 +5,7 @@ using UnrealBuildTool;
 
 public class VoxelCoreEditor : ModuleRules
 {
-    public VoxelCoreEditor(ReadOnlyTargetRules Target) : base(Target)
+	public VoxelCoreEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		DefaultBuildSettings = BuildSettingsVersion.Latest;
 		CppStandard = CppStandardVersion.Cpp20;
@@ -16,9 +16,9 @@ public class VoxelCoreEditor : ModuleRules
 		// For FDetailCategoryBuilderImpl
 		PrivateIncludePaths.Add(Path.Combine(EngineDirectory, "Source/Editor/PropertyEditor/Private"));
 
-        PublicDependencyModuleNames.AddRange(
-            new string[]
-            {
+		PublicDependencyModuleNames.AddRange(
+			new string[]
+			{
 				"VoxelCore",
 				"Core",
 				"CoreUObject",
@@ -32,24 +32,25 @@ public class VoxelCoreEditor : ModuleRules
 				"SlateCore",
 				"EditorStyle",
 				"PropertyEditor",
-                "EditorFramework",
-                "AdvancedPreviewScene",
-            });
+				"EditorFramework",
+				"AdvancedPreviewScene",
+			});
 
-        PrivateDependencyModuleNames.AddRange(
-            new string[]
-            {
+		PrivateDependencyModuleNames.AddRange(
+			new string[]
+			{
 				"GraphEditor",
-                "PlacementMode",
-                "MessageLog",
-                "WorkspaceMenuStructure",
-                "DetailCustomizations",
-                "BlueprintGraph",
-                "Landscape",
-                "ToolMenus",
-                "SceneOutliner",
-                "SettingsEditor",
-		"ApplicationCore",
-            });
-    }
+				"PlacementMode",
+				"MessageLog",
+				"WorkspaceMenuStructure",
+				"DetailCustomizations",
+				"BlueprintGraph",
+				"Landscape",
+				"ToolMenus",
+				"SceneOutliner",
+				"SettingsEditor",
+				"ApplicationCore",
+				"SharedSettingsWidgets",
+			});
+	}
 }
