@@ -13,8 +13,6 @@ class FVoxelPromise;
 class IVoxelTaskDispatcher;
 class FVoxelTaskDispatcherKeepAliveRef;
 
-bool IsInGameThreadFast();
-
 template<typename>
 class TVoxelFuture;
 template<typename>
@@ -201,7 +199,7 @@ public:
 		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
 	FORCEINLINE TVoxelFutureType<ReturnType> Then_GameThread(LambdaType Continuation) const
 	{
-		if (IsInGameThreadFast())
+		if (IsInGameThread())
 		{
 			if constexpr (std::is_void_v<ReturnType>)
 			{
@@ -401,7 +399,7 @@ public:
 			LambdaHasSignature_V<LambdaType, ReturnType(T)>>>
 	FORCEINLINE TVoxelFutureType<ReturnType> Then_GameThread(LambdaType Continuation) const
 	{
-		if (IsInGameThreadFast())
+		if (IsInGameThread())
 		{
 			if constexpr (std::is_void_v<ReturnType>)
 			{
