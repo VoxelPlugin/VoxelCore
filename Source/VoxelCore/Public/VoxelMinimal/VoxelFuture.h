@@ -13,6 +13,8 @@ class FVoxelPromise;
 class IVoxelTaskDispatcher;
 class FVoxelTaskDispatcherKeepAliveRef;
 
+bool IsInGameThreadFast();
+
 template<typename>
 class TVoxelFuture;
 template<typename>
@@ -176,22 +178,44 @@ public:
 		return Promise.GetFuture();
 	}
 
-#define Define(Thread) \
+#define Define(Thread, Suffix) \
 	template< \
 		typename LambdaType, \
 		typename ReturnType = LambdaReturnType_T<LambdaType>, \
 		typename = LambdaHasSignature_T<LambdaType, ReturnType()>> \
-	FORCEINLINE TVoxelFutureType<ReturnType> Then_ ## Thread(LambdaType Continuation) const \
+	FORCEINLINE TVoxelFutureType<ReturnType> Then_ ## Thread ## Suffix(LambdaType Continuation) const \
 	{ \
 		return this->Then(EVoxelFutureThread::Thread, MoveTemp(Continuation)); \
 	}
 
-	Define(AnyThread);
-	Define(GameThread);
-	Define(RenderThread);
-	Define(AsyncThread);
+	Define(AnyThread,);
+	Define(GameThread, _Async);
+	Define(RenderThread,);
+	Define(AsyncThread,);
 
 #undef Define
+
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+	FORCEINLINE TVoxelFutureType<ReturnType> Then_GameThread(LambdaType Continuation) const
+	{
+		if (IsInGameThreadFast())
+		{
+			if constexpr (std::is_void_v<ReturnType>)
+			{
+				Continuation();
+				return Done();
+			}
+			else
+			{
+				return Continuation();
+			}
+		}
+
+		return this->Then(EVoxelFutureThread::GameThread, MoveTemp(Continuation));
+	}
 
 protected:
 	TSharedPtr<FVoxelPromiseState> PromiseState;
@@ -348,26 +372,50 @@ public:
 		return Promise.GetFuture();
 	}
 
-#define Define(Thread) \
+#define Define(Thread, Suffix) \
 	template< \
 		typename LambdaType, \
 		typename ReturnType = LambdaReturnType_T<LambdaType>, \
 		typename = std::enable_if_t< \
 			LambdaHasSignature_V<LambdaType, ReturnType(const TSharedRef<T>&)> || \
 			LambdaHasSignature_V<LambdaType, ReturnType(const T&)> || \
-			LambdaHasSignature_V<LambdaType, ReturnType(T)>>, \
-		typename = void> \
-	FORCEINLINE TVoxelFutureType<ReturnType> Then_ ## Thread(LambdaType Continuation) const \
+			LambdaHasSignature_V<LambdaType, ReturnType(T)>>> \
+	FORCEINLINE TVoxelFutureType<ReturnType> Then_ ## Thread ## Suffix(LambdaType Continuation) const \
 	{ \
 		return this->Then(EVoxelFutureThread::Thread, MoveTemp(Continuation)); \
 	}
 
-	Define(AnyThread);
-	Define(GameThread);
-	Define(RenderThread);
-	Define(AsyncThread);
+	Define(AnyThread,);
+	Define(GameThread, _Async);
+	Define(RenderThread,);
+	Define(AsyncThread,);
 
 #undef Define
+
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = std::enable_if_t<
+			LambdaHasSignature_V<LambdaType, ReturnType(const TSharedRef<T>&)> ||
+			LambdaHasSignature_V<LambdaType, ReturnType(const T&)> ||
+			LambdaHasSignature_V<LambdaType, ReturnType(T)>>>
+	FORCEINLINE TVoxelFutureType<ReturnType> Then_GameThread(LambdaType Continuation) const
+	{
+		if (IsInGameThreadFast())
+		{
+			if constexpr (std::is_void_v<ReturnType>)
+			{
+				Continuation(*ReinterpretCastRef<TSharedRef<T>>(GetSharedValueChecked()));
+				return Done();
+			}
+			else
+			{
+				return Continuation(*ReinterpretCastRef<TSharedRef<T>>(GetSharedValueChecked()));
+			}
+		}
+
+		return this->Then(EVoxelFutureThread::GameThread, MoveTemp(Continuation));
+	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
