@@ -320,6 +320,11 @@ public:
 		return *GetSharedValueChecked();
 	}
 
+	FORCEINLINE operator TVoxelFuture<const T>() const
+	{
+		return ReinterpretCastRef<TVoxelFuture<const T>>(*this);
+	}
+
 public:
 	template<
 		typename LambdaType,
