@@ -18,7 +18,7 @@ namespace FVoxelUtilities
 	};
 
 	template<typename T>
-	static constexpr bool IsForceInitializeable_V = std::is_constructible_v<T, TConvertibleOnlyTo<EForceInit>>;
+	static constexpr bool IsForceInitializable_V = std::is_constructible_v<T, TConvertibleOnlyTo<EForceInit>>;
 
 	template<typename T>
 	static constexpr bool CanMakeSafe =
@@ -26,12 +26,12 @@ namespace FVoxelUtilities
 		!TIsDerivedFrom<T, UObject>::Value;
 
 	template<typename T, typename = std::enable_if_t<CanMakeSafe<T>>>
-	std::enable_if_t<!IsForceInitializeable_V<T>, T> MakeSafe()
+	std::enable_if_t<!IsForceInitializable_V<T>, T> MakeSafe()
 	{
 		return T{};
 	}
 	template<typename T, typename = std::enable_if_t<CanMakeSafe<T>>>
-	std::enable_if_t<IsForceInitializeable_V<T>, T> MakeSafe()
+	std::enable_if_t<IsForceInitializable_V<T>, T> MakeSafe()
 	{
 		return T(ForceInit);
 	}

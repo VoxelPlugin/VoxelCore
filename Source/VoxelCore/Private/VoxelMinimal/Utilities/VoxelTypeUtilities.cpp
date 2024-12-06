@@ -14,7 +14,7 @@ namespace FVoxelForceInitTest
 		FTestNoForceInit2(int32 Value) {}
 	};
 
-	checkStatic(!FVoxelUtilities::IsForceInitializeable_V<FTestNoForceInit>);
-	checkStatic(!FVoxelUtilities::IsForceInitializeable_V<FTestNoForceInit2>);
-	checkStatic(FVoxelUtilities::IsForceInitializeable_V<FVector>);
+	checkStatic(!FVoxelUtilities::IsForceInitializable_V<FTestNoForceInit>);
+	checkStatic(!FVoxelUtilities::IsForceInitializable_V<FTestNoForceInit2>);
+	checkStatic(FVoxelUtilities::IsForceInitializable_V<FVector>);
 }

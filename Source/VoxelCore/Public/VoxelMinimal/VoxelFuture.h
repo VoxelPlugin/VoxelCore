@@ -399,10 +399,32 @@ public:
 	template<
 		typename LambdaType,
 		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = LambdaHasSignature_T<LambdaType, ReturnType(const TSharedRef<T>&)>>
+	FORCEINLINE TVoxelFutureType<ReturnType> Then_GameThread(LambdaType Continuation) const
+	{
+		if (IsComplete() &&
+			IsInGameThread())
+		{
+			if constexpr (std::is_void_v<ReturnType>)
+			{
+				Continuation(ReinterpretCastRef<TSharedRef<T>>(GetSharedValueChecked()));
+				return Done();
+			}
+			else
+			{
+				return Continuation(ReinterpretCastRef<TSharedRef<T>>(GetSharedValueChecked()));
+			}
+		}
+
+		return this->Then(EVoxelFutureThread::GameThread, MoveTemp(Continuation));
+	}
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
 		typename = std::enable_if_t<
-			LambdaHasSignature_V<LambdaType, ReturnType(const TSharedRef<T>&)> ||
 			LambdaHasSignature_V<LambdaType, ReturnType(const T&)> ||
-			LambdaHasSignature_V<LambdaType, ReturnType(T)>>>
+			LambdaHasSignature_V<LambdaType, ReturnType(T)>>,
+		typename = void>
 	FORCEINLINE TVoxelFutureType<ReturnType> Then_GameThread(LambdaType Continuation) const
 	{
 		if (IsComplete() &&
