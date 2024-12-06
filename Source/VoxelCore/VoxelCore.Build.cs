@@ -14,7 +14,7 @@ public class VoxelCore : ModuleRules
 		PrivatePCHHeaderFile = "Public/VoxelMinimal.h";
 
 		if (Target.Configuration == UnrealTargetConfiguration.Debug ||
-			Target.Configuration == UnrealTargetConfiguration.DebugGame)
+		    Target.Configuration == UnrealTargetConfiguration.DebugGame)
 		{
 			PublicDefinitions.Add("VOXEL_DEBUG=1");
 		}
@@ -73,7 +73,8 @@ public class VoxelCore : ModuleRules
 		}
 
 		PrivateIncludePaths.AddRange(
-			new string[] {
+			new string[]
+			{
 				Path.Combine(EngineDirectory, "Source/Runtime/Renderer/Private")
 			}
 		);
