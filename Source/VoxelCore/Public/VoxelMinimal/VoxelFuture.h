@@ -199,7 +199,8 @@ public:
 		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
 	FORCEINLINE TVoxelFutureType<ReturnType> Then_GameThread(LambdaType Continuation) const
 	{
-		if (IsInGameThread())
+		if (IsComplete() &&
+			IsInGameThread())
 		{
 			if constexpr (std::is_void_v<ReturnType>)
 			{
@@ -399,7 +400,8 @@ public:
 			LambdaHasSignature_V<LambdaType, ReturnType(T)>>>
 	FORCEINLINE TVoxelFutureType<ReturnType> Then_GameThread(LambdaType Continuation) const
 	{
-		if (IsInGameThread())
+		if (IsComplete() &&
+			IsInGameThread())
 		{
 			if constexpr (std::is_void_v<ReturnType>)
 			{
