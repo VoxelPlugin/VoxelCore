@@ -264,10 +264,6 @@ struct VOXELCORE_API FVoxelIntBox
 
 		return true;
 	}
-	FORCEINLINE bool IntersectsSphere(const FVector& Center, const double Radius) const
-	{
-		return SquaredDistanceToPoint(Center) <= FMath::Square(Radius);
-	}
 
 	FORCEINLINE FVoxelIntBox IntersectWith(const FVoxelIntBox& Other) const
 	{

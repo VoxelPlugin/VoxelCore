@@ -236,11 +236,6 @@ struct VOXELCORE_API FVoxelIntBox2D
 		return true;
 	}
 
-	FORCEINLINE bool IntersectsSphere(const FVector2D& Center, const double Radius) const
-	{
-		return SquaredDistanceToPoint(Center) <= FMath::Square(Radius);
-	}
-
 	FORCEINLINE FVoxelIntBox2D IntersectWith(const FVoxelIntBox2D& Other) const
 	{
 		const FIntPoint NewMin = FVoxelUtilities::ComponentMax(Min, Other.Min);

@@ -3,49 +3,60 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/Containers/VoxelArray.h"
+#include "VoxelMinimal/Containers/VoxelArrayView.h"
 
 namespace FVoxelUtilities
 {
-	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
-	FORCEINLINE bool AreSegmentsIntersecting(
-		const VectorType& StartA,
-		const VectorType& EndA,
-		const VectorType& StartB,
-		const VectorType& EndB)
-	{
-		const VectorType VectorA = EndA - StartA;
-		const VectorType VectorB = EndB - StartB;
+	template<typename T>
+	using TVector2 = UE::Math::TVector2<T>;
 
-		const ScalarType S =
-			(VectorA.X * (StartA.Y - StartB.Y) - VectorA.Y * (StartA.X - StartB.X)) /
-			(VectorA.X * VectorB.Y - VectorA.Y * VectorB.X);
+	template<typename T>
+	using TVector = UE::Math::TVector<T>;
 
-		const ScalarType T =
-			(VectorB.X * (StartB.Y - StartA.Y) - VectorB.Y * (StartB.X - StartA.X)) /
-			(VectorB.X * VectorA.Y - VectorB.Y * VectorA.X);
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
 
-		return
-			0 <= S && S <= 1 &&
-			0 <= T && T <= 1;
-	}
+	// O(n2)
+	VOXELCORE_API bool IsPolygonSelfIntersecting(TConstVoxelArrayView<FVector2D> Polygon);
+	VOXELCORE_API bool IsPolygonWindingCCW(TConstVoxelArrayView<FVector2D> Polygon);
+	VOXELCORE_API bool IsPolygonConvex(TConstVoxelArrayView<FVector2D> Polygon);
 
-	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
+	VOXELCORE_API bool IsInConvexPolygon(
+		const FVector2D& Point,
+		TConstVoxelArrayView<FVector2D> Polygon);
+
+	// Will return false if the segment is fully contained within the polygon
+	VOXELCORE_API bool SegmentIntersectsPolygon(
+		const FVector2D& A,
+		const FVector2D& B,
+		TConstVoxelArrayView<FVector2D> Polygon);
+
+	VOXELCORE_API TVoxelArray<TVoxelArray<FVector2D>> GenerateConvexPolygons(TConstVoxelArrayView<FVector2D> Polygon);
+
+	VOXELCORE_API TVoxelArray<FVector2D> TriangulatePolygon(TConstVoxelArrayView<FVector2D> Polygon);
+	VOXELCORE_API TVoxelArray<TVoxelArray<FVector2D>> GenerateConvexPolygonsFromTriangles(TConstVoxelArrayView<FVector2D> Triangles);
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	template<typename Real>
 	FORCEINLINE bool RayTriangleIntersection(
-		const VectorType& RayOrigin,
-		const VectorType& RayDirection,
-		const VectorType& VertexA,
-		const VectorType& VertexB,
-		const VectorType& VertexC,
+		const TVector<Real>& RayOrigin,
+		const TVector<Real>& RayDirection,
+		const TVector<Real>& VertexA,
+		const TVector<Real>& VertexB,
+		const TVector<Real>& VertexC,
 		const bool bAllowNegativeTime,
-		ScalarType& OutTime,
-		VectorType* OutBarycentrics = nullptr)
+		Real& OutTime,
+		TVector<Real>* OutBarycentrics = nullptr)
 	{
-		checkStatic(std::is_same_v<ScalarType, typename VectorType::FReal>);
-
-		const VectorType Diff = RayOrigin - VertexA;
-		const VectorType Edge1 = VertexB - VertexA;
-		const VectorType Edge2 = VertexC - VertexA;
-		const VectorType Normal = VectorType::CrossProduct(Edge1, Edge2);
+		const TVector<Real> Diff = RayOrigin - VertexA;
+		const TVector<Real> Edge1 = VertexB - VertexA;
+		const TVector<Real> Edge2 = VertexC - VertexA;
+		const TVector<Real> Normal = TVector<Real>::CrossProduct(Edge1, Edge2);
 
 		// With:
 		// Q = Diff, D = RayDirection, E1 = Edge1, E2 = Edge2, N = Cross(E1, E2)
@@ -58,8 +69,8 @@ namespace FVoxelUtilities
 		//   |Dot(D, N)| * b2 = sign(Dot(D, N)) * Dot(D, Cross(E1, Q))
 		//   |Dot(D, N)| * t = -sign(Dot(D, N)) * Dot(Q, N)
 
-		ScalarType Dot = RayDirection.Dot(Normal);
-		ScalarType Sign;
+		Real Dot = RayDirection.Dot(Normal);
+		Real Sign;
 		if (Dot > KINDA_SMALL_NUMBER)
 		{
 			Sign = 1;
@@ -75,14 +86,14 @@ namespace FVoxelUtilities
 			return false;
 		}
 
-		const ScalarType DotTimesB1 = Sign * RayDirection.Dot(Diff.Cross(Edge2));
+		const Real DotTimesB1 = Sign * RayDirection.Dot(Diff.Cross(Edge2));
 		if (DotTimesB1 < 0)
 		{
 			// b1 < 0, no intersection
 			return false;
 		}
 
-		const ScalarType DotTimesB2 = Sign * RayDirection.Dot(Edge1.Cross(Diff));
+		const Real DotTimesB2 = Sign * RayDirection.Dot(Edge1.Cross(Diff));
 		if (DotTimesB2 < 0)
 		{
 			// b2 < 0, no intersection
@@ -96,7 +107,7 @@ namespace FVoxelUtilities
 		}
 
 		// Line intersects triangle, check if ray does.
-		const ScalarType DotTimesT = -Sign * Diff.Dot(Normal);
+		const Real DotTimesT = -Sign * Diff.Dot(Normal);
 		if (DotTimesT < 0 && !bAllowNegativeTime)
 		{
 			// t < 0, no intersection
@@ -120,44 +131,36 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	template<typename VectorType>
-	FORCEINLINE VectorType GetTriangleCrossProduct(
-		const VectorType& A,
-		const VectorType& B,
-		const VectorType& C)
+	template<typename Real>
+	FORCEINLINE TVector<Real> GetTriangleNormal(
+		const TVector<Real>& A,
+		const TVector<Real>& B,
+		const TVector<Real>& C)
 	{
-		return VectorType::CrossProduct(C - A, B - A);
+		return TVector<Real>::CrossProduct(C - A, B - A).GetSafeNormal();
 	}
-	template<typename VectorType>
-	FORCEINLINE VectorType GetTriangleNormal(
-		const VectorType& A,
-		const VectorType& B,
-		const VectorType& C)
+	template<typename Real>
+	FORCEINLINE Real GetTriangleArea(
+		const TVector<Real>& A,
+		const TVector<Real>& B,
+		const TVector<Real>& C)
 	{
-		return GetTriangleCrossProduct(A, B, C).GetSafeNormal();
+		return TVector<Real>::CrossProduct(C - A, B - A).Size() / Real(2);
 	}
-	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
-	FORCEINLINE ScalarType GetTriangleArea(
-		const VectorType& A,
-		const VectorType& B,
-		const VectorType& C)
+	template<typename Real>
+	FORCEINLINE Real GetTriangleAreaSquared(
+		const TVector<Real>& A,
+		const TVector<Real>& B,
+		const TVector<Real>& C)
 	{
-		return VectorType::CrossProduct(C - A, B - A).Size() / ScalarType(2);
+		return TVector<Real>::CrossProduct(C - A, B - A).SizeSquared() / Real(4);
 	}
-	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
-	FORCEINLINE ScalarType GetTriangleAreaSquared(
-		const VectorType& A,
-		const VectorType& B,
-		const VectorType& C)
-	{
-		return VectorType::CrossProduct(C - A, B - A).SizeSquared() / ScalarType(4);
-	}
-	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
+	template<typename Real>
 	FORCEINLINE bool IsTriangleValid(
-		const VectorType& A,
-		const VectorType& B,
-		const VectorType& C,
-		const ScalarType Tolerance = KINDA_SMALL_NUMBER)
+		const TVector<Real>& A,
+		const TVector<Real>& B,
+		const TVector<Real>& C,
+		const Real Tolerance = KINDA_SMALL_NUMBER)
 	{
 		checkVoxelSlow((GetTriangleAreaSquared(A, B, C) > FMath::Square(Tolerance)) == (GetTriangleArea(A, B, C) > Tolerance));
 		return GetTriangleAreaSquared(A, B, C) > FMath::Square(Tolerance);
@@ -167,28 +170,28 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
+	template<typename Real>
 	FORCEINLINE void GetTriangleBarycentrics(
-		const VectorType& Point,
-		const VectorType& A,
-		const VectorType& B,
-		const VectorType& C,
-		ScalarType& OutAlphaA,
-		ScalarType& OutAlphaB,
-		ScalarType& OutAlphaC)
+		const TVector<Real>& Point,
+		const TVector<Real>& A,
+		const TVector<Real>& B,
+		const TVector<Real>& C,
+		Real& OutAlphaA,
+		Real& OutAlphaB,
+		Real& OutAlphaC)
 	{
-		const VectorType CA = A - C;
-		const VectorType CB = B - C;
-		const VectorType CP = Point - C;
+		const TVector<Real> CA = A - C;
+		const TVector<Real> CB = B - C;
+		const TVector<Real> CP = Point - C;
 
-		const ScalarType SizeCA = CA.SizeSquared();
-		const ScalarType SizeCB = CB.SizeSquared();
+		const Real SizeCA = CA.SizeSquared();
+		const Real SizeCB = CB.SizeSquared();
 
-		const ScalarType a = VectorType::DotProduct(CA, CP);
-		const ScalarType b = VectorType::DotProduct(CB, CP);
-		const ScalarType d = VectorType::DotProduct(CA, CB);
+		const Real a = TVector<Real>::DotProduct(CA, CP);
+		const Real b = TVector<Real>::DotProduct(CB, CP);
+		const Real d = TVector<Real>::DotProduct(CA, CB);
 
-		const ScalarType Determinant = SizeCA * SizeCB - d * d;
+		const Real Determinant = SizeCA * SizeCB - d * d;
 		ensureVoxelSlow(Determinant > 0.f);
 
 		OutAlphaA = (SizeCB * a - d * b) / Determinant;
@@ -198,47 +201,47 @@ namespace FVoxelUtilities
 		ensureVoxelSlow(OutAlphaA > 0 || OutAlphaB > 0 || OutAlphaC > 0);
 	}
 
-	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
-	FORCEINLINE ScalarType ProjectPointOnLine(
-		const VectorType& Point,
-		const VectorType& A,
-		const VectorType& B)
+	template<typename Real>
+	FORCEINLINE Real ProjectPointOnLine(
+		const TVector<Real>& Point,
+		const TVector<Real>& A,
+		const TVector<Real>& B)
 	{
-		const VectorType AB = B - A;
-		const VectorType AP = Point - A;
+		const TVector<Real> AB = B - A;
+		const TVector<Real> AP = Point - A;
 
-		// return VectorType::DotProduct(AP, AB.GetSafeNormal()) / AB.Size();
-		// return VectorType::DotProduct(AP, AB / AB.Size()) / AB.Size();
-		// return VectorType::DotProduct(AP, AB) / AB.Size() / AB.Size();
-		return VectorType::DotProduct(AP, AB) / AB.SizeSquared();
+		// return TVector<Real>::DotProduct(AP, AB.GetSafeNormal()) / AB.Size();
+		// return TVector<Real>::DotProduct(AP, AB / AB.Size()) / AB.Size();
+		// return TVector<Real>::DotProduct(AP, AB) / AB.Size() / AB.Size();
+		return TVector<Real>::DotProduct(AP, AB) / AB.SizeSquared();
 	}
 
-	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
-	FORCEINLINE ScalarType PointSegmentDistanceSquared(
-		const VectorType& Point,
-		const VectorType& A,
-		const VectorType& B,
-		ScalarType& OutAlphaB)
+	template<typename Real>
+	FORCEINLINE Real PointSegmentDistanceSquared(
+		const TVector<Real>& Point,
+		const TVector<Real>& A,
+		const TVector<Real>& B,
+		Real& OutAlphaB)
 	{
-		ScalarType Alpha = ProjectPointOnLine(Point, A, B);
+		Real Alpha = ProjectPointOnLine(Point, A, B);
 		// Clamp to AB
-		Alpha = FMath::Clamp<ScalarType>(Alpha, 0, 1);
+		Alpha = FMath::Clamp<Real>(Alpha, 0, 1);
 
 		OutAlphaB = Alpha;
 
-		const VectorType ProjectedPoint = FMath::Lerp(A, B, Alpha);
-		return VectorType::DistSquared(Point, ProjectedPoint);
+		const TVector<Real> ProjectedPoint = FMath::Lerp(A, B, Alpha);
+		return TVector<Real>::DistSquared(Point, ProjectedPoint);
 	}
 
-	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
-	FORCEINLINE ScalarType PointTriangleDistanceSquared(
-		const VectorType& Point,
-		const VectorType& A,
-		const VectorType& B,
-		const VectorType& C,
-		ScalarType& OutAlphaA,
-		ScalarType& OutAlphaB,
-		ScalarType& OutAlphaC)
+	template<typename Real>
+	FORCEINLINE Real PointTriangleDistanceSquared(
+		const TVector<Real>& Point,
+		const TVector<Real>& A,
+		const TVector<Real>& B,
+		const TVector<Real>& C,
+		Real& OutAlphaA,
+		Real& OutAlphaB,
+		Real& OutAlphaC)
 	{
 		FVoxelUtilities::GetTriangleBarycentrics(
 			Point,
@@ -254,18 +257,18 @@ namespace FVoxelUtilities
 			OutAlphaC >= 0)
 		{
 			// We're inside the triangle
-			return VectorType::DistSquared(Point, OutAlphaA * A + OutAlphaB * B + OutAlphaC * C);
+			return TVector<Real>::DistSquared(Point, OutAlphaA * A + OutAlphaB * B + OutAlphaC * C);
 		}
 
 		if (OutAlphaA > 0)
 		{
 			// Rules out BC
 
-			ScalarType AlphaB_AB;
-			const ScalarType DistanceAB = FVoxelUtilities::PointSegmentDistanceSquared(Point, A, B, AlphaB_AB);
+			Real AlphaB_AB;
+			const Real DistanceAB = FVoxelUtilities::PointSegmentDistanceSquared(Point, A, B, AlphaB_AB);
 
-			ScalarType AlphaC_AC;
-			const ScalarType DistanceAC = FVoxelUtilities::PointSegmentDistanceSquared(Point, A, C, AlphaC_AC);
+			Real AlphaC_AC;
+			const Real DistanceAC = FVoxelUtilities::PointSegmentDistanceSquared(Point, A, C, AlphaC_AC);
 
 			if (DistanceAB < DistanceAC)
 			{
@@ -287,11 +290,11 @@ namespace FVoxelUtilities
 		{
 			// Rules out AC
 
-			ScalarType AlphaB_AB;
-			const ScalarType DistanceAB = FVoxelUtilities::PointSegmentDistanceSquared(Point, A, B, AlphaB_AB);
+			Real AlphaB_AB;
+			const Real DistanceAB = FVoxelUtilities::PointSegmentDistanceSquared(Point, A, B, AlphaB_AB);
 
-			ScalarType AlphaC_BC;
-			const ScalarType DistanceBC = FVoxelUtilities::PointSegmentDistanceSquared(Point, B, C, AlphaC_BC);
+			Real AlphaC_BC;
+			const Real DistanceBC = FVoxelUtilities::PointSegmentDistanceSquared(Point, B, C, AlphaC_BC);
 
 			if (DistanceAB < DistanceBC)
 			{
@@ -313,11 +316,11 @@ namespace FVoxelUtilities
 
 		// Rules out AB
 
-		ScalarType AlphaC_BC;
-		const ScalarType DistanceBC = FVoxelUtilities::PointSegmentDistanceSquared(Point, B, C, AlphaC_BC);
+		Real AlphaC_BC;
+		const Real DistanceBC = FVoxelUtilities::PointSegmentDistanceSquared(Point, B, C, AlphaC_BC);
 
-		ScalarType AlphaC_AC;
-		const ScalarType DistanceAC = FVoxelUtilities::PointSegmentDistanceSquared(Point, A, C, AlphaC_AC);
+		Real AlphaC_AC;
+		const Real DistanceAC = FVoxelUtilities::PointSegmentDistanceSquared(Point, A, C, AlphaC_AC);
 
 		if (DistanceBC < DistanceAC)
 		{
@@ -335,16 +338,16 @@ namespace FVoxelUtilities
 		}
 	}
 
-	template<typename VectorType, typename ScalarType = typename VectorType::FReal>
-	FORCEINLINE ScalarType PointTriangleDistanceSquared(
-		const VectorType& Point,
-		const VectorType& A,
-		const VectorType& B,
-		const VectorType& C)
+	template<typename Real>
+	FORCEINLINE Real PointTriangleDistanceSquared(
+		const TVector<Real>& Point,
+		const TVector<Real>& A,
+		const TVector<Real>& B,
+		const TVector<Real>& C)
 	{
-		ScalarType AlphaA;
-		ScalarType AlphaB;
-		ScalarType AlphaC;
+		Real AlphaA;
+		Real AlphaB;
+		Real AlphaC;
 		return FVoxelUtilities::PointTriangleDistanceSquared(
 			Point,
 			A,
@@ -353,6 +356,113 @@ namespace FVoxelUtilities
 			AlphaA,
 			AlphaB,
 			AlphaC);
+	}
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	template<typename Real>
+	FORCEINLINE bool AreSegmentsIntersecting(
+		const TVector2<Real>& StartA,
+		const TVector2<Real>& EndA,
+		const TVector2<Real>& StartB,
+		const TVector2<Real>& EndB)
+	{
+		const TVector2<Real> VectorA = EndA - StartA;
+		const TVector2<Real> VectorB = EndB - StartB;
+
+		const Real S =
+			(VectorA.X * (StartA.Y - StartB.Y) - VectorA.Y * (StartA.X - StartB.X)) /
+			(VectorA.X * VectorB.Y - VectorA.Y * VectorB.X);
+
+		const Real T =
+			(VectorB.X * (StartB.Y - StartA.Y) - VectorB.Y * (StartB.X - StartA.X)) /
+			(VectorB.X * VectorA.Y - VectorB.Y * VectorA.X);
+
+		return
+			0 <= S && S <= 1 &&
+			0 <= T && T <= 1;
+	}
+
+	// False if point is on the edge
+	template<typename Real>
+	FORCEINLINE bool IsPointInTriangle(
+		const TVector2<Real>& P,
+		const TVector2<Real>& A,
+		const TVector2<Real>& B,
+		const TVector2<Real>& C)
+	{
+		// Compute the sign for each edge, ie whether P is left or right of the edge
+		// If the sign is the same for the 3 edges, we are inside
+
+		const Real AB = TVector2<Real>::CrossProduct(P - A, B - A);
+		const Real BC = TVector2<Real>::CrossProduct(P - B, C - B);
+		const Real CA = TVector2<Real>::CrossProduct(P - C, A - C);
+
+		// We can't be on all edges at once
+		checkVoxelSlow(AB != 0 || BC != 0 || CA != 0 || (A == B && B == C));
+
+		// A bit convoluted as we want to return false if there's a zero
+		const bool bHasNegative = AB < 0 || BC < 0 || CA < 0;
+		const bool bHasPositive = AB > 0 || BC > 0 || CA > 0;
+
+		const bool bResult = !(bHasNegative && bHasPositive);
+
+		// If we are on any edge, we are not inside
+		checkVoxelSlow(!bResult || (AB != 0 && BC != 0 && CA != 0));
+
+#if VOXEL_DEBUG
+		Real AlphaA;
+		Real AlphaB;
+		Real AlphaC;
+		GetTriangleBarycentrics(
+			TVector<Real>(P, 0),
+			TVector<Real>(A, 0),
+			TVector<Real>(B, 0),
+			TVector<Real>(C, 0),
+			AlphaA,
+			AlphaB,
+			AlphaC);
+
+		check(bResult == (
+			AlphaA >= 0 &&
+			AlphaB >= 0 &&
+			AlphaC >= 0));
+#endif
+
+		return bResult;
+	}
+
+	template<typename Real>
+	FORCEINLINE bool IsPointOnSegment(
+		const TVector2<Real>& P,
+		const TVector2<Real>& A,
+		const TVector2<Real>& B,
+		const Real Tolerance = KINDA_SMALL_NUMBER)
+	{
+		if ((P.X < A.X && P.X < B.X) ||
+			(P.Y < A.Y && P.Y < B.Y) ||
+			(P.X > A.X && P.X > B.X) ||
+			(P.Y > A.Y && P.Y > B.Y))
+		{
+			// Outside the box made by (A, B)
+			// Don't use tolerance here
+			return false;
+		}
+
+		const TVector2<Real> BA = B - A;
+		const TVector2<Real> PA = P - A;
+
+		const Real SizeSquaredBA = BA.SizeSquared();
+		const Real ParallelogramArea = TVector2<Real>::CrossProduct(BA, PA);
+
+		if (FMath::Abs(ParallelogramArea) > Tolerance * SizeSquaredBA)
+		{
+			return false;
+		}
+
+		return true;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////

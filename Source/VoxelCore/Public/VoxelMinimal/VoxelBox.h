@@ -213,6 +213,27 @@ struct VOXELCORE_API FVoxelBox
 
 		return true;
 	}
+	FORCEINLINE bool IntersectsSphere(const FVector& Center, const double Radius) const
+	{
+		return SquaredDistanceToPoint(Center) <= FMath::Square(Radius);
+	}
+	FORCEINLINE bool IsInsideSphere(const FVector& Center, const double Radius) const
+	{
+		const double RadiusSquared = FMath::Square(Radius);
+
+		const FVector MinSquared = FMath::Square(Min - Center);
+		const FVector MaxSquared = FMath::Square(Max - Center);
+
+		return
+			MinSquared.X + MinSquared.Y + MinSquared.Z <= RadiusSquared &&
+			MaxSquared.X + MinSquared.Y + MinSquared.Z <= RadiusSquared &&
+			MinSquared.X + MaxSquared.Y + MinSquared.Z <= RadiusSquared &&
+			MaxSquared.X + MaxSquared.Y + MinSquared.Z <= RadiusSquared &&
+			MinSquared.X + MinSquared.Y + MaxSquared.Z <= RadiusSquared &&
+			MaxSquared.X + MinSquared.Y + MaxSquared.Z <= RadiusSquared &&
+			MinSquared.X + MaxSquared.Y + MaxSquared.Z <= RadiusSquared &&
+			MaxSquared.X + MaxSquared.Y + MaxSquared.Z <= RadiusSquared;
+	}
 
 	FORCEINLINE FVoxelBox IntersectWith(const FVoxelBox& Other) const
 	{
