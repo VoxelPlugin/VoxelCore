@@ -212,3 +212,6 @@ private:
 
 using FVoxelCounter32 = TVoxelAtomic<int32, EVoxelAtomicType::PositiveInteger>;
 using FVoxelCounter64 = TVoxelAtomic<int64, EVoxelAtomicType::PositiveInteger>;
+
+// Declare here, cannot use FVoxelCounter64 in VoxelStats.h
+VOXELCORE_API void RegisterVoxelInstanceCounter(FName StatName, const FVoxelCounter64& Counter);

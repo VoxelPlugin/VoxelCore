@@ -534,7 +534,6 @@ private:
 	\
 	VOXEL_RUN_ON_STARTUP_GAME() \
 	{ \
-		VOXELCORE_API void RegisterVoxelInstanceCounter(FName StatName, const FVoxelCounter64& Counter); \
 		RegisterVoxelInstanceCounter(GET_STATFNAME(STAT_Num ## Struct), Struct::VoxelInstanceCount); \
 	}
 #else
