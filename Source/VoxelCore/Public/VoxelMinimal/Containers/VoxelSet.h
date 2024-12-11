@@ -493,9 +493,11 @@ public:
 
 		bIsInSet = false;
 
-		const int32 NewElementIndex = Elements.Emplace();
+		const int32 NewElementIndex = Elements.Emplace(FElement
+		{
+			Value
+		});
 		FElement& Element = Elements[NewElementIndex];
-		Element.Value = Value;
 
 		if (HashSize < GetHashSize(Elements.Num()))
 		{
