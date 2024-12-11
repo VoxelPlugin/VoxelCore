@@ -8,13 +8,12 @@
 class VOXELCORE_API FVoxelZipWriter : public FVoxelZipBase
 {
 public:
-	using FWriteLambda = TFunction<bool(int64 Offset, TConstVoxelArrayView64<uint8> Data)>;
+	using FWriteLambda = TFunction<void(int64 Offset, TConstVoxelArrayView64<uint8> Data)>;
 
 	static TSharedRef<FVoxelZipWriter> Create(const FWriteLambda& WriteLambda);
 	static TSharedRef<FVoxelZipWriter> Create(TVoxelArray64<uint8>& BulkData);
 
 public:
-	bool HasFile(const FString& Path) const;
 	bool Finalize();
 
 public:
@@ -39,8 +38,9 @@ public:
 
 private:
 	const FWriteLambda WriteLambda;
-	TSet<FString> WrittenPaths;
+
 	mutable FVoxelCriticalSection CriticalSection;
+	FWriteLambda WriteLambdaOverride_RequiresLock;
 
 	explicit FVoxelZipWriter(const FWriteLambda& WriteLambda)
 		: WriteLambda(WriteLambda)
@@ -51,4 +51,8 @@ private:
 		const FString& Path,
 		TConstVoxelArrayView64<uint8> Data,
 		int32 Compression);
+
+	void WriteToDisk(
+		int64 Offset,
+		TConstVoxelArrayView64<uint8> Data) const;
 };

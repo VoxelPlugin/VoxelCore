@@ -10,13 +10,10 @@ TSharedRef<FVoxelZipWriter> FVoxelZipWriter::Create(const FWriteLambda& WriteLam
 	Result->Archive.m_pIO_opaque = &Result.Get();
 	Result->Archive.m_pWrite = [](void *pOpaque, const mz_uint64 file_ofs, const void *pBuf, const size_t n) -> size_t
 	{
-		VOXEL_SCOPE_COUNTER_FORMAT("FVoxelZipWriter write %lldB", n);
-		if (!ensure(static_cast<FVoxelZipWriter*>(pOpaque)->WriteLambda(
+		static_cast<FVoxelZipWriter*>(pOpaque)->WriteToDisk(
 			file_ofs,
-			TConstVoxelArrayView64<uint8>(static_cast<const uint8*>(pBuf), n))))
-		{
-			return 0;
-		}
+			TConstVoxelArrayView64<uint8>(static_cast<const uint8*>(pBuf), n));
+
 		return n;
 	};
 
@@ -45,12 +42,6 @@ TSharedRef<FVoxelZipWriter> FVoxelZipWriter::Create(TVoxelArray64<uint8>& BulkDa
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-bool FVoxelZipWriter::HasFile(const FString& Path) const
-{
-	VOXEL_SCOPE_LOCK(CriticalSection);
-	return WrittenPaths.Contains(Path);
-}
 
 bool FVoxelZipWriter::Finalize()
 {
@@ -117,17 +108,89 @@ void FVoxelZipWriter::WriteImpl(
 	const TConstVoxelArrayView64<uint8> Data,
 	const int32 Compression)
 {
-	VOXEL_SCOPE_COUNTER_FORMAT("WriteImpl %lldB", Data.Num());
-	VOXEL_SCOPE_LOCK(CriticalSection);
+	VOXEL_SCOPE_COUNTER_FORMAT("FVoxelZipWriter::WriteImpl %lldB", Data.Num());
 
-	ensure(!WrittenPaths.Contains(Path));
-	WrittenPaths.Add(Path);
+	const uint32 Crc32 = INLINE_LAMBDA
+	{
+		VOXEL_SCOPE_COUNTER("MemCrc32");
+		return FCrc::MemCrc32(Data.GetData(), Data.Num());
+	};
 
-	ensure(mz_zip_writer_add_mem(
-		&Archive,
-		TCHAR_TO_UTF8(*Path),
-		Data.GetData(),
-		Data.Num(),
-		Compression));
-	CheckError();
+	// Write data outside the critical section
+	struct FPendingWrite
+	{
+		TVoxelArray64<uint8> DataStorage;
+		int64 Offset = 0;
+		TConstVoxelArrayView64<uint8> Data;
+	};
+	TVoxelArray<FPendingWrite> PendingWrites;
+
+	{
+		VOXEL_SCOPE_LOCK(CriticalSection);
+
+		ensure(!WriteLambdaOverride_RequiresLock);
+		WriteLambdaOverride_RequiresLock = [&](
+			const int64 Offset,
+			const TConstVoxelArrayView64<uint8> DataToWrite)
+			{
+				if (DataToWrite.GetData() == Data.GetData() &&
+					DataToWrite.Num() == Data.Num())
+				{
+					FPendingWrite& PendingWrite = PendingWrites.Emplace_GetRef();
+					PendingWrite.Offset = Offset;
+					PendingWrite.Data = Data;
+				}
+				else if (DataToWrite.Num() < 1024)
+				{
+					FPendingWrite& PendingWrite = PendingWrites.Emplace_GetRef();
+					PendingWrite.DataStorage = TVoxelArray64<uint8>(DataToWrite);
+					PendingWrite.Offset = Offset;
+					PendingWrite.Data = PendingWrite.DataStorage;
+				}
+				else
+				{
+					ensure(Compression != MZ_NO_COMPRESSION);
+
+					// Copying the data would be too expensive
+					WriteLambda(Offset, DataToWrite);
+				}
+			};
+
+		ensure(mz_zip_writer_add_mem_ex(
+			&Archive,
+			TCHAR_TO_UTF8(*Path),
+			Data.GetData(),
+			Data.Num(),
+			nullptr,
+			0,
+			Compression,
+			0,
+			Crc32));
+
+		WriteLambdaOverride_RequiresLock = {};
+
+		CheckError();
+	}
+
+	for (const FPendingWrite& PendingWrite : PendingWrites)
+	{
+		VOXEL_SCOPE_COUNTER_FORMAT("Write %lldB", PendingWrite.Data.Num());
+		WriteLambda(PendingWrite.Offset, PendingWrite.Data);
+	}
+}
+
+void FVoxelZipWriter::WriteToDisk(
+	const int64 Offset,
+	const TConstVoxelArrayView64<uint8> Data) const
+{
+	VOXEL_SCOPE_COUNTER_FORMAT("FVoxelZipWriter::WriteToDisk %lldB", Data.Num());
+	checkVoxelSlow(CriticalSection.IsLocked());
+
+	if (WriteLambdaOverride_RequiresLock)
+	{
+		WriteLambdaOverride_RequiresLock(Offset, Data);
+		return;
+	}
+
+	WriteLambda(Offset, Data);
 }
