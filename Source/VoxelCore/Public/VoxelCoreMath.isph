@@ -1023,6 +1023,31 @@ FORCEINLINE generic float4 MakeQuaternionFromBasis(
 
 	return Quat;
 }
+FORCEINLINE generic float4 MakeQuaternionFromX(const generic float3 X)
+{
+	const generic float3 NewX = normalize(X);
+
+	// Try to use up if possible
+	const generic float3 UpVector = abs(NewX.z) < (1.f - KINDA_SMALL_NUMBER) ? MakeFloat3(0, 0, 1.f) : MakeFloat3(1.f, 0, 0);
+
+	const generic float3 NewY = normalize(cross(UpVector, NewX));
+	const generic float3 NewZ = cross(NewX, NewY);
+
+	return MakeQuaternionFromBasis(NewX, NewY, NewZ);
+}
+
+FORCEINLINE generic float4 MakeQuaternionFromY(const generic float3 Y)
+{
+	const generic float3 NewY = normalize(Y);
+
+	// Try to use up if possible
+	const generic float3 UpVector = abs(NewY.z) < (1.f - KINDA_SMALL_NUMBER) ? MakeFloat3(0, 0, 1.f) : MakeFloat3(1.f, 0, 0);
+
+	const generic float3 NewZ = normalize(cross(UpVector, NewY));
+	const generic float3 NewX = cross(NewY, NewZ);
+
+	return MakeQuaternionFromBasis(NewX, NewY, NewZ);
+}
 FORCEINLINE generic float4 MakeQuaternionFromZ(const generic float3 Z)
 {
 	const generic float3 NewZ = normalize(Z);
