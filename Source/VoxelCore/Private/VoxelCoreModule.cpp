@@ -14,13 +14,13 @@ class FVoxelCoreModule : public IModuleInterface
 public:
 	virtual void StartupModule() override
 	{
-		LOG_VOXEL(Log, "VOXEL_DEBUG=%d", VOXEL_DEBUG);
+		LOG_VOXEL(Display, "VOXEL_DEBUG=%d", VOXEL_DEBUG);
 
 #if WITH_EDITOR
 		// Increase the HTTP tick rate
 		// Makes downloads much faster
 		{
-			LOG_VOXEL(Log, "Increasing HTTP Tick Rate");
+			LOG_VOXEL(Display, "Increasing HTTP Tick Rate");
 
 			FHttpManager& HttpManager = FHttpModule::Get().GetHttpManager();
 
