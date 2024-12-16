@@ -484,8 +484,7 @@ void FVoxelPropertyCustomizationUtilities::CreateUnitSetter(
 		})
 		.OptionText_Lambda([](const EUnit UnitType)
 		{
-			const UEnum* Enum = StaticEnumFast<EUnit>();
-			return Enum->GetDisplayNameTextByValue(int64(UnitType)).ToString();
+			return GetEnumDisplayName(UnitType).ToString();
 		})
 	];
 }

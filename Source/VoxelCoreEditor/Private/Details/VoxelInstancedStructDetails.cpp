@@ -217,6 +217,30 @@ void FVoxelInstancedStructDataDetails::GenerateChildContent(IDetailChildrenBuild
 		}
 	}
 
+	// Pass metadata to newly constructed handle
+	if (RootHandle &&
+		RootHandle->IsValidHandle())
+	{
+		if (const FProperty* MetaDataProperty = StructProperty->GetMetaDataProperty())
+		{
+			if (const TMap<FName, FString>* MetaDataMap = MetaDataProperty->GetMetaDataMap())
+			{
+				for (const auto& It : *MetaDataMap)
+				{
+					RootHandle->SetInstanceMetaData(It.Key, It.Value);
+				}
+			}
+		}
+
+		if (const TMap<FName, FString>* MetaDataMap = StructProperty->GetInstanceMetaDataMap())
+		{
+			for (const auto& It : *MetaDataMap)
+			{
+				RootHandle->SetInstanceMetaData(It.Key, It.Value);
+			}
+		}
+	}
+
 	CachedInstanceTypes = GetInstanceTypes();
 
 	const UScriptStruct* ActiveStruct = nullptr;
