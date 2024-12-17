@@ -244,6 +244,8 @@ TSharedRef<SVoxelSegmentedControl<uint8>> FVoxelSegmentedEnumCustomization::Cust
 		})
 		.Values_Lambda([WeakHandle = MakeWeakPtr(PropertyHandle)]() -> TMap<uint8, ECheckBoxState>
 		{
+			VOXEL_SCOPE_COUNTER("SVoxelSegmentedControl::Values");
+
 			const TSharedPtr<IPropertyHandle> Handle = WeakHandle.Pin();
 			if (!ensure(Handle) ||
 				!Handle->IsValidHandle())

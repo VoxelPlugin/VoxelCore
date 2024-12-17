@@ -81,7 +81,7 @@ inline FPropertyAccess::Result GetCommonScriptStruct(const TSharedPtr<IPropertyH
 {
 	bool bHasResult = false;
 	bool bHasMultipleValues = false;
-	
+
 	StructProperty->EnumerateConstRawData([&OutCommonStruct, &bHasResult, &bHasMultipleValues](const void* RawData, const int32 /*DataIndex*/, const int32 /*NumDatas*/)
 	{
 		if (const FVoxelInstancedStruct* InstancedStruct = static_cast<const FVoxelInstancedStruct*>(RawData))
@@ -107,7 +107,7 @@ inline FPropertyAccess::Result GetCommonScriptStruct(const TSharedPtr<IPropertyH
 	{
 		return FPropertyAccess::MultipleValues;
 	}
-	
+
 	return bHasResult ? FPropertyAccess::Success : FPropertyAccess::Fail;
 }
 
@@ -142,7 +142,7 @@ void FVoxelInstancedStructDataDetails::OnStructHandlePostChange()
 TArray<TWeakObjectPtr<const UStruct>> FVoxelInstancedStructDataDetails::GetInstanceTypes() const
 {
 	TArray<TWeakObjectPtr<const UStruct>> Result;
-	
+
 	StructProperty->EnumerateConstRawData([&Result](const void* RawData, const int32 /*DataIndex*/, const int32 /*NumDatas*/)
 	{
 		TWeakObjectPtr<const UStruct>& Type = Result.AddDefaulted_GetRef();
@@ -184,6 +184,24 @@ void FVoxelInstancedStructDataDetails::GenerateHeaderRowContent(FDetailWidgetRow
 
 void FVoxelInstancedStructDataDetails::GenerateChildContent(IDetailChildrenBuilder& ChildBuilder)
 {
+	if (StructProperty->GetNumPerObjectValues() > 500 &&
+		!bDisableObjectCountLimit)
+	{
+		ChildBuilder.AddCustomRow(INVTEXT("Expand"))
+		.WholeRowContent()
+		[
+			SNew(SVoxelDetailButton)
+			.Text(FText::FromString(FString::Printf(TEXT("Expand %d structs"), StructProperty->GetNumPerObjectValues())))
+			.OnClicked_Lambda([this]
+			{
+				bDisableObjectCountLimit = true;
+				OnRegenerateChildren.ExecuteIfBound();
+				return FReply::Handled();
+			})
+		];
+		return;
+	}
+
 	TArray<TSharedPtr<IPropertyHandle>> ChildProperties;
 	TSharedPtr<IPropertyHandle> RootHandle;
 	if (bIsInitialGeneration)
@@ -456,7 +474,7 @@ FText FVoxelInstancedStructDetails::GetTooltipText() const
 	{
 		return CommonStruct->GetToolTipText();
 	}
-	
+
 	return GetDisplayValueString();
 }
 
@@ -468,7 +486,7 @@ const FSlateBrush* FVoxelInstancedStructDetails::GetDisplayValueIcon() const
 	{
 		return FSlateIconFinder::FindIconBrushForClass(UScriptStruct::StaticClass());
 	}
-	
+
 	return nullptr;
 }
 
@@ -547,6 +565,8 @@ void FVoxelInstancedStructDetails::OnStructPicked(const UScriptStruct* InStruct)
 
 bool FVoxelInstancedStructProvider::IsValid() const
 {
+	VOXEL_FUNCTION_COUNTER();
+
 	bool bHasValidData = false;
 	EnumerateInstances([&](const UScriptStruct* ScriptStruct, uint8* Memory, UPackage* Package)
 	{
@@ -589,6 +609,8 @@ const UStruct* FVoxelInstancedStructProvider::GetBaseStructure() const
 
 void FVoxelInstancedStructProvider::GetInstances(TArray<TSharedPtr<FStructOnScope>>& OutInstances, const UStruct* ExpectedBaseStructure) const
 {
+	VOXEL_FUNCTION_COUNTER();
+
 	// The returned instances need to be compatible with base structure.
 	// This function returns empty instances in case they are not compatible, with the idea that we have as many instances as we have outer objects.
 	EnumerateInstances([&OutInstances, ExpectedBaseStructure](const UScriptStruct* ScriptStruct, uint8* Memory, UPackage* Package)
@@ -627,6 +649,8 @@ uint8* FVoxelInstancedStructProvider::GetValueBaseAddress(uint8* ParentValueAddr
 
 void FVoxelInstancedStructProvider::EnumerateInstances(TFunctionRef<bool(const UScriptStruct* ScriptStruct, uint8* Memory, UPackage* Package)> InFunc) const
 {
+	VOXEL_FUNCTION_COUNTER();
+
 	if (!StructProperty.IsValid())
 	{
 		return;

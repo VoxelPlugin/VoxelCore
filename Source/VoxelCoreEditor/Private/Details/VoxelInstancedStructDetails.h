@@ -41,7 +41,7 @@ private:
 
 	TSharedPtr<SComboButton> ComboButton;
 	TSharedPtr<IPropertyUtilities> PropUtils;
-	
+
 	FDelegateHandle OnObjectsReinstancedHandle;
 };
 
@@ -103,7 +103,7 @@ private:
 
 	/** Cached instance types, used to invalidate the layout when types change. */
 	TArray<TWeakObjectPtr<const UStruct>> CachedInstanceTypes;
-	
+
 	/** Handle to the struct property being edited */
 	TSharedPtr<IPropertyHandle> StructProperty;
 
@@ -118,7 +118,9 @@ private:
 
 	bool bIsInitialGeneration = true;
 	TSharedPtr<FVoxelPropertyTypeCustomizationUtils> PropertyUtils;
-	
+
+	bool bDisableObjectCountLimit = false;
+
 protected:
 	void OnStructLayoutChanges();
 };
