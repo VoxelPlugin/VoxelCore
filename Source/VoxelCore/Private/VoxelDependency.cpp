@@ -3,6 +3,7 @@
 #include "VoxelDependency.h"
 #include "VoxelDependencySink.h"
 #include "VoxelDependencyTracker.h"
+#include "VoxelAABBTree.h"
 
 DEFINE_VOXEL_MEMORY_STAT(STAT_VoxelDependencies);
 
@@ -120,11 +121,11 @@ void FVoxelDependency::Invalidate(const FVoxelBox& Bounds)
 	Invalidate(TVoxelArray<FVoxelBox>{ Bounds });
 }
 
-void FVoxelDependency::Invalidate(TVoxelArray<FVoxelBox>&& Bounds)
+void FVoxelDependency::Invalidate(const TConstVoxelArrayView<FVoxelBox> Bounds)
 {
 	Invalidate(FVoxelDependencyInvalidationParameters
 	{
-		MakeSharedCopy(MoveTemp(Bounds))
+		FVoxelAABBTree::Create(Bounds)
 	});
 }
 
@@ -145,12 +146,6 @@ void FVoxelDependency::GetInvalidatedTrackers(
 	TVoxelSet<TWeakPtr<FVoxelDependencyTracker>>& OutTrackers)
 {
 	VOXEL_FUNCTION_COUNTER();
-
-	const TVoxelArray<FVoxelBox>* InvalidatedBoundsPtr = Parameters.Bounds.Get();
-
-	const bool bCheckTag = Parameters.LessOrEqualTag.IsSet();
-	const uint64 LessOrEqualTag = Parameters.LessOrEqualTag.Get({});
-
 	VOXEL_SCOPE_LOCK(CriticalSection);
 
 	if (TrackerRefs_RequiresLock.Num() > 0)
@@ -160,31 +155,16 @@ void FVoxelDependency::GetInvalidatedTrackers(
 
 	TrackerRefs_RequiresLock.Foreach([&](const FTrackerRef& TrackerRef)
 	{
-		if (InvalidatedBoundsPtr &&
-			TrackerRef.bHasBounds)
+		if (Parameters.Bounds &&
+			TrackerRef.bHasBounds &&
+			!Parameters.Bounds->Intersects(TrackerRef.Bounds))
 		{
-			const bool bIntersects = INLINE_LAMBDA
-			{
-				for (const FVoxelBox& Bounds : *InvalidatedBoundsPtr)
-				{
-					if (Bounds.Intersects(TrackerRef.Bounds))
-					{
-						return true;
-					}
-				}
-
-				return false;
-			};
-
-			if (!bIntersects)
-			{
-				return;
-			}
+			return;
 		}
 
-		if (bCheckTag &&
+		if (Parameters.LessOrEqualTag.IsSet() &&
 			TrackerRef.bHasTag &&
-			!(LessOrEqualTag <= TrackerRef.Tag))
+			!(Parameters.LessOrEqualTag.GetValue() <= TrackerRef.Tag))
 		{
 			return;
 		}

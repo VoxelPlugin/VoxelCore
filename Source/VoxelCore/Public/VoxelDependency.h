@@ -4,6 +4,7 @@
 
 #include "VoxelMinimal.h"
 
+class FVoxelAABBTree;
 class FVoxelDependency;
 class FVoxelDependencyTracker;
 
@@ -11,7 +12,7 @@ DECLARE_VOXEL_MEMORY_STAT(VOXELCORE_API, STAT_VoxelDependencies, "Dependencies")
 
 struct FVoxelDependencyInvalidationParameters
 {
-	TSharedPtr<const TVoxelArray<FVoxelBox>> Bounds;
+	TSharedPtr<const FVoxelAABBTree> Bounds;
 	TOptional<uint64> LessOrEqualTag;
 };
 
@@ -58,7 +59,7 @@ public:
 
 	void Invalidate(const FVoxelDependencyInvalidationParameters& Parameters = {});
 	void Invalidate(const FVoxelBox& Bounds);
-	void Invalidate(TVoxelArray<FVoxelBox>&& Bounds);
+	void Invalidate(TConstVoxelArrayView<FVoxelBox> Bounds);
 
 private:
 	FVoxelCriticalSection CriticalSection;
