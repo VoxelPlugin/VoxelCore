@@ -5,21 +5,18 @@
 #include "VoxelTransformRefManager.h"
 
 FVoxelTransformRefNodeArray::FVoxelTransformRefNodeArray(const TConstVoxelArrayView<FVoxelTransformRefNode> Nodes)
+	: Nodes(Nodes)
 {
 	ensure(Nodes.Num() > 0);
 
-	WeakComponents.Reserve(Nodes.Num());
-	IsInverted.Reserve(Nodes.Num());
-
+	TVoxelInlineArray<uint32, 4> Hashes;
+	Hashes.Add(Nodes.Num());
 	for (const FVoxelTransformRefNode& Node : Nodes)
 	{
-		WeakComponents.Add(Node.WeakComponent);
-		IsInverted.Add(Node.bIsInverted);
+		Hashes.Add(GetTypeHash(Node));
 	}
 
-	Hash =
-		FVoxelUtilities::MurmurHashBytes(MakeByteVoxelArrayView(WeakComponents)) ^
-		FVoxelUtilities::MurmurHashBytes(MakeByteVoxelArrayView(IsInverted.GetWordView()));
+	Hash = FVoxelUtilities::MurmurHashBytes(MakeByteVoxelArrayView(Hashes));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -36,7 +33,7 @@ FVoxelTransformRefImpl::FVoxelTransformRefImpl(const TConstVoxelArrayView<FVoxel
 		{
 			if (!Result.IsEmpty())
 			{
-				Result += TEXT(" -> ");
+				Result += " -> ";
 			}
 			Result += Node.DebugName.ToString();
 		}
@@ -93,22 +90,28 @@ void FVoxelTransformRefImpl::Update_GameThread()
 	FMatrix NewTransform = FMatrix::Identity;
 	for (const FVoxelTransformRefNode& Node : Nodes)
 	{
-		const USceneComponent* Component = Node.GetComponent();
-		if (!/*ensureVoxelSlow*/(Component))
+		FMatrix LocalTransform;
+		if (Node.Provider.IsConstant())
 		{
-			continue;
-		}
-
-		const FMatrix LocalTransform = Component->GetComponentTransform().ToMatrixWithScale();
-
-		if (Node.bIsInverted)
-		{
-			NewTransform *= LocalTransform.Inverse();
+			LocalTransform = Node.Provider.GetLocalToWorld();
 		}
 		else
 		{
-			NewTransform *= LocalTransform;
+			const USceneComponent* Component = Node.Provider.GetWeakComponent().Get();
+			if (!/*ensureVoxelSlow*/(Component))
+			{
+				continue;
+			}
+
+			LocalTransform = Component->GetComponentTransform().ToMatrixWithScale();
 		}
+
+		if (Node.bIsInverted)
+		{
+			LocalTransform = LocalTransform.Inverse();
+		}
+
+		NewTransform *= LocalTransform;
 	}
 
 	if (Transform.Equals(NewTransform))

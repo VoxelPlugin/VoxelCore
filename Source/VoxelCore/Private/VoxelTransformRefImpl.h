@@ -6,36 +6,111 @@
 
 class FVoxelDependency;
 
-struct VOXELCORE_API FVoxelTransformRefNode
+class FVoxelTransformRefProvider
 {
-	FObjectKey WeakComponent;
+public:
+	explicit FVoxelTransformRefProvider(const FMatrix& LocalToWorld)
+		: bIsConstant(true)
+		, LocalToWorld(LocalToWorld)
+	{
+	}
+	explicit FVoxelTransformRefProvider(const USceneComponent& Component)
+		: bIsConstant(false)
+		, WeakComponent(&Component)
+	{
+	}
+
+	FORCEINLINE bool IsConstant() const
+	{
+		return bIsConstant;
+	}
+	FORCEINLINE const FMatrix& GetLocalToWorld() const
+	{
+		checkVoxelSlow(IsConstant());
+		return LocalToWorld;
+	}
+	FORCEINLINE const TWeakObjectPtr<const USceneComponent>& GetWeakComponent() const
+	{
+		checkVoxelSlow(!IsConstant());
+		return WeakComponent;
+	}
+
+	FORCEINLINE bool operator==(const FVoxelTransformRefProvider& Other) const
+	{
+		if (bIsConstant != Other.bIsConstant)
+		{
+			return false;
+		}
+
+		if (bIsConstant)
+		{
+			return LocalToWorld == Other.LocalToWorld;
+		}
+
+		return MakeObjectKey(WeakComponent) == MakeObjectKey(Other.WeakComponent);
+	}
+
+	FORCEINLINE friend uint32 GetTypeHash(const FVoxelTransformRefProvider& Provider)
+	{
+		if (Provider.bIsConstant)
+		{
+			return FVoxelUtilities::MurmurHash(Provider.LocalToWorld);
+		}
+
+		return GetTypeHash(Provider.WeakComponent);
+	}
+
+private:
+	const bool bIsConstant;
+	const FMatrix LocalToWorld;
+	const TWeakObjectPtr<const USceneComponent> WeakComponent;
+};
+
+struct FVoxelTransformRefNode
+{
+	FVoxelTransformRefProvider Provider;
 	bool bIsInverted = false;
 	FName DebugName;
 
-	explicit FVoxelTransformRefNode(const USceneComponent& Component)
-		: WeakComponent(&Component)
+	explicit FVoxelTransformRefNode(const FVoxelTransformRefProvider& Provider)
+		: Provider(Provider)
 	{
 		checkUObjectAccess();
 
-		DebugName = FName(Component.GetReadableName());
-	}
-
-	FORCEINLINE const USceneComponent* GetComponent() const
-	{
-		checkVoxelSlow(IsInGameThread());
-
-		UObject* Object = WeakComponent.ResolveObjectPtr();
-		if (!Object)
+		if (Provider.IsConstant())
 		{
-			return nullptr;
+			DebugName = STATIC_FNAME("Constant");
+			return;
 		}
-		return CastChecked<USceneComponent>(Object);
+
+		const USceneComponent* Component = Provider.GetWeakComponent().Get();
+		if (!ensureVoxelSlow(Component))
+		{
+			return;
+		}
+
+		DebugName = FName(Component->GetReadableName());
 	}
+
 	FORCEINLINE bool IsInverseOf(const FVoxelTransformRefNode& Other) const
 	{
 		return
 			bIsInverted != Other.bIsInverted &&
-			WeakComponent == Other.WeakComponent;
+			Provider == Other.Provider;
+	}
+
+	FORCEINLINE bool operator==(const FVoxelTransformRefNode& Other) const
+	{
+		return
+			Provider == Other.Provider &&
+			bIsInverted == Other.bIsInverted;
+	}
+
+	FORCEINLINE friend uint32 GetTypeHash(const FVoxelTransformRefNode& Node)
+	{
+		return
+			GetTypeHash(Node.Provider) ^
+			GetTypeHash(Node.bIsInverted);
 	}
 };
 
@@ -43,7 +118,7 @@ struct VOXELCORE_API FVoxelTransformRefNode
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-class VOXELCORE_API FVoxelTransformRefNodeArray
+class FVoxelTransformRefNodeArray
 {
 public:
 	FVoxelTransformRefNodeArray() = default;
@@ -56,23 +131,19 @@ public:
 	}
 	FORCEINLINE bool operator==(const FVoxelTransformRefNodeArray& Other) const
 	{
-		return
-			WeakComponents == Other.WeakComponents &&
-			IsInverted == Other.IsInverted;
+		return Nodes == Other.Nodes;
 	}
 
 private:
-	uint64 Hash = 0;
-	TVoxelInlineArray<FObjectKey, 4> WeakComponents;
-	TVoxelBitArray<TVoxelInlineAllocator<1>> IsInverted;
-
+	uint32 Hash = 0;
+	TVoxelInlineArray<FVoxelTransformRefNode, 2> Nodes;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-class VOXELCORE_API FVoxelTransformRefImpl : public TSharedFromThis<FVoxelTransformRefImpl>
+class FVoxelTransformRefImpl : public TSharedFromThis<FVoxelTransformRefImpl>
 {
 public:
 	const FName Name;

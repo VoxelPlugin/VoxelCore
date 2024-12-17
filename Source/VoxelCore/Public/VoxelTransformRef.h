@@ -17,6 +17,7 @@ public:
 	}
 	static FVoxelTransformRef Make(const AActor& Actor);
 	static FVoxelTransformRef Make(const USceneComponent& Component);
+	static FVoxelTransformRef Make(const FMatrix& LocalToWorld);
 
 	static void NotifyTransformChanged(const USceneComponent& Component);
 

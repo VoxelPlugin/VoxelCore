@@ -16,7 +16,13 @@ FVoxelTransformRef FVoxelTransformRef::Make(const AActor& Actor)
 
 FVoxelTransformRef FVoxelTransformRef::Make(const USceneComponent& Component)
 {
-	const TSharedRef<FVoxelTransformRefImpl> Impl = GVoxelTransformRefManager->Make_AnyThread({ FVoxelTransformRefNode(Component) });
+	const TSharedRef<FVoxelTransformRefImpl> Impl = GVoxelTransformRefManager->Make_AnyThread({ FVoxelTransformRefNode(FVoxelTransformRefProvider(Component)) });
+	return FVoxelTransformRef(false, Impl);
+}
+
+FVoxelTransformRef FVoxelTransformRef::Make(const FMatrix& LocalToWorld)
+{
+	const TSharedRef<FVoxelTransformRefImpl> Impl = GVoxelTransformRefManager->Make_AnyThread({ FVoxelTransformRefNode(FVoxelTransformRefProvider(LocalToWorld)) });
 	return FVoxelTransformRef(false, Impl);
 }
 
