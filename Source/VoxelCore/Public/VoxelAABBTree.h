@@ -54,6 +54,8 @@ public:
 	void Initialize(TVoxelArray<FElement>&& Elements);
 	void Shrink();
 
+	static TSharedRef<FVoxelAABBTree> Create(TConstVoxelArrayView<FVoxelBox> Bounds);
+
 public:
 	FORCEINLINE bool IsEmpty() const
 	{
@@ -175,15 +177,17 @@ public:
 		return true;
 	}
 
-	bool Intersect(const FVoxelBox& OverlapBounds) const
+	bool Intersects(const FVoxelBox& Bounds) const
 	{
-		return Overlap(OverlapBounds, [](int32)
+		return Intersects(Bounds, [](int32)
 		{
 			return true;
 		});
 	}
 	template<typename LambdaType>
-	bool Overlap(const FVoxelBox& OverlapBounds, LambdaType&& Lambda) const
+	bool Intersects(
+		const FVoxelBox& Bounds,
+		LambdaType&& CustomCheck) const
 	{
 		if (Nodes.Num() == 0)
 		{
@@ -203,12 +207,12 @@ public:
 				const FLeaf& Leaf = Leaves[Node.LeafIndex];
 				for (const FElement& Element : Leaf.Elements)
 				{
-					if (!Element.Bounds.Intersects(OverlapBounds))
+					if (!Element.Bounds.Intersects(Bounds))
 					{
 						continue;
 					}
 
-					if (Lambda(Element.Payload))
+					if (CustomCheck(Element.Payload))
 					{
 						return true;
 					}
@@ -216,11 +220,11 @@ public:
 			}
 			else
 			{
-				if (Node.ChildBounds0.Intersects(OverlapBounds))
+				if (Node.ChildBounds0.Intersects(Bounds))
 				{
 					QueuedNodes.Add(Node.ChildIndex0);
 				}
-				if (Node.ChildBounds1.Intersects(OverlapBounds))
+				if (Node.ChildBounds1.Intersects(Bounds))
 				{
 					QueuedNodes.Add(Node.ChildIndex1);
 				}

@@ -11,7 +11,7 @@ DECLARE_VOXEL_MEMORY_STAT(VOXELCORE_API, STAT_VoxelDependencies, "Dependencies")
 
 struct FVoxelDependencyInvalidationParameters
 {
-	TOptional<FVoxelBox> Bounds;
+	TSharedPtr<const TVoxelArray<FVoxelBox>> Bounds;
 	TOptional<uint64> LessOrEqualTag;
 };
 
@@ -58,6 +58,7 @@ public:
 
 	void Invalidate(const FVoxelDependencyInvalidationParameters& Parameters = {});
 	void Invalidate(const FVoxelBox& Bounds);
+	void Invalidate(TVoxelArray<FVoxelBox>&& Bounds);
 
 private:
 	FVoxelCriticalSection CriticalSection;
@@ -101,7 +102,7 @@ private:
 	explicit FVoxelDependency(const FString& Name);
 
 	void GetInvalidatedTrackers(
-		FVoxelDependencyInvalidationParameters Parameters,
+		const FVoxelDependencyInvalidationParameters& Parameters,
 		TVoxelSet<TWeakPtr<FVoxelDependencyTracker>>& OutTrackers);
 
 	friend FVoxelDependencyTracker;

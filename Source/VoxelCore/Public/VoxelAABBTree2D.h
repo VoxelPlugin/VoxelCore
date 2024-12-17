@@ -74,15 +74,17 @@ public:
 	}
 
 public:
-	bool Intersect(const FVoxelBox2D& OverlapBounds) const
+	bool Intersects(const FVoxelBox2D& Bounds) const
 	{
-		return Overlap(OverlapBounds, [](int32)
+		return Intersects(Bounds, [](int32)
 		{
 			return true;
 		});
 	}
 	template<typename LambdaType>
-	bool Overlap(const FVoxelBox2D& OverlapBounds, LambdaType&& Lambda) const
+	bool Intersects(
+		const FVoxelBox2D& Bounds,
+		LambdaType&& CustomCheck) const
 	{
 		if (Nodes.Num() == 0)
 		{
@@ -102,12 +104,12 @@ public:
 				const FLeaf& Leaf = Leaves[Node.LeafIndex];
 				for (const FElement& Element : Leaf.Elements)
 				{
-					if (!Element.Bounds.Intersects(OverlapBounds))
+					if (!Element.Bounds.Intersects(Bounds))
 					{
 						continue;
 					}
 
-					if (Lambda(Element.Payload))
+					if (CustomCheck(Element.Payload))
 					{
 						return true;
 					}
@@ -115,11 +117,11 @@ public:
 			}
 			else
 			{
-				if (Node.ChildBounds0.Intersects(OverlapBounds))
+				if (Node.ChildBounds0.Intersects(Bounds))
 				{
 					QueuedNodes.Add(Node.ChildIndex0);
 				}
-				if (Node.ChildBounds1.Intersects(OverlapBounds))
+				if (Node.ChildBounds1.Intersects(Bounds))
 				{
 					QueuedNodes.Add(Node.ChildIndex1);
 				}
