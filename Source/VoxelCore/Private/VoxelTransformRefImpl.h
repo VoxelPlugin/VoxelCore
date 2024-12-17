@@ -12,10 +12,12 @@ public:
 	explicit FVoxelTransformRefProvider(const FMatrix& LocalToWorld)
 		: bIsConstant(true)
 		, LocalToWorld(LocalToWorld)
+		, WeakComponent({})
 	{
 	}
 	explicit FVoxelTransformRefProvider(const USceneComponent& Component)
 		: bIsConstant(false)
+		, LocalToWorld({})
 		, WeakComponent(&Component)
 	{
 	}
