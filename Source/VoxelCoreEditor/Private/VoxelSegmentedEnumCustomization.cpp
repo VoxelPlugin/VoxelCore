@@ -147,7 +147,57 @@ TSharedRef<SWidget> FVoxelSegmentedEnumCustomization::CustomizeEnum(const TShare
 
 TSharedRef<SVoxelSegmentedControl<uint8>> FVoxelSegmentedEnumCustomization::CustomizeBitmaskEnum(const TSharedRef<IPropertyHandle>& PropertyHandle, const UEnum* Enum, const int32 NumObjects)
 {
-	return
+	const auto GetValues = [Enum, NumObjects, WeakHandle = MakeWeakPtr(PropertyHandle)]() -> TMap<uint8, ECheckBoxState>
+	{
+		VOXEL_SCOPE_COUNTER("SVoxelSegmentedControl::BitMaskValues");
+
+		const TSharedPtr<IPropertyHandle> Handle = WeakHandle.Pin();
+		if (!Handle ||
+			!Handle->IsValidHandle())
+		{
+			return {};
+		}
+
+		TMap<uint8, ECheckBoxState> Result;
+		TMap<uint8, int32> Occurrences;
+		
+		for (int32 Index = 0; Index < Enum->NumEnums() - 1; Index++)
+		{
+			if (Enum->HasMetaData(TEXT("Hidden"), Index))
+			{
+				continue;
+			}
+
+			const uint8 EnumValue = Enum->GetValueByIndex(Index);
+			Occurrences.Add(EnumValue, 0);
+		}
+		Handle->EnumerateRawData([&](void* RawData, const int32 DataIndex, const int32 NumDatas)
+		{
+			if (!ensure(RawData))
+			{
+				return true;
+			}
+
+			const int64 Value = *static_cast<int64*>(RawData);
+			for (auto& It : Occurrences)
+			{
+				if ((Value & It.Key) == It.Key)
+				{
+					It.Value++;
+				}
+			}
+			return true;
+		});
+
+		for (const auto& It : Occurrences)
+		{
+			Result.Add(It.Key, It.Value == NumObjects ? ECheckBoxState::Checked : ECheckBoxState::Undetermined);
+		}
+
+		return Result;
+	};
+
+	TSharedRef<SVoxelSegmentedControl<uint8>> Widget =
 		SNew(SVoxelSegmentedControl<uint8>)
 		.SupportsMultiSelection(true)
 		.OnValuesChanged_Lambda([WeakHandle = MakeWeakPtr(PropertyHandle)](const TArray<uint8> AddedValues, const TArray<uint8> RemovedValues)
@@ -183,53 +233,59 @@ TSharedRef<SVoxelSegmentedControl<uint8>> FVoxelSegmentedEnumCustomization::Cust
 
 			Handle->SetPerObjectValues(Values);
 		})
-		.Values_Lambda([WeakHandle = MakeWeakPtr(PropertyHandle), Enum, NumObjects]() -> TMap<uint8, ECheckBoxState>
+		.Values(GetValues());
+
+	PropertyHandle->SetOnPropertyValueChanged(MakeWeakPtrDelegate(Widget, [GetValues, WeakWidget = MakeWeakPtr(Widget)]
+	{
+		const TSharedPtr<SVoxelSegmentedControl<uint8>> PinnedWidget = WeakWidget.Pin();
+		if (!PinnedWidget)
 		{
-			const TSharedPtr<IPropertyHandle> Handle = WeakHandle.Pin();
-			if (!ensure(Handle) ||
-				!Handle->IsValidHandle())
-			{
-				return {};
-			}
+			return;
+		}
 
-			TMap<uint8, int32> Occurrences;
-			Handle->EnumerateRawData([&](void* RawData, const int32 DataIndex, const int32 NumDatas)
-			{
-				if (!ensure(RawData))
-				{
-					return true;
-				}
-
-				const int64 Value = *static_cast<int64*>(RawData);
-				for (int32 Index = 0; Index < Enum->NumEnums() - 1; Index++)
-				{
-					if (Enum->HasMetaData(TEXT("Hidden"), Index))
-					{
-						continue;
-					}
-
-					const uint8 EnumValue = Enum->GetValueByIndex(Index);
-					if ((Value & EnumValue) == EnumValue)
-					{
-						Occurrences.FindOrAdd(EnumValue, 0)++;
-					}
-				}
-				return true;
-			});
-
-			TMap<uint8, ECheckBoxState> Result;
-			for (const auto& It : Occurrences)
-			{
-				Result.Add(It.Key, It.Value == NumObjects ? ECheckBoxState::Checked : ECheckBoxState::Undetermined);
-			}
-
-			return Result;
-		});
+		PinnedWidget->SetValues(GetValues(), true);
+	}));
+	return Widget;
 }
 
 TSharedRef<SVoxelSegmentedControl<uint8>> FVoxelSegmentedEnumCustomization::CustomizeNormalEnum(const TSharedRef<IPropertyHandle>& PropertyHandle)
 {
-	return
+	const auto GetValues = [WeakHandle = MakeWeakPtr(PropertyHandle)]() -> TMap<uint8, ECheckBoxState>
+	{
+		VOXEL_SCOPE_COUNTER("SVoxelSegmentedControl::EnumValues");
+
+		const TSharedPtr<IPropertyHandle> Handle = WeakHandle.Pin();
+		if (!ensure(Handle) ||
+			!Handle->IsValidHandle())
+		{
+			return {};
+		}
+
+		TMap<uint8, ECheckBoxState> Result;
+		Handle->EnumerateRawData([&](void* RawData, const int32 DataIndex, const int32 NumDatas)
+		{
+			if (!ensure(RawData))
+			{
+				return true;
+			}
+
+			const uint8 Value = *static_cast<uint8*>(RawData);
+			Result.Add(Value, ECheckBoxState::Checked);
+			return true;
+		});
+
+		if (Result.Num() > 1)
+		{
+			for (auto& It : Result)
+			{
+				It.Value = ECheckBoxState::Undetermined;
+			}
+		}
+
+		return Result;
+	};
+
+	TSharedRef<SVoxelSegmentedControl<uint8>> Widget =
 		SNew(SVoxelSegmentedControl<uint8>)
 		.OnValueChanged_Lambda([WeakHandle = MakeWeakPtr(PropertyHandle)](const uint8 NewValue)
 		{
@@ -242,38 +298,17 @@ TSharedRef<SVoxelSegmentedControl<uint8>> FVoxelSegmentedEnumCustomization::Cust
 
 			Handle->SetValue(NewValue);
 		})
-		.Values_Lambda([WeakHandle = MakeWeakPtr(PropertyHandle)]() -> TMap<uint8, ECheckBoxState>
+		.Values(GetValues());
+
+	PropertyHandle->SetOnPropertyValueChanged(MakeWeakPtrDelegate(Widget, [GetValues, WeakWidget = MakeWeakPtr(Widget)]
+	{
+		const TSharedPtr<SVoxelSegmentedControl<uint8>> PinnedWidget = WeakWidget.Pin();
+		if (!PinnedWidget)
 		{
-			VOXEL_SCOPE_COUNTER("SVoxelSegmentedControl::Values");
+			return;
+		}
 
-			const TSharedPtr<IPropertyHandle> Handle = WeakHandle.Pin();
-			if (!ensure(Handle) ||
-				!Handle->IsValidHandle())
-			{
-				return {};
-			}
-
-			TMap<uint8, ECheckBoxState> Result;
-			Handle->EnumerateRawData([&](void* RawData, const int32 DataIndex, const int32 NumDatas)
-			{
-				if (!ensure(RawData))
-				{
-					return true;
-				}
-
-				const uint8 Value = *static_cast<uint8*>(RawData);
-				Result.Add(Value, ECheckBoxState::Checked);
-				return true;
-			});
-
-			if (Result.Num() > 1)
-			{
-				for (auto& It : Result)
-				{
-					It.Value = ECheckBoxState::Undetermined;
-				}
-			}
-
-			return Result;
-		});
+		PinnedWidget->SetValues(GetValues(), true);
+	}));
+	return Widget;
 }

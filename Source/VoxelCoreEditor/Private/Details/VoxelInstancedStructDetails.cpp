@@ -199,6 +199,8 @@ void FVoxelInstancedStructDataDetails::GenerateChildContent(IDetailChildrenBuild
 				return FReply::Handled();
 			})
 		];
+
+		CachedInstanceTypes = GetInstanceTypes();
 		return;
 	}
 
