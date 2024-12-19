@@ -3,9 +3,9 @@
 #include "ApplyVoxelShaderHooksCommandlet.h"
 #include "VoxelShaderHooksManager.h"
 
-#if WITH_EDITOR
 int32 UApplyVoxelShaderHooksCommandlet::Main(const FString& Params)
 {
+#if WITH_EDITOR
 	for (FVoxelShaderHookGroup* Hook : GVoxelShaderHooksManager->Hooks)
 	{
 		Hook->Apply();
@@ -27,7 +27,9 @@ int32 UApplyVoxelShaderHooksCommandlet::Main(const FString& Params)
 	{
 		return 1;
 	}
+#else
+	check(false);
+#endif
 
 	return 0;
 }
-#endif
