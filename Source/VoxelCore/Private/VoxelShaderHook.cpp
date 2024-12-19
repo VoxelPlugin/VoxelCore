@@ -517,7 +517,16 @@ bool FVoxelShaderHook::Apply(FVoxelShaderFileData& FileData)
 	// If hook is deprecated, we revert the changes...
 	if (bDeprecated)
 	{
-		return Revert(FileData);
+		if (Revert(FileData))
+		{
+			LOG_VOXEL(Display, "Reverted %s", *FileData.GetPath());
+			return true;
+		}
+		else
+		{
+			LOG_VOXEL(Error, "Failed to revert %s", *FileData.GetPath());
+			return false;
+		}
 	}
 
 	// Make sure to have the newest state before applying changes
@@ -525,7 +534,11 @@ bool FVoxelShaderHook::Apply(FVoxelShaderFileData& FileData)
 
 	switch (State)
 	{
-	case EVoxelShaderHookState::Active: return false;
+	case EVoxelShaderHookState::Active:
+	{
+		LOG_VOXEL(Display, "%s up-to-date", *FileData.GetPath());
+		return false;
+	}
 	case EVoxelShaderHookState::Outdated: break;
 	case EVoxelShaderHookState::NotApplied: break;
 	case EVoxelShaderHookState::Invalid: return false;
@@ -546,6 +559,7 @@ bool FVoxelShaderHook::Apply(FVoxelShaderFileData& FileData)
 
 	FileData.UpdateContent(BeforePart + NewContent + AfterPart);
 
+	LOG_VOXEL(Display, "Updated %s", *FileData.GetPath());
 	return true;
 }
 

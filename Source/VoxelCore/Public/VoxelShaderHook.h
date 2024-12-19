@@ -210,7 +210,7 @@ private:
 
 #define DEFINE_VOXEL_SHADER_HOOK(Struct, HookName, HookDescription) \
 	FVoxelShaderHookGroup Struct::Hook; \
-	VOXEL_RUN_ON_STARTUP(Editor, -2) \
+	VOXEL_RUN_ON_STARTUP(EditorCommandlet, -2) \
 	{ \
 		FVoxelShaderHookGroup& Hook = Struct::Hook; \
 		Hook.StructName = #Struct; \
@@ -220,13 +220,13 @@ private:
 	}
 
 #define ADD_VOXEL_SHADER_HOOK(Struct, GUID, File, LinesBefore, LinesAfter, LinesExpected, NewLines) \
-	VOXEL_RUN_ON_STARTUP(Editor, -1) \
+	VOXEL_RUN_ON_STARTUP(EditorCommandlet, -1) \
 	{ \
 		Struct::Hook.Hooks.Add(FVoxelShaderHook(VOXEL_GUID(GUID), File, LinesBefore, LinesAfter, LinesExpected, NewLines)); \
 	}
 
 #define ADD_VOXEL_SHADER_HOOK_DEPRECATED(Struct, GUID, File, LinesBefore, LinesAfter, LinesExpected, NewLines) \
-	VOXEL_RUN_ON_STARTUP(Editor, -1) \
+	VOXEL_RUN_ON_STARTUP(EditorCommandlet, -1) \
 	{ \
 		Struct::Hook.Hooks.Add(FVoxelShaderHook(VOXEL_GUID(GUID), File, LinesBefore, LinesAfter, LinesExpected, NewLines).Deprecate()); \
 	}
