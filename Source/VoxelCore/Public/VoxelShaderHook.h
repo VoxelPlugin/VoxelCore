@@ -176,7 +176,7 @@ public:
 	bool IsEnabled() const;
 	void Invalidate();
 	void EnsureIsEnabled() const;
-	bool Apply(bool& bOutCancel);
+	bool Apply(bool* OutIsCancelled = nullptr);
 	bool Revert();
 	FString CreatePatch(bool bAddStyling);
 	FORCEINLINE EVoxelShaderHookState GetState() const { return State.GetValue(); }

@@ -469,8 +469,8 @@ public:
 				})
 				.OnClicked_Lambda([this]
 				{
-					bool bCancel = false;
-					if (Hook->Apply(bCancel))
+					bool bIsCancelled = false;
+					if (Hook->Apply(&bIsCancelled))
 					{
 						FModuleManager::GetModuleChecked<ISettingsEditorModule>("SettingsEditor").OnApplicationRestartRequired();
 					}
@@ -481,7 +481,7 @@ public:
 
 					Hook->Invalidate();
 
-					if (bCancel)
+					if (bIsCancelled)
 					{
 						return FReply::Handled();
 					}

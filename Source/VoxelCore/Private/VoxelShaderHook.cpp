@@ -883,7 +883,7 @@ void FVoxelShaderHookGroup::EnsureIsEnabled() const
 	(void)IsEnabled();
 }
 
-bool FVoxelShaderHookGroup::Apply(bool& bOutCancel)
+bool FVoxelShaderHookGroup::Apply(bool* OutIsCancelled)
 {
 	VOXEL_FUNCTION_COUNTER();
 	check(IsInGameThread());
@@ -905,20 +905,26 @@ bool FVoxelShaderHookGroup::Apply(bool& bOutCancel)
 		}
 	}
 
-	EAppReturnType::Type Result = FMessageDialog::Open(
-		EAppMsgType::YesNoCancel,
-		EAppReturnType::Cancel,
-		FText::FromString("The following files will be updated. Continue?\n\n" +
-			FString::JoinBy(UpdatedFiles, TEXT("\n"), [](const TSharedPtr<FVoxelShaderFileData>& FileData)
-			{
-				return FileData->GetPath();
-			})),
-		INVTEXT("Update Files?"));
-
-	if (Result != EAppReturnType::Yes)
+	if (!IsRunningCommandlet())
 	{
-		bOutCancel = Result == EAppReturnType::Cancel;
-		return false;
+		const EAppReturnType::Type Result = FMessageDialog::Open(
+			EAppMsgType::YesNoCancel,
+			EAppReturnType::Cancel,
+			FText::FromString("The following files will be updated. Continue?\n\n" +
+				FString::JoinBy(UpdatedFiles, TEXT("\n"), [](const TSharedPtr<FVoxelShaderFileData>& FileData)
+				{
+					return FileData->GetPath();
+				})),
+			INVTEXT("Update Files?"));
+
+		if (Result != EAppReturnType::Yes)
+		{
+			if (OutIsCancelled)
+			{
+				*OutIsCancelled = Result == EAppReturnType::Cancel;
+			}
+			return false;
+		}
 	}
 
 	bool bUpdated = false;
@@ -1179,6 +1185,7 @@ bool FVoxelShaderHookGroup::ExecuteShaderUpdate(const FVoxelShaderFileData& File
 				EAppReturnType::Ok,
 				FText::FromString("Failed to clear readonly flag on " + Path),
 				FText::FromString(FileName + " is out of date"));
+
 			return false;
 		}
 	}
