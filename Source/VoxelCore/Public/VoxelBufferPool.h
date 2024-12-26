@@ -93,7 +93,7 @@ public:
 
 	template<typename T>
 	TVoxelFuture<FVoxelBufferRef> Upload_AnyThread(
-		TVoxelArray<T>&& Data,
+		TVoxelArray<T> Data,
 		const TSharedPtr<FVoxelBufferRef>& ExistingBufferRef = nullptr)
 	{
 		check(sizeof(T) == BytesPerElement);
@@ -145,7 +145,8 @@ protected:
 			// Some pools will be empty but it makes the math easier
 			return 74 + FMath::CeilLogTwo(Num);
 		};
-		checkVoxelSlow(GetPoolSize(PoolIndex - 1) < Num && Num <= GetPoolSize(PoolIndex));
+		checkVoxelSlow(PoolIndex == 0 || GetPoolSize(PoolIndex - 1) < Num);
+		checkVoxelSlow(Num <= GetPoolSize(PoolIndex));
 
 		return PoolIndex;
 	}
