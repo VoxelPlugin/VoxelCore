@@ -161,6 +161,119 @@ FVoxelStackFrames FVoxelUtilities::GetStackFrames(const int32 NumFramesToIgnore)
 	return StackFrames;
 }
 
+TVoxelArray<FString> FVoxelUtilities::StackFramesToString(const FVoxelStackFrames& StackFrames)
+{
+	static const int32 InitializeStackWalking = INLINE_LAMBDA
+	{
+		VOXEL_SCOPE_COUNTER("FPlatformStackWalk::InitStackWalking");
+		FPlatformStackWalk::InitStackWalking();
+		return 0;
+	};
+
+	TVoxelArray<FString> Result;
+	Result.Reserve(StackFrames.Num());
+
+	for (int32 StackIndex = 0; StackIndex < StackFrames.Num(); StackIndex++)
+	{
+		void* Address = StackFrames[StackIndex];
+		if (!Address)
+		{
+			continue;
+		}
+
+		ANSICHAR HumanReadableString[8192];
+		HumanReadableString[0] = '\0';
+
+		if (!FPlatformStackWalk::ProgramCounterToHumanReadableString(
+			StackIndex,
+			uint64(Address),
+			HumanReadableString,
+			8192))
+		{
+			Result.Add(FString::Printf(TEXT("%p: [failed to resolve]"), Address));
+			continue;
+		}
+
+		if (FString(HumanReadableString).Contains("__scrt_common_main_seh()"))
+		{
+			// We don't care about anything above this
+			break;
+		}
+
+		const bool bPrettyPrint = INLINE_LAMBDA
+		{
+			if (!PLATFORM_WINDOWS)
+			{
+				return false;
+			}
+
+			FString String(HumanReadableString);
+			if (!ensureVoxelSlow(String.RemoveFromStart(FString::Printf(TEXT("0x%p "), Address))))
+			{
+				return false;
+			}
+
+			{
+				int32 Index = String.Find(".dll!");
+				if (Index == -1)
+				{
+					Index = String.Find(".exe!");
+				}
+				if (!ensureVoxelSlow(Index != -1))
+				{
+					return false;
+				}
+
+				Index += 5;
+
+				String = String.RightChop(Index);
+			}
+
+			FString Function;
+			{
+				const int32 Index = String.Find(" [");
+				if (!ensureVoxelSlow(Index != -1))
+				{
+					return false;
+				}
+
+				Function = String.Left(Index);
+				String = String.RightChop(Index);
+			}
+
+			if (!ensureVoxelSlow(String.RemoveFromStart(" [")) ||
+				!ensureVoxelSlow(String.RemoveFromEnd("]")))
+			{
+				return false;
+			}
+
+			int32 Line;
+			{
+				int32 Index;
+				if (!ensureVoxelSlow(String.FindLastChar(TEXT(':'), Index)))
+				{
+					return false;
+				}
+
+				Line = StringToInt(String.RightChop(Index + 1));
+				String = String.Left(Index);
+			}
+
+			const FString FileName = FPaths::GetCleanFilename(String);
+
+			Result.Add(FString::Printf(TEXT("%s %s:%d"), *Function, *FileName, Line));
+			return true;
+		};
+
+		if (!bPrettyPrint)
+		{
+			Result.Add(FString::Printf(TEXT("%p: %S"), Address, HumanReadableString));
+		}
+	}
+
+	return Result;
+}
+
 #if WITH_EDITOR
 void FVoxelUtilities::EnsureViewportIsUpToDate()
 {

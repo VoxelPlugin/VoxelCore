@@ -48,8 +48,6 @@ public:
 			return;
 		}
 
-		FPlatformStackWalk::InitStackWalking();
-
 		VOXEL_SCOPE_LOCK(CriticalSection);
 
 		TVoxelMap<FVoxelStackFrames, int32> StackFramesToCount;
@@ -72,21 +70,9 @@ public:
 			LOG_VOXEL(Log, "-----------------------------------");
 			LOG_VOXEL(Log, "x%d:", It.Value);
 
-			for (int32 Index = 0; Index < It.Key.Num(); Index++)
+			for (const FString& Line : FVoxelUtilities::StackFramesToString(It.Key))
 			{
-				void* Address = It.Key[Index];
-				if (!Address)
-				{
-					continue;
-				}
-
-				ANSICHAR HumanReadableString[8192];
-				if (!FPlatformStackWalk::ProgramCounterToHumanReadableString(Index, uint64(Address), HumanReadableString, 8192))
-				{
-					HumanReadableString[0] = '\0';
-				}
-
-				LOG_VOXEL(Log, "%p: %S", Address, HumanReadableString);
+				LOG_VOXEL(Log, "%s", *Line);
 			}
 		}
 	}

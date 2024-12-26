@@ -26,6 +26,7 @@ namespace FVoxelUtilities
 	VOXELCORE_API void CleanupFileCache(const FString& Path, int64 MaxSize);
 	VOXELCORE_API FString Unzip(const TArray<uint8>& Data, TMap<FString, TVoxelArray64<uint8>>& OutFiles);
 	VOXELCORE_API FVoxelStackFrames GetStackFrames(int32 NumFramesToIgnore = 1);
+	VOXELCORE_API TVoxelArray<FString> StackFramesToString(const FVoxelStackFrames& StackFrames);
 
 #if WITH_EDITOR
 	VOXELCORE_API void EnsureViewportIsUpToDate();
