@@ -20,7 +20,7 @@ TSharedRef<FVoxelTransformRefImpl> FVoxelTransformRefManager::Make_AnyThread(con
 		return TransformRef.ToSharedRef();
 	}
 
-	const TSharedRef<FVoxelTransformRefImpl> TransformRef = MakeVoxelShareable(new(GVoxelMemory) FVoxelTransformRefImpl(Nodes));
+	const TSharedRef<FVoxelTransformRefImpl> TransformRef = MakeShareable(new FVoxelTransformRefImpl(Nodes));
 	if (IsInGameThread())
 	{
 		TransformRef->Update_GameThread();

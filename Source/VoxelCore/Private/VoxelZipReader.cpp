@@ -8,7 +8,7 @@ TSharedPtr<FVoxelZipReader> FVoxelZipReader::Create(
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	const TSharedRef<FVoxelZipReader> Result = MakeVoxelShareable(new(GVoxelMemory) FVoxelZipReader(ReadLambda));
+	const TSharedRef<FVoxelZipReader> Result = MakeShareable(new FVoxelZipReader(ReadLambda));
 	Result->Archive.m_pIO_opaque = &Result.Get();
 	Result->Archive.m_pRead = [](void* pOpaque, const mz_uint64 file_ofs, void* pBuf, const size_t n) -> size_t
 	{

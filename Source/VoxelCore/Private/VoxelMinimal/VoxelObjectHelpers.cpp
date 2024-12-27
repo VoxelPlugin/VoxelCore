@@ -201,7 +201,7 @@ FSharedVoidRef MakeShareableStruct(const UScriptStruct* Struct, void* StructMemo
 {
 	if (Struct->IsChildOf(StaticStructFast<FVoxelVirtualStruct>()))
 	{
-		const TSharedRef<FVoxelVirtualStruct> SharedRef = MakeVoxelShareable(static_cast<FVoxelVirtualStruct*>(StructMemory));
+		const TSharedRef<FVoxelVirtualStruct> SharedRef = MakeShareable(static_cast<FVoxelVirtualStruct*>(StructMemory));
 		SharedRef->Internal_UpdateWeakReferenceInternal(SharedRef);
 		return MakeSharedVoidRef(SharedRef);
 	}

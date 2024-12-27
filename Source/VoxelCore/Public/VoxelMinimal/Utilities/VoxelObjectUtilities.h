@@ -130,7 +130,7 @@ namespace FVoxelUtilities
 			return nullptr;
 		}
 
-		TConstVoxelArrayView64<T>* ArrayView = new(GVoxelMemory) TConstVoxelArrayView64<T>(
+		TConstVoxelArrayView64<T>* ArrayView = new TConstVoxelArrayView64<T>(
 			static_cast<const T*>(Data),
 			BulkData.GetBulkDataSize() / sizeof(T));
 
@@ -139,7 +139,7 @@ namespace FVoxelUtilities
 			[&BulkData, ArrayView]
 			{
 				BulkData.Unlock();
-				FVoxelMemory::Delete(ArrayView);
+				delete ArrayView;
 			});
 	}
 

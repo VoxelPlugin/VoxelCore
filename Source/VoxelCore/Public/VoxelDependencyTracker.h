@@ -14,7 +14,7 @@ public:
 
 	static TSharedRef<FVoxelDependencyTracker> Create(const FName Name)
 	{
-		return MakeVoxelShareable(new(GVoxelMemory) FVoxelDependencyTracker(Name));
+		return MakeShareable(new FVoxelDependencyTracker(Name));
 	}
 	~FVoxelDependencyTracker();
 	UE_NONCOPYABLE(FVoxelDependencyTracker);

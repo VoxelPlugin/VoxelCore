@@ -6,7 +6,7 @@ TSharedRef<FVoxelZipWriter> FVoxelZipWriter::Create(const FWriteLambda& WriteLam
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	const TSharedRef<FVoxelZipWriter> Result = MakeVoxelShareable(new(GVoxelMemory) FVoxelZipWriter(WriteLambda));
+	const TSharedRef<FVoxelZipWriter> Result = MakeShareable(new FVoxelZipWriter(WriteLambda));
 	Result->Archive.m_pIO_opaque = &Result.Get();
 	Result->Archive.m_pWrite = [](void *pOpaque, const mz_uint64 file_ofs, const void *pBuf, const size_t n) -> size_t
 	{

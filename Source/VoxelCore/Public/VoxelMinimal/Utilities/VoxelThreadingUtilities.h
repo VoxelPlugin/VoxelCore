@@ -186,41 +186,37 @@ namespace Voxel
 ///////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-TSharedRef<T> MakeVoxelShareable_GameThread(T* Object)
+TSharedRef<T> MakeShareable_GameThread(T* Object)
 {
-	FVoxelMemory::CheckIsVoxelAlloc(Object);
-
 	return TSharedPtr<T>(Object, [](T* InObject)
 	{
 		Voxel::GameTask([=]
 		{
-			FVoxelMemory::Delete(InObject);
+			delete InObject;
 		});
 	}).ToSharedRef();
 }
 template<typename T>
-TSharedRef<T> MakeVoxelShareable_RenderThread(T* Object)
+TSharedRef<T> MakeShareable_RenderThread(T* Object)
 {
-	FVoxelMemory::CheckIsVoxelAlloc(Object);
-
 	return TSharedPtr<T>(Object, [](T* InObject)
 	{
 		Voxel::RenderTask([=]
 		{
-			FVoxelMemory::Delete(InObject);
+			delete InObject;
 		});
 	}).ToSharedRef();
 }
 
 template<typename T, typename... ArgTypes, typename = std::enable_if_t<std::is_constructible_v<T, ArgTypes...>>>
-TSharedRef<T> MakeVoxelShared_GameThread(ArgTypes&&... Args)
+TSharedRef<T> MakeShared_GameThread(ArgTypes&&... Args)
 {
-	return MakeVoxelShareable_GameThread(new(GVoxelMemory) T(Forward<ArgTypes>(Args)...));
+	return MakeShareable_GameThread(new T(Forward<ArgTypes>(Args)...));
 }
 template<typename T, typename... ArgTypes, typename = std::enable_if_t<std::is_constructible_v<T, ArgTypes...>>>
-TSharedRef<T> MakeVoxelShared_RenderThread(ArgTypes&&... Args)
+TSharedRef<T> MakeShared_RenderThread(ArgTypes&&... Args)
 {
-	return MakeVoxelShareable_RenderThread(new(GVoxelMemory) T(Forward<ArgTypes>(Args)...));
+	return MakeShareable_RenderThread(new T(Forward<ArgTypes>(Args)...));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

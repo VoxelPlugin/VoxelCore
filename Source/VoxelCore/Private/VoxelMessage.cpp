@@ -25,7 +25,7 @@ void FVoxelMessageToken_Group::AddToken(const TSharedRef<FVoxelMessageToken>& To
 
 TSharedRef<FVoxelMessage> FVoxelMessage::Create(const EVoxelMessageSeverity Severity)
 {
-	return MakeVoxelShareable(new(GVoxelMemory) FVoxelMessage(Severity));
+	return MakeShareable(new FVoxelMessage(Severity));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

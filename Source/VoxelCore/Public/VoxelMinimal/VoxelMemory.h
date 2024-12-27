@@ -8,24 +8,6 @@
 #define ENABLE_VOXEL_ALLOCATOR 1
 #endif
 
-struct FVoxelMemory;
-
-constexpr const FVoxelMemory* GVoxelMemory = nullptr;
-
-void* operator new(size_t Size, const FVoxelMemory*);
-void* operator new(size_t Size, std::align_val_t Alignment, const FVoxelMemory*);
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-template<typename T>
-struct TVoxelMemoryDeleter;
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
 extern VOXELCORE_API const uint32 GVoxelMemoryTLS;
 
 struct VOXELCORE_API FVoxelMemory
@@ -66,49 +48,7 @@ public:
 		FMemory::Free(Original);
 #endif
 	}
-
-public:
-	template<typename T>
-	FORCEINLINE static void Delete(const T* Object)
-	{
-		if (!Object)
-		{
-			return;
-		}
-
-		Object->~T();
-		FVoxelMemory::Free(ConstCast(Object));
-	}
 };
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-template<typename T>
-struct TVoxelMemoryDeleter
-{
-	TVoxelMemoryDeleter() = default;
-
-	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
-	TVoxelMemoryDeleter(const TVoxelMemoryDeleter<OtherType>&)
-	{
-	}
-
-	FORCEINLINE void operator()(T* Object) const
-	{
-		FVoxelMemory::Delete(Object);
-	}
-};
-
-FORCEINLINE void* operator new(const size_t Size, const FVoxelMemory*)
-{
-	return FVoxelMemory::Malloc(Size);
-}
-FORCEINLINE void* operator new(const size_t Size, std::align_val_t Alignment, const FVoxelMemory*)
-{
-	return FVoxelMemory::Malloc(Size, uint32(Alignment));
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -287,13 +227,6 @@ struct FVoxelSparseArrayAllocator
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-template<typename T>
-FORCEINLINE TSharedRef<T> MakeVoxelShareable(T* Object)
-{
-	FVoxelMemory::CheckIsVoxelAlloc(Object);
-	return TSharedRef<T>(Object, TVoxelMemoryDeleter<T>());
-}
 
 // Need TEnableIf as &&& is equivalent to &, so T could get matched with Smthg&
 template<typename T>
