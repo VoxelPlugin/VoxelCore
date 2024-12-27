@@ -132,7 +132,7 @@ FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
 
 	if (!ensure(TargetTexture.IsValid()))
 	{
-		return FVoxelFuture::Done();
+		return {};
 	}
 
 	const int32 SizeX = TargetTexture->GetSizeX();
@@ -140,7 +140,7 @@ FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
 	const EPixelFormat Format = TargetTexture->GetPixelFormat();
 	if (!ensure(Data->Num() == GPixelFormats[Format].BlockBytes * SizeX * SizeY))
 	{
-		return FVoxelFuture::Done();
+		return {};
 	}
 
 	if (!GRHISupportsAsyncTextureCreation)
@@ -151,13 +151,13 @@ FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
 
 			if (!TargetTexture.IsValid())
 			{
-				return FVoxelFuture::Done();
+				return;
 			}
 
 			FTextureResource* Resource = TargetTexture->GetResource();
 			if (!ensure(Resource))
 			{
-				return FVoxelFuture::Done();
+				return;
 			}
 
 			const TRefCountPtr<FRHITexture> UploadTextureRHI = RHICreateTexture(
@@ -170,7 +170,7 @@ FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
 
 			if (!ensure(UploadTextureRHI.IsValid()))
 			{
-				return FVoxelFuture::Done();
+				return;
 			}
 
 			uint32 Stride = 0;
@@ -205,8 +205,6 @@ FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
 				VOXEL_SCOPE_COUNTER("RHIUpdateTextureReference");
 				RHIUpdateTextureReference(TextureReferenceRHI, Resource->TextureRHI);
 			}
-
-			return FVoxelFuture::Done();
 		});
 	}
 
@@ -239,7 +237,7 @@ FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
 
 		if (!ensure(UploadTextureRHI.IsValid()))
 		{
-			return FVoxelFuture::Done();
+			return FVoxelFuture();
 		}
 
 		return Voxel::RenderTask([=]
@@ -462,7 +460,7 @@ TVoxelFuture<TVoxelArray64<uint8>> FVoxelUtilities::Readback(
 	}
 	check(IsInParallelRenderingThread());
 
-	const TVoxelPromise<TVoxelArray64<uint8>> Promise;
+	TVoxelPromise<TVoxelArray64<uint8>> Promise;
 
 	const auto Lambda = [=](const int64 NumBytes)
 	{
@@ -475,23 +473,16 @@ TVoxelFuture<TVoxelArray64<uint8>> FVoxelUtilities::Readback(
 		});
 	};
 
-	if (FutureNumBytes.IsValid())
+	if (FutureNumBytes.IsComplete())
 	{
-		if (FutureNumBytes.IsComplete())
-		{
-			Lambda(FutureNumBytes.GetValueChecked());
-		}
-		else
-		{
-			(void)FutureNumBytes.Then_RenderThread(Lambda);
-		}
+		Lambda(FutureNumBytes.GetValueChecked());
 	}
 	else
 	{
-		Lambda(-1);
+		(void)FutureNumBytes.Then_RenderThread(Lambda);
 	}
 
-	return Promise.GetFuture();
+	return Promise;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -509,10 +500,9 @@ TVoxelFuture<TVoxelArray64<uint8>> FVoxelUtilities::Readback(
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	if (!FutureNumBytes.IsValid() ||
-		FutureNumBytes.IsComplete())
+	if (FutureNumBytes.IsComplete())
 	{
-		const TVoxelPromise<TVoxelArray64<uint8>> Promise;
+		TVoxelPromise<TVoxelArray64<uint8>> Promise;
 
 		FVoxelUtilitiesReadbackParameters* Parameters = GraphBuilder.AllocParameters<FVoxelUtilitiesReadbackParameters>();
 		Parameters->Buffer = SourceBuffer;
@@ -532,14 +522,14 @@ TVoxelFuture<TVoxelArray64<uint8>> FVoxelUtilities::Readback(
 					FVoxelGPUBufferReadback::Create(
 						RHICmdList,
 						SourceBuffer->GetRHI(),
-						FutureNumBytes.IsValid() ? FutureNumBytes.GetValueChecked() : -1)
+						FutureNumBytes.GetValueChecked())
 				});
 			});
 
-		return Promise.GetFuture();
+		return Promise;
 	}
 
-	const TVoxelPromise<TVoxelArray64<uint8>> Promise;
+	TVoxelPromise<TVoxelArray64<uint8>> Promise;
 
 	const TSharedRef<TRefCountPtr<FRDGPooledBuffer>> ExtractedSourceBuffer = MakeVoxelShared<TRefCountPtr<FRDGPooledBuffer>>();
 	GraphBuilder.QueueBufferExtraction(SourceBuffer, &ExtractedSourceBuffer.Get());
@@ -583,5 +573,5 @@ TVoxelFuture<TVoxelArray64<uint8>> FVoxelUtilities::Readback(
 		Complete(NumBytes);
 	});
 
-	return Promise.GetFuture();
+	return Promise;
 }

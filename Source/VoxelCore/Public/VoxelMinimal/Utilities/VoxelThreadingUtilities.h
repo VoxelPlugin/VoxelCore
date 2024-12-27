@@ -88,7 +88,7 @@ namespace Voxel
 			if constexpr (std::is_void_v<ReturnType>)
 			{
 				Lambda();
-				return FVoxelFuture::Done();
+				return {};
 			}
 			else
 			{

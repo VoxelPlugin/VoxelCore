@@ -3,80 +3,116 @@
 #include "VoxelTaskDispatcherInterface.h"
 #include "VoxelGlobalTaskDispatcher.h"
 
-FVoxelTaskDispatcherKeepAliveRef::~FVoxelTaskDispatcherKeepAliveRef()
+class FVoxelTaskDispatcherManager
 {
-	const TSharedPtr<IVoxelTaskDispatcher> Dispatcher = WeakDispatcher.Pin();
-	if (!Dispatcher)
+public:
+	FVoxelCriticalSection CriticalSection;
+	TVoxelSparseArray<TWeakPtr<IVoxelTaskDispatcher>> TaskDispatchers_RequiresLock;
+	FVoxelCounter32 SerialCounter;
+};
+FVoxelTaskDispatcherManager* GVoxelTaskDispatcherManager = new FVoxelTaskDispatcherManager();
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FVoxelTaskDispatcherRef::FVoxelTaskDispatcherRef(const IVoxelTaskDispatcher& Dispatcher)
+{
+	*this = Dispatcher.SelfRef.Get();
+
+	if (IsValid())
 	{
 		return;
 	}
 
-	VOXEL_SCOPE_LOCK(Dispatcher->CriticalSection);
-	Dispatcher->PromisesToKeepAlive_RequiresLock.RemoveAt(Index);
+	VOXEL_SCOPE_LOCK(GVoxelTaskDispatcherManager->CriticalSection);
+
+	*this = Dispatcher.SelfRef.Get();
+
+	if (IsValid())
+	{
+		return;
+	}
+
+	Index = GVoxelTaskDispatcherManager->TaskDispatchers_RequiresLock.Add(ConstCast(Dispatcher).AsWeak());
+	Serial = GVoxelTaskDispatcherManager->SerialCounter.Increment_ReturnNew();
+
+	ConstCast(Dispatcher.SelfRef).Set(*this);
 }
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-#if VOXEL_DEBUG
-void IVoxelTaskDispatcher::CheckOwnsFuture(const FVoxelFuture& Future) const
+TSharedPtr<IVoxelTaskDispatcher> FVoxelTaskDispatcherRef::Pin() const
 {
-	ensure(Future.PromiseState->Dispatcher_DebugOnly == AsWeak());
+	if (!IsValid())
+	{
+		return nullptr;
+	}
+
+	VOXEL_SCOPE_LOCK(GVoxelTaskDispatcherManager->CriticalSection);
+
+	if (!GVoxelTaskDispatcherManager->TaskDispatchers_RequiresLock.IsValidIndex(Index))
+	{
+		return nullptr;
+	}
+
+	TSharedPtr<IVoxelTaskDispatcher> Dispatcher = GVoxelTaskDispatcherManager->TaskDispatchers_RequiresLock[Index].Pin();
+	if (!Dispatcher)
+	{
+		return nullptr;
+	}
+
+	if (Dispatcher->SelfRef.Get().Serial != Serial)
+	{
+		return nullptr;
+	}
+
+	return Dispatcher;
 }
-#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FVoxelFuture IVoxelTaskDispatcher::Wrap(
-	const FVoxelFuture& Other,
-	IVoxelTaskDispatcher& OtherDispatcher)
+IVoxelTaskDispatcher::~IVoxelTaskDispatcher()
+{
+	const FVoxelTaskDispatcherRef Ref = SelfRef.Get();
+	if (!Ref.IsValid())
+	{
+		return;
+	}
+
+	VOXEL_SCOPE_LOCK(GVoxelTaskDispatcherManager->CriticalSection);
+
+	check(GetWeakPtrObject_Unsafe(GVoxelTaskDispatcherManager->TaskDispatchers_RequiresLock[Ref.Index]) == this);
+	GVoxelTaskDispatcherManager->TaskDispatchers_RequiresLock.RemoveAt(Ref.Index);
+}
+
+void IVoxelTaskDispatcher::DumpPromises()
 {
 	VOXEL_FUNCTION_COUNTER();
+	VOXEL_SCOPE_LOCK(CriticalSection);
 
-	OtherDispatcher.CheckOwnsFuture(Other);
+	TVoxelMap<FVoxelStackFrames, int32> StackFramesToCount;
+	StackFramesToCount.Reserve(StackFrames_RequiresLock.Num());
 
-	FVoxelTaskDispatcherScope ThisScope(*this);
-
-	if (Other.IsComplete())
+	for (const FVoxelStackFrames& StackFrames : StackFrames_RequiresLock)
 	{
-		return FVoxelFuture::Done();
+		StackFramesToCount.FindOrAdd(StackFrames)++;
 	}
 
-	const FVoxelPromise Promise;
-
+	StackFramesToCount.ValueSort([](const int32 A, const int32 B)
 	{
-		FVoxelTaskDispatcherScope OtherScope(OtherDispatcher);
+		return A > B;
+	});
 
-		Other.Then_AnyThread(MakeWeakPtrLambda(this, [this, Promise]
+	for (const auto& It : StackFramesToCount)
+	{
+		LOG_VOXEL(Log, "x%d:", It.Value);
+
+		for (const FString& Line : FVoxelUtilities::StackFramesToString(It.Key))
 		{
-			// Do a Dispatch(AsyncThread) to ensure this task dispatcher fully owns the lifetime of what Promise.Set will trigger
-			Dispatch(EVoxelFutureThread::AsyncThread, [this, Promise]
-			{
-				checkVoxelSlow(&FVoxelTaskDispatcherScope::Get() == this);
-
-				Promise.Set();
-			});
-		}));
+			LOG_VOXEL(Log, "\t%s", *Line);
+		}
 	}
-
-	return Promise.GetFuture();
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-TSharedRef<FVoxelTaskDispatcherKeepAliveRef> IVoxelTaskDispatcher::AddRef(const TSharedRef<FVoxelPromiseState>& Promise)
-{
-	int32 Index;
-	{
-		VOXEL_SCOPE_LOCK(CriticalSection);
-		Index = PromisesToKeepAlive_RequiresLock.Add(Promise);
-	}
-	return MakeVoxelShareable(new(GVoxelMemory) FVoxelTaskDispatcherKeepAliveRef(AsShared(), Index));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -84,38 +120,3 @@ TSharedRef<FVoxelTaskDispatcherKeepAliveRef> IVoxelTaskDispatcher::AddRef(const 
 ///////////////////////////////////////////////////////////////////////////////
 
 const uint32 GVoxelTaskDispatcherScopeTLS = FPlatformTLS::AllocTlsSlot();
-
-FVoxelTaskDispatcherScope::FVoxelTaskDispatcherScope(IVoxelTaskDispatcher& Dispatcher)
-	: Dispatcher(Dispatcher)
-	, PreviousTLS(FPlatformTLS::GetTlsValue(GVoxelTaskDispatcherScopeTLS))
-{
-	FPlatformTLS::SetTlsValue(GVoxelTaskDispatcherScopeTLS, &Dispatcher);
-}
-
-FVoxelTaskDispatcherScope::~FVoxelTaskDispatcherScope()
-{
-	ensure(FPlatformTLS::GetTlsValue(GVoxelTaskDispatcherScopeTLS) == &Dispatcher);
-	FPlatformTLS::SetTlsValue(GVoxelTaskDispatcherScopeTLS, PreviousTLS);
-}
-
-IVoxelTaskDispatcher& FVoxelTaskDispatcherScope::Get()
-{
-	if (IVoxelTaskDispatcher* Dispatcher = static_cast<IVoxelTaskDispatcher*>(FPlatformTLS::GetTlsValue(GVoxelTaskDispatcherScopeTLS)))
-	{
-		return *Dispatcher;
-	}
-
-	return GetGlobal();
-}
-
-IVoxelTaskDispatcher& FVoxelTaskDispatcherScope::GetGlobal(const bool bBackground)
-{
-	if (bBackground)
-	{
-		return *GVoxelGlobalBackgroundTaskDispatcher;
-	}
-	else
-	{
-		return *GVoxelGlobalForegroundTaskDispatcher;
-	}
-}

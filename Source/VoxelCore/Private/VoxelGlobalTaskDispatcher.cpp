@@ -2,8 +2,8 @@
 
 #include "VoxelGlobalTaskDispatcher.h"
 
-TSharedPtr<FVoxelGlobalTaskDispatcher> GVoxelGlobalForegroundTaskDispatcher;
-TSharedPtr<FVoxelGlobalTaskDispatcher> GVoxelGlobalBackgroundTaskDispatcher;
+TSharedPtr<IVoxelTaskDispatcher> GVoxelForegroundTaskDispatcher;
+TSharedPtr<IVoxelTaskDispatcher> GVoxelBackgroundTaskDispatcher;
 
 FVoxelGlobalTaskDispatcher::FVoxelGlobalTaskDispatcher(const bool bIsBackground)
 	: bIsBackground(bIsBackground)
@@ -20,6 +20,7 @@ void FVoxelGlobalTaskDispatcher::Dispatch(
 	default: VOXEL_ASSUME(false);
 	case EVoxelFutureThread::AnyThread:
 	{
+		FVoxelTaskDispatcherScope Scope(*this);
 		Lambda();
 	}
 	break;
@@ -70,6 +71,11 @@ bool FVoxelGlobalTaskDispatcher::IsExiting() const
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+bool FVoxelGlobalTaskDispatcher::IsGlobalExecutor() const
+{
+	return true;
+}
+
 bool FVoxelGlobalTaskDispatcher::TryExecuteTasks_AnyThread()
 {
 	VOXEL_FUNCTION_COUNTER();
@@ -110,6 +116,5 @@ bool FVoxelGlobalTaskDispatcher::TryExecuteTasks_AnyThread()
 
 int32 FVoxelGlobalTaskDispatcher::NumTasks() const
 {
-	// Don't report tasks, too spammy
-	return 0; // AsyncTasks_RequiresLock.Num();
+	return AsyncTasks_RequiresLock.Num();
 }

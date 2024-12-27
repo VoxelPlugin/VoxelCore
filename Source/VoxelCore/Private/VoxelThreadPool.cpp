@@ -61,7 +61,7 @@ FVoxelThreadPool::~FVoxelThreadPool()
 	ensure(Executors_RequiresLock.Num() == 2);
 }
 
-int32 FVoxelThreadPool::NumTasks() const
+int32 FVoxelThreadPool::NumTasks(const bool bIncludeGlobalExecutors) const
 {
 	VOXEL_FUNCTION_COUNTER();
 	VOXEL_SCOPE_LOCK(Executors_CriticalSection);
@@ -69,6 +69,12 @@ int32 FVoxelThreadPool::NumTasks() const
 	int32 Result = 0;
 	for (const IVoxelTaskExecutor* Executor : Executors_RequiresLock)
 	{
+		if (!bIncludeGlobalExecutors &&
+			Executor->IsGlobalExecutor())
+		{
+			continue;
+		}
+
 		Result += Executor->NumTasks();
 	}
 	return Result;
@@ -136,8 +142,8 @@ void FVoxelThreadPool::Initialize()
 	FCoreDelegates::OnExit.AddLambda(Callback);
 	GOnVoxelModuleUnloaded_DoCleanup.AddLambda(Callback);
 
-	GVoxelGlobalForegroundTaskDispatcher = MakeVoxelShared<FVoxelGlobalTaskDispatcher>(false);
-	GVoxelGlobalBackgroundTaskDispatcher = MakeVoxelShared<FVoxelGlobalTaskDispatcher>(true);
+	GVoxelForegroundTaskDispatcher = MakeVoxelShared<FVoxelGlobalTaskDispatcher>(false);
+	GVoxelBackgroundTaskDispatcher = MakeVoxelShared<FVoxelGlobalTaskDispatcher>(true);
 }
 
 void FVoxelThreadPool::Tick()
@@ -222,8 +228,8 @@ void FVoxelThreadPool::Tick()
 
 		if (GVoxelVerboseTaskCount)
 		{
-			const int32 NumForegroundTasks = GVoxelGlobalForegroundTaskDispatcher->NumTasks_Actual();
-			const int32 NumBackgroundTasks = GVoxelGlobalBackgroundTaskDispatcher->NumTasks_Actual();
+			const int32 NumForegroundTasks = static_cast<const FVoxelGlobalTaskDispatcher&>(*GVoxelForegroundTaskDispatcher).NumTasks();
+			const int32 NumBackgroundTasks = static_cast<const FVoxelGlobalTaskDispatcher&>(*GVoxelBackgroundTaskDispatcher).NumTasks();
 
 			ShowStats(uint64(0x322D765FAC1E), FString::Printf(TEXT("%d foreground voxel tasks left using %d threads"), NumForegroundTasks, NumThreads));
 			ShowStats(uint64(0xC2C1E182DD07), FString::Printf(TEXT("%d background voxel tasks left using %d threads"), NumBackgroundTasks, NumThreads));

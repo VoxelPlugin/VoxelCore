@@ -24,19 +24,12 @@ public:
 	//~ End IVoxelTaskDispatcher Interface
 
 	//~ Begin IVoxelTaskExecutor Interface
+	virtual bool IsGlobalExecutor() const override;
 	virtual bool TryExecuteTasks_AnyThread() override;
 	virtual int32 NumTasks() const override;
 	//~ End IVoxelTaskExecutor Interface
-
-	int32 NumTasks_Actual() const
-	{
-		return AsyncTasks_RequiresLock.Num();
-	}
 
 private:
 	FVoxelCriticalSection CriticalSection;
 	TVoxelArray<TVoxelUniqueFunction<void()>> AsyncTasks_RequiresLock;
 };
-
-extern TSharedPtr<FVoxelGlobalTaskDispatcher> GVoxelGlobalForegroundTaskDispatcher;
-extern TSharedPtr<FVoxelGlobalTaskDispatcher> GVoxelGlobalBackgroundTaskDispatcher;

@@ -4,14 +4,11 @@
 
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelUniqueFunction.h"
-#include "VoxelMinimal/VoxelCriticalSection.h"
-#include "VoxelMinimal/Containers/VoxelMap.h"
-#include "VoxelMinimal/Utilities/VoxelSystemUtilities.h"
 
 class FVoxelFuture;
 class FVoxelPromise;
+class FVoxelPromiseState;
 class IVoxelTaskDispatcher;
-class FVoxelTaskDispatcherKeepAliveRef;
 
 template<typename>
 class TVoxelFuture;
@@ -74,63 +71,67 @@ enum class EVoxelFutureThread : uint8
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-class VOXELCORE_API FVoxelPromiseState : public TSharedFromThis<FVoxelPromiseState>
+class VOXELCORE_API IVoxelPromiseState
 {
 public:
-	~FVoxelPromiseState();
-	UE_NONCOPYABLE(FVoxelPromiseState);
+	static TSharedRef<IVoxelPromiseState> New(
+		IVoxelTaskDispatcher* DispatcherOverride,
+		bool bWithValue);
 
-	VOXEL_COUNT_INSTANCES();
+	static TSharedRef<IVoxelPromiseState> New(const FSharedVoidRef& Value);
 
+	UE_NONCOPYABLE(IVoxelPromiseState);
+
+public:
 	FORCEINLINE bool IsComplete() const
 	{
 		return bIsComplete.Get();
 	}
-	FORCEINLINE FSharedVoidRef GetValueChecked() const
+	FORCEINLINE const FSharedVoidRef& GetSharedValueChecked() const
 	{
-		VOXEL_SCOPE_LOCK(CriticalSection);
+		// We don't lock - if bIsComplete is true, Value is set
+		checkVoxelSlow(bHasValue);
 		checkVoxelSlow(bIsComplete.Get());
-		return Value_RequiresLock.ToSharedRef();
+		checkVoxelSlow(Value.IsValid());
+		return ToSharedRefFast(Value);
 	}
 
 public:
-	void Set(const FSharedVoidRef& Value);
-	void Set(const FVoxelFuture& Future);
+	void Set();
+	void Set(const FSharedVoidRef& NewValue);
+
+public:
+	void AddContinuation(const FVoxelFuture& Future);
+
+	void AddContinuation(
+		EVoxelFutureThread Thread,
+		TVoxelUniqueFunction<void()> Continuation);
 
 	void AddContinuation(
 		EVoxelFutureThread Thread,
 		TVoxelUniqueFunction<void(const FSharedVoidRef&)> Continuation);
 
-public:
-	static void EnableTracking();
-	static void DumpAllPromises();
-
-private:
-	using FThreadToContinuation = TVoxelInlineArray<TPair<EVoxelFutureThread, TVoxelUniqueFunction<void(const FSharedVoidRef&)>>, 1>;
-
-	mutable FVoxelCriticalSection_NoPadding CriticalSection;
+protected:
+	const bool bHasValue;
 	TVoxelAtomic<bool> bIsComplete;
-	FSharedVoidPtr Value_RequiresLock;
-	FThreadToContinuation ThreadToContinuation_RequiresLock;
-	TSharedPtr<FVoxelTaskDispatcherKeepAliveRef> KeepAliveRef_RequiresLock;
-#if VOXEL_DEBUG
-	TWeakPtr<IVoxelTaskDispatcher> Dispatcher_DebugOnly;
-	FVoxelStackFrames DebugStackFrames;
-#endif
-#if !UE_BUILD_SHIPPING
-	int32 DebugStackIndex = -1;
-#endif
+	TVoxelAtomic<bool> bIsLocked;
+	int32 KeepAliveIndex = -1;
+	FSharedVoidPtr Value;
 
-	FVoxelPromiseState();
+	FORCEINLINE explicit IVoxelPromiseState(const bool bHasValue)
+		: bHasValue(bHasValue)
+	{
+	}
 
-	friend FVoxelPromise;
-	friend IVoxelTaskDispatcher;
+	friend FVoxelPromiseState;
 };
+checkStatic(sizeof(IVoxelPromiseState) == 24);
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+// FVoxelFuture() is a valid, completed future
 class VOXELCORE_API FVoxelFuture
 {
 public:
@@ -139,16 +140,45 @@ public:
 	FVoxelFuture() = default;
 	explicit FVoxelFuture(TConstVoxelArrayView<FVoxelFuture> Futures);
 
-	static FVoxelFuture Done();
+public:
+	TSharedPtr<IVoxelTaskDispatcher> GetTaskDispatcher() const;
 
 public:
-	FORCEINLINE bool IsValid() const
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+	static FORCEINLINE TVoxelFutureType<ReturnType> Execute(
+		const EVoxelFutureThread Thread,
+		LambdaType Lambda)
 	{
-		return PromiseState.IsValid();
+		TVoxelPromiseType<ReturnType> Promise;
+		FVoxelFuture::ExecuteImpl(Thread, [Lambda = MoveTemp(Lambda), Promise]
+		{
+			if constexpr (std::is_void_v<ReturnType>)
+			{
+				Lambda();
+				Promise.Set();
+			}
+			else
+			{
+				Promise.Set(Lambda());
+			}
+		});
+		return Promise;
 	}
+
+private:
+	static void ExecuteImpl(
+		EVoxelFutureThread Thread,
+		TVoxelUniqueFunction<void()> Lambda);
+
+public:
 	FORCEINLINE bool IsComplete() const
 	{
-		return PromiseState->IsComplete();
+		return
+			!PromiseState ||
+			PromiseState->IsComplete();
 	}
 
 public:
@@ -160,8 +190,13 @@ public:
 		const EVoxelFutureThread Thread,
 		LambdaType Continuation) const
 	{
-		const TVoxelPromiseType<ReturnType> Promise;
-		PromiseState->AddContinuation(Thread, [Promise, Continuation = MoveTemp(Continuation)](const FSharedVoidRef&)
+		if (IsComplete())
+		{
+			return Execute(Thread, MoveTemp(Continuation));
+		}
+
+		TVoxelPromiseType<ReturnType> Promise;
+		PromiseState->AddContinuation(Thread, [Promise, Continuation = MoveTemp(Continuation)]
 		{
 			if constexpr (std::is_void_v<ReturnType>)
 			{
@@ -173,7 +208,7 @@ public:
 				Promise.Set(Continuation());
 			}
 		});
-		return Promise.GetFuture();
+		return Promise;
 	}
 
 #define Define(Thread, Suffix) \
@@ -205,7 +240,7 @@ public:
 			if constexpr (std::is_void_v<ReturnType>)
 			{
 				Continuation();
-				return Done();
+				return {};
 			}
 			else
 			{
@@ -217,66 +252,19 @@ public:
 	}
 
 protected:
-	TSharedPtr<FVoxelPromiseState> PromiseState;
+	TSharedPtr<IVoxelPromiseState> PromiseState;
 
-	FORCEINLINE explicit FVoxelFuture(const TSharedRef<FVoxelPromiseState>& PromiseState)
+	FORCEINLINE explicit FVoxelFuture(const TSharedRef<IVoxelPromiseState>& PromiseState)
 		: PromiseState(PromiseState)
 	{
 	}
 
+	template<typename>
+	friend class TVoxelPromise;
+
 	friend FVoxelPromise;
 	friend FVoxelPromiseState;
-	friend IVoxelTaskDispatcher;
-
-public:
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
-	static FORCEINLINE TVoxelFutureType<ReturnType> Execute(
-		const EVoxelFutureThread Thread,
-		LambdaType Lambda)
-	{
-		const TVoxelPromiseType<ReturnType> Promise;
-		FVoxelFuture::ExecuteImpl(Thread, [Lambda = MoveTemp(Lambda), Promise]
-		{
-			if constexpr (std::is_void_v<ReturnType>)
-			{
-				Lambda();
-				Promise.Set();
-			}
-			else
-			{
-				Promise.Set(Lambda());
-			}
-		});
-		return Promise.GetFuture();
-	}
-
-	static void ExecuteImpl(
-		EVoxelFutureThread Thread,
-		TVoxelUniqueFunction<void()> Lambda);
-};
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-class VOXELCORE_API FVoxelPromise
-{
-public:
-	FVoxelPromise() = default;
-
-	FORCEINLINE FVoxelFuture GetFuture() const
-	{
-		return FVoxelFuture(PromiseState);
-	}
-
-	void Set() const;
-	void Set(const FVoxelFuture& Future) const;
-
-protected:
-	TSharedRef<FVoxelPromiseState> PromiseState = MakeVoxelShareable(new(GVoxelMemory) FVoxelPromiseState());
+	friend IVoxelPromiseState;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -290,14 +278,21 @@ public:
 	using Type = T;
 	using PromiseType = TVoxelPromise<T>;
 
-	TVoxelFuture() = default;
-	TVoxelFuture(const TSharedRef<T>& Value);
+	// Since futures are always valid, TVoxelFuture() would be a completed future,
+	// which is impossible because we don't have a value
+	TVoxelFuture() = delete;
 
-	template<typename OtherType, typename = std::enable_if_t<
-		std::is_null_pointer_v<OtherType> &&
+	FORCEINLINE TVoxelFuture(const TSharedRef<T>& Value)
+	{
+		PromiseState = IVoxelPromiseState::New(MakeSharedVoidRef(Value));
+	}
+
+	// nullptr constructor, a bit convoluted to fix some compile errors
+	template<typename NullType, typename = std::enable_if_t<
+		std::is_null_pointer_v<NullType> &&
 		// Wrap in a dummy type to disable this as copy constructor without failing to compile on clang if T is forward declared
-		TIsConstructible<std::conditional_t<std::is_same_v<OtherType, TVoxelFuture>, void, T>, const OtherType&>::Value>>
-	TVoxelFuture(const OtherType& OtherValue)
+		TIsConstructible<std::conditional_t<std::is_same_v<NullType, TVoxelFuture>, void, T>, const NullType&>::Value>>
+	TVoxelFuture(const NullType& OtherValue)
 		: TVoxelFuture(T(OtherValue))
 	{
 	}
@@ -311,16 +306,16 @@ public:
 	{
 	}
 
-	FORCEINLINE TSharedRef<T> GetSharedValueChecked() const
+	FORCEINLINE const TSharedRef<T>& GetSharedValueChecked() const
 	{
-		return ReinterpretCastRef<TSharedRef<T>>(PromiseState->GetValueChecked());
+		return ReinterpretCastRef<TSharedRef<T>>(PromiseState->GetSharedValueChecked());
 	}
 	FORCEINLINE T& GetValueChecked() const
 	{
 		return *GetSharedValueChecked();
 	}
 
-	FORCEINLINE operator TVoxelFuture<const T>() const
+	FORCEINLINE operator const TVoxelFuture<const T>&() const
 	{
 		return ReinterpretCastRef<TVoxelFuture<const T>>(*this);
 	}
@@ -334,7 +329,7 @@ public:
 		const EVoxelFutureThread Thread,
 		LambdaType Continuation) const
 	{
-		const TVoxelPromiseType<ReturnType> Promise;
+		TVoxelPromiseType<ReturnType> Promise;
 		PromiseState->AddContinuation(Thread, [Promise, Continuation = MoveTemp(Continuation)](const FSharedVoidRef& Value)
 		{
 			if constexpr (std::is_void_v<ReturnType>)
@@ -347,7 +342,7 @@ public:
 				Promise.Set(Continuation(ReinterpretCastRef<TSharedRef<T>>(Value)));
 			}
 		});
-		return Promise.GetFuture();
+		return Promise;
 	}
 	template<
 		typename LambdaType,
@@ -360,7 +355,7 @@ public:
 		const EVoxelFutureThread Thread,
 		LambdaType Continuation) const
 	{
-		const TVoxelPromiseType<ReturnType> Promise;
+		TVoxelPromiseType<ReturnType> Promise;
 		PromiseState->AddContinuation(Thread, [Promise, Continuation = MoveTemp(Continuation)](const FSharedVoidRef& Value)
 		{
 			if constexpr (std::is_void_v<ReturnType>)
@@ -373,7 +368,7 @@ public:
 				Promise.Set(Continuation(*ReinterpretCastRef<TSharedRef<T>>(Value)));
 			}
 		});
-		return Promise.GetFuture();
+		return Promise;
 	}
 
 #define Define(Thread, Suffix) \
@@ -408,7 +403,7 @@ public:
 			if constexpr (std::is_void_v<ReturnType>)
 			{
 				Continuation(ReinterpretCastRef<TSharedRef<T>>(GetSharedValueChecked()));
-				return Done();
+				return {};
 			}
 			else
 			{
@@ -433,7 +428,7 @@ public:
 			if constexpr (std::is_void_v<ReturnType>)
 			{
 				Continuation(*ReinterpretCastRef<TSharedRef<T>>(GetSharedValueChecked()));
-				return Done();
+				return {};
 			}
 			else
 			{
@@ -443,6 +438,41 @@ public:
 
 		return this->Then(EVoxelFutureThread::GameThread, MoveTemp(Continuation));
 	}
+
+protected:
+	FORCEINLINE explicit TVoxelFuture(const TSharedRef<IVoxelPromiseState>& PromiseState)
+		: FVoxelFuture(PromiseState)
+	{
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+class VOXELCORE_API FVoxelPromise : public FVoxelFuture
+{
+public:
+	FORCEINLINE FVoxelPromise(IVoxelTaskDispatcher* DispatcherOverride = nullptr)
+		: FVoxelFuture(IVoxelPromiseState::New(DispatcherOverride, false))
+	{
+	}
+
+	FORCEINLINE void Set() const
+	{
+		PromiseState->Set();
+	}
+	FORCEINLINE void Set(const FVoxelFuture& Future) const
+	{
+		if (Future.IsComplete())
+		{
+			PromiseState->Set();
+		}
+		else
+		{
+			Future.PromiseState->AddContinuation(*this);
+		}
+	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -450,48 +480,43 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-class TVoxelPromise : private FVoxelPromise
+class TVoxelPromise : public TVoxelFuture<T>
 {
 public:
-	TVoxelPromise() = default;
-
-	FORCEINLINE TVoxelFuture<T> GetFuture() const
+	FORCEINLINE TVoxelPromise(IVoxelTaskDispatcher* DispatcherOverride = nullptr)
+		: TVoxelFuture<T>(IVoxelPromiseState::New(DispatcherOverride, true))
 	{
-		return ReinterpretCastRef<TVoxelFuture<T>>(FVoxelPromise::GetFuture());
 	}
 
-	template<typename NullType, typename = std::enable_if_t<std::is_same_v<decltype(nullptr), NullType> && TIsTSharedPtr_V<T>>>
+	template<
+		typename NullType,
+		typename = std::enable_if_t<std::is_same_v<decltype(nullptr), NullType> && TIsTSharedPtr_V<T>>>
 	FORCEINLINE void Set(const NullType& Value) const
 	{
-		this->Set(T(Value));
+		this->PromiseState->Set(T(Value));
 	}
 
 	FORCEINLINE void Set(const T& Value) const
 	{
-		PromiseState->Set(MakeSharedVoidRef(MakeSharedCopy(Value)));
+		this->PromiseState->Set(MakeSharedVoidRef(MakeSharedCopy(Value)));
 	}
 	FORCEINLINE void Set(T&& Value) const
 	{
-		PromiseState->Set(MakeSharedVoidRef(MakeSharedCopy(MoveTemp(Value))));
+		this->PromiseState->Set(MakeSharedVoidRef(MakeSharedCopy(MoveTemp(Value))));
 	}
 	FORCEINLINE void Set(const TSharedRef<T>& Value) const
 	{
-		PromiseState->Set(MakeSharedVoidRef(Value));
+		this->PromiseState->Set(MakeSharedVoidRef(Value));
 	}
 	FORCEINLINE void Set(const TVoxelFuture<T>& Future) const
 	{
-		PromiseState->Set(Future);
+		if (Future.IsComplete())
+		{
+			this->PromiseState->Set(MakeSharedVoidRef(Future.GetSharedValueChecked()));
+		}
+		else
+		{
+			Future.PromiseState->AddContinuation(*this);
+		}
 	}
 };
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-template<typename T>
-FORCEINLINE TVoxelFuture<T>::TVoxelFuture(const TSharedRef<T>& Value)
-{
-	const TVoxelPromise<T> Promise;
-	Promise.Set(Value);
-	*this = Promise.GetFuture();
-}

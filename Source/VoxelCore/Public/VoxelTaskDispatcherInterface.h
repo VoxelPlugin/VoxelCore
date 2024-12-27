@@ -4,37 +4,41 @@
 
 #include "VoxelMinimal.h"
 
-class IVoxelTaskDispatcher;
+extern VOXELCORE_API TSharedPtr<IVoxelTaskDispatcher> GVoxelForegroundTaskDispatcher;
+extern VOXELCORE_API TSharedPtr<IVoxelTaskDispatcher> GVoxelBackgroundTaskDispatcher;
 
-class VOXELCORE_API FVoxelTaskDispatcherKeepAliveRef
+class VOXELCORE_API FVoxelTaskDispatcherRef
 {
 public:
-	~FVoxelTaskDispatcherKeepAliveRef();
+	FVoxelTaskDispatcherRef() = default;
+	FVoxelTaskDispatcherRef(const IVoxelTaskDispatcher& Dispatcher);
 
-private:
-	const TWeakPtr<IVoxelTaskDispatcher> WeakDispatcher;
-	const int32 Index;
+	TSharedPtr<IVoxelTaskDispatcher> Pin() const;
 
-	FVoxelTaskDispatcherKeepAliveRef(
-		const TSharedRef<IVoxelTaskDispatcher>& Dispatcher,
-		const int32 Index)
-		: WeakDispatcher(Dispatcher)
-		, Index(Index)
+	FORCEINLINE bool IsValid() const
 	{
+		checkVoxelSlow((Index != -1) == (Serial != -1));
+		return Index != -1;
+	}
+	FORCEINLINE bool operator==(const FVoxelTaskDispatcherRef& Other) const
+	{
+		return
+			Index == Other.Index &&
+			Serial == Other.Serial;
 	}
 
-	friend class IVoxelTaskDispatcher;
-};
+private:
+	int32 Index = -1;
+	int32 Serial = -1;
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
+	friend IVoxelTaskDispatcher;
+};
 
 class VOXELCORE_API IVoxelTaskDispatcher : public TSharedFromThis<IVoxelTaskDispatcher>
 {
 public:
 	IVoxelTaskDispatcher() = default;
-	virtual ~IVoxelTaskDispatcher() = default;
+	virtual ~IVoxelTaskDispatcher();
 
 	virtual void Dispatch(
 		EVoxelFutureThread Thread,
@@ -42,103 +46,98 @@ public:
 
 	virtual bool IsExiting() const = 0;
 
+public:
 	bool IsTrackingPromises() const
 	{
 		return NumPromisesPtr != nullptr;
 	}
+	bool IsTrackingPromiseCallstacks() const
+	{
+		return bTrackPromisesCallstacks;
+	}
 
-public:
-#if VOXEL_DEBUG
-	void CheckOwnsFuture(const FVoxelFuture& Future) const;
-#else
-	void CheckOwnsFuture(const FVoxelFuture& Future) const {}
-#endif
+	void DumpPromises();
 
 public:
 	// Wrap another future created in a different task dispatcher
 	// This ensures any continuation to this future won't leak to the other task dispatcher,
 	// which would mess up task tracking
-	FVoxelFuture Wrap(
-		const FVoxelFuture& Other,
-		IVoxelTaskDispatcher& OtherDispatcher);
-
+	FVoxelFuture Wrap(const FVoxelFuture& Other)
+	{
+		FVoxelPromise Promise(this);
+		Promise.Set(Other);
+		return Promise;
+	}
 	template<typename T>
-	TVoxelFuture<T> Wrap(
-		const TVoxelFuture<T>& Other,
-		IVoxelTaskDispatcher& OtherDispatcher);
+	TVoxelFuture<T> Wrap(const TVoxelFuture<T>& Other)
+	{
+		TVoxelPromise<T> Promise(this);
+		Promise.Set(Other);
+		return Promise;
+	}
 
 protected:
 	FVoxelCounter32* NumPromisesPtr = nullptr;
-
-#if VOXEL_DEBUG
-	FVoxelCriticalSection PromisesCriticalSection;
-	TVoxelSet<FVoxelPromiseState*> Promises_RequiresLock;
-#endif
+	bool bTrackPromisesCallstacks = false;
 
 private:
+	TVoxelAtomic<FVoxelTaskDispatcherRef> SelfRef;
+
 	FVoxelCriticalSection CriticalSection;
+	TVoxelSparseArray<FVoxelStackFrames> StackFrames_RequiresLock;
 	TVoxelChunkedSparseArray<TSharedPtr<FVoxelPromiseState>> PromisesToKeepAlive_RequiresLock;
 
-	TSharedRef<FVoxelTaskDispatcherKeepAliveRef> AddRef(const TSharedRef<FVoxelPromiseState>& Promise);
-
-	friend class FVoxelPromiseState;
-	friend class FVoxelTaskDispatcherKeepAliveRef;
+	friend FVoxelPromiseState;
+	friend FVoxelTaskDispatcherRef;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+extern VOXELCORE_API const uint32 GVoxelTaskDispatcherScopeTLS;
+
 class VOXELCORE_API FVoxelTaskDispatcherScope
 {
 public:
-	explicit FVoxelTaskDispatcherScope(IVoxelTaskDispatcher& Dispatcher);
-	~FVoxelTaskDispatcherScope();
+	FORCEINLINE explicit FVoxelTaskDispatcherScope(IVoxelTaskDispatcher& Dispatcher)
+		: Dispatcher(Dispatcher)
+		, PreviousTLS(FPlatformTLS::GetTlsValue(GVoxelTaskDispatcherScopeTLS))
+	{
+		FPlatformTLS::SetTlsValue(GVoxelTaskDispatcherScopeTLS, &Dispatcher);
+	}
+	FORCEINLINE ~FVoxelTaskDispatcherScope()
+	{
+		checkVoxelSlow(FPlatformTLS::GetTlsValue(GVoxelTaskDispatcherScopeTLS) == &Dispatcher);
+		FPlatformTLS::SetTlsValue(GVoxelTaskDispatcherScopeTLS, PreviousTLS);
+	}
 
-	static IVoxelTaskDispatcher& Get();
-	static IVoxelTaskDispatcher& GetGlobal(bool bBackground = false);
+	FORCEINLINE static IVoxelTaskDispatcher& Get()
+	{
+		if (IVoxelTaskDispatcher* Dispatcher = static_cast<IVoxelTaskDispatcher*>(FPlatformTLS::GetTlsValue(GVoxelTaskDispatcherScopeTLS)))
+		{
+			return *Dispatcher;
+		}
 
+		checkVoxelSlow(GVoxelForegroundTaskDispatcher.IsValid());
+		return *GVoxelForegroundTaskDispatcher.Get();
+	}
+
+public:
 	// Call the lambda in the global task dispatcher scope, avoiding any task leak or weird dependencies
 	template<
 		typename LambdaType,
 		typename T = LambdaReturnType_T<LambdaType>>
 	static TVoxelFutureType<T> CallInGlobalScope(LambdaType Lambda)
 	{
-		IVoxelTaskDispatcher& Dispatcher = Get();
-		IVoxelTaskDispatcher& GlobalDispatcher = GetGlobal();
-
-		TVoxelFutureType<T> Future;
+		return Get().Wrap(INLINE_LAMBDA
 		{
-			FVoxelTaskDispatcherScope Scope(GlobalDispatcher);
-			Future = Lambda();
-		}
-		return Dispatcher.Wrap(Future, GlobalDispatcher);
+			FVoxelTaskDispatcherScope Scope(*GVoxelForegroundTaskDispatcher);
+			return Lambda();
+		});
 	}
 
 private:
 	IVoxelTaskDispatcher& Dispatcher;
 	void* const PreviousTLS;
 };
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-template<typename T>
-TVoxelFuture<T> IVoxelTaskDispatcher::Wrap(
-	const TVoxelFuture<T>& Other,
-	IVoxelTaskDispatcher& OtherDispatcher)
-{
-	FVoxelTaskDispatcherScope Scope(*this);
-
-	const TVoxelPromise<T> Promise;
-
-	Wrap(static_cast<const FVoxelFuture&>(Other), OtherDispatcher).Then_AnyThread([this, Other, Promise]
-	{
-		checkVoxelSlow(&FVoxelTaskDispatcherScope::Get() == this);
-
-		Promise.Set(Other.GetSharedValueChecked());
-	});
-
-	return Promise.GetFuture();
-}

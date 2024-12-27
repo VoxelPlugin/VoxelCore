@@ -14,6 +14,12 @@ public:
 	IVoxelTaskExecutor() = default;
 	virtual ~IVoxelTaskExecutor() = default;
 
+public:
+	virtual bool IsGlobalExecutor() const
+	{
+		return false;
+	}
+
 	virtual bool TryExecuteTasks_AnyThread() = 0;
 	virtual int32 NumTasks() const = 0;
 
@@ -31,7 +37,7 @@ public:
 		return bIsExiting.Get();
 	}
 
-	int32 NumTasks() const;
+	int32 NumTasks(bool bIncludeGlobalExecutors = false) const;
 
 	void AddExecutor(IVoxelTaskExecutor* Executor);
 	void RemoveExecutor(IVoxelTaskExecutor* Executor);

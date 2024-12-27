@@ -5,6 +5,37 @@
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelAtomic.h"
 
+namespace FVoxelUtilities
+{
+	FORCEINLINE bool TryLockAtomic(TVoxelAtomic<bool>& bIsLocked)
+	{
+		return bIsLocked.Exchange_ReturnOld(true, std::memory_order_acquire) == false;
+	}
+	FORCEINLINE void LockAtomic(TVoxelAtomic<bool>& bIsLocked)
+	{
+		while (true)
+		{
+			if (TryLockAtomic(bIsLocked))
+			{
+				break;
+			}
+
+			while (bIsLocked.Get(std::memory_order_relaxed) == true)
+			{
+				FPlatformProcess::Yield();
+			}
+		}
+	}
+	FORCEINLINE void UnlockAtomic(TVoxelAtomic<bool>& bIsLocked)
+	{
+		bIsLocked.Set(false, std::memory_order_release);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 struct FVoxelCacheLinePadding
 {
 public:
@@ -54,18 +85,7 @@ public:
 	{
 		checkVoxelSlow(LockerThreadId.Get() != FPlatformTLS::GetCurrentThreadId());
 
-		while (true)
-		{
-			if (Storage.bIsLocked.Exchange_ReturnOld(true, std::memory_order_acquire) == false)
-			{
-				break;
-			}
-
-			while (Storage.bIsLocked.Get(std::memory_order_relaxed) == true)
-			{
-				FPlatformProcess::Yield();
-			}
-		}
+		FVoxelUtilities::LockAtomic(Storage.bIsLocked);
 
 		checkVoxelSlow(LockerThreadId.Get() == 0);
 		VOXEL_DEBUG_ONLY(LockerThreadId.Set(FPlatformTLS::GetCurrentThreadId()));
@@ -74,7 +94,7 @@ public:
 	{
 		checkVoxelSlow(LockerThreadId.Get() != FPlatformTLS::GetCurrentThreadId());
 
-		if (Storage.bIsLocked.Exchange_ReturnOld(true, std::memory_order_acquire) == true)
+		if (!FVoxelUtilities::TryLockAtomic(Storage.bIsLocked))
 		{
 			return false;
 		}
@@ -90,7 +110,7 @@ public:
 		checkVoxelSlow(LockerThreadId.Get() == FPlatformTLS::GetCurrentThreadId());
 		VOXEL_DEBUG_ONLY(LockerThreadId.Set(0));
 
-		Storage.bIsLocked.Set(false, std::memory_order_release);
+		FVoxelUtilities::UnlockAtomic(Storage.bIsLocked);
 	}
 
 public:
@@ -136,4 +156,14 @@ using FVoxelCriticalSection_NoPadding = TVoxelCriticalSectionImpl<Impl_FVoxelCri
 	ON_SCOPE_EXIT \
 	{ \
 		(__VA_ARGS__).Unlock(); \
+	};
+
+#define VOXEL_SCOPE_LOCK_ATOMIC(...) \
+	{ \
+		VOXEL_SCOPE_COUNTER_COND((__VA_ARGS__).Get(std::memory_order_relaxed), "Lock " #__VA_ARGS__); \
+		FVoxelUtilities::LockAtomic(__VA_ARGS__); \
+	} \
+	ON_SCOPE_EXIT \
+	{ \
+		FVoxelUtilities::UnlockAtomic(__VA_ARGS__); \
 	};

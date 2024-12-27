@@ -143,7 +143,7 @@ TVoxelFuture<FVoxelBufferRef> FVoxelBufferPoolBase::Upload_AnyThread(
 		BufferRef = Allocate_AnyThread(Num);
 	}
 
-	const TVoxelPromise<FVoxelBufferRef> Promise;
+	TVoxelPromise<FVoxelBufferRef> Promise;
 
 	UploadQueue.Enqueue(FUpload
 	{
@@ -155,7 +155,7 @@ TVoxelFuture<FVoxelBufferRef> FVoxelBufferPoolBase::Upload_AnyThread(
 
 	CheckUploadQueue_AnyThread();
 
-	return Promise.GetFuture();
+	return Promise;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -454,7 +454,7 @@ FVoxelFuture FVoxelTextureBufferPool::ProcessUploadsImpl_AnyThread(TVoxelArray<F
 	{
 		if (IsEngineExitRequested())
 		{
-			return FVoxelFuture::Done();
+			return FVoxelFuture();
 		}
 
 		UTexture2D* OldTexture = Texture_GameThread;
@@ -487,7 +487,7 @@ FVoxelFuture FVoxelTextureBufferPool::ProcessUploadsImpl_AnyThread(TVoxelArray<F
 		UTexture2D* NewTexture = Texture_GameThread;
 		if (!ensure(NewTexture))
 		{
-			return FVoxelFuture::Done();
+			return FVoxelFuture();
 		}
 
 		if (OldTexture &&
@@ -530,10 +530,10 @@ FVoxelFuture FVoxelTextureBufferPool::ProcessUploadsImpl_AnyThread(TVoxelArray<F
 		FTextureResource* Resource = Texture_GameThread->GetResource();
 		if (!ensure(Resource))
 		{
-			return FVoxelFuture::Done();
+			return FVoxelFuture();
 		}
 
-		return Voxel::RenderTask(MakeWeakPtrLambda(this, [this, Resource, Uploads](FRHICommandListImmediate& RHICmdList)
+		return Voxel::RenderTask(MakeWeakPtrLambda(this, [this, Resource, Uploads]
 		{
 			FRHITexture* TextureRHI = Resource->GetTexture2DRHI();
 			if (!ensure(TextureRHI))
