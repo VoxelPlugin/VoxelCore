@@ -47,12 +47,12 @@ void FVoxelAABBTree2D::Initialize(TVoxelArray<FElement>&& InElements)
 		}
 	};
 
-	TVoxelArray<TVoxelUniquePtr<FNodeToProcess>> NodesToProcess;
+	TVoxelArray<TUniquePtr<FNodeToProcess>> NodesToProcess;
 	NodesToProcess.Reserve(ExpectedNumNodes);
 
 	// Create root node
 	{
-		TVoxelUniquePtr<FNodeToProcess> NodeToProcess = MakeVoxelUnique<FNodeToProcess>();
+		TUniquePtr<FNodeToProcess> NodeToProcess = MakeUnique<FNodeToProcess>();
 		NodeToProcess->Elements = MoveTemp(InElements);
 		NodeToProcess->Bounds = FVoxelBox2D::InvertedInfinite;
 		for (const FElement& Element : NodeToProcess->Elements)
@@ -69,19 +69,19 @@ void FVoxelAABBTree2D::Initialize(TVoxelArray<FElement>&& InElements)
 		NodesToProcess.Add(MoveTemp(NodeToProcess));
 	}
 
-	TVoxelArray<TVoxelUniquePtr<FNodeToProcess>> PooledNodesToProcess;
+	TVoxelArray<TUniquePtr<FNodeToProcess>> PooledNodesToProcess;
 	const auto AllocateNodeToProcess = [&]
 	{
 		if (PooledNodesToProcess.Num() > 0)
 		{
 			return PooledNodesToProcess.Pop();
 		}
-		return MakeVoxelUnique<FNodeToProcess>();
+		return MakeUnique<FNodeToProcess>();
 	};
 
 	while (NodesToProcess.Num())
 	{
-		TVoxelUniquePtr<FNodeToProcess> NodeToProcess = NodesToProcess.Pop();
+		TUniquePtr<FNodeToProcess> NodeToProcess = NodesToProcess.Pop();
 		ON_SCOPE_EXIT
 		{
 			NodeToProcess->Reset();
@@ -107,8 +107,8 @@ void FVoxelAABBTree2D::Initialize(TVoxelArray<FElement>&& InElements)
 			continue;
 		}
 
-		TVoxelUniquePtr<FNodeToProcess> ChildToProcess0 = AllocateNodeToProcess();
-		TVoxelUniquePtr<FNodeToProcess> ChildToProcess1 = AllocateNodeToProcess();
+		TUniquePtr<FNodeToProcess> ChildToProcess0 = AllocateNodeToProcess();
+		TUniquePtr<FNodeToProcess> ChildToProcess1 = AllocateNodeToProcess();
 
 		// Split on max center variance
 		// Could also split on max bound size, but variance should lead to better results

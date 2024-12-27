@@ -12,7 +12,7 @@ struct FVoxelTickerData
 class VOXELCORE_API FVoxelTickerManager : public FTSTickerObjectBase
 {
 public:
-	TVoxelArray<TVoxelUniquePtr<FVoxelTickerData>> TickerDatas;
+	TVoxelArray<TUniquePtr<FVoxelTickerData>> TickerDatas;
 
 	FVoxelTickerManager() = default;
 
@@ -72,7 +72,7 @@ FVoxelTicker::FVoxelTicker()
 		return;
 	}
 
-	TVoxelUniquePtr<FVoxelTickerData> UniqueTickerData = MakeVoxelUnique<FVoxelTickerData>();
+	TUniquePtr<FVoxelTickerData> UniqueTickerData = MakeUnique<FVoxelTickerData>();
 	UniqueTickerData->Ticker = this;
 	TickerData = UniqueTickerData.Get();
 

@@ -423,7 +423,7 @@ TSharedRef<T> MakeSharedStruct(const UScriptStruct* Struct, const T* StructToCop
 }
 
 template<typename T, typename = std::enable_if_t<std::has_virtual_destructor_v<T>>>
-TVoxelUniquePtr<T> MakeUniqueStruct(const UScriptStruct* Struct, const T* StructToCopyFrom = nullptr)
+TUniquePtr<T> MakeUniqueStruct(const UScriptStruct* Struct, const T* StructToCopyFrom = nullptr)
 {
 	checkVoxelSlow(Struct->IsChildOf(StaticStructFast<T>()));
 
@@ -435,7 +435,7 @@ TVoxelUniquePtr<T> MakeUniqueStruct(const UScriptStruct* Struct, const T* Struct
 		Struct->CopyScriptStruct(Memory, StructToCopyFrom);
 	}
 
-	return TVoxelUniquePtr<T>(static_cast<T*>(Memory));
+	return TUniquePtr<T>(static_cast<T*>(Memory));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

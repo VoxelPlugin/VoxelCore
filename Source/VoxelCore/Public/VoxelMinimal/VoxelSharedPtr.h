@@ -54,12 +54,6 @@ FORCEINLINE SharedPointerInternals::TRawPtrProxy<T> MakeShareable(TUniquePtr<T> 
 	checkVoxelSlow(UniquePtr.IsValid());
 	return MakeShareable(UniquePtr.Release());
 }
-template<typename T>
-FORCEINLINE SharedPointerInternals::TRawPtrProxy<T> MakeShareable(TVoxelUniquePtr<T> UniquePtr)
-{
-	checkVoxelSlow(UniquePtr.IsValid());
-	return MakeVoxelShareable(UniquePtr.Release());
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

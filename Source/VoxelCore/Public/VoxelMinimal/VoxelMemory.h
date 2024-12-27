@@ -22,9 +22,6 @@ void* operator new(size_t Size, std::align_val_t Alignment, const FVoxelMemory*)
 template<typename T>
 struct TVoxelMemoryDeleter;
 
-template<typename T>
-using TVoxelUniquePtr = TUniquePtr<T, TVoxelMemoryDeleter<T>>;
-
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -303,12 +300,6 @@ FORCEINLINE TSharedRef<T> MakeVoxelShared(ArgTypes&&... Args)
 	return MakeVoxelShareable(new(GVoxelMemory) T(Forward<ArgTypes>(Args)...));
 }
 
-template<typename T, typename... ArgTypes, typename = std::enable_if_t<std::is_constructible_v<T, ArgTypes...>>>
-FORCEINLINE TVoxelUniquePtr<T> MakeVoxelUnique(ArgTypes&&... Args)
-{
-	return TVoxelUniquePtr<T>(new(GVoxelMemory) T(Forward<ArgTypes>(Args)...));
-}
-
 // Need TEnableIf as &&& is equivalent to &, so T could get matched with Smthg&
 template<typename T>
 FORCEINLINE std::enable_if_t<!TIsReferenceType<T>::Value, TSharedRef<T>> MakeSharedCopy(T&& Data)
@@ -316,9 +307,9 @@ FORCEINLINE std::enable_if_t<!TIsReferenceType<T>::Value, TSharedRef<T>> MakeSha
 	return MakeVoxelShared<T>(MoveTemp(Data));
 }
 template<typename T>
-FORCEINLINE std::enable_if_t<!TIsReferenceType<T>::Value, TVoxelUniquePtr<T>> MakeUniqueCopy(T&& Data)
+FORCEINLINE std::enable_if_t<!TIsReferenceType<T>::Value, TUniquePtr<T>> MakeUniqueCopy(T&& Data)
 {
-	return MakeVoxelUnique<T>(MoveTemp(Data));
+	return MakeUnique<T>(MoveTemp(Data));
 }
 
 template<typename T>
@@ -327,7 +318,7 @@ FORCEINLINE TSharedRef<T> MakeSharedCopy(const T& Data)
 	return MakeVoxelShared<T>(Data);
 }
 template<typename T>
-FORCEINLINE TVoxelUniquePtr<T> MakeUniqueCopy(const T& Data)
+FORCEINLINE TUniquePtr<T> MakeUniqueCopy(const T& Data)
 {
-	return MakeVoxelUnique<T>(Data);
+	return MakeUnique<T>(Data);
 }

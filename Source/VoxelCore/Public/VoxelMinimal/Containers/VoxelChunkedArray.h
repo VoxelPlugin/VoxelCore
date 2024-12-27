@@ -20,7 +20,7 @@ public:
 	static constexpr int32 NumPerChunk = 1 << NumPerChunkLog2;
 
 	using FChunk = TVoxelStaticArray<TTypeCompatibleBytes<Type>, NumPerChunk>;
-	using FChunkArray = TVoxelInlineArray<TVoxelUniquePtr<FChunk>, 1>;
+	using FChunkArray = TVoxelInlineArray<TUniquePtr<FChunk>, 1>;
 
 	TVoxelChunkedArray() = default;
 	FORCEINLINE TVoxelChunkedArray(TVoxelChunkedArray&& Other)
@@ -649,8 +649,8 @@ public:
 	struct TIterator
 	{
 		Type* Value = nullptr;
-		const TVoxelUniquePtr<FChunk>* ChunkIterator = nullptr;
-		const TVoxelUniquePtr<FChunk>* ChunkIteratorEnd = nullptr;
+		const TUniquePtr<FChunk>* ChunkIterator = nullptr;
+		const TUniquePtr<FChunk>* ChunkIteratorEnd = nullptr;
 
 		FORCEINLINE InType& operator*() const
 		{
@@ -724,7 +724,7 @@ private:
 
 	FORCENOINLINE void AllocateNewChunk()
 	{
-		PrivateChunks.Add(MakeVoxelUnique<FChunk>(NoInit));
+		PrivateChunks.Add(MakeUnique<FChunk>(NoInit));
 	}
 	FORCEINLINE TVoxelArrayView<Type> GetChunkView(const int32 ChunkIndex)
 	{
