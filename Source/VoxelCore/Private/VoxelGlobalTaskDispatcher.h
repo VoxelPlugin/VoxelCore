@@ -16,7 +16,7 @@ public:
 	explicit FVoxelGlobalTaskDispatcher(bool bIsBackground);
 
 	//~ Begin IVoxelTaskDispatcher Interface
-	virtual void Dispatch(
+	virtual void DispatchImpl(
 		EVoxelFutureThread Thread,
 		TVoxelUniqueFunction<void()> Lambda) override;
 

@@ -40,7 +40,8 @@ public:
 	IVoxelTaskDispatcher() = default;
 	virtual ~IVoxelTaskDispatcher();
 
-	virtual void Dispatch(
+public:
+	virtual void DispatchImpl(
 		EVoxelFutureThread Thread,
 		TVoxelUniqueFunction<void()> Lambda) = 0;
 
@@ -56,7 +57,12 @@ public:
 		return bTrackPromisesCallstacks;
 	}
 
+public:
 	void DumpPromises();
+
+	void Dispatch(
+		EVoxelFutureThread Thread,
+		TVoxelUniqueFunction<void()> Lambda);
 
 public:
 	// Wrap another future created in a different task dispatcher

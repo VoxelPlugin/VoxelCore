@@ -11,7 +11,7 @@ FVoxelGlobalTaskDispatcher::FVoxelGlobalTaskDispatcher(const bool bIsBackground)
 	GVoxelThreadPool->AddExecutor(this);
 }
 
-void FVoxelGlobalTaskDispatcher::Dispatch(
+void FVoxelGlobalTaskDispatcher::DispatchImpl(
 	const EVoxelFutureThread Thread,
 	TVoxelUniqueFunction<void()> Lambda)
 {

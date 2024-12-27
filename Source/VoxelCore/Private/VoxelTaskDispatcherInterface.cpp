@@ -115,6 +115,21 @@ void IVoxelTaskDispatcher::DumpPromises()
 	}
 }
 
+void IVoxelTaskDispatcher::Dispatch(
+	const EVoxelFutureThread Thread,
+	TVoxelUniqueFunction<void()> Lambda)
+{
+#if VOXEL_DEBUG
+	Lambda = [this, Lambda = MoveTemp(Lambda)]
+	{
+		check(&FVoxelTaskDispatcherScope::Get() == this);
+		Lambda();
+	};
+#endif
+
+	DispatchImpl(Thread, MoveTemp(Lambda));
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
