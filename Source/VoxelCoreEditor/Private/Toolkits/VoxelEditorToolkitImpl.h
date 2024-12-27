@@ -15,8 +15,8 @@ class VOXELCOREEDITOR_API FVoxelToolkitApplicationMode
 {
 public:
 	const FVoxelToolkit::FMode Mode;
-	const TSharedRef<FExtender> MenuExtender = MakeVoxelShared<FExtender>();
-	const TSharedRef<FUICommandList> Commands = MakeVoxelShared<FUICommandList>();
+	const TSharedRef<FExtender> MenuExtender = MakeShared<FExtender>();
+	const TSharedRef<FUICommandList> Commands = MakeShared<FUICommandList>();
 
 	const TSharedPtr<FVoxelToolkit>& GetToolkit() const
 	{

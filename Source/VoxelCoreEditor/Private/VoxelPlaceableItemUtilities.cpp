@@ -58,7 +58,7 @@ VOXEL_RUN_ON_STARTUP_EDITOR()
 				// TODO what about other actor types?
 				Factory = GEditor->FindActorFactoryByClassForActorClass(UActorFactoryBoxVolume::StaticClass(), &Class);
 			}
-			PlacementModeModule.RegisterPlaceableItem(VoxelPlaceableItemHandle, MakeVoxelShared<FPlaceableItem>(Factory, FAssetData(&Class)));
+			PlacementModeModule.RegisterPlaceableItem(VoxelPlaceableItemHandle, MakeShared<FPlaceableItem>(Factory, FAssetData(&Class)));
 		}
 	});
 

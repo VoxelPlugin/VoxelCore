@@ -54,7 +54,7 @@ void FVoxelSimpleAssetToolkit::Initialize()
 		PrivateDetailsView->SetObject(GetAsset());
 	}
 
-	PrivatePreviewScene = MakeVoxelShared<FVoxelToolkitPreviewScene>(FPreviewScene::ConstructionValues());
+	PrivatePreviewScene = MakeShared<FVoxelToolkitPreviewScene>(FPreviewScene::ConstructionValues());
 	PrivatePreviewScene->SetFloorVisibility(ShowFloor(), true);
 
 	CachedWorld = GetPreviewScene().GetWorld();

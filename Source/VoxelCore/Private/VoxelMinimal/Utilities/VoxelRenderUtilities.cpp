@@ -435,7 +435,7 @@ public:
 
 		for (const FReadback& Readback : CompletedReadbacks)
 		{
-			const TSharedRef<TVoxelArray64<uint8>> Array = MakeVoxelShared<TVoxelArray64<uint8>>(Readback.Readback->Lock());
+			const TSharedRef<TVoxelArray64<uint8>> Array = MakeShared<TVoxelArray64<uint8>>(Readback.Readback->Lock());
 			Readback.Readback->Unlock();
 
 			Readback.Promise.Set(Array);
@@ -531,7 +531,7 @@ TVoxelFuture<TVoxelArray64<uint8>> FVoxelUtilities::Readback(
 
 	TVoxelPromise<TVoxelArray64<uint8>> Promise;
 
-	const TSharedRef<TRefCountPtr<FRDGPooledBuffer>> ExtractedSourceBuffer = MakeVoxelShared<TRefCountPtr<FRDGPooledBuffer>>();
+	const TSharedRef<TRefCountPtr<FRDGPooledBuffer>> ExtractedSourceBuffer = MakeShared<TRefCountPtr<FRDGPooledBuffer>>();
 	GraphBuilder.QueueBufferExtraction(SourceBuffer, &ExtractedSourceBuffer.Get());
 
 	const auto Complete = [Promise, ExtractedSourceBuffer](const int64 NumBytes)

@@ -10,7 +10,7 @@ TSharedRef<FVoxelMessageToken> FVoxelMessageTokenFactory::CreateTextToken(const 
 	ensure(!Text.Contains(TEXT("%f")));
 	ensure(!Text.Contains(TEXT("%s")));
 
-	const TSharedRef<FVoxelMessageToken_Text> Result = MakeVoxelShared<FVoxelMessageToken_Text>();
+	const TSharedRef<FVoxelMessageToken_Text> Result = MakeShared<FVoxelMessageToken_Text>();
 	Result->Text = Text;
 	return Result;
 }
@@ -19,14 +19,14 @@ TSharedRef<FVoxelMessageToken> FVoxelMessageTokenFactory::CreatePinToken(const U
 {
 	ensure(IsInGameThread());
 
-	const TSharedRef<FVoxelMessageToken_Pin> Result = MakeVoxelShared<FVoxelMessageToken_Pin>();
+	const TSharedRef<FVoxelMessageToken_Pin> Result = MakeShared<FVoxelMessageToken_Pin>();
 	Result->PinReference = Pin;
 	return Result;
 }
 
 TSharedRef<FVoxelMessageToken> FVoxelMessageTokenFactory::CreateObjectToken(const TWeakObjectPtr<const UObject> WeakObject)
 {
-	const TSharedRef<FVoxelMessageToken_Object> Result = MakeVoxelShared<FVoxelMessageToken_Object>();
+	const TSharedRef<FVoxelMessageToken_Object> Result = MakeShared<FVoxelMessageToken_Object>();
 	Result->WeakObject = WeakObject;
 	return Result;
 }
@@ -38,7 +38,7 @@ TSharedRef<FVoxelMessageToken> FVoxelMessageTokenFactory::CreateArrayToken(const
 		return CreateTextToken("Empty");
 	}
 
-	const TSharedRef<FVoxelMessageToken_Group> Result = MakeVoxelShared<FVoxelMessageToken_Group>();
+	const TSharedRef<FVoxelMessageToken_Group> Result = MakeShared<FVoxelMessageToken_Group>();
 	Result->AddToken(Tokens[0]);
 
 	for (int32 Index = 1; Index < Tokens.Num(); Index++)

@@ -196,7 +196,7 @@ TSharedRef<FVoxelMaterialRef> FVoxelMaterialRef::MakeInstance(UMaterialInterface
 		Instance->CopyParameterOverrides(ParentInstance);
 	}
 
-	const TSharedRef<FVoxelMaterialInstanceRef> MaterialInstanceRef = MakeVoxelShared<FVoxelMaterialInstanceRef>();
+	const TSharedRef<FVoxelMaterialInstanceRef> MaterialInstanceRef = MakeShared<FVoxelMaterialInstanceRef>();
 	MaterialInstanceRef->Instance = Instance;
 	GVoxelMaterialRefManager->MaterialInstanceRefs.Add(MaterialInstanceRef);
 

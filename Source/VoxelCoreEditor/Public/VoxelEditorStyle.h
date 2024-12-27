@@ -30,7 +30,7 @@ public:
 	{ \
 		FVoxelEditorStyle::AddFactory([] \
 		{ \
-			return MakeVoxelShared<FVoxel ## Name ## Style>(); \
+			return MakeShared<FVoxel ## Name ## Style>(); \
 		}); \
 	} \
 	void FVoxel ## Name ## Style::Init()

@@ -30,7 +30,7 @@ FVoxelDistanceFieldWrapper::FBrick& FVoxelDistanceFieldWrapper::FMip::FindOrAddB
 	TSharedPtr<FBrick>& Ptr = Bricks[FVoxelUtilities::Get3DIndex<int32>(IndirectionSize, Position)];
 	if (!Ptr)
 	{
-		Ptr = MakeVoxelShared<FBrick>(NoInit);
+		Ptr = MakeShared<FBrick>(NoInit);
 	}
 	return *Ptr;
 }
@@ -68,7 +68,7 @@ TSharedRef<FDistanceFieldVolumeData> FVoxelDistanceFieldWrapper::Build() const
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	const TSharedRef<FDistanceFieldVolumeData> OutData = MakeVoxelShared<FDistanceFieldVolumeData>();
+	const TSharedRef<FDistanceFieldVolumeData> OutData = MakeShared<FDistanceFieldVolumeData>();
 
 	TArray<uint8> StreamableMipData;
 

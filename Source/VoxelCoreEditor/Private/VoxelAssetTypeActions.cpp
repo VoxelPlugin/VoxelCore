@@ -27,7 +27,7 @@ VOXEL_RUN_ON_STARTUP(Editor, 999)
 
 	for (UClass* Class : Classes)
 	{
-		FVoxelAssetTypeActions::Register(Class, MakeVoxelShared<FVoxelAssetTypeActions>());
+		FVoxelAssetTypeActions::Register(Class, MakeShared<FVoxelAssetTypeActions>());
 	}
 }
 

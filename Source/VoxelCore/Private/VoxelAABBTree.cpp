@@ -214,7 +214,7 @@ TSharedRef<FVoxelAABBTree> FVoxelAABBTree::Create(const TConstVoxelArrayView<FVo
 		};
 	}
 
-	const TSharedRef<FVoxelAABBTree> Tree = MakeVoxelShared<FVoxelAABBTree>();
+	const TSharedRef<FVoxelAABBTree> Tree = MakeShared<FVoxelAABBTree>();
 	Tree->Initialize(MoveTemp(Elements));
 	return Tree;
 }

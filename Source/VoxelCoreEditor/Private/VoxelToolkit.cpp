@@ -25,7 +25,7 @@ void FVoxelToolkit::InitializeInternal(const TSharedRef<FUICommandList>& Command
 	*CachedAssetPtr = Asset;
 
 	PrivateCommands = Commands;
-	PrivateTicker = MakeVoxelShared<FTicker>(*this);
+	PrivateTicker = MakeShared<FTicker>(*this);
 
 	Initialize();
 }

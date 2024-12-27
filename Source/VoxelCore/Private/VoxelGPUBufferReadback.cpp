@@ -16,7 +16,7 @@ TSharedRef<FVoxelGPUBufferReadback> FVoxelGPUBufferReadback::Create(
 		NumBytes = SourceBuffer->GetSize();
 	}
 
-	const TSharedRef<FRHIGPUBufferReadback> Readback = MakeVoxelShared<FRHIGPUBufferReadback>(SourceBuffer->GetName() + TEXTVIEW(" Readback"));
+	const TSharedRef<FRHIGPUBufferReadback> Readback = MakeShared<FRHIGPUBufferReadback>(SourceBuffer->GetName() + TEXTVIEW(" Readback"));
 	Readback->EnqueueCopy(RHICmdList, SourceBuffer, NumBytes);
 
 	return MakeVoxelShareable_RenderThread(new(GVoxelMemory) FVoxelGPUBufferReadback(NumBytes, Readback));

@@ -103,7 +103,7 @@ void SVoxelSimpleAssetEditorViewportToolbar::Construct(const FArguments& InArgs,
 {
 	WeakToolkit = InArgs._Toolkit;
 
-	SCommonEditorViewportToolbarBase::Construct(SCommonEditorViewportToolbarBase::FArguments().PreviewProfileController(MakeVoxelShared<FPreviewProfileController>()), InInfoProvider);
+	SCommonEditorViewportToolbarBase::Construct(SCommonEditorViewportToolbarBase::FArguments().PreviewProfileController(MakeShared<FPreviewProfileController>()), InInfoProvider);
 }
 
 void SVoxelSimpleAssetEditorViewportToolbar::ExtendLeftAlignedToolbarSlots(const TSharedPtr<SHorizontalBox> MainBoxPtr, const TSharedPtr<SViewportToolBar> ParentToolBarPtr) const
@@ -353,7 +353,7 @@ TSharedRef<FEditorViewportClient> SVoxelSimpleAssetEditorViewport::MakeEditorVie
 		EditorModeTools = Toolkit->GetEditorModeTools().Get();
 	}
 
-	const TSharedRef<FVoxelSimpleAssetEditorViewportClient> ViewportClient = MakeVoxelShared<FVoxelSimpleAssetEditorViewportClient>(EditorModeTools, PreviewScene.Get(), SharedThis(this));
+	const TSharedRef<FVoxelSimpleAssetEditorViewportClient> ViewportClient = MakeShared<FVoxelSimpleAssetEditorViewportClient>(EditorModeTools, PreviewScene.Get(), SharedThis(this));
 	ViewportClient->SetRealtime(true);
 	ViewportClient->SetViewRotation(InitialViewRotation);
 	ViewportClient->SetViewLocationForOrbiting(Bounds.GetCenter(), InitialViewDistance.Get(Bounds.GetExtent().GetMax() * 2));
@@ -412,7 +412,7 @@ TSharedRef<SEditorViewport> SVoxelSimpleAssetEditorViewport::GetViewportWidget()
 
 TSharedPtr<FExtender> SVoxelSimpleAssetEditorViewport::GetExtenders() const
 {
-	return MakeVoxelShared<FExtender>();
+	return MakeShared<FExtender>();
 }
 
 void SVoxelSimpleAssetEditorViewport::OnFloatingButtonClicked()

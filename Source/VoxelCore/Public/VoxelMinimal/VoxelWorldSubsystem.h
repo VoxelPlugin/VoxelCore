@@ -46,7 +46,7 @@ private:
 	Name() = default; \
 	static TSharedRef<IVoxelWorldSubsystem> __Constructor() \
 	{ \
-		return MakeVoxelShared<Name>(); \
+		return MakeShared<Name>(); \
 	} \
 	FORCEINLINE static TSharedRef<Name> Get(const UWorld* World) \
 	{ \

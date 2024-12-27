@@ -82,7 +82,7 @@ const FSlateStyleSet& FVoxelEditorStyle::Get()
 {
 	if (!GVoxelGlobalStyleSet)
 	{
-		GVoxelGlobalStyleSet = MakeVoxelShared<FVoxelGlobalSlateStyleSet>();
+		GVoxelGlobalStyleSet = MakeShared<FVoxelGlobalSlateStyleSet>();
 
 		GOnVoxelModuleUnloaded_DoCleanup.AddLambda([]
 		{
@@ -129,7 +129,7 @@ void FVoxelEditorStyle::ReloadTextures()
 void FVoxelEditorStyle::ReinitializeStyle()
 {
 	Shutdown();
-	GVoxelGlobalStyleSet = MakeVoxelShared<FVoxelGlobalSlateStyleSet>();
+	GVoxelGlobalStyleSet = MakeShared<FVoxelGlobalSlateStyleSet>();
 
 	Register();
 }

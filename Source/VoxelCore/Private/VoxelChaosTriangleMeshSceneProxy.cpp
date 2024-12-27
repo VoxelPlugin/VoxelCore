@@ -149,7 +149,7 @@ void FVoxelChaosTriangleMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 
 	if (!RenderData)
 	{
-		RenderData = MakeVoxelShared<FVoxelChaosTriangleMeshRenderData>(*TriangleMesh);
+		RenderData = MakeShared<FVoxelChaosTriangleMeshRenderData>(*TriangleMesh);
 	}
 
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)

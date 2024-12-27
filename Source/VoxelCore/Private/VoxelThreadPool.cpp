@@ -142,8 +142,8 @@ void FVoxelThreadPool::Initialize()
 	FCoreDelegates::OnExit.AddLambda(Callback);
 	GOnVoxelModuleUnloaded_DoCleanup.AddLambda(Callback);
 
-	GVoxelForegroundTaskDispatcher = MakeVoxelShared<FVoxelGlobalTaskDispatcher>(false);
-	GVoxelBackgroundTaskDispatcher = MakeVoxelShared<FVoxelGlobalTaskDispatcher>(true);
+	GVoxelForegroundTaskDispatcher = MakeShared<FVoxelGlobalTaskDispatcher>(false);
+	GVoxelBackgroundTaskDispatcher = MakeShared<FVoxelGlobalTaskDispatcher>(true);
 }
 
 void FVoxelThreadPool::Tick()

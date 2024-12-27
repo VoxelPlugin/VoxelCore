@@ -300,7 +300,7 @@ void FVoxelEditorUtilities::RegisterAssetContextMenu(UClass* Class, const FText&
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
 	ContentBrowserModule.GetAllAssetViewContextMenuExtenders().Add(FContentBrowserMenuExtender_SelectedAssets::CreateLambda([=](const TArray<FAssetData>& SelectedAssets)
 	{
-		const TSharedRef<FExtender> Extender = MakeVoxelShared<FExtender>();
+		const TSharedRef<FExtender> Extender = MakeShared<FExtender>();
 
 		for (const FAssetData& Asset : SelectedAssets)
 		{
@@ -589,7 +589,7 @@ public:
 	//~ Begin FVoxelEditorSingleton Interface
 	virtual void Initialize() override
 	{
-		Pool = MakeVoxelShared<FAssetThumbnailPool>(48);
+		Pool = MakeShared<FAssetThumbnailPool>(48);
 	}
 	virtual void Tick() override
 	{

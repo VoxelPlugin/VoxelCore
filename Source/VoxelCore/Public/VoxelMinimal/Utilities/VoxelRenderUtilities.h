@@ -112,10 +112,10 @@ namespace FVoxelUtilities
 
 			if (!ensure(Data.Num() % sizeof(T) == 0))
 			{
-				return MakeVoxelShared<TVoxelArray<T>>();
+				return MakeShared<TVoxelArray<T>>();
 			}
 
-			return MakeVoxelShared<TVoxelArray<T>>(MakeVoxelArrayView(Data).ReinterpretAs<T>());
+			return MakeShared<TVoxelArray<T>>(MakeVoxelArrayView(Data).ReinterpretAs<T>());
 		});
 	}
 
@@ -164,10 +164,10 @@ namespace FVoxelUtilities
 
 			if (!ensure(Data.Num() % sizeof(T) == 0))
 			{
-				return MakeVoxelShared<TVoxelArray<T>>();
+				return MakeShared<TVoxelArray<T>>();
 			}
 
-			return MakeVoxelShared<TVoxelArray<T>>(MakeVoxelArrayView(Data).ReinterpretAs<T>());
+			return MakeShared<TVoxelArray<T>>(MakeVoxelArrayView(Data).ReinterpretAs<T>());
 		});
 	}
 

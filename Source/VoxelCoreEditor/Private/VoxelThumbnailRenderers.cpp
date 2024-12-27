@@ -56,7 +56,7 @@ void UVoxelThumbnailRenderer::Draw(UObject* Object, const int32 X, const int32 Y
 
 TSharedPtr<FThumbnailPreviewScene> UVoxelStaticMeshThumbnailRenderer::CreateScene()
 {
-	return MakeVoxelShared<FStaticMeshThumbnailScene>();
+	return MakeShared<FStaticMeshThumbnailScene>();
 }
 
 bool UVoxelStaticMeshThumbnailRenderer::InitializeScene(UObject* Object)

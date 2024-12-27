@@ -294,17 +294,12 @@ FORCEINLINE TSharedRef<T> MakeVoxelShareable(T* Object)
 	FVoxelMemory::CheckIsVoxelAlloc(Object);
 	return TSharedRef<T>(Object, TVoxelMemoryDeleter<T>());
 }
-template<typename T, typename... ArgTypes, typename = std::enable_if_t<std::is_constructible_v<T, ArgTypes...>>>
-FORCEINLINE TSharedRef<T> MakeVoxelShared(ArgTypes&&... Args)
-{
-	return MakeVoxelShareable(new(GVoxelMemory) T(Forward<ArgTypes>(Args)...));
-}
 
 // Need TEnableIf as &&& is equivalent to &, so T could get matched with Smthg&
 template<typename T>
 FORCEINLINE std::enable_if_t<!TIsReferenceType<T>::Value, TSharedRef<T>> MakeSharedCopy(T&& Data)
 {
-	return MakeVoxelShared<T>(MoveTemp(Data));
+	return MakeShared<T>(MoveTemp(Data));
 }
 template<typename T>
 FORCEINLINE std::enable_if_t<!TIsReferenceType<T>::Value, TUniquePtr<T>> MakeUniqueCopy(T&& Data)
@@ -315,7 +310,7 @@ FORCEINLINE std::enable_if_t<!TIsReferenceType<T>::Value, TUniquePtr<T>> MakeUni
 template<typename T>
 FORCEINLINE TSharedRef<T> MakeSharedCopy(const T& Data)
 {
-	return MakeVoxelShared<T>(Data);
+	return MakeShared<T>(Data);
 }
 template<typename T>
 FORCEINLINE TUniquePtr<T> MakeUniqueCopy(const T& Data)

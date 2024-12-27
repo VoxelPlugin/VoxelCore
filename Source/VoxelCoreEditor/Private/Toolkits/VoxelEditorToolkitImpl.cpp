@@ -225,7 +225,7 @@ void FVoxelEditorToolkitImpl::InitVoxelEditor(const TSharedPtr<IToolkitHost>& Ed
 
 		for (const FVoxelToolkit::FMode& Mode : Modes)
 		{
-			const TSharedRef<FVoxelToolkitApplicationMode> ApplicationMode = MakeVoxelShared<FVoxelToolkitApplicationMode>(Mode);
+			const TSharedRef<FVoxelToolkitApplicationMode> ApplicationMode = MakeShared<FVoxelToolkitApplicationMode>(Mode);
 			AddMenuExtender(ApplicationMode->MenuExtender);
 			AddApplicationMode(Mode.Struct->GetFName(), ApplicationMode);
 		}
@@ -258,7 +258,7 @@ void FVoxelEditorToolkitImpl::InitVoxelEditor(const TSharedPtr<IToolkitHost>& Ed
 
 		if (Modes.Num() > 1)
 		{
-			const TSharedRef<FExtender> ToolbarExtender = MakeVoxelShared<FExtender>();
+			const TSharedRef<FExtender> ToolbarExtender = MakeShared<FExtender>();
 
 			ToolbarExtender->AddToolBarExtension(
 				"Asset",
@@ -296,8 +296,8 @@ void FVoxelEditorToolkitImpl::InitVoxelEditor(const TSharedPtr<IToolkitHost>& Ed
 
 	if (Toolkit)
 	{
-		const TSharedRef<FExtender> MenuExtender = MakeVoxelShared<FExtender>();
-		const TSharedRef<FExtender> ToolbarExtender = MakeVoxelShared<FExtender>();
+		const TSharedRef<FExtender> MenuExtender = MakeShared<FExtender>();
+		const TSharedRef<FExtender> ToolbarExtender = MakeShared<FExtender>();
 
 		MenuExtender->AddMenuBarExtension(
 			"Edit",
@@ -517,5 +517,5 @@ TSharedPtr<FVoxelEditorToolkitImpl> FVoxelEditorToolkitImpl::MakeToolkit(const U
 		return nullptr;
 	}
 
-	return MakeVoxelShared<FVoxelEditorToolkitImpl>(Struct);
+	return MakeShared<FVoxelEditorToolkitImpl>(Struct);
 }

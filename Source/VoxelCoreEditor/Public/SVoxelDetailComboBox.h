@@ -84,7 +84,7 @@ public:
 
 		for (T Option : OptionsAttribute.Get())
 		{
-			Options.Add(MakeVoxelShared<T>(Option));
+			Options.Add(MakeShared<T>(Option));
 		}
 
 		bCanEnterCustomOption = Args._CanEnterCustomOption;
@@ -137,7 +137,7 @@ public:
 
 				if (!NewOptionPtr)
 				{
-					NewOptionPtr = MakeVoxelShared<T>(NewOption);
+					NewOptionPtr = MakeShared<T>(NewOption);
 				}
 
 				ComboBox->SetSelectedItem(NewOptionPtr);
@@ -303,7 +303,7 @@ public:
 		// Add new options
 		for (const T& Option : NewOptions)
 		{
-			Options.Add(MakeVoxelShared<T>(Option));
+			Options.Add(MakeShared<T>(Option));
 		}
 		ComboBox->RefreshOptions();
 	}
@@ -321,7 +321,7 @@ private:
 				return Option;
 			}
 		}
-		return MakeVoxelShared<T>(CurrentOption);
+		return MakeShared<T>(CurrentOption);
 	}
 
 	//~ Begin Interface FSelfRegisteringEditorUndoClient

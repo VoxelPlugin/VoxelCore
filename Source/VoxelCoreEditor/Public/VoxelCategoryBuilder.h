@@ -50,5 +50,5 @@ private:
 	};
 
 private:
-	const TSharedRef<FCategory> RootCategory = MakeVoxelShared<FCategory>();
+	const TSharedRef<FCategory> RootCategory = MakeShared<FCategory>();
 };

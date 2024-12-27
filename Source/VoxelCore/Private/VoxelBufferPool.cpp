@@ -117,7 +117,7 @@ TSharedRef<FVoxelBufferRef> FVoxelBufferPoolBase::Allocate_AnyThread(const int64
 		return PoolIndexToPool_RequiresLock[PoolIndex].Allocate(*this);
 	};
 
-	return MakeVoxelShared<FVoxelBufferRef>(
+	return MakeShared<FVoxelBufferRef>(
 		*this,
 		PoolIndex,
 		Index,

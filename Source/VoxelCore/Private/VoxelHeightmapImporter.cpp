@@ -9,12 +9,12 @@ TSharedPtr<FVoxelHeightmapImporter> FVoxelHeightmapImporter::MakeImporter(const 
 	const FString Extension = FPaths::GetExtension(Path);
 	if (Extension == "raw" || Extension == "r16")
 	{
-		return MakeVoxelShared<FVoxelHeightmapImporter_Raw>(Path);
+		return MakeShared<FVoxelHeightmapImporter_Raw>(Path);
 	}
 
 	if (Extension == "png")
 	{
-		return MakeVoxelShared<FVoxelHeightmapImporter_PNG>(Path);
+		return MakeShared<FVoxelHeightmapImporter_PNG>(Path);
 	}
 
 	return nullptr;

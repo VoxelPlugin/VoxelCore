@@ -14,7 +14,7 @@ void FVoxelCategoryBuilder::AddProperty(
 			TSharedPtr<FCategory>& SubCategoryRef = CategoryRef->NameToChild.FindOrAdd(FName(SubCategory));
 			if (!SubCategoryRef)
 			{
-				SubCategoryRef = MakeVoxelShared<FCategory>();
+				SubCategoryRef = MakeShared<FCategory>();
 				SubCategoryRef->Name = SubCategory;
 			}
 			CategoryRef = SubCategoryRef;
@@ -94,7 +94,7 @@ void FVoxelCategoryBuilder::FCategory::Apply(
 
 	for (const auto& It : NameToChild)
 	{
-		const TSharedRef<FCustomNodeBuilder> CustomBuilder = MakeVoxelShared<FCustomNodeBuilder>();
+		const TSharedRef<FCustomNodeBuilder> CustomBuilder = MakeShared<FCustomNodeBuilder>();
 		CustomBuilder->CategoryPath = CategoryPath + "|" + It.Key.ToString();
 		CustomBuilder->Category = It.Value;
 		DetailInterface.AddCustomBuilder(CustomBuilder);

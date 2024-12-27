@@ -79,7 +79,7 @@ TSharedPtr<FVoxelInstancedStructDetailsWrapper> FVoxelInstancedStructDetailsWrap
 		return nullptr;
 	}
 
-	const TSharedRef<FStructOnScope> StructOnScope = MakeVoxelShared<FStructOnScope>(Struct.GetValue());
+	const TSharedRef<FStructOnScope> StructOnScope = MakeShared<FStructOnScope>(Struct.GetValue());
 
 	// Make sure the struct also has a valid package set, so that properties that rely on this (like FText) work correctly
 	{

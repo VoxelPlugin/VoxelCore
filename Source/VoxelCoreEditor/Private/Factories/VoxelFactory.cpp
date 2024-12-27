@@ -38,7 +38,7 @@ bool UVoxelBlueprintFactoryBase::ConfigureProperties()
 	FClassViewerInitializationOptions Options;
 	Options.Mode = EClassViewerMode::ClassPicker;
 
-	const TSharedRef<FVoxelAssetClassParentFilter> Filter = MakeVoxelShared<FVoxelAssetClassParentFilter>();
+	const TSharedRef<FVoxelAssetClassParentFilter> Filter = MakeShared<FVoxelAssetClassParentFilter>();
 	Options.ClassFilters.Add(Filter);
 
 	Filter->DisallowedClassFlags = CLASS_Deprecated | CLASS_NewerVersionExists;

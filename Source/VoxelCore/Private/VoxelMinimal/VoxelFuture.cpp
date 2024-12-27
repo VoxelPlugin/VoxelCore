@@ -69,7 +69,7 @@ FVoxelFuture::FVoxelFuture(const TConstVoxelArrayView<FVoxelFuture> Futures)
 
 	PromiseState = IVoxelPromiseState::New(nullptr, false);
 
-	const TSharedRef<FVoxelCounter32> Counter = MakeVoxelShared<FVoxelCounter32>();
+	const TSharedRef<FVoxelCounter32> Counter = MakeShared<FVoxelCounter32>();
 	Counter->Set(Futures.Num());
 
 	for (const FVoxelFuture& Future : Futures)

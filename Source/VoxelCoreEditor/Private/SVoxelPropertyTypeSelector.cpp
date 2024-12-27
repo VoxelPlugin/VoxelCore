@@ -253,7 +253,7 @@ void SVoxelPropertyTypeSelector::GetChildrenMatchingSearch(const FText& InSearch
 			TArray<TSharedPtr<FVoxelPropertyTypeSelectorRow>> ValidChildren;
 			if (Lambda(TypeRow->Children, ValidChildren, Lambda))
 			{
-				TSharedRef<FVoxelPropertyTypeSelectorRow> NewCategory = MakeVoxelShared<FVoxelPropertyTypeSelectorRow>(TypeRow->Name, ValidChildren);
+				TSharedRef<FVoxelPropertyTypeSelectorRow> NewCategory = MakeShared<FVoxelPropertyTypeSelectorRow>(TypeRow->Name, ValidChildren);
 				OutFilteredList.Add(NewCategory);
 
 				if (TypeTreeView.IsValid())
@@ -325,16 +325,16 @@ void SVoxelPropertyTypeSelector::FillTypesList()
 		if (TargetCategory.IsEmpty() ||
 			TargetCategory == "Default")
 		{
-			TypesList.Add(MakeVoxelShared<FVoxelPropertyTypeSelectorRow>(Type));
+			TypesList.Add(MakeShared<FVoxelPropertyTypeSelectorRow>(Type));
 			continue;
 		}
 
 		if (!Categories.Contains(TargetCategory))
 		{
-			Categories.Add(TargetCategory, MakeVoxelShared<FVoxelPropertyTypeSelectorRow>(TargetCategory));
+			Categories.Add(TargetCategory, MakeShared<FVoxelPropertyTypeSelectorRow>(TargetCategory));
 		}
 
-		Categories[TargetCategory]->Children.Add(MakeVoxelShared<FVoxelPropertyTypeSelectorRow>(Type));
+		Categories[TargetCategory]->Children.Add(MakeShared<FVoxelPropertyTypeSelectorRow>(Type));
 	}
 
 	for (const auto& It : Categories)

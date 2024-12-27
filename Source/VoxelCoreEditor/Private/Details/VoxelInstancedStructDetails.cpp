@@ -343,7 +343,7 @@ FName FVoxelInstancedStructDataDetails::GetName() const
 
 TSharedRef<IPropertyTypeCustomization> FVoxelInstancedStructDetails::MakeInstance()
 {
-	return MakeVoxelShared<FVoxelInstancedStructDetails>();
+	return MakeShared<FVoxelInstancedStructDetails>();
 }
 
 void FVoxelInstancedStructDetails::CustomizeHeader(const TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
@@ -428,7 +428,7 @@ void FVoxelInstancedStructDetails::CustomizeChildren(TSharedRef<class IPropertyH
 		return;
 	}
 
-	const TSharedRef<FVoxelInstancedStructDataDetails> DataDetails = MakeVoxelShared<FVoxelInstancedStructDataDetails>(StructProperty, NewStructProvider, StructCustomizationUtils);
+	const TSharedRef<FVoxelInstancedStructDataDetails> DataDetails = MakeShared<FVoxelInstancedStructDataDetails>(StructProperty, NewStructProvider, StructCustomizationUtils);
 	StructBuilder.AddCustomBuilder(DataDetails);
 }
 
@@ -503,7 +503,7 @@ TSharedRef<SWidget> FVoxelInstancedStructDetails::GenerateStructPicker()
 	const bool bHideViewOptions = StructProperty->HasMetaData(NAME_HideViewOptions);
 	const bool bShowTreeView = StructProperty->HasMetaData(NAME_ShowTreeView);
 
-	TSharedRef<FInstancedStructFilter> StructFilter = MakeVoxelShared<FInstancedStructFilter>();
+	TSharedRef<FInstancedStructFilter> StructFilter = MakeShared<FInstancedStructFilter>();
 	StructFilter->BaseStruct = BaseScriptStruct;
 	StructFilter->bAllowUserDefinedStructs = BaseScriptStruct == nullptr;
 	StructFilter->bAllowBaseStruct = !bExcludeBaseStruct;

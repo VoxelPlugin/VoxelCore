@@ -48,7 +48,7 @@ FVoxelScopedMessageConsumer::FVoxelScopedMessageConsumer(TFunction<void(const TS
 		}
 	};
 
-	const TSharedRef<FMessageConsumer> Consumer = MakeVoxelShared<FMessageConsumer>();
+	const TSharedRef<FMessageConsumer> Consumer = MakeShared<FMessageConsumer>();
 	Consumer->LogMessageLambda = LogMessage;
 
 	TempConsumer = Consumer;

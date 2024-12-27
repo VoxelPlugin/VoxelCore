@@ -152,7 +152,7 @@ public:
 			return;
 		}
 
-		const TSharedRef<FNotification> Notification = MakeVoxelShared<FNotification>();
+		const TSharedRef<FNotification> Notification = MakeShared<FNotification>();
 		Notification->Text = FText::FromString(Message->ToString());
 		Notification->Hash = Hash;
 

@@ -65,5 +65,5 @@ private:
 
 		UWorld* GetWorld() const;
 	};
-	const TSharedRef<FState> PrivateState = MakeVoxelShared<FState>();
+	const TSharedRef<FState> PrivateState = MakeShared<FState>();
 };

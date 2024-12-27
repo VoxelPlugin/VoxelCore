@@ -200,5 +200,5 @@ FORCEINLINE const FSharedVoidRef& MakeSharedVoidRef(const TSharedRef<T>& Ptr)
 }
 FORCEINLINE FSharedVoidRef MakeSharedVoid()
 {
-	return MakeSharedVoidRef(MakeVoxelShared<int32>());
+	return MakeSharedVoidRef(MakeShared<int32>());
 }

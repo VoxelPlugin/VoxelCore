@@ -265,7 +265,7 @@ private:
 			PropertyUnits = FUnitConversion::UnitFromString(*MetaUnits);
 		}
 
-		TypeInterface = MakeVoxelShared<TNumericUnitTypeInterface<NumericType>>(PropertyUnits.GetValue());
+		TypeInterface = MakeShared<TNumericUnitTypeInterface<NumericType>>(PropertyUnits.GetValue());
 	}
 
 	TOptional<NumericType> OnGetValue(const bool bMin) const

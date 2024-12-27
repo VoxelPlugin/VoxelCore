@@ -53,7 +53,7 @@ TSharedRef<FVoxelStructDetailsWrapper> FVoxelStructDetailsWrapper::Make(
 	const FGetStructView& GetStructView,
 	const FSetStructView& SetStructView)
 {
-	const TSharedRef<FStructOnScope> StructOnScope = MakeVoxelShared<FStructOnScope>(&ScriptStruct);
+	const TSharedRef<FStructOnScope> StructOnScope = MakeShared<FStructOnScope>(&ScriptStruct);
 
 	// Make sure the struct also has a valid package set, so that properties that rely on this (like FText) work correctly
 	{
