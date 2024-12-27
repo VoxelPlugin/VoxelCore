@@ -121,7 +121,7 @@ private:
 		static void CallDestroy(void* RawStorage)
 		{
 			static_cast<TStorage*>(RawStorage)->~TStorage();
-			FVoxelMemory::Free(RawStorage);
+			FMemory::Free(RawStorage);
 		}
 	};
 

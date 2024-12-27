@@ -427,7 +427,7 @@ TUniquePtr<T> MakeUniqueStruct(const UScriptStruct* Struct, const T* StructToCop
 {
 	checkVoxelSlow(Struct->IsChildOf(StaticStructFast<T>()));
 
-	void* Memory = FVoxelMemory::Malloc(FMath::Max(1, Struct->GetStructureSize()));
+	void* Memory = FMemory::Malloc(FMath::Max(1, Struct->GetStructureSize()));
 	Struct->InitializeStruct(Memory);
 
 	if (StructToCopyFrom)

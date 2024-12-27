@@ -186,7 +186,7 @@ FSharedVoidRef MakeSharedStruct(const UScriptStruct* Struct, const void* StructT
 	checkVoxelSlow(Struct);
 	checkVoxelSlow(UObjectInitialized());
 
-	void* Memory = FVoxelMemory::Malloc(FMath::Max(1, Struct->GetStructureSize()));
+	void* Memory = FMemory::Malloc(FMath::Max(1, Struct->GetStructureSize()));
 	Struct->InitializeStruct(Memory);
 
 	if (StructToCopyFrom)
@@ -209,6 +209,6 @@ FSharedVoidRef MakeShareableStruct(const UScriptStruct* Struct, void* StructMemo
 	return MakeSharedVoidRef(TSharedPtr<int32>(static_cast<int32*>(StructMemory), [Struct](void* InMemory)
 	{
 		FVoxelUtilities::DestroyStruct_Safe(Struct, InMemory);
-		FVoxelMemory::Free(InMemory);
+		FMemory::Free(InMemory);
 	}).ToSharedRef());
 }
