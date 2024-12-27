@@ -63,8 +63,6 @@ extern VOXELCORE_API bool GVoxelProfilerInfiniteLoop;
 #define ensureMsgfVoxelSlowNoSideEffects(x, ...) ensureMsgf(x, ##__VA_ARGS__)
 #define VOXEL_ASSUME(...) check(__VA_ARGS__)
 #define VOXEL_DEBUG_ONLY(...) __VA_ARGS__
-#undef FORCEINLINE
-#define FORCEINLINE inline
 #else
 #define checkVoxelSlow(x)
 #define checkfVoxelSlow(x, ...)
@@ -74,6 +72,11 @@ extern VOXELCORE_API bool GVoxelProfilerInfiniteLoop;
 #define ensureMsgfVoxelSlowNoSideEffects(...)
 #define VOXEL_ASSUME(...) UE_ASSUME(__VA_ARGS__)
 #define VOXEL_DEBUG_ONLY(...)
+#endif
+
+#if VOXEL_DEBUG && VOXEL_DEV_WORKFLOW
+#undef FORCEINLINE
+#define FORCEINLINE inline
 #endif
 
 VOXELCORE_API bool Voxel_CanAccessUObject();
