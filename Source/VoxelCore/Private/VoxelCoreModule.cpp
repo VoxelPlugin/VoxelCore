@@ -82,6 +82,9 @@ public:
 
 		FVoxelSingletonManager::Destroy();
 
+		void DestroyVoxelTickers();
+		DestroyVoxelTickers();
+
 		GOnVoxelModuleUnloaded.Broadcast();
 	}
 

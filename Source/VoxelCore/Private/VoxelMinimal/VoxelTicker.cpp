@@ -9,7 +9,7 @@ struct FVoxelTickerData
 	bool bIsDestroyed = false;
 };
 
-class VOXELCORE_API FVoxelTickerManager : public FTSTickerObjectBase
+class FVoxelTickerManager : public FTSTickerObjectBase
 {
 public:
 	TVoxelArray<TUniquePtr<FVoxelTickerData>> TickerDatas;
@@ -42,21 +42,17 @@ public:
 	}
 	//~ End FTickerObjectBase Interface
 };
-
 FVoxelTickerManager* GVoxelTickerManager = nullptr;
 
 VOXEL_RUN_ON_STARTUP(Game, 999)
 {
 	GVoxelTickerManager = new FVoxelTickerManager();
+}
 
-	GOnVoxelModuleUnloaded_DoCleanup.AddLambda([]
-	{
-		if (GVoxelTickerManager)
-		{
-			delete GVoxelTickerManager;
-			GVoxelTickerManager = nullptr;
-		}
-	});
+void DestroyVoxelTickers()
+{
+	delete GVoxelTickerManager;
+	GVoxelTickerManager = nullptr;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -84,7 +80,8 @@ FVoxelTicker::~FVoxelTicker()
 {
 	ensure(IsInGameThread());
 
-	if (!ensure(TickerData))
+	if (!ensure(TickerData) ||
+		!ensure(GVoxelTickerManager))
 	{
 		return;
 	}
