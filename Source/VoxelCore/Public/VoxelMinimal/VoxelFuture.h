@@ -283,8 +283,8 @@ public:
 	TVoxelFuture() = delete;
 
 	FORCEINLINE TVoxelFuture(const TSharedRef<T>& Value)
+		: FVoxelFuture(IVoxelPromiseState::New(MakeSharedVoidRef(Value)))
 	{
-		PromiseState = IVoxelPromiseState::New(MakeSharedVoidRef(Value));
 	}
 
 	// nullptr constructor, a bit convoluted to fix some compile errors
