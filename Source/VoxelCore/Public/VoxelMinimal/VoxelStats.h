@@ -53,7 +53,6 @@ FORCEINLINE bool AreVoxelStatsEnabled()
 	const bool VOXEL_TRACE_ENABLED = AreVoxelStatsEnabled() && (Condition); \
 	if (VOXEL_TRACE_ENABLED) \
 	{ \
-		VOXEL_ALLOW_MALLOC_SCOPE(); \
 		static const FString StaticDescription = Description; \
 		static const uint32 StaticSpecId = FCpuProfilerTrace::OutputEventType(*StaticDescription, __FILE__, __LINE__); \
 		FCpuProfilerTrace::OutputBeginEvent(StaticSpecId); \
@@ -62,7 +61,6 @@ FORCEINLINE bool AreVoxelStatsEnabled()
 	{ \
 		if (VOXEL_TRACE_ENABLED) \
 		{ \
-			VOXEL_ALLOW_MALLOC_SCOPE(); \
 			FCpuProfilerTrace::OutputEndEvent(); \
 		} \
 	};
@@ -72,7 +70,6 @@ FORCEINLINE bool AreVoxelStatsEnabled()
 	const bool VOXEL_TRACE_ENABLED = AreVoxelStatsEnabled() && (Condition); \
 	if (VOXEL_TRACE_ENABLED) \
 	{ \
-		VOXEL_ALLOW_MALLOC_SCOPE(); \
 		ensureVoxelSlow(!Description.IsNone()); \
 		FCpuProfilerTrace::OutputBeginDynamicEvent(Description, __FILE__, __LINE__); \
 	} \
@@ -80,7 +77,6 @@ FORCEINLINE bool AreVoxelStatsEnabled()
 	{ \
 		if (VOXEL_TRACE_ENABLED) \
 		{ \
-			VOXEL_ALLOW_MALLOC_SCOPE(); \
 			FCpuProfilerTrace::OutputEndEvent(); \
 		} \
 	};
@@ -147,11 +143,11 @@ VOXELCORE_API FName VoxelStats_AddNum(const FString& Format, int32 Num);
 #if STATS
 #define INC_VOXEL_COUNTER_BY(StatName, Amount) \
 	VOXEL_DEBUG_ONLY(StatName.Add(Amount);) \
-	VOXEL_ALLOW_MALLOC_INLINE(FThreadStats::AddMessage(GET_STATFNAME(StatName ## _Stat), EStatOperation::Add, int64(Amount)));
+	FThreadStats::AddMessage(GET_STATFNAME(StatName ## _Stat), EStatOperation::Add, int64(Amount));
 
 #define DEC_VOXEL_COUNTER_BY(StatName, Amount) \
 	VOXEL_DEBUG_ONLY(StatName.Subtract(Amount);) \
-	VOXEL_ALLOW_MALLOC_INLINE(FThreadStats::AddMessage(GET_STATFNAME(StatName ## _Stat), EStatOperation::Subtract, int64(Amount)));
+	FThreadStats::AddMessage(GET_STATFNAME(StatName ## _Stat), EStatOperation::Subtract, int64(Amount));
 #else
 #define INC_VOXEL_COUNTER_BY(StatName, Amount)
 #define DEC_VOXEL_COUNTER_BY(StatName, Amount)

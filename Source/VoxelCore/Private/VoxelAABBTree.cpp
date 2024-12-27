@@ -193,7 +193,6 @@ void FVoxelAABBTree::Initialize(TVoxelArray<FElement>&& InElements)
 void FVoxelAABBTree::Shrink()
 {
 	VOXEL_FUNCTION_COUNTER();
-	VOXEL_ALLOW_REALLOC_SCOPE();
 
 	Nodes.Shrink();
 	Leaves.Shrink();

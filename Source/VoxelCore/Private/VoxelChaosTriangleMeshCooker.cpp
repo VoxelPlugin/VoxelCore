@@ -65,7 +65,6 @@ namespace Chaos
 			const TConstVoxelArrayView<uint16> FaceMaterials)
 		{
 			VOXEL_FUNCTION_COUNTER();
-			VOXEL_ALLOW_MALLOC_SCOPE();
 			checkVoxelSlow(Indices.Num() > 0);
 
 			TParticles<FRealSingle, 3> Particles;

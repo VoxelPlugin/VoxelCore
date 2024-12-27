@@ -1,13 +1,6 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMemoryScope.h"
-#include "HAL/PlatformStackWalk.h"
-
-#if VOXEL_ALLOC_DEBUG
-extern bool GVoxelMallocDisableChecks;
-extern thread_local bool GVoxelMallocIsAllowed;
-extern thread_local bool GVoxelReallocIsAllowed;
-#endif
 
 DECLARE_VOXEL_COUNTER_WITH_CATEGORY(VOXELCORE_API, STATGROUP_VoxelMemory, STAT_VoxelMemoryAllocationCount, "Allocation Count");
 DEFINE_VOXEL_COUNTER(STAT_VoxelMemoryAllocationCount);
@@ -37,11 +30,6 @@ FVoxelMemoryScope::FVoxelMemoryScope()
 
 	check(!FPlatformTLS::GetTlsValue(GVoxelMemoryTLS));
 	FPlatformTLS::SetTlsValue(GVoxelMemoryTLS, this);
-
-#if VOXEL_ALLOC_DEBUG
-	check(GVoxelMallocIsAllowed);
-	GVoxelMallocIsAllowed = false;
-#endif
 }
 
 FVoxelMemoryScope::~FVoxelMemoryScope()
@@ -53,16 +41,10 @@ FVoxelMemoryScope::~FVoxelMemoryScope()
 
 	check(FPlatformTLS::GetTlsValue(GVoxelMemoryTLS) == this);
 	FPlatformTLS::SetTlsValue(GVoxelMemoryTLS, nullptr);
-
-#if VOXEL_ALLOC_DEBUG
-	check(!GVoxelMallocIsAllowed);
-	GVoxelMallocIsAllowed = true;
-#endif
 }
 
 void FVoxelMemoryScope::Clear()
 {
-	VOXEL_ALLOW_MALLOC_SCOPE();
 	check(ThreadId == FPlatformTLS::GetCurrentThreadId());
 
 	int64 NumAllocations = 0;
@@ -131,17 +113,6 @@ VOXEL_RUN_ON_STARTUP_GAME()
 	}
 }
 
-thread_local int32 GVoxelAllowLeak = 0;
-
-void EnterVoxelAllowLeakScope()
-{
-	GVoxelAllowLeak++;
-}
-void ExitVoxelAllowLeakScope()
-{
-	ensure(GVoxelAllowLeak-- >= 0);
-}
-
 void UpdateVoxelAllocationStackFrames(void* Result, const bool bIsAdd)
 {
 	if (!GVoxelCheckValidAllocations)
@@ -171,8 +142,7 @@ VOXEL_RUN_ON_STARTUP_GAME()
 FVoxelMemoryScope::FBlock& FVoxelMemoryScope::GetBlock(void* Original)
 {
 #if VOXEL_DEBUG
-	if (!GVoxelAllowLeak &&
-		GVoxelCheckValidAllocations)
+	if (GVoxelCheckValidAllocations)
 	{
 		GVoxelValidAllocationsCriticalSection.Lock();
 		check(GVoxelValidAllocations.Contains(Original));
@@ -225,10 +195,7 @@ void* FVoxelMemoryScope::StaticMalloc(const uint64 Count, uint32 Alignment)
 	check(static_cast<uint8*>(Result) - static_cast<uint8*>(UnalignedPtr) <= Padding);
 
 #if VOXEL_DEBUG
-	if (!GVoxelAllowLeak)
-	{
-		UpdateVoxelAllocationStackFrames(Result, true);
-	}
+	UpdateVoxelAllocationStackFrames(Result, true);
 #endif
 
 	FBlock& Block = GetBlock(Result);
@@ -281,8 +248,7 @@ void FVoxelMemoryScope::StaticFree(void* Original)
 	const uint64 AllocationSize = Block.Size;
 
 #if VOXEL_DEBUG
-	if (!GVoxelAllowLeak &&
-		GVoxelCheckValidAllocations)
+	if (GVoxelCheckValidAllocations)
 	{
 		GVoxelValidAllocationsCriticalSection.Lock();
 		GVoxelValidAllocations.RemoveChecked(Original);
@@ -354,15 +320,6 @@ void* FVoxelMemoryScope::Realloc(void* Original, const uint64 OriginalCount, con
 	}
 
 	const uint64 CountToCopy = FMath::Min(Count, OriginalCount);
-
-#if VOXEL_ALLOC_DEBUG
-	if (!GVoxelMallocDisableChecks &&
-		!GVoxelReallocIsAllowed &&
-		CountToCopy > 64)
-	{
-		UE_DEBUG_BREAK();
-	}
-#endif
 
 	void* NewPtr = Malloc(Count, Alignment);
 	{
