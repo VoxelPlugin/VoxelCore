@@ -14,6 +14,45 @@
 #include "EditorViewportClient.h"
 #endif
 
+VOXEL_CONSOLE_COMMAND(
+	"voxel.SetNumWorkerThreads",
+	"Set the number of Unreal worker threads")
+{
+	if (Args.Num() != 1)
+	{
+		UE_LOG(LogConsoleResponse, Warning, TEXT("Usage: voxel.SetNumWorkerThreads {number}"));
+		return;
+	}
+
+	if (!FVoxelUtilities::IsInt(Args[0]))
+	{
+		UE_LOG(LogConsoleResponse, Warning, TEXT("%s is not an integer"), *Args[0]);
+		return;
+	}
+
+	FVoxelUtilities::SetNumWorkerThreads(FVoxelUtilities::StringToInt(Args[0]));
+}
+
+void FVoxelUtilities::SetNumWorkerThreads(const int32 NumWorkerThreads)
+{
+	VOXEL_FUNCTION_COUNTER();
+	LOG_VOXEL(Log, "FVoxelUtilities::SetNumWorkerThreads %d", NumWorkerThreads);
+	LOG_VOXEL(Log, "!!! Changing the number of Unreal worker threads !!!");
+
+	const int32 NumBackgroundWorkers = FMath::Max(1, NumWorkerThreads - FMath::Min<int>(2, NumWorkerThreads));
+	const int32 NumForegroundWorkers = FMath::Max(1, NumWorkerThreads - NumBackgroundWorkers);
+
+	LOG_VOXEL(Log, "%d background workers", NumBackgroundWorkers);
+	LOG_VOXEL(Log, "%d foreground workers", NumForegroundWorkers);
+
+	LowLevelTasks::FScheduler::Get().RestartWorkers(
+		NumForegroundWorkers,
+		NumBackgroundWorkers,
+		FForkProcessHelper::IsForkedMultithreadInstance() ? FThread::Forkable : FThread::NonForkable,
+		FPlatformAffinity::GetTaskThreadPriority(),
+		FPlatformAffinity::GetTaskBPThreadPriority());
+}
+
 void FVoxelUtilities::DelayedCall(TFunction<void()> Call, const float Delay)
 {
 	// Delay will be inaccurate if not on game thread but that's fine
@@ -27,6 +66,65 @@ void FVoxelUtilities::DelayedCall(TFunction<void()> Call, const float Delay)
 		}), Delay);
 	});
 }
+
+FString FVoxelUtilities::Unzip(const TArray<uint8>& Data, TMap<FString, TVoxelArray64<uint8>>& OutFiles)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	const TSharedPtr<FVoxelZipReader> ZipReader = FVoxelZipReader::Create(Data);
+	if (!ZipReader)
+	{
+		return "Failed to unzip";
+	}
+
+	for (const FString& File : ZipReader->GetFiles())
+	{
+		TVoxelArray64<uint8> FileData;
+		if (!ZipReader->TryLoad(File, FileData))
+		{
+			return "Failed to unzip " + File;
+		}
+
+		ensure(!OutFiles.Contains(File));
+		OutFiles.Add(File, MoveTemp(FileData));
+	}
+
+	return {};
+}
+
+#if WITH_EDITOR
+void FVoxelUtilities::EnsureViewportIsUpToDate()
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	if (FSlateThrottleManager::Get().IsAllowingExpensiveTasks())
+	{
+		// No need to do anything, slate is not throttling
+		return;
+	}
+
+	const FViewport* Viewport = GEditor->GetActiveViewport();
+	if (!Viewport)
+	{
+		return;
+	}
+
+	const FViewportClient* Client = Viewport->GetClient();
+	if (!Client)
+	{
+		return;
+	}
+
+	for (FEditorViewportClient* EditorViewportClient : GEditor->GetAllViewportClients())
+	{
+		EditorViewportClient->Invalidate(false, false);
+	}
+}
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 IPlugin& FVoxelUtilities::GetPlugin()
 {
@@ -72,6 +170,10 @@ FVoxelPluginVersion FVoxelUtilities::GetPluginVersion()
 	return Version;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 FString FVoxelUtilities::GetAppDataCache()
 {
 	static FString Path = FPlatformMisc::GetEnvironmentVariable(TEXT("LOCALAPPDATA")) / "UnrealEngine" / "VoxelPlugin";
@@ -116,30 +218,9 @@ void FVoxelUtilities::CleanupFileCache(const FString& Path, const int64 MaxSize)
 	}
 }
 
-FString FVoxelUtilities::Unzip(const TArray<uint8>& Data, TMap<FString, TVoxelArray64<uint8>>& OutFiles)
-{
-	VOXEL_FUNCTION_COUNTER();
-
-	const TSharedPtr<FVoxelZipReader> ZipReader = FVoxelZipReader::Create(Data);
-	if (!ZipReader)
-	{
-		return "Failed to unzip";
-	}
-
-	for (const FString& File : ZipReader->GetFiles())
-	{
-		TVoxelArray64<uint8> FileData;
-		if (!ZipReader->TryLoad(File, FileData))
-		{
-			return "Failed to unzip " + File;
-		}
-
-		ensure(!OutFiles.Contains(File));
-		OutFiles.Add(File, MoveTemp(FileData));
-	}
-
-	return {};
-}
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 FVoxelStackFrames FVoxelUtilities::GetStackFrames(const int32 NumFramesToIgnore)
 {
@@ -273,33 +354,3 @@ TVoxelArray<FString> FVoxelUtilities::StackFramesToString(const FVoxelStackFrame
 
 	return Result;
 }
-
-#if WITH_EDITOR
-void FVoxelUtilities::EnsureViewportIsUpToDate()
-{
-	VOXEL_FUNCTION_COUNTER();
-
-	if (FSlateThrottleManager::Get().IsAllowingExpensiveTasks())
-	{
-		// No need to do anything, slate is not throttling
-		return;
-	}
-
-	const FViewport* Viewport = GEditor->GetActiveViewport();
-	if (!Viewport)
-	{
-		return;
-	}
-
-	const FViewportClient* Client = Viewport->GetClient();
-	if (!Client)
-	{
-		return;
-	}
-
-	for (FEditorViewportClient* EditorViewportClient : GEditor->GetAllViewportClients())
-	{
-		EditorViewportClient->Invalidate(false, false);
-	}
-}
-#endif

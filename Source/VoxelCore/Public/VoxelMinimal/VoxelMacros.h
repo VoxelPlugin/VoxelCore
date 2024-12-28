@@ -185,17 +185,17 @@ FORCEINLINE const FName& VoxelStaticName(const T&)
 		TEXT(Description))
 
 #define VOXEL_CONSOLE_COMMAND(Command, Description) \
-	static void VoxelConsoleCommand(TVoxelCounterDummy<__COUNTER__>); \
+	static void VoxelConsoleCommand(TVoxelCounterDummy<__COUNTER__>, const TArray<FString>& Args); \
 	static FAutoConsoleCommand PREPROCESSOR_JOIN(VoxelAutoCmd, __COUNTER__)( \
 	    TEXT(Command), \
 	    TEXT(Description), \
-		MakeLambdaDelegate([] \
+		MakeLambdaDelegate([](const TArray<FString>& Args) \
 		{ \
 			VOXEL_SCOPE_COUNTER(Command); \
-			VoxelConsoleCommand(TVoxelCounterDummy<__COUNTER__ - 2>()); \
+			VoxelConsoleCommand(TVoxelCounterDummy<__COUNTER__ - 2>(), Args); \
 		})); \
 	\
-	static void VoxelConsoleCommand(TVoxelCounterDummy<__COUNTER__ - 3>)
+	static void VoxelConsoleCommand(TVoxelCounterDummy<__COUNTER__ - 3>, const TArray<FString>& Args)
 
 #define VOXEL_CONSOLE_WORLD_COMMAND(Command, Description) \
 	static void VoxelConsoleCommand(TVoxelCounterDummy<__COUNTER__>, const TArray<FString>& Args, UWorld* World); \
