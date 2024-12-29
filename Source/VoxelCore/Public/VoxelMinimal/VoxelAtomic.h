@@ -11,17 +11,66 @@ enum class EVoxelAtomicType
 	PositiveInteger
 };
 
-// Copyable atomic
-template<typename T, EVoxelAtomicType Type = EVoxelAtomicType::None>
-struct TVoxelAtomic
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+enum class EVoxelAtomicPadding
 {
-public:
-	TVoxelAtomic()
+	Enabled,
+	Disabled
+};
+
+template<typename, EVoxelAtomicPadding>
+struct TVoxelAtomicStorage;
+
+template<typename T>
+struct TVoxelAtomicStorage<T, EVoxelAtomicPadding::Enabled>
+{
+	VOXEL_ATOMIC_PADDING;
+	std::atomic<T> Atomic;
+	VOXEL_ATOMIC_PADDING;
+
+	FORCEINLINE TVoxelAtomicStorage()
 	{
 		Atomic = T{};
 	}
-	TVoxelAtomic(const T Value)
+	FORCEINLINE TVoxelAtomicStorage(const T Value)
 		: Atomic(Value)
+	{
+	}
+};
+
+template<typename T>
+struct TVoxelAtomicStorage<T, EVoxelAtomicPadding::Disabled>
+{
+	std::atomic<T> Atomic;
+
+	FORCEINLINE TVoxelAtomicStorage()
+	{
+		Atomic = T{};
+	}
+	FORCEINLINE TVoxelAtomicStorage(const T Value)
+		: Atomic(Value)
+	{
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// Copyable atomic
+template<
+	typename T,
+	EVoxelAtomicPadding Padding = EVoxelAtomicPadding::Disabled,
+	EVoxelAtomicType Type = EVoxelAtomicType::None>
+struct TVoxelAtomic
+{
+public:
+	TVoxelAtomic() = default;
+	TVoxelAtomic(const T Value)
+		: Storage(Value)
 	{
 	}
 
@@ -52,31 +101,31 @@ public:
 public:
 	FORCEINLINE T Get(const std::memory_order MemoryOrder = std::memory_order_seq_cst) const
 	{
-		return Atomic.load(MemoryOrder);
+		return Storage.Atomic.load(MemoryOrder);
 	}
 	FORCEINLINE void Set(const T NewValue, const std::memory_order MemoryOrder = std::memory_order_seq_cst)
 	{
 		CheckValue(NewValue);
-		Atomic.store(NewValue, MemoryOrder);
+		Storage.Atomic.store(NewValue, MemoryOrder);
 	}
 
 	FORCEINLINE T Exchange_ReturnOld(const T NewValue, const std::memory_order MemoryOrder = std::memory_order_seq_cst)
 	{
 		CheckValue(NewValue);
-		return Atomic.exchange(NewValue, MemoryOrder);
+		return Storage.Atomic.exchange(NewValue, MemoryOrder);
 	}
 	// Return true if exchange was successful
 	// Expected will hold the old value (only useful if fails, if succeeds Expected isn't changed)
 	FORCEINLINE bool CompareExchangeStrong(T& Expected, const T NewValue, const std::memory_order MemoryOrder = std::memory_order_seq_cst)
 	{
 		CheckValue(NewValue);
-		return Atomic.compare_exchange_strong(Expected, NewValue, MemoryOrder);
+		return Storage.Atomic.compare_exchange_strong(Expected, NewValue, MemoryOrder);
 	}
 	// Might spuriously fail
 	FORCEINLINE bool CompareExchangeWeak(T& Expected, const T NewValue, const std::memory_order MemoryOrder = std::memory_order_seq_cst)
 	{
 		CheckValue(NewValue);
-		return Atomic.compare_exchange_weak(Expected, NewValue, MemoryOrder);
+		return Storage.Atomic.compare_exchange_weak(Expected, NewValue, MemoryOrder);
 	}
 
 	template<typename LambdaType>
@@ -122,7 +171,7 @@ public:
 	{
 		if constexpr (std::is_integral_v<T>)
 		{
-			const T OldValue = Atomic.fetch_add(Operand, MemoryOrder);
+			const T OldValue = Storage.Atomic.fetch_add(Operand, MemoryOrder);
 			CheckValue(OldValue + Operand);
 			return OldValue;
 		}
@@ -189,15 +238,24 @@ public:
 public:
 	T& AsNonAtomic()
 	{
-		return ReinterpretCastRef<T>(*this);
+		return ReinterpretCastRef<T>(Storage.Atomic);
 	}
 	const T& AsNonAtomic() const
 	{
-		return ReinterpretCastRef<T>(*this);
+		return ReinterpretCastRef<T>(Storage.Atomic);
+	}
+
+	operator TVoxelAtomic<T>&()
+	{
+		return ReinterpretCastRef<TVoxelAtomic<T>>(Storage.Atomic);
+	}
+	operator const TVoxelAtomic<T>&() const
+	{
+		return ReinterpretCastRef<TVoxelAtomic<T>>(Storage.Atomic);
 	}
 
 private:
-	std::atomic<T> Atomic;
+	TVoxelAtomicStorage<T, Padding> Storage;
 
 	FORCEINLINE static void CheckValue(const T Value)
 	{
@@ -210,8 +268,16 @@ private:
 	checkStatic(std::atomic<T>::is_always_lock_free);
 };
 
-using FVoxelCounter32 = TVoxelAtomic<int32, EVoxelAtomicType::PositiveInteger>;
-using FVoxelCounter64 = TVoxelAtomic<int64, EVoxelAtomicType::PositiveInteger>;
+template<
+	typename T,
+	EVoxelAtomicType Type = EVoxelAtomicType::None>
+using TVoxelAtomic_WithPadding = TVoxelAtomic<T, EVoxelAtomicPadding::Enabled, Type>;
+
+using FVoxelCounter32 = TVoxelAtomic<int32, EVoxelAtomicPadding::Disabled, EVoxelAtomicType::PositiveInteger>;
+using FVoxelCounter64 = TVoxelAtomic<int64, EVoxelAtomicPadding::Disabled, EVoxelAtomicType::PositiveInteger>;
+
+using FVoxelCounter32_WithPadding = TVoxelAtomic_WithPadding<int32, EVoxelAtomicType::PositiveInteger>;
+using FVoxelCounter64_WithPadding = TVoxelAtomic_WithPadding<int64, EVoxelAtomicType::PositiveInteger>;
 
 // Declare here, cannot use FVoxelCounter64 in VoxelStats.h
 VOXELCORE_API void RegisterVoxelInstanceCounter(FName StatName, const FVoxelCounter64& Counter);

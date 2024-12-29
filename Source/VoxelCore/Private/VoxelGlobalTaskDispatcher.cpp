@@ -2,7 +2,24 @@
 
 #include "VoxelGlobalTaskDispatcher.h"
 
-const TSharedRef<IVoxelTaskDispatcher> GVoxelGlobalTaskDispatcher= MakeShared<FVoxelGlobalTaskDispatcher>();
+TSharedPtr<IVoxelTaskDispatcher> GVoxelGlobalTaskDispatcherRef;
+IVoxelTaskDispatcher* GVoxelGlobalTaskDispatcher = nullptr;
+
+VOXEL_RUN_ON_STARTUP_GAME()
+{
+	GVoxelGlobalTaskDispatcherRef = MakeShared<FVoxelGlobalTaskDispatcher>();
+	GVoxelGlobalTaskDispatcher = GVoxelGlobalTaskDispatcherRef.Get();
+
+	GOnVoxelModuleUnloaded_DoCleanup.AddLambda([]
+	{
+		GVoxelGlobalTaskDispatcher = nullptr;
+		GVoxelGlobalTaskDispatcherRef.Reset();
+	});
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 void FVoxelGlobalTaskDispatcher::DispatchImpl(
 	const EVoxelFutureThread Thread,

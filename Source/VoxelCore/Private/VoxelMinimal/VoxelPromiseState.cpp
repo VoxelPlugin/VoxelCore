@@ -54,10 +54,7 @@ FVoxelPromiseState::FVoxelPromiseState(
 
 	ConstCast(DispatcherRef) = Dispatcher;
 
-	if (Dispatcher.NumPromisesPtr)
-	{
-		Dispatcher.NumPromisesPtr->Increment();
-	}
+	Dispatcher.NumPromises.Increment();
 
 	if (Dispatcher.bTrackPromisesCallstacks)
 	{
@@ -177,10 +174,7 @@ void FVoxelPromiseState::SetImpl(IVoxelTaskDispatcher& Dispatcher)
 
 	ON_SCOPE_EXIT
 	{
-		if (Dispatcher.NumPromisesPtr)
-		{
-			Dispatcher.NumPromisesPtr->Decrement();
-		}
+		Dispatcher.NumPromises.Decrement();
 
 		if (KeepAliveIndex != -1)
 		{

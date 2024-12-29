@@ -4,7 +4,7 @@
 
 #include "VoxelMinimal.h"
 
-extern VOXELCORE_API const TSharedRef<IVoxelTaskDispatcher> GVoxelGlobalTaskDispatcher;
+extern VOXELCORE_API IVoxelTaskDispatcher* GVoxelGlobalTaskDispatcher;
 
 class VOXELCORE_API FVoxelTaskDispatcherRef
 {
@@ -36,8 +36,15 @@ private:
 class VOXELCORE_API IVoxelTaskDispatcher : public TSharedFromThis<IVoxelTaskDispatcher>
 {
 public:
-	IVoxelTaskDispatcher() = default;
+	const bool bTrackPromisesCallstacks;
+
+	explicit IVoxelTaskDispatcher(const bool bTrackPromisesCallstacks)
+		: bTrackPromisesCallstacks(bTrackPromisesCallstacks)
+	{
+	}
 	virtual ~IVoxelTaskDispatcher();
+
+	VOXEL_COUNT_INSTANCES();
 
 public:
 	virtual void DispatchImpl(
@@ -47,16 +54,6 @@ public:
 	virtual bool IsExiting() const = 0;
 
 public:
-	bool IsTrackingPromises() const
-	{
-		return NumPromisesPtr != nullptr;
-	}
-	bool IsTrackingPromiseCallstacks() const
-	{
-		return bTrackPromisesCallstacks;
-	}
-
-public:
 	void DumpPromises();
 
 	void Dispatch(
@@ -64,6 +61,11 @@ public:
 		TVoxelUniqueFunction<void()> Lambda);
 
 public:
+	FORCEINLINE int32 GetNumPromises() const
+	{
+		return NumPromises.Get();
+	}
+
 	// Wrap another future created in a different task dispatcher
 	// This ensures any continuation to this future won't leak to the other task dispatcher,
 	// which would mess up task tracking
@@ -81,12 +83,9 @@ public:
 		return Promise;
 	}
 
-protected:
-	FVoxelCounter32* NumPromisesPtr = nullptr;
-	bool bTrackPromisesCallstacks = false;
-
 private:
 	TVoxelAtomic<FVoxelTaskDispatcherRef> SelfRef;
+	FVoxelCounter32_WithPadding NumPromises;
 
 	FVoxelCriticalSection CriticalSection;
 	TVoxelSparseArray<FVoxelStackFrames> StackFrames_RequiresLock;

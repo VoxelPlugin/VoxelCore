@@ -3,7 +3,6 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
-#include "VoxelMinimal/VoxelCriticalSection.h"
 
 struct FVoxelSharedCriticalSectionState
 {
@@ -11,7 +10,7 @@ struct FVoxelSharedCriticalSectionState
 	uint16 NumWriters = 0;
 };
 
-template<typename StorageType>
+template<EVoxelAtomicPadding Padding>
 class TVoxelSharedCriticalSectionImpl
 {
 public:
@@ -31,7 +30,7 @@ public:
 public:
 	FORCEINLINE bool TryReadLock()
 	{
-		FState OldState = Storage.State.Get(std::memory_order_relaxed);
+		FState OldState = AtomicState.Get(std::memory_order_relaxed);
 
 		if (OldState.NumWriters > 0)
 		{
@@ -41,41 +40,41 @@ public:
 		FState NewState = OldState;
 		NewState.NumReaders++;
 
-		if (!Storage.State.CompareExchangeStrong(OldState, NewState))
+		if (!AtomicState.CompareExchangeStrong(OldState, NewState))
 		{
 			return false;
 		}
 
-		checkVoxelSlow(Storage.State.Get().NumReaders > 0);
-		checkVoxelSlow(Storage.State.Get().NumWriters == 0);
+		checkVoxelSlow(AtomicState.Get().NumReaders > 0);
+		checkVoxelSlow(AtomicState.Get().NumWriters == 0);
 
 		return true;
 	}
 	FORCEINLINE void ReadLock()
 	{
-		FState OldState = Storage.State.Get(std::memory_order_relaxed);
+		FState OldState = AtomicState.Get(std::memory_order_relaxed);
 
 	TryLock:
 		while (OldState.NumWriters > 0)
 		{
 			FPlatformProcess::Yield();
-			OldState = Storage.State.Get(std::memory_order_relaxed);
+			OldState = AtomicState.Get(std::memory_order_relaxed);
 		}
 
 		FState NewState = OldState;
 		NewState.NumReaders++;
 
-		if (!Storage.State.CompareExchangeStrong(OldState, NewState))
+		if (!AtomicState.CompareExchangeStrong(OldState, NewState))
 		{
 			goto TryLock;
 		}
 
-		checkVoxelSlow(Storage.State.Get().NumReaders > 0);
-		checkVoxelSlow(Storage.State.Get().NumWriters == 0);
+		checkVoxelSlow(AtomicState.Get().NumReaders > 0);
+		checkVoxelSlow(AtomicState.Get().NumWriters == 0);
 	}
 	FORCEINLINE void ReadUnlock()
 	{
-		Storage.State.Apply([&](FState State)
+		AtomicState.Apply([&](FState State)
 		{
 			checkVoxelSlow(State.NumReaders > 0);
 			checkVoxelSlow(State.NumWriters == 0);
@@ -88,7 +87,7 @@ public:
 public:
 	FORCEINLINE bool TryWriteLock()
 	{
-		FState OldState = Storage.State.Get(std::memory_order_relaxed);
+		FState OldState = AtomicState.Get(std::memory_order_relaxed);
 
 		if (OldState.NumReaders > 0 ||
 			OldState.NumWriters > 0)
@@ -99,19 +98,19 @@ public:
 		FState NewState = OldState;
 		NewState.NumWriters++;
 
-		if (!Storage.State.CompareExchangeStrong(OldState, NewState))
+		if (!AtomicState.CompareExchangeStrong(OldState, NewState))
 		{
 			return false;
 		}
 
-		checkVoxelSlow(Storage.State.Get().NumReaders == 0);
-		checkVoxelSlow(Storage.State.Get().NumWriters == 1);
+		checkVoxelSlow(AtomicState.Get().NumReaders == 0);
+		checkVoxelSlow(AtomicState.Get().NumWriters == 1);
 
 		return true;
 	}
 	FORCEINLINE void WriteLock()
 	{
-		FState OldState = Storage.State.Get(std::memory_order_relaxed);
+		FState OldState = AtomicState.Get(std::memory_order_relaxed);
 
 	TryLock:
 		while (
@@ -119,23 +118,23 @@ public:
 			OldState.NumWriters > 0)
 		{
 			FPlatformProcess::Yield();
-			OldState = Storage.State.Get(std::memory_order_relaxed);
+			OldState = AtomicState.Get(std::memory_order_relaxed);
 		}
 
 		FState NewState = OldState;
 		NewState.NumWriters++;
 
-		if (!Storage.State.CompareExchangeStrong(OldState, NewState))
+		if (!AtomicState.CompareExchangeStrong(OldState, NewState))
 		{
 			goto TryLock;
 		}
 
-		checkVoxelSlow(Storage.State.Get().NumReaders == 0);
-		checkVoxelSlow(Storage.State.Get().NumWriters == 1);
+		checkVoxelSlow(AtomicState.Get().NumReaders == 0);
+		checkVoxelSlow(AtomicState.Get().NumWriters == 1);
 	}
 	FORCEINLINE void WriteUnlock()
 	{
-		Storage.State.Apply([&](FState State)
+		AtomicState.Apply([&](FState State)
 		{
 			checkVoxelSlow(State.NumReaders == 0);
 			checkVoxelSlow(State.NumWriters == 1);
@@ -148,14 +147,14 @@ public:
 public:
 	FORCEINLINE bool IsLocked_Read() const
 	{
-		const FState State = Storage.State.Get(std::memory_order::relaxed);
+		const FState State = AtomicState.Get(std::memory_order::relaxed);
 		return
 			State.NumReaders > 0 ||
 			State.NumWriters > 0;
 	}
 	FORCEINLINE bool IsLocked_Write() const
 	{
-		const FState State = Storage.State.Get(std::memory_order::relaxed);
+		const FState State = AtomicState.Get(std::memory_order::relaxed);
 		return State.NumWriters > 0;
 	}
 
@@ -170,22 +169,11 @@ public:
 	}
 
 private:
-	StorageType Storage;
+	TVoxelAtomic<FVoxelSharedCriticalSectionState, Padding> AtomicState;
 };
 
-struct Impl_FVoxelSharedCriticalSection_Storage
-{
-	FVoxelCacheLinePadding PaddingA;
-	TVoxelAtomic<FVoxelSharedCriticalSectionState> State;
-	FVoxelCacheLinePadding PaddingB;
-};
-using FVoxelSharedCriticalSection = TVoxelSharedCriticalSectionImpl<Impl_FVoxelSharedCriticalSection_Storage>;
-
-struct Impl_FVoxelSharedCriticalSection_NoPadding_Storage
-{
-	TVoxelAtomic<FVoxelSharedCriticalSectionState> State;
-};
-using FVoxelSharedCriticalSection_NoPadding = TVoxelSharedCriticalSectionImpl<Impl_FVoxelSharedCriticalSection_NoPadding_Storage>;
+using FVoxelSharedCriticalSection = TVoxelSharedCriticalSectionImpl<EVoxelAtomicPadding::Enabled>;
+using FVoxelSharedCriticalSection_NoPadding = TVoxelSharedCriticalSectionImpl<EVoxelAtomicPadding::Disabled>;
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

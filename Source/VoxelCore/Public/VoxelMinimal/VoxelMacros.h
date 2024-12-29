@@ -1179,6 +1179,37 @@ struct TVoxelUFunctionOverride
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+struct FVoxelAtomicPadding
+{
+public:
+	FORCEINLINE FVoxelAtomicPadding()
+	{
+	}
+	FORCEINLINE FVoxelAtomicPadding(const FVoxelAtomicPadding&)
+	{
+	}
+	FORCEINLINE FVoxelAtomicPadding(FVoxelAtomicPadding&&)
+	{
+	}
+	FORCEINLINE FVoxelAtomicPadding& operator=(const FVoxelAtomicPadding&)
+	{
+		return *this;
+	}
+	FORCEINLINE FVoxelAtomicPadding& operator=(FVoxelAtomicPadding&&)
+	{
+		return *this;
+	}
+
+private:
+	uint8 Padding[PLATFORM_CACHE_LINE_SIZE * 2];
+};
+
+#define VOXEL_ATOMIC_PADDING FVoxelAtomicPadding VOXEL_APPEND_LINE(_Padding)
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 namespace std
 {
 	template<typename T>

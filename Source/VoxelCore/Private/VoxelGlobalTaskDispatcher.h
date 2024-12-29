@@ -8,7 +8,10 @@
 class FVoxelGlobalTaskDispatcher : public IVoxelTaskDispatcher
 {
 public:
-	FVoxelGlobalTaskDispatcher() = default;
+	FVoxelGlobalTaskDispatcher()
+		: IVoxelTaskDispatcher(false)
+	{
+	}
 
 	//~ Begin IVoxelTaskDispatcher Interface
 	virtual void DispatchImpl(
