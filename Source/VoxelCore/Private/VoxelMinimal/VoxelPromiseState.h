@@ -87,7 +87,7 @@ public:
 	};
 
 public:
-	const FVoxelTaskDispatcherRef DispatcherRef;
+	const FVoxelTaskDispatcherWeakRef DispatcherWeakRef;
 
 	explicit FVoxelPromiseState(
 		IVoxelTaskDispatcher* DispatcherOverride,
@@ -96,7 +96,7 @@ public:
 	FORCEINLINE explicit FVoxelPromiseState(const FSharedVoidRef& NewValue)
 		: IVoxelPromiseState(true)
 	{
-		ConstCast(DispatcherRef) = FVoxelTaskDispatcherScope::Get();
+		ConstCast(DispatcherWeakRef) = FVoxelTaskDispatcherScope::Get();
 
 		bIsComplete.Set(true);
 		Value = NewValue;

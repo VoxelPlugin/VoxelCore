@@ -6,25 +6,21 @@
 
 extern VOXELCORE_API IVoxelTaskDispatcher* GVoxelGlobalTaskDispatcher;
 
-class VOXELCORE_API FVoxelTaskDispatcherRef
+class VOXELCORE_API FVoxelTaskDispatcherStrongRef
 {
 public:
-	FVoxelTaskDispatcherRef() = default;
-	FVoxelTaskDispatcherRef(const IVoxelTaskDispatcher& Dispatcher);
+	IVoxelTaskDispatcher& Dispatcher;
 
-	TSharedPtr<IVoxelTaskDispatcher> Pin() const;
+	explicit FVoxelTaskDispatcherStrongRef(IVoxelTaskDispatcher& Dispatcher);
+	~FVoxelTaskDispatcherStrongRef();
+};
 
-	FORCEINLINE bool IsNull() const
-	{
-		checkVoxelSlow((Index == -1) == (Serial == -1));
-		return Index == -1;
-	}
-	FORCEINLINE bool operator==(const FVoxelTaskDispatcherRef& Other) const
-	{
-		return
-			Index == Other.Index &&
-			Serial == Other.Serial;
-	}
+class VOXELCORE_API FVoxelTaskDispatcherWeakRef
+{
+public:
+	FVoxelTaskDispatcherWeakRef() = default;
+
+	TUniquePtr<FVoxelTaskDispatcherStrongRef> Pin() const;
 
 private:
 	int32 Index = -1;
@@ -33,39 +29,45 @@ private:
 	friend IVoxelTaskDispatcher;
 };
 
-class VOXELCORE_API IVoxelTaskDispatcher : public TSharedFromThis<IVoxelTaskDispatcher>
+class VOXELCORE_API IVoxelTaskDispatcher
 {
 public:
 	const bool bTrackPromisesCallstacks;
 
-	explicit IVoxelTaskDispatcher(const bool bTrackPromisesCallstacks)
-		: bTrackPromisesCallstacks(bTrackPromisesCallstacks)
-	{
-	}
+	explicit IVoxelTaskDispatcher(bool bTrackPromisesCallstacks);
 	virtual ~IVoxelTaskDispatcher();
 
 	VOXEL_COUNT_INSTANCES();
 
 public:
-	virtual void DispatchImpl(
-		EVoxelFutureThread Thread,
-		TVoxelUniqueFunction<void()> Lambda) = 0;
-
-	virtual bool IsExiting() const = 0;
-
-public:
-	void DumpPromises();
-
 	void Dispatch(
 		EVoxelFutureThread Thread,
 		TVoxelUniqueFunction<void()> Lambda);
 
 public:
+	void DumpToLog();
+
+public:
+	FORCEINLINE bool IsExiting() const
+	{
+		return bIsExiting.Get();
+	}
+	FORCEINLINE bool IsComplete() const
+	{
+		return
+			NumPromises.Get() == 0 &&
+			NumPendingTasks.Get() == 0;
+	}
 	FORCEINLINE int32 GetNumPromises() const
 	{
 		return NumPromises.Get();
 	}
+	FORCEINLINE int32 GetNumPendingTasks() const
+	{
+		return NumPendingTasks.Get();
+	}
 
+public:
 	// Wrap another future created in a different task dispatcher
 	// This ensures any continuation to this future won't leak to the other task dispatcher,
 	// which would mess up task tracking
@@ -83,16 +85,43 @@ public:
 		return Promise;
 	}
 
-private:
-	TVoxelAtomic<FVoxelTaskDispatcherRef> SelfRef;
-	FVoxelCounter32_WithPadding NumPromises;
+	FORCEINLINE operator FVoxelTaskDispatcherWeakRef() const
+	{
+		return SelfWeakRef;
+	}
 
+private:
+	FVoxelTaskDispatcherWeakRef SelfWeakRef;
+	FVoxelCounter32_WithPadding NumStrongRefs;
+	FVoxelCounter32_WithPadding NumPromises;
+	FVoxelCounter32_WithPadding NumPendingTasks;
+	FVoxelCounter32_WithPadding NumLaunchedTasks;
+	TVoxelAtomic_WithPadding<bool> bIsExiting = false;
+
+private:
+	static constexpr int32 MaxLaunchedTasks = 256;
+	using FTaskArray = TVoxelChunkedArray<TVoxelUniqueFunction<void()>, MaxLaunchedTasks * sizeof(TVoxelUniqueFunction<void()>) / 2>;
+
+	FVoxelCriticalSection GameTasksCriticalSection;
+	TVoxelChunkedArray<TVoxelUniqueFunction<void()>> GameTasks_RequiresLock;
+
+	FVoxelCriticalSection AsyncTasksCriticalSection;
+	FTaskArray AsyncTasks_RequiresLock;
+
+	void LaunchTasks();
+	void LaunchTask(TVoxelUniqueFunction<void()> Task);
+
+	void ProcessGameTasks(bool& bAnyTaskProcessed);
+
+private:
 	FVoxelCriticalSection CriticalSection;
 	TVoxelSparseArray<FVoxelStackFrames> StackFrames_RequiresLock;
 	TVoxelChunkedSparseArray<TSharedPtr<FVoxelPromiseState>> PromisesToKeepAlive_RequiresLock;
 
 	friend FVoxelPromiseState;
-	friend FVoxelTaskDispatcherRef;
+	friend FVoxelTaskDispatcherWeakRef;
+	friend FVoxelTaskDispatcherStrongRef;
+	friend class FVoxelTaskDispatcherManager;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

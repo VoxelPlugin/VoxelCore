@@ -141,9 +141,6 @@ public:
 	explicit FVoxelFuture(TConstVoxelArrayView<FVoxelFuture> Futures);
 
 public:
-	TSharedPtr<IVoxelTaskDispatcher> GetTaskDispatcher() const;
-
-public:
 	template<
 		typename LambdaType,
 		typename ReturnType = LambdaReturnType_T<LambdaType>,

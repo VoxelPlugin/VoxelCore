@@ -52,7 +52,7 @@ FVoxelPromiseState::FVoxelPromiseState(
 {
 	IVoxelTaskDispatcher& Dispatcher = DispatcherOverride ? *DispatcherOverride : FVoxelTaskDispatcherScope::Get();
 
-	ConstCast(DispatcherRef) = Dispatcher;
+	ConstCast(DispatcherWeakRef) = Dispatcher;
 
 	Dispatcher.NumPromises.Increment();
 
@@ -76,12 +76,12 @@ FVoxelPromiseState::~FVoxelPromiseState()
 	}
 	checkVoxelSlow(!Value.IsValid());
 
-	const TSharedPtr<IVoxelTaskDispatcher> Dispatcher = DispatcherRef.Pin();
-	if (!Dispatcher)
+	const TUniquePtr<FVoxelTaskDispatcherStrongRef> DispatcherStrongRef = DispatcherWeakRef.Pin();
+	if (!DispatcherStrongRef)
 	{
 		return;
 	}
-	ensure(Dispatcher->IsExiting());
+	ensure(DispatcherStrongRef->Dispatcher.IsExiting());
 #endif
 }
 
@@ -93,21 +93,21 @@ void FVoxelPromiseState::Set()
 {
 	checkVoxelSlow(!bHasValue);
 
-	const TSharedPtr<IVoxelTaskDispatcher> Dispatcher = DispatcherRef.Pin();
-	if (!ensureVoxelSlow(Dispatcher))
+	const TUniquePtr<FVoxelTaskDispatcherStrongRef> DispatcherStrongRef = DispatcherWeakRef.Pin();
+	if (!DispatcherStrongRef)
 	{
 		return;
 	}
 
-	SetImpl(*Dispatcher);
+	SetImpl(DispatcherStrongRef->Dispatcher);
 }
 
 void FVoxelPromiseState::Set(const FSharedVoidRef& NewValue)
 {
 	checkVoxelSlow(bHasValue);
 
-	const TSharedPtr<IVoxelTaskDispatcher> Dispatcher = DispatcherRef.Pin();
-	if (!Dispatcher)
+	const TUniquePtr<FVoxelTaskDispatcherStrongRef> DispatcherStrongRef = DispatcherWeakRef.Pin();
+	if (!DispatcherStrongRef)
 	{
 		// Will be null when called as a continuation from a different dispatcher
 		return;
@@ -116,17 +116,17 @@ void FVoxelPromiseState::Set(const FSharedVoidRef& NewValue)
 	checkVoxelSlow(!Value);
 	Value = NewValue;
 
-	SetImpl(*Dispatcher);
+	SetImpl(DispatcherStrongRef->Dispatcher);
 }
 
 void FVoxelPromiseState::AddContinuation(TUniquePtr<FContinuation> Continuation)
 {
-	const TSharedPtr<IVoxelTaskDispatcher> DispatcherPtr = DispatcherRef.Pin();
-	if (!ensureVoxelSlow(DispatcherPtr))
+	const TUniquePtr<FVoxelTaskDispatcherStrongRef> DispatcherStrongRef = DispatcherWeakRef.Pin();
+	if (!DispatcherStrongRef)
 	{
 		return;
 	}
-	IVoxelTaskDispatcher& Dispatcher = *DispatcherPtr;
+	IVoxelTaskDispatcher& Dispatcher = DispatcherStrongRef->Dispatcher;
 
 	ON_SCOPE_EXIT
 	{
