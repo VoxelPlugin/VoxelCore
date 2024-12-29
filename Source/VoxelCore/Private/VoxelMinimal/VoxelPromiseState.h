@@ -82,21 +82,21 @@ public:
 
 	public:
 		void Execute(
-			IVoxelTaskDispatcher& Dispatcher,
+			FVoxelTaskContext& Context,
 			const FVoxelPromiseState& NewValue);
 	};
 
 public:
-	const FVoxelTaskDispatcherWeakRef DispatcherWeakRef;
+	const FVoxelTaskContextWeakRef ContextWeakRef;
 
 	explicit FVoxelPromiseState(
-		IVoxelTaskDispatcher* DispatcherOverride,
+		FVoxelTaskContext* ContextOverride,
 		bool bHasValue);
 
 	FORCEINLINE explicit FVoxelPromiseState(const FSharedVoidRef& NewValue)
 		: IVoxelPromiseState(true)
 	{
-		ConstCast(DispatcherWeakRef) = FVoxelTaskDispatcherScope::Get();
+		ConstCast(ContextWeakRef) = FVoxelTaskScope::GetContext();
 
 		bIsComplete.Set(true);
 		Value = NewValue;
@@ -115,7 +115,7 @@ private:
 	int32 StackIndex = -1;
 	TUniquePtr<FContinuation> Continuation_RequiresLock;
 
-	void SetImpl(IVoxelTaskDispatcher& Dispatcher);
+	void SetImpl(FVoxelTaskContext& Context);
 };
 checkStatic(sizeof(FVoxelPromiseState) == 64);
 checkStatic(sizeof(FVoxelPromiseState::FContinuation) == 32);

@@ -8,7 +8,7 @@
 class FVoxelFuture;
 class FVoxelPromise;
 class FVoxelPromiseState;
-class IVoxelTaskDispatcher;
+class FVoxelTaskContext;
 
 template<typename>
 class TVoxelFuture;
@@ -75,7 +75,7 @@ class VOXELCORE_API IVoxelPromiseState
 {
 public:
 	static TSharedRef<IVoxelPromiseState> New(
-		IVoxelTaskDispatcher* DispatcherOverride,
+		FVoxelTaskContext* ContextOverride,
 		bool bWithValue);
 
 	static TSharedRef<IVoxelPromiseState> New(const FSharedVoidRef& Value);
@@ -450,8 +450,8 @@ protected:
 class VOXELCORE_API FVoxelPromise : public FVoxelFuture
 {
 public:
-	FORCEINLINE FVoxelPromise(IVoxelTaskDispatcher* DispatcherOverride = nullptr)
-		: FVoxelFuture(IVoxelPromiseState::New(DispatcherOverride, false))
+	FORCEINLINE FVoxelPromise(FVoxelTaskContext* ContextOverride = nullptr)
+		: FVoxelFuture(IVoxelPromiseState::New(ContextOverride, false))
 	{
 	}
 
@@ -480,8 +480,8 @@ template<typename T>
 class TVoxelPromise : public TVoxelFuture<T>
 {
 public:
-	FORCEINLINE TVoxelPromise(IVoxelTaskDispatcher* DispatcherOverride = nullptr)
-		: TVoxelFuture<T>(IVoxelPromiseState::New(DispatcherOverride, true))
+	FORCEINLINE TVoxelPromise(FVoxelTaskContext* ContextOverride = nullptr)
+		: TVoxelFuture<T>(IVoxelPromiseState::New(ContextOverride, true))
 	{
 	}
 

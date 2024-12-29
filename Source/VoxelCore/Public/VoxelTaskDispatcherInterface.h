@@ -4,38 +4,38 @@
 
 #include "VoxelMinimal.h"
 
-extern VOXELCORE_API IVoxelTaskDispatcher* GVoxelGlobalTaskDispatcher;
+extern VOXELCORE_API FVoxelTaskContext* GVoxelGlobalTaskContext;
 
-class VOXELCORE_API FVoxelTaskDispatcherStrongRef
+class VOXELCORE_API FVoxelTaskContextStrongRef
 {
 public:
-	IVoxelTaskDispatcher& Dispatcher;
+	FVoxelTaskContext& Context;
 
-	explicit FVoxelTaskDispatcherStrongRef(IVoxelTaskDispatcher& Dispatcher);
-	~FVoxelTaskDispatcherStrongRef();
+	explicit FVoxelTaskContextStrongRef(FVoxelTaskContext& Context);
+	~FVoxelTaskContextStrongRef();
 };
 
-class VOXELCORE_API FVoxelTaskDispatcherWeakRef
+class VOXELCORE_API FVoxelTaskContextWeakRef
 {
 public:
-	FVoxelTaskDispatcherWeakRef() = default;
+	FVoxelTaskContextWeakRef() = default;
 
-	TUniquePtr<FVoxelTaskDispatcherStrongRef> Pin() const;
+	TUniquePtr<FVoxelTaskContextStrongRef> Pin() const;
 
 private:
 	int32 Index = -1;
 	int32 Serial = -1;
 
-	friend IVoxelTaskDispatcher;
+	friend FVoxelTaskContext;
 };
 
-class VOXELCORE_API IVoxelTaskDispatcher
+class VOXELCORE_API FVoxelTaskContext
 {
 public:
 	const bool bTrackPromisesCallstacks;
 
-	explicit IVoxelTaskDispatcher(bool bTrackPromisesCallstacks);
-	virtual ~IVoxelTaskDispatcher();
+	explicit FVoxelTaskContext(bool bTrackPromisesCallstacks);
+	virtual ~FVoxelTaskContext();
 
 	VOXEL_COUNT_INSTANCES();
 
@@ -68,8 +68,8 @@ public:
 	}
 
 public:
-	// Wrap another future created in a different task dispatcher
-	// This ensures any continuation to this future won't leak to the other task dispatcher,
+	// Wrap another future created in a different task context
+	// This ensures any continuation to this future won't leak to the other context,
 	// which would mess up task tracking
 	FVoxelFuture Wrap(const FVoxelFuture& Other)
 	{
@@ -85,13 +85,13 @@ public:
 		return Promise;
 	}
 
-	FORCEINLINE operator FVoxelTaskDispatcherWeakRef() const
+	FORCEINLINE operator FVoxelTaskContextWeakRef() const
 	{
 		return SelfWeakRef;
 	}
 
 private:
-	FVoxelTaskDispatcherWeakRef SelfWeakRef;
+	FVoxelTaskContextWeakRef SelfWeakRef;
 	FVoxelCounter32_WithPadding NumStrongRefs;
 	FVoxelCounter32_WithPadding NumPromises;
 	FVoxelCounter32_WithPadding NumPendingTasks;
@@ -119,57 +119,57 @@ private:
 	TVoxelChunkedSparseArray<TSharedPtr<FVoxelPromiseState>> PromisesToKeepAlive_RequiresLock;
 
 	friend FVoxelPromiseState;
-	friend FVoxelTaskDispatcherWeakRef;
-	friend FVoxelTaskDispatcherStrongRef;
-	friend class FVoxelTaskDispatcherManager;
+	friend FVoxelTaskContextWeakRef;
+	friend FVoxelTaskContextStrongRef;
+	friend class FVoxelTaskContextManager;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-extern VOXELCORE_API const uint32 GVoxelTaskDispatcherScopeTLS;
+extern VOXELCORE_API const uint32 GVoxelTaskScopeTLS;
 
-class VOXELCORE_API FVoxelTaskDispatcherScope
+class VOXELCORE_API FVoxelTaskScope
 {
 public:
-	FORCEINLINE explicit FVoxelTaskDispatcherScope(IVoxelTaskDispatcher& Dispatcher)
-		: Dispatcher(Dispatcher)
-		, PreviousTLS(FPlatformTLS::GetTlsValue(GVoxelTaskDispatcherScopeTLS))
+	FORCEINLINE explicit FVoxelTaskScope(FVoxelTaskContext& Context)
+		: Context(Context)
+		, PreviousTLS(FPlatformTLS::GetTlsValue(GVoxelTaskScopeTLS))
 	{
-		FPlatformTLS::SetTlsValue(GVoxelTaskDispatcherScopeTLS, &Dispatcher);
+		FPlatformTLS::SetTlsValue(GVoxelTaskScopeTLS, &Context);
 	}
-	FORCEINLINE ~FVoxelTaskDispatcherScope()
+	FORCEINLINE ~FVoxelTaskScope()
 	{
-		checkVoxelSlow(FPlatformTLS::GetTlsValue(GVoxelTaskDispatcherScopeTLS) == &Dispatcher);
-		FPlatformTLS::SetTlsValue(GVoxelTaskDispatcherScopeTLS, PreviousTLS);
+		checkVoxelSlow(FPlatformTLS::GetTlsValue(GVoxelTaskScopeTLS) == &Context);
+		FPlatformTLS::SetTlsValue(GVoxelTaskScopeTLS, PreviousTLS);
 	}
 
-	FORCEINLINE static IVoxelTaskDispatcher& Get()
+	FORCEINLINE static FVoxelTaskContext& GetContext()
 	{
-		if (IVoxelTaskDispatcher* Dispatcher = static_cast<IVoxelTaskDispatcher*>(FPlatformTLS::GetTlsValue(GVoxelTaskDispatcherScopeTLS)))
+		if (FVoxelTaskContext* Context = static_cast<FVoxelTaskContext*>(FPlatformTLS::GetTlsValue(GVoxelTaskScopeTLS)))
 		{
-			return *Dispatcher;
+			return *Context;
 		}
 
-		return *GVoxelGlobalTaskDispatcher;
+		return *GVoxelGlobalTaskContext;
 	}
 
 public:
-	// Call the lambda in the global task dispatcher scope, avoiding any task leak or weird dependencies
+	// Call the lambda in the global task context, avoiding any task leak or weird dependencies
 	template<
 		typename LambdaType,
 		typename T = LambdaReturnType_T<LambdaType>>
-	static TVoxelFutureType<T> CallInGlobalScope(LambdaType Lambda)
+	static TVoxelFutureType<T> CallInGlobalContext(LambdaType Lambda)
 	{
-		return Get().Wrap(INLINE_LAMBDA
+		return GetContext().Wrap(INLINE_LAMBDA
 		{
-			FVoxelTaskDispatcherScope Scope(*GVoxelGlobalTaskDispatcher);
+			FVoxelTaskScope Scope(*GVoxelGlobalTaskContext);
 			return Lambda();
 		});
 	}
 
 private:
-	IVoxelTaskDispatcher& Dispatcher;
+	FVoxelTaskContext& Context;
 	void* const PreviousTLS;
 };

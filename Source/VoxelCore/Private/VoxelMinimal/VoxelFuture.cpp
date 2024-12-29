@@ -14,10 +14,10 @@ VOXEL_CONSOLE_VARIABLE(
 ///////////////////////////////////////////////////////////////////////////////
 
 TSharedRef<IVoxelPromiseState> IVoxelPromiseState::New(
-	IVoxelTaskDispatcher* DispatcherOverride,
+	FVoxelTaskContext* ContextOverride,
 	const bool bWithValue)
 {
-	return MakeShared<FVoxelPromiseState>(DispatcherOverride, bWithValue);
+	return MakeShared<FVoxelPromiseState>(ContextOverride, bWithValue);
 }
 
 TSharedRef<IVoxelPromiseState> IVoxelPromiseState::New(const FSharedVoidRef& Value)
@@ -101,5 +101,5 @@ void FVoxelFuture::ExecuteImpl(
 	const EVoxelFutureThread Thread,
 	TVoxelUniqueFunction<void()> Lambda)
 {
-	FVoxelTaskDispatcherScope::Get().Dispatch(Thread, MoveTemp(Lambda));
+	FVoxelTaskScope::GetContext().Dispatch(Thread, MoveTemp(Lambda));
 }

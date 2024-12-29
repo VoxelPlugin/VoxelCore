@@ -2,25 +2,25 @@
 
 #include "VoxelTaskDispatcherInterface.h"
 
-IVoxelTaskDispatcher* GVoxelGlobalTaskDispatcher = nullptr;
+FVoxelTaskContext* GVoxelGlobalTaskContext = nullptr;
 
-DEFINE_VOXEL_INSTANCE_COUNTER(IVoxelTaskDispatcher);
+DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelTaskContext);
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-class FVoxelTaskDispatcherManager : public FVoxelSingleton
+class FVoxelTaskContextManager : public FVoxelSingleton
 {
 public:
 	FVoxelSharedCriticalSection CriticalSection;
-	TVoxelSparseArray<IVoxelTaskDispatcher*> TaskDispatchers_RequiresLock;
+	TVoxelSparseArray<FVoxelTaskContext*> Contexts_RequiresLock;
 	FVoxelCounter32 SerialCounter;
 
 	//~ Begin FVoxelSingleton Interface
 	virtual void Initialize() override
 	{
-		GVoxelGlobalTaskDispatcher = new IVoxelTaskDispatcher(false);
+		GVoxelGlobalTaskContext = new FVoxelTaskContext(false);
 
 		Voxel::OnFlushGameTasks.AddLambda([this](bool& bAnyTaskProcessed)
 		{
@@ -31,9 +31,9 @@ public:
 		{
 			VOXEL_SCOPE_READ_LOCK(CriticalSection);
 
-			for (IVoxelTaskDispatcher* TaskDispatcher : TaskDispatchers_RequiresLock)
+			for (FVoxelTaskContext* Context : Contexts_RequiresLock)
 			{
-				TaskDispatcher->bIsExiting.Set(true);
+				Context->bIsExiting.Set(true);
 			}
 		});
 	}
@@ -50,30 +50,30 @@ public:
 	{
 		VOXEL_FUNCTION_COUNTER();
 
-		TVoxelArray<FVoxelTaskDispatcherStrongRef> StrongRefs;
-		StrongRefs.Reserve(TaskDispatchers_RequiresLock.Num());
+		TVoxelArray<FVoxelTaskContextStrongRef> StrongRefs;
+		StrongRefs.Reserve(Contexts_RequiresLock.Num());
 		{
 			VOXEL_SCOPE_READ_LOCK(CriticalSection);
 
-			for (IVoxelTaskDispatcher* TaskDispatcher : TaskDispatchers_RequiresLock)
+			for (FVoxelTaskContext* Context : Contexts_RequiresLock)
 			{
-				StrongRefs.Emplace(*TaskDispatcher);
+				StrongRefs.Emplace(*Context);
 			}
 		}
 
-		for (const FVoxelTaskDispatcherStrongRef& StrongRef : StrongRefs)
+		for (const FVoxelTaskContextStrongRef& StrongRef : StrongRefs)
 		{
-			StrongRef.Dispatcher.ProcessGameTasks(bAnyTaskProcessed);
+			StrongRef.Context.ProcessGameTasks(bAnyTaskProcessed);
 		}
 	}
 };
-FVoxelTaskDispatcherManager* GVoxelTaskDispatcherManager = new FVoxelTaskDispatcherManager();
+FVoxelTaskContextManager* GVoxelTaskContextManager = new FVoxelTaskContextManager();
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TUniquePtr<FVoxelTaskDispatcherStrongRef> FVoxelTaskDispatcherWeakRef::Pin() const
+TUniquePtr<FVoxelTaskContextStrongRef> FVoxelTaskContextWeakRef::Pin() const
 {
 	if (Index == -1)
 	{
@@ -81,55 +81,55 @@ TUniquePtr<FVoxelTaskDispatcherStrongRef> FVoxelTaskDispatcherWeakRef::Pin() con
 		return {};
 	}
 
-	VOXEL_SCOPE_READ_LOCK(GVoxelTaskDispatcherManager->CriticalSection);
+	VOXEL_SCOPE_READ_LOCK(GVoxelTaskContextManager->CriticalSection);
 
-	if (!GVoxelTaskDispatcherManager->TaskDispatchers_RequiresLock.IsAllocated(Index))
+	if (!GVoxelTaskContextManager->Contexts_RequiresLock.IsAllocated(Index))
 	{
 		return {};
 	}
 
-	IVoxelTaskDispatcher* Dispatcher = GVoxelTaskDispatcherManager->TaskDispatchers_RequiresLock[Index];
-	checkVoxelSlow(Dispatcher);
-	checkVoxelSlow(Dispatcher->SelfWeakRef.Index == Index);
+	FVoxelTaskContext* Context = GVoxelTaskContextManager->Contexts_RequiresLock[Index];
+	checkVoxelSlow(Context);
+	checkVoxelSlow(Context->SelfWeakRef.Index == Index);
 
-	if (Dispatcher->bIsExiting.Get() ||
-		Dispatcher->SelfWeakRef.Serial != Serial)
+	if (Context->bIsExiting.Get() ||
+		Context->SelfWeakRef.Serial != Serial)
 	{
 		return nullptr;
 	}
 
-	return MakeUnique<FVoxelTaskDispatcherStrongRef>(*Dispatcher);
+	return MakeUnique<FVoxelTaskContextStrongRef>(*Context);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FVoxelTaskDispatcherStrongRef::FVoxelTaskDispatcherStrongRef(IVoxelTaskDispatcher& Dispatcher)
-	: Dispatcher(Dispatcher)
+FVoxelTaskContextStrongRef::FVoxelTaskContextStrongRef(FVoxelTaskContext& Context)
+	: Context(Context)
 {
-	Dispatcher.NumStrongRefs.Increment();
+	Context.NumStrongRefs.Increment();
 }
 
-FVoxelTaskDispatcherStrongRef::~FVoxelTaskDispatcherStrongRef()
+FVoxelTaskContextStrongRef::~FVoxelTaskContextStrongRef()
 {
-	Dispatcher.NumStrongRefs.Decrement();
+	Context.NumStrongRefs.Decrement();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-IVoxelTaskDispatcher::IVoxelTaskDispatcher(const bool bTrackPromisesCallstacks)
+FVoxelTaskContext::FVoxelTaskContext(const bool bTrackPromisesCallstacks)
 	: bTrackPromisesCallstacks(bTrackPromisesCallstacks)
 {
-	VOXEL_SCOPE_WRITE_LOCK(GVoxelTaskDispatcherManager->CriticalSection);
+	VOXEL_SCOPE_WRITE_LOCK(GVoxelTaskContextManager->CriticalSection);
 
-	SelfWeakRef.Index = GVoxelTaskDispatcherManager->TaskDispatchers_RequiresLock.Add(this);
-	SelfWeakRef.Serial = GVoxelTaskDispatcherManager->SerialCounter.Increment_ReturnNew();
+	SelfWeakRef.Index = GVoxelTaskContextManager->Contexts_RequiresLock.Add(this);
+	SelfWeakRef.Serial = GVoxelTaskContextManager->SerialCounter.Increment_ReturnNew();
 }
 
-IVoxelTaskDispatcher::~IVoxelTaskDispatcher()
+FVoxelTaskContext::~FVoxelTaskContext()
 {
 	VOXEL_FUNCTION_COUNTER();
 
@@ -154,7 +154,7 @@ IVoxelTaskDispatcher::~IVoxelTaskDispatcher()
 		if (NumStrongRefs.Get() == 0 &&
 			NumPendingTasks.Get() == 0)
 		{
-			if (GVoxelTaskDispatcherManager->CriticalSection.TryWriteLock())
+			if (GVoxelTaskContextManager->CriticalSection.TryWriteLock())
 			{
 				if (NumStrongRefs.Get() == 0 &&
 					NumPendingTasks.Get() == 0)
@@ -170,24 +170,24 @@ IVoxelTaskDispatcher::~IVoxelTaskDispatcher()
 	check(NumPendingTasks.Get() == 0);
 	check(NumLaunchedTasks.Get() == 0);
 
-	check(GVoxelTaskDispatcherManager->TaskDispatchers_RequiresLock[SelfWeakRef.Index] == this);
-	GVoxelTaskDispatcherManager->TaskDispatchers_RequiresLock.RemoveAt(SelfWeakRef.Index);
+	check(GVoxelTaskContextManager->Contexts_RequiresLock[SelfWeakRef.Index] == this);
+	GVoxelTaskContextManager->Contexts_RequiresLock.RemoveAt(SelfWeakRef.Index);
 
-	GVoxelTaskDispatcherManager->CriticalSection.WriteUnlock();
+	GVoxelTaskContextManager->CriticalSection.WriteUnlock();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void IVoxelTaskDispatcher::Dispatch(
+void FVoxelTaskContext::Dispatch(
 	const EVoxelFutureThread Thread,
 	TVoxelUniqueFunction<void()> Lambda)
 {
 #if VOXEL_DEBUG
 	Lambda = [this, Lambda = MoveTemp(Lambda)]
 	{
-		check(&FVoxelTaskDispatcherScope::Get() == this);
+		check(&FVoxelTaskScope::GetContext() == this);
 		Lambda();
 	};
 #endif
@@ -202,7 +202,7 @@ void IVoxelTaskDispatcher::Dispatch(
 	default: VOXEL_ASSUME(false);
 	case EVoxelFutureThread::AnyThread:
 	{
-		FVoxelTaskDispatcherScope Scope(*this);
+		FVoxelTaskScope Scope(*this);
 		Lambda();
 	}
 	break;
@@ -218,12 +218,14 @@ void IVoxelTaskDispatcher::Dispatch(
 	{
 		NumPendingTasks.Increment();
 
-		// One Voxel::RenderTask per call, otherwise the command ordering can be incorrect
-		Voxel::RenderTask_SkipDispatcher([this, Lambda = MoveTemp(Lambda)]
+		// One ENQUEUE_RENDER_COMMAND per call, otherwise the command ordering can be incorrect
+		ENQUEUE_RENDER_COMMAND(FVoxelTaskContext)([this, Lambda = MoveTemp(Lambda)](FRHICommandList&)
 		{
+			VOXEL_SCOPE_COUNTER("FVoxelTaskContext::Dispatch");
+
 			if (!bIsExiting.Get())
 			{
-				FVoxelTaskDispatcherScope Scope(*this);
+				FVoxelTaskScope Scope(*this);
 				Lambda();
 			}
 
@@ -259,7 +261,7 @@ void IVoxelTaskDispatcher::Dispatch(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void IVoxelTaskDispatcher::DumpToLog()
+void FVoxelTaskContext::DumpToLog()
 {
 	VOXEL_FUNCTION_COUNTER();
 	VOXEL_SCOPE_LOCK(CriticalSection);
@@ -299,7 +301,7 @@ void IVoxelTaskDispatcher::DumpToLog()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void IVoxelTaskDispatcher::LaunchTasks()
+void FVoxelTaskContext::LaunchTasks()
 {
 	VOXEL_FUNCTION_COUNTER();
 	VOXEL_SCOPE_LOCK(AsyncTasksCriticalSection);
@@ -316,7 +318,7 @@ void IVoxelTaskDispatcher::LaunchTasks()
 	}
 }
 
-void IVoxelTaskDispatcher::LaunchTask(TVoxelUniqueFunction<void()> Task)
+void FVoxelTaskContext::LaunchTask(TVoxelUniqueFunction<void()> Task)
 {
 	NumLaunchedTasks.Increment();
 
@@ -326,7 +328,7 @@ void IVoxelTaskDispatcher::LaunchTask(TVoxelUniqueFunction<void()> Task)
 		{
 			if (!bIsExiting.Get())
 			{
-				FVoxelTaskDispatcherScope Scope(*this);
+				FVoxelTaskScope Scope(*this);
 				Task();
 			}
 
@@ -345,7 +347,7 @@ void IVoxelTaskDispatcher::LaunchTask(TVoxelUniqueFunction<void()> Task)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void IVoxelTaskDispatcher::ProcessGameTasks(bool& bAnyTaskProcessed)
+void FVoxelTaskContext::ProcessGameTasks(bool& bAnyTaskProcessed)
 {
 	VOXEL_FUNCTION_COUNTER();
 	check(IsInGameThread());
@@ -362,7 +364,7 @@ void IVoxelTaskDispatcher::ProcessGameTasks(bool& bAnyTaskProcessed)
 	}
 	bAnyTaskProcessed = true;
 
-	FVoxelTaskDispatcherScope Scope(*this);
+	FVoxelTaskScope Scope(*this);
 
 	for (const TVoxelUniqueFunction<void()>& Task : GameTasks)
 	{
@@ -378,4 +380,4 @@ void IVoxelTaskDispatcher::ProcessGameTasks(bool& bAnyTaskProcessed)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-const uint32 GVoxelTaskDispatcherScopeTLS = FPlatformTLS::AllocTlsSlot();
+const uint32 GVoxelTaskScopeTLS = FPlatformTLS::AllocTlsSlot();

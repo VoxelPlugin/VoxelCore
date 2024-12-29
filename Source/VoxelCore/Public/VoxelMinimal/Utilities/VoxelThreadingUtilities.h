@@ -65,14 +65,6 @@ namespace Voxel
 	extern VOXELCORE_API TMulticastDelegate<void(bool& bAnyTaskProcessed)> OnFlushGameTasks;
 	VOXELCORE_API void FlushGameTasks();
 
-	///////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////
-
-	VOXELCORE_API void GameTask_SkipDispatcher(TVoxelUniqueFunction<void()> Lambda);
-	VOXELCORE_API void RenderTask_SkipDispatcher(TVoxelUniqueFunction<void()> Lambda);
-	VOXELCORE_API void AsyncTask_SkipDispatcher(TVoxelUniqueFunction<void()> Lambda);
-
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
@@ -424,19 +416,14 @@ void ParallelFor_Values(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-namespace Voxel
-{
-	VOXELCORE_API bool AllowParallelTasks();
-	VOXELCORE_API void ParallelTask(TVoxelUniqueFunction<void()> Lambda);
-	VOXELCORE_API void FlushParallelTasks();
-}
-
-class VOXELCORE_API FVoxelTaskScope
+class VOXELCORE_API FVoxelParallelTaskScope
 {
 public:
-	explicit FVoxelTaskScope(bool bAllowParallelTasks);
-	~FVoxelTaskScope();
+	FVoxelParallelTaskScope() = default;
+	~FVoxelParallelTaskScope();
+
+	void AddTask(TVoxelUniqueFunction<void()> Lambda);
 
 private:
-	const bool bPreviousAllowParallelTasks;
+	TVoxelChunkedArray<UE::Tasks::TTask<void>> Tasks;
 };
