@@ -23,8 +23,6 @@ public class VoxelCore : ModuleRules
 			PublicDefinitions.Add("VOXEL_DEBUG=0");
 		}
 
-		PublicDefinitions.Add("ENABLE_VOXEL_ALLOCATOR=0");
-
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
