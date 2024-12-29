@@ -303,8 +303,8 @@ bool FVoxelUtilities::ShouldCompileBarycentricsSemantic(const EShaderPlatform Sh
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-DEFINE_PRIVATE_ACCESS(FRDGBuilder, Buffers, FRDGBufferRegistry);
-DEFINE_PRIVATE_ACCESS(FRDGBuilder, Textures, FRDGTextureRegistry);
+DEFINE_PRIVATE_ACCESS(FRDGBuilder, Buffers);
+DEFINE_PRIVATE_ACCESS(FRDGBuilder, Textures);
 
 FRDGBufferRef FVoxelUtilities::FindBuffer(
 	FRDGBuilder& GraphBuilder,
@@ -314,7 +314,7 @@ FRDGBufferRef FVoxelUtilities::FindBuffer(
 
 	FRDGBufferRef Result = nullptr;
 
-	FRDGBufferRegistry& Buffers = PRIVATE_ACCESS_REF(FRDGBuilder, Buffers)(GraphBuilder);
+	FRDGBufferRegistry& Buffers = PrivateAccess::Buffers(GraphBuilder);
 	Buffers.Enumerate([&](FRDGBuffer* Buffer)
 	{
 		if (FStringView(Buffer->Name) != Name)
@@ -337,7 +337,7 @@ FRDGTextureRef FVoxelUtilities::FindTexture(
 
 	FRDGTextureRef Result = nullptr;
 
-	FRDGTextureRegistry& Textures = PRIVATE_ACCESS_REF(FRDGBuilder, Textures)(GraphBuilder);
+	FRDGTextureRegistry& Textures = PrivateAccess::Textures(GraphBuilder);
 	Textures.Enumerate([&](FRDGTexture* Texture)
 	{
 		if (FStringView(Texture->Name) != Name)

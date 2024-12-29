@@ -1147,28 +1147,32 @@ struct TVoxelUFunctionOverride
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#define DEFINE_PRIVATE_ACCESS(Class, Property, PropertyType) \
-	namespace Voxel::Private::Property ## Impl::Class ## Impl \
+// Usage: DEFINE_PRIVATE_ACCESS(FMyClass, MyProperty) in global scope, then PrivateAccess::MyProperty(MyObject) from anywhere
+#define DEFINE_PRIVATE_ACCESS(Class, Property) \
+	namespace PrivateAccess \
 	{ \
-		template<PropertyType Class::*PropertyPtr> \
-		struct TTemplate \
-		{ \
-			FORCEINLINE friend PropertyType& Ref(Class& Object) \
-			{ \
-				return Object.*PropertyPtr; \
-			} \
-		}; \
-		template struct TTemplate<&Class::Property>; \
+		template<typename> \
+		struct TClass_ ## Property; \
 		\
-		PropertyType& Ref(Class& Object); \
-	}
-
-#define PRIVATE_ACCESS_REF(Class, Property) \
-	[](Class& Object) -> auto& \
-	{ \
-		int32 Property = 0; \
-		(void)Property; \
-		return Voxel::Private::Property ## Impl::Class ## Impl::Ref(Object); \
+		template<> \
+		struct TClass_ ## Property<Class> \
+		{ \
+			template<typename PropertyType, PropertyType Class::*PropertyPtr> \
+			struct TProperty_ ## Property \
+			{ \
+				friend auto& Property(Class& Object) \
+				{ \
+					return Object.*PropertyPtr; \
+				} \
+			}; \
+		}; \
+		template struct TClass_ ## Property<Class>::TProperty_ ## Property<decltype(Class::Property), &Class::Property>; \
+		\
+		auto& Property(Class& Object); \
+		auto& Property(const Class& Object) \
+		{ \
+			return Property(const_cast<Class&>(Object)); \
+		} \
 	}
 
 ///////////////////////////////////////////////////////////////////////////////

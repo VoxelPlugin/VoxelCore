@@ -4,8 +4,7 @@
 
 #include "VoxelMinimal.h"
 
-extern VOXELCORE_API TSharedPtr<IVoxelTaskDispatcher> GVoxelForegroundTaskDispatcher;
-extern VOXELCORE_API TSharedPtr<IVoxelTaskDispatcher> GVoxelBackgroundTaskDispatcher;
+extern VOXELCORE_API const TSharedRef<IVoxelTaskDispatcher> GVoxelGlobalTaskDispatcher;
 
 class VOXELCORE_API FVoxelTaskDispatcherRef
 {
@@ -15,10 +14,10 @@ public:
 
 	TSharedPtr<IVoxelTaskDispatcher> Pin() const;
 
-	FORCEINLINE bool IsValid() const
+	FORCEINLINE bool IsNull() const
 	{
-		checkVoxelSlow((Index != -1) == (Serial != -1));
-		return Index != -1;
+		checkVoxelSlow((Index == -1) == (Serial == -1));
+		return Index == -1;
 	}
 	FORCEINLINE bool operator==(const FVoxelTaskDispatcherRef& Other) const
 	{
@@ -125,8 +124,7 @@ public:
 			return *Dispatcher;
 		}
 
-		checkVoxelSlow(GVoxelForegroundTaskDispatcher.IsValid());
-		return *GVoxelForegroundTaskDispatcher.Get();
+		return *GVoxelGlobalTaskDispatcher;
 	}
 
 public:
@@ -138,7 +136,7 @@ public:
 	{
 		return Get().Wrap(INLINE_LAMBDA
 		{
-			FVoxelTaskDispatcherScope Scope(*GVoxelForegroundTaskDispatcher);
+			FVoxelTaskDispatcherScope Scope(*GVoxelGlobalTaskDispatcher);
 			return Lambda();
 		});
 	}

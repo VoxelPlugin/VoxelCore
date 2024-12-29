@@ -96,8 +96,9 @@ void Voxel::GameTask_SkipDispatcher(TVoxelUniqueFunction<void()> Lambda)
 
 void Voxel::RenderTask_SkipDispatcher(TVoxelUniqueFunction<void()> Lambda)
 {
-	VOXEL_ENQUEUE_RENDER_COMMAND(RenderTask_SkipDispatcher)([Lambda = MoveTemp(Lambda)](FRHICommandListImmediate& RHICmdList)
+	ENQUEUE_RENDER_COMMAND(RenderTask_SkipDispatcher)([Lambda = MoveTemp(Lambda)](FRHICommandList&)
 	{
+		VOXEL_SCOPE_COUNTER("Voxel::RenderTask_SkipDispatcher");
 		Lambda();
 	});
 }

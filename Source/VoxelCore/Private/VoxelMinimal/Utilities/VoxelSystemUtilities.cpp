@@ -53,19 +53,18 @@ void FVoxelUtilities::SetNumWorkerThreads(const int32 NumWorkerThreads)
 		FPlatformAffinity::GetTaskBPThreadPriority());
 }
 
-namespace LowLevelTasks
+struct FSchedulerTlsFriend : LowLevelTasks::FSchedulerTls
 {
-	DEFINE_PRIVATE_ACCESS(FScheduler, WorkerThreads, TArray<TUniquePtr<FThread>>);
+	using FSchedulerTls::FQueueRegistry;
+};
 
-	int32 GetNumWorkerThreads()
-	{
-		return PRIVATE_ACCESS_REF(FScheduler, WorkerThreads)(FScheduler::Get()).Num();
-	}
-}
+DEFINE_PRIVATE_ACCESS(LowLevelTasks::FScheduler, QueueRegistry);
+DEFINE_PRIVATE_ACCESS(FSchedulerTlsFriend::FQueueRegistry, NumActiveWorkers);
 
-int32 FVoxelUtilities::GetNumWorkerThreads()
+int32 FVoxelUtilities::GetNumBackgroundWorkerThreads()
 {
-	return LowLevelTasks::GetNumWorkerThreads();
+	const FSchedulerTlsFriend::FQueueRegistry& Registry = PrivateAccess::QueueRegistry(LowLevelTasks::FScheduler::Get());
+	return PrivateAccess::NumActiveWorkers(Registry)[1];
 }
 
 ///////////////////////////////////////////////////////////////////////////////

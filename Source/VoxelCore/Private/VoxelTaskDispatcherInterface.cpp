@@ -20,7 +20,7 @@ FVoxelTaskDispatcherRef::FVoxelTaskDispatcherRef(const IVoxelTaskDispatcher& Dis
 {
 	*this = Dispatcher.SelfRef.Get();
 
-	if (IsValid())
+	if (!IsNull())
 	{
 		return;
 	}
@@ -29,7 +29,7 @@ FVoxelTaskDispatcherRef::FVoxelTaskDispatcherRef(const IVoxelTaskDispatcher& Dis
 
 	*this = Dispatcher.SelfRef.Get();
 
-	if (IsValid())
+	if (!IsNull())
 	{
 		return;
 	}
@@ -42,7 +42,7 @@ FVoxelTaskDispatcherRef::FVoxelTaskDispatcherRef(const IVoxelTaskDispatcher& Dis
 
 TSharedPtr<IVoxelTaskDispatcher> FVoxelTaskDispatcherRef::Pin() const
 {
-	if (!IsValid())
+	if (IsNull())
 	{
 		return nullptr;
 	}
@@ -75,7 +75,7 @@ TSharedPtr<IVoxelTaskDispatcher> FVoxelTaskDispatcherRef::Pin() const
 IVoxelTaskDispatcher::~IVoxelTaskDispatcher()
 {
 	const FVoxelTaskDispatcherRef Ref = SelfRef.Get();
-	if (!Ref.IsValid())
+	if (Ref.IsNull())
 	{
 		return;
 	}

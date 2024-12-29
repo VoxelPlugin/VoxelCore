@@ -96,17 +96,30 @@ void FVoxelPromiseState::Set()
 {
 	checkVoxelSlow(!bHasValue);
 
-	SetImpl();
+	const TSharedPtr<IVoxelTaskDispatcher> Dispatcher = DispatcherRef.Pin();
+	if (!ensureVoxelSlow(Dispatcher))
+	{
+		return;
+	}
+
+	SetImpl(*Dispatcher);
 }
 
 void FVoxelPromiseState::Set(const FSharedVoidRef& NewValue)
 {
 	checkVoxelSlow(bHasValue);
 
+	const TSharedPtr<IVoxelTaskDispatcher> Dispatcher = DispatcherRef.Pin();
+	if (!Dispatcher)
+	{
+		// Will be null when called as a continuation from a different dispatcher
+		return;
+	}
+
 	checkVoxelSlow(!Value);
 	Value = NewValue;
 
-	SetImpl();
+	SetImpl(*Dispatcher);
 }
 
 void FVoxelPromiseState::AddContinuation(TUniquePtr<FContinuation> Continuation)
@@ -157,14 +170,10 @@ void FVoxelPromiseState::AddContinuation(TUniquePtr<FContinuation> Continuation)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void FVoxelPromiseState::SetImpl()
+void FVoxelPromiseState::SetImpl(IVoxelTaskDispatcher& Dispatcher)
 {
-	const TSharedPtr<IVoxelTaskDispatcher> DispatcherPtr = DispatcherRef.Pin();
-	if (!ensureVoxelSlow(DispatcherPtr))
-	{
-		return;
-	}
-	IVoxelTaskDispatcher& Dispatcher = *DispatcherPtr;
+	checkVoxelSlow(!bIsComplete.Get());
+	bIsComplete.Set(true);
 
 	ON_SCOPE_EXIT
 	{
@@ -189,9 +198,6 @@ void FVoxelPromiseState::SetImpl()
 			StackIndex = -1;
 		}
 	};
-
-	checkVoxelSlow(!bIsComplete.Get());
-	bIsComplete.Set(true);
 
 	VOXEL_SCOPE_LOCK_ATOMIC(bIsLocked);
 

@@ -3,17 +3,12 @@
 #pragma once
 
 #include "VoxelMinimal.h"
-#include "VoxelThreadPool.h"
 #include "VoxelTaskDispatcherInterface.h"
 
-class FVoxelGlobalTaskDispatcher
-	: public IVoxelTaskDispatcher
-	, public IVoxelTaskExecutor
+class FVoxelGlobalTaskDispatcher : public IVoxelTaskDispatcher
 {
 public:
-	const bool bIsBackground;
-
-	explicit FVoxelGlobalTaskDispatcher(bool bIsBackground);
+	FVoxelGlobalTaskDispatcher() = default;
 
 	//~ Begin IVoxelTaskDispatcher Interface
 	virtual void DispatchImpl(
@@ -22,14 +17,4 @@ public:
 
 	virtual bool IsExiting() const override;
 	//~ End IVoxelTaskDispatcher Interface
-
-	//~ Begin IVoxelTaskExecutor Interface
-	virtual bool IsGlobalExecutor() const override;
-	virtual bool TryExecuteTasks_AnyThread() override;
-	virtual int32 NumTasks() const override;
-	//~ End IVoxelTaskExecutor Interface
-
-private:
-	FVoxelCriticalSection CriticalSection;
-	TVoxelArray<TVoxelUniqueFunction<void()>> AsyncTasks_RequiresLock;
 };

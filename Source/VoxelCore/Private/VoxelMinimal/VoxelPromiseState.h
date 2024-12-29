@@ -115,7 +115,7 @@ private:
 	int32 StackIndex = -1;
 	TUniquePtr<FContinuation> Continuation_RequiresLock;
 
-	void SetImpl();
+	void SetImpl(IVoxelTaskDispatcher& Dispatcher);
 };
 checkStatic(sizeof(FVoxelPromiseState) == 64);
 checkStatic(sizeof(FVoxelPromiseState::FContinuation) == 32);
