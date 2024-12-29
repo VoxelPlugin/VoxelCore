@@ -3,7 +3,7 @@
 #pragma once
 
 #include "VoxelMinimal.h"
-#include "VoxelTaskDispatcherInterface.h"
+#include "VoxelTaskContext.h"
 
 class FVoxelPromiseState
 	: public IVoxelPromiseState

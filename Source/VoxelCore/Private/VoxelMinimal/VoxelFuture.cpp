@@ -1,8 +1,8 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
+#include "VoxelTaskContext.h"
 #include "VoxelPromiseState.h"
-#include "VoxelTaskDispatcherInterface.h"
 
 VOXEL_CONSOLE_VARIABLE(
 	VOXELCORE_API, bool, GVoxelEnablePromiseTracking, false,

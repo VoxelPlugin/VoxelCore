@@ -1,6 +1,6 @@
 ﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
 
-#include "VoxelTaskDispatcherInterface.h"
+#include "VoxelTaskContext.h"
 
 FVoxelTaskContext* GVoxelGlobalTaskContext = nullptr;
 
