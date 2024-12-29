@@ -4,10 +4,9 @@
 
 #include "VoxelCoreMinimal.h"
 #include "Templates/MakeUnsigned.h"
-#include "VoxelMinimal/VoxelMemory.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 
-template<typename InElementType, typename InAllocator = FVoxelAllocator>
+template<typename InElementType, typename InAllocator = FDefaultAllocator>
 class TVoxelArray : public TArray<InElementType, InAllocator>
 {
 public:
@@ -456,10 +455,10 @@ template<typename InElementType, typename Allocator> struct TIsTArray<      vola
 template<typename InElementType, typename Allocator> struct TIsTArray<const volatile TVoxelArray<InElementType, Allocator>> { enum { Value = true }; };
 
 template<typename T>
-using TVoxelArray64 = TVoxelArray<T, FVoxelAllocator64>;
+using TVoxelArray64 = TVoxelArray<T, FDefaultAllocator64>;
 
 template<typename T, int32 NumInlineElements>
-using TVoxelInlineArray = TVoxelArray<T, TVoxelInlineAllocator<NumInlineElements>>;
+using TVoxelInlineArray = TVoxelArray<T, TInlineAllocator<NumInlineElements>>;
 
 template<typename T, int32 NumInlineElements>
 using TVoxelFixedArray = TVoxelArray<T, TFixedAllocator<NumInlineElements>>;

@@ -53,6 +53,25 @@ void FVoxelUtilities::SetNumWorkerThreads(const int32 NumWorkerThreads)
 		FPlatformAffinity::GetTaskBPThreadPriority());
 }
 
+namespace LowLevelTasks
+{
+	DEFINE_PRIVATE_ACCESS(FScheduler, WorkerThreads, TArray<TUniquePtr<FThread>>);
+
+	int32 GetNumWorkerThreads()
+	{
+		return PRIVATE_ACCESS_REF(FScheduler, WorkerThreads)(FScheduler::Get()).Num();
+	}
+}
+
+int32 FVoxelUtilities::GetNumWorkerThreads()
+{
+	return LowLevelTasks::GetNumWorkerThreads();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 void FVoxelUtilities::DelayedCall(TFunction<void()> Call, const float Delay)
 {
 	// Delay will be inaccurate if not on game thread but that's fine

@@ -5,7 +5,6 @@
 #include "VoxelCoreMinimal.h"
 #include "Templates/Casts.h"
 #include "Templates/SubclassOf.h"
-#include "Templates/ChooseClass.h"
 #include "UObject/WeakInterfacePtr.h"
 #include "Serialization/BulkData.h"
 #include "VoxelMinimal/VoxelObjectHelpers.h"

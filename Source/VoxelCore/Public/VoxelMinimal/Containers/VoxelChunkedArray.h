@@ -169,14 +169,13 @@ public:
 		}
 	}
 
-	template<typename Allocator = FVoxelAllocator>
-	TVoxelArray<Type, Allocator> Array() const
+	TVoxelArray<Type> Array() const
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
 
 		if constexpr (std::is_trivially_destructible_v<Type>)
 		{
-			TVoxelArray<Type, Allocator> Result;
+			TVoxelArray<Type> Result;
 			FVoxelUtilities::SetNumFast(Result, Num());
 
 			this->ForeachView(
@@ -193,7 +192,7 @@ public:
 		}
 		else
 		{
-			TVoxelArray<Type, Allocator> Result;
+			TVoxelArray<Type> Result;
 			Result.Reserve(Num());
 			for (const Type& Value : *this)
 			{
@@ -631,6 +630,48 @@ public:
 				(*this)[StartIndex + Index] = Type(Other[Index]);
 			}
 		}
+	}
+
+public:
+	class FChunkView : public TVoxelArrayView<Type>
+	{
+	public:
+		~FChunkView()
+		{
+			if constexpr (!std::is_trivially_destructible_v<Type>)
+			{
+				for (Type& Value : *this)
+				{
+					Value.~Type();
+				}
+			}
+		}
+
+	private:
+		const TUniquePtr<FChunk> Chunk;
+
+		FChunkView(
+			TUniquePtr<FChunk> Chunk,
+			const int32 Num)
+			: TVoxelArrayView<Type>(ReinterpretCastPtr<Type>(Chunk->GetData()), Num)
+			, Chunk(MoveTemp(Chunk))
+		{
+		}
+
+		friend TVoxelChunkedArray;
+	};
+	FChunkView PopFirstChunk()
+	{
+		VOXEL_FUNCTION_COUNTER();
+		checkVoxelSlow(Num() > 0);
+
+		TUniquePtr<FChunk> Chunk = MoveTemp(PrivateChunks[0]);
+		const int32 NumRemoved = FMath::Min(NumPerChunk, Num());
+
+		ArrayNum -= NumRemoved;
+		PrivateChunks.RemoveAt(0);
+
+		return FChunkView(MoveTemp(Chunk), NumRemoved);
 	}
 
 public:

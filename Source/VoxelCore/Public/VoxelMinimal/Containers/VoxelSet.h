@@ -3,7 +3,6 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
-#include "Templates/ChooseClass.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Utilities/VoxelHashUtilities.h"
 
@@ -46,7 +45,7 @@ private:
 
 // Smaller footprint than TSet
 // Much faster to Reserve as no sparse array/free list
-template<typename Type, typename AllocatorType = FVoxelAllocator>
+template<typename Type, typename AllocatorType = FDefaultAllocator>
 class TVoxelSet
 {
 public:
@@ -765,4 +764,4 @@ private:
 };
 
 template<typename T, int32 NumInlineElements>
-using TVoxelInlineSet = TVoxelSet<T, TVoxelInlineAllocator<NumInlineElements>>;
+using TVoxelInlineSet = TVoxelSet<T, TInlineAllocator<NumInlineElements>>;

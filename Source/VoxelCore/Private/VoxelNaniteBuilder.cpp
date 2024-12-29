@@ -252,7 +252,7 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
 		Resources.HierarchyNodes.Add(PackedHierarchyNode);
 	}
 
-	Resources.RootData = RootData.Array<FDefaultAllocator>();
+	Resources.RootData = RootData.Array();
 	Resources.PositionPrecision = -1;
 	Resources.NormalPrecision = -1;
 	Resources.NumInputTriangles = 0;

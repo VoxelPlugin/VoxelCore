@@ -20,6 +20,8 @@ namespace FVoxelUtilities
 	// Default is FPlatformMisc::NumberOfWorkerThreadsToSpawn()
 	// Useful to go beyond 4 threads on a server or to simulate a slower PC
 	VOXELCORE_API void SetNumWorkerThreads(int32 NumWorkerThreads);
+	VOXELCORE_API int32 GetNumWorkerThreads();
+
 	// Delay until next fire; 0 means "next frame"
 	VOXELCORE_API void DelayedCall(TFunction<void()> Call, float Delay = 0);
 	VOXELCORE_API FString Unzip(const TArray<uint8>& Data, TMap<FString, TVoxelArray64<uint8>>& OutFiles);

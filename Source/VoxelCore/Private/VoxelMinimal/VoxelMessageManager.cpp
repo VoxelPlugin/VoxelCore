@@ -107,7 +107,7 @@ void FVoxelMessageManager::LogMessage_GameThread(const TSharedRef<FVoxelMessage>
 			uint64 Hash = 0;
 			double Time = 0;
 		};
-		static TVoxelArray<FRecentMessage, FDefaultAllocator> RecentMessages;
+		static TVoxelArray<FRecentMessage> RecentMessages;
 
 		const uint64 Hash = Message->GetHash();
 		const double Time = FPlatformTime::Seconds();

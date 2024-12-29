@@ -3,7 +3,6 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
-#include "VoxelMinimal/VoxelMemory.h"
 #include "VoxelMinimal/Utilities/VoxelLambdaUtilities.h"
 
 template<typename>

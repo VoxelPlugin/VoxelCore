@@ -7,7 +7,7 @@
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelBitArrayHelpers.h"
 
-template<typename InElementType, typename IndexType = int32, typename Allocator = FVoxelSparseArrayAllocator>
+template<typename InElementType, typename IndexType = int32, typename Allocator = FDefaultSparseArrayAllocator>
 class TVoxelSparseArray : public TSparseArray<InElementType, Allocator>
 {
 public:

@@ -77,7 +77,7 @@ namespace Chaos
 
 			const int32 NumTriangles = Indices.Num() / 3;
 
-			TVoxelArray<TVector<IndexType, 3>, FDefaultAllocator> Triangles;
+			TVoxelArray<TVector<IndexType, 3>> Triangles;
 			Triangles.Reserve(NumTriangles);
 
 			for (int32 Index = 0; Index < NumTriangles; Index++)

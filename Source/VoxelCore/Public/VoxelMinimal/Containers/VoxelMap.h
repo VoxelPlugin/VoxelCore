@@ -3,14 +3,13 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
-#include "Templates/ChooseClass.h"
 #include "VoxelMinimal/Containers/VoxelSet.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelChunkedArray.h"
 #include "VoxelMinimal/Utilities/VoxelTypeUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelHashUtilities.h"
 
-template<typename Allocator = FVoxelAllocator>
+template<typename Allocator = FDefaultAllocator>
 struct TVoxelMapArrayType
 {
 	template<typename Type>
@@ -907,4 +906,4 @@ template<typename KeyType, typename ValueType, int32 MaxBytesPerChunk = GVoxelDe
 using TVoxelChunkedMap = TVoxelMap<KeyType, ValueType, TVoxelMapChunkedArrayType<MaxBytesPerChunk>>;
 
 template<typename KeyType, typename ValueType, int32 NumInlineElements>
-using TVoxelInlineMap = TVoxelMap<KeyType, ValueType, TVoxelMapArrayType<TVoxelInlineAllocator<NumInlineElements>>>;
+using TVoxelInlineMap = TVoxelMap<KeyType, ValueType, TVoxelMapArrayType<TInlineAllocator<NumInlineElements>>>;

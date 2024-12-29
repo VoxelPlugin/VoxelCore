@@ -3,7 +3,6 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
-#include "Templates/ChooseClass.h"
 
 template<typename ElementType, typename SizeType = int32>
 class TVoxelArrayView;

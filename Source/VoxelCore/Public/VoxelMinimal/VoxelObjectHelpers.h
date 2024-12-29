@@ -5,7 +5,6 @@
 #include "VoxelCoreMinimal.h"
 #include "UObject/UObjectHash.h"
 #include "UObject/WeakInterfacePtr.h"
-#include "Templates/ChooseClass.h"
 #include "VoxelMinimal/VoxelSharedPtr.h"
 #include "VoxelMinimal/VoxelDereferencingIterator.h"
 #include "VoxelMinimal/Containers/VoxelChunkedArray.h"

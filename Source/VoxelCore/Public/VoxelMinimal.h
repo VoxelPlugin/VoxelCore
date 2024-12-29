@@ -60,7 +60,6 @@
 #include "VoxelMinimal/VoxelISPC.h"
 #include "VoxelMinimal/VoxelIterate.h"
 #include "VoxelMinimal/VoxelMaterialRef.h"
-#include "VoxelMinimal/VoxelMemory.h"
 #include "VoxelMinimal/VoxelMessageFactory.h"
 #include "VoxelMinimal/VoxelMessageManager.h"
 #include "VoxelMinimal/VoxelObjectHelpers.h"

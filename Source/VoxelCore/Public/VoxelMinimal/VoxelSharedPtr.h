@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "VoxelMacros.h"
-#include "VoxelMemory.h"
 
 template<typename T, typename = decltype(DeclVal<T>().AsWeak())>
 FORCEINLINE TWeakPtr<T> MakeWeakPtr(T* Ptr)
@@ -42,6 +41,33 @@ template<typename T>
 FORCEINLINE TWeakPtr<T> MakeWeakPtr(const TSharedRef<T>& Ptr)
 {
 	return TWeakPtr<T>(Ptr);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// Need TEnableIf as &&& is equivalent to &, so T could get matched with Smthg&
+template<typename T>
+FORCEINLINE std::enable_if_t<!TIsReferenceType<T>::Value, TSharedRef<T>> MakeSharedCopy(T&& Data)
+{
+	return MakeShared<T>(MoveTemp(Data));
+}
+template<typename T>
+FORCEINLINE std::enable_if_t<!TIsReferenceType<T>::Value, TUniquePtr<T>> MakeUniqueCopy(T&& Data)
+{
+	return MakeUnique<T>(MoveTemp(Data));
+}
+
+template<typename T>
+FORCEINLINE TSharedRef<T> MakeSharedCopy(const T& Data)
+{
+	return MakeShared<T>(Data);
+}
+template<typename T>
+FORCEINLINE TUniquePtr<T> MakeUniqueCopy(const T& Data)
+{
+	return MakeUnique<T>(Data);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
