@@ -503,8 +503,10 @@ FVoxelFuture FVoxelTextureBufferPool::ProcessUploadsImpl_AnyThread(TVoxelArray<F
 			ensure(Scale > 1);
 			ensure(FMath::IsPowerOfTwo(Scale));
 
-			VOXEL_ENQUEUE_RENDER_COMMAND(FVoxelTextureBufferPool_Reallocate)([OldResource, NewResource, Scale](FRHICommandListImmediate& RHICmdList)
+			Voxel::RenderTask([OldResource, NewResource, Scale](FRHICommandListImmediate& RHICmdList)
 			{
+				VOXEL_SCOPE_COUNTER("FVoxelTextureBufferPool Reallocate");
+
 				const int32 SizeX = OldResource->GetSizeX();
 				const int32 SizeY = OldResource->GetSizeY();
 
