@@ -96,6 +96,7 @@
 #include "VoxelMinimal/Utilities/VoxelIntPointUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelIntVectorUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelLambdaUtilities.h"
+#include "VoxelMinimal/Utilities/VoxelMaterialUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelMathUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelObjectUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelRenderUtilities.h"
