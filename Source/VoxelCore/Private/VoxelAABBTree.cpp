@@ -159,7 +159,9 @@ void FVoxelAABBTree::Initialize(TVoxelArray<FElement>&& InElements)
 			{
 				Elements1.Add(Element.Bounds);
 			}
-			ensure(Elements0.Num() == 1 || Elements1.Num() == 1);
+			ensure(
+				Elements0.Num() != ChildToProcess0->Elements.Num() ||
+				Elements1.Num() != ChildToProcess1->Elements.Num());
 #endif
 
 			Node.bLeaf = true;
