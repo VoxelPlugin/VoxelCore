@@ -314,7 +314,7 @@ void FVoxelTaskContext::LaunchTasks()
 {
 	VOXEL_FUNCTION_COUNTER();
 	VOXEL_SCOPE_LOCK(AsyncTasksCriticalSection);
-	checkStatic(2 * AsyncTasks_RequiresLock.NumPerChunk == MaxLaunchedTasks);
+	checkStatic(2 * FTaskArray::NumPerChunk == MaxLaunchedTasks);
 
 	while (
 		AsyncTasks_RequiresLock.Num() > 0 &&
