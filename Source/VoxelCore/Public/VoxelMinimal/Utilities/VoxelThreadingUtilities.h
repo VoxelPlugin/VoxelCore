@@ -141,7 +141,7 @@ namespace Voxel
 		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
 	FORCEINLINE TVoxelFutureType<ReturnType> AsyncTask_ThreadPool(LambdaType Lambda)
 	{
-		const TVoxelPromiseType<ReturnType> Promise;
+		TVoxelPromiseType<ReturnType> Promise;
 		AsyncTask_ThreadPool_Impl([Lambda = MoveTemp(Lambda), Promise]
 		{
 			if constexpr (std::is_void_v<ReturnType>)
@@ -154,7 +154,7 @@ namespace Voxel
 				Promise.Set(Lambda());
 			}
 		});
-		return Promise.GetFuture();
+		return Promise;
 	}
 }
 
