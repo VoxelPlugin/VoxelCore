@@ -3,6 +3,7 @@
 #include "VoxelMinimal.h"
 #include "Materials/HLSLMaterialTranslator.h"
 
+#if WITH_EDITOR
 int32 FVoxelUtilities::ZeroDerivative(
 	FMaterialCompiler& Compiler,
 	const int32 Index)
@@ -23,3 +24,4 @@ int32 FVoxelUtilities::ZeroDerivative(
 
 	return Index;
 }
+#endif
