@@ -275,9 +275,11 @@ public:
 	using Type = T;
 	using PromiseType = TVoxelPromise<T>;
 
-	// Since futures are always valid, TVoxelFuture() would be a completed future,
-	// which is impossible because we don't have a value
-	TVoxelFuture() = delete;
+	// Futures are always valid
+	TVoxelFuture()
+		: TVoxelFuture(MakeShared<T>())
+	{
+	}
 
 	FORCEINLINE TVoxelFuture(const TSharedRef<T>& Value)
 		: FVoxelFuture(IVoxelPromiseState::New(MakeSharedVoidRef(Value)))
@@ -490,16 +492,16 @@ public:
 		typename = std::enable_if_t<std::is_same_v<decltype(nullptr), NullType> && TIsTSharedPtr_V<T>>>
 	FORCEINLINE void Set(const NullType& Value) const
 	{
-		this->PromiseState->Set(T(Value));
+		this->Set(T(Value));
 	}
 
 	FORCEINLINE void Set(const T& Value) const
 	{
-		this->PromiseState->Set(MakeSharedVoidRef(MakeSharedCopy(Value)));
+		this->Set(MakeSharedCopy(Value));
 	}
 	FORCEINLINE void Set(T&& Value) const
 	{
-		this->PromiseState->Set(MakeSharedVoidRef(MakeSharedCopy(MoveTemp(Value))));
+		this->Set(MakeSharedCopy(MoveTemp(Value)));
 	}
 	FORCEINLINE void Set(const TSharedRef<T>& Value) const
 	{
@@ -509,7 +511,7 @@ public:
 	{
 		if (Future.IsComplete())
 		{
-			this->PromiseState->Set(MakeSharedVoidRef(Future.GetSharedValueChecked()));
+			this->Set(Future.GetSharedValueChecked());
 		}
 		else
 		{
