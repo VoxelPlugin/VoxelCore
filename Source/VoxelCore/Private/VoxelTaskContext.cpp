@@ -22,6 +22,12 @@ public:
 	{
 		GVoxelGlobalTaskContext = new FVoxelTaskContext(false);
 
+		GOnVoxelModuleUnloaded_DoCleanup.AddLambda([]
+		{
+			delete GVoxelGlobalTaskContext;
+			GVoxelGlobalTaskContext = nullptr;
+		});
+
 		Voxel::OnFlushGameTasks.AddLambda([this](bool& bAnyTaskProcessed)
 		{
 			ProcessGameTasks(bAnyTaskProcessed);
