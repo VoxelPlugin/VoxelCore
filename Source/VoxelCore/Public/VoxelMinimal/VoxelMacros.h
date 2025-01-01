@@ -14,6 +14,10 @@
 #endif
 #endif
 
+#ifndef VOXEL_DEV_WORKFLOW
+#define VOXEL_DEV_WORKFLOW 0
+#endif
+
 #if INTELLISENSE_PARSER
 #define VOXEL_DEBUG 1
 #define INTELLISENSE_ONLY(...) __VA_ARGS__
