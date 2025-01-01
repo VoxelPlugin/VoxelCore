@@ -32,9 +32,12 @@ private:
 class VOXELCORE_API FVoxelTaskContext
 {
 public:
+	const bool bCanCancelTasks;
 	const bool bTrackPromisesCallstacks;
 
-	explicit FVoxelTaskContext(bool bTrackPromisesCallstacks);
+	FVoxelTaskContext(
+		bool bCanCancelTasks,
+		bool bTrackPromisesCallstacks);
 	virtual ~FVoxelTaskContext();
 
 	VOXEL_COUNT_INSTANCES();
@@ -48,9 +51,9 @@ public:
 	void DumpToLog();
 
 public:
-	FORCEINLINE bool IsExiting() const
+	FORCEINLINE bool IsCancellingTasks() const
 	{
-		return bIsExiting.Get();
+		return ShouldCancelTasks.Get();
 	}
 	FORCEINLINE bool IsComplete() const
 	{
@@ -96,7 +99,8 @@ private:
 	FVoxelCounter32_WithPadding NumPromises;
 	FVoxelCounter32_WithPadding NumPendingTasks;
 	FVoxelCounter32_WithPadding NumLaunchedTasks;
-	TVoxelAtomic_WithPadding<bool> bIsExiting = false;
+	FVoxelCounter32_WithPadding NumRenderTasks;
+	TVoxelAtomic_WithPadding<bool> ShouldCancelTasks = false;
 
 private:
 	static constexpr int32 MaxLaunchedTasks = 256;
@@ -121,7 +125,7 @@ private:
 	friend FVoxelPromiseState;
 	friend FVoxelTaskContextWeakRef;
 	friend FVoxelTaskContextStrongRef;
-	friend class FVoxelTaskContextManager;
+	friend class FVoxelTaskContextTicker;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -5,6 +5,7 @@
 #include "ShaderCore.h"
 #include "HttpModule.h"
 #include "HttpManager.h"
+#include "VoxelTaskContext.h"
 #include "HAL/PlatformFileManager.h"
 #include "Interfaces/IPluginManager.h"
 #include "Runtime/Online/HTTP/Private/HttpThread.h"
@@ -81,6 +82,9 @@ public:
 		GOnVoxelModuleUnloaded_DoCleanup.Broadcast();
 
 		FVoxelSingletonManager::Destroy();
+
+		delete GVoxelGlobalTaskContext;
+		GVoxelGlobalTaskContext = nullptr;
 
 		void DestroyVoxelTickers();
 		DestroyVoxelTickers();

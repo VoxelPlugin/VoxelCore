@@ -80,7 +80,7 @@ FVoxelPromiseState::~FVoxelPromiseState()
 	{
 		return;
 	}
-	ensure(ContextStrongRef->Context.IsExiting());
+	ensure(ContextStrongRef->Context.IsCancellingTasks());
 #endif
 }
 

@@ -10,37 +10,25 @@ DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelTaskContext);
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-class FVoxelTaskContextManager : public FVoxelSingleton
+struct FVoxelTaskContextArray
 {
-public:
 	FVoxelSharedCriticalSection CriticalSection;
 	TVoxelSparseArray<FVoxelTaskContext*> Contexts_RequiresLock;
 	FVoxelCounter32 SerialCounter;
+};
+FVoxelTaskContextArray* GVoxelTaskContextArray = new FVoxelTaskContextArray();
 
+class FVoxelTaskContextTicker : public FVoxelSingleton
+{
+public:
 	//~ Begin FVoxelSingleton Interface
 	virtual void Initialize() override
 	{
-		GVoxelGlobalTaskContext = new FVoxelTaskContext(false);
-
-		GOnVoxelModuleUnloaded_DoCleanup.AddLambda([]
-		{
-			delete GVoxelGlobalTaskContext;
-			GVoxelGlobalTaskContext = nullptr;
-		});
+		GVoxelGlobalTaskContext = new FVoxelTaskContext(false, false);
 
 		Voxel::OnFlushGameTasks.AddLambda([this](bool& bAnyTaskProcessed)
 		{
 			ProcessGameTasks(bAnyTaskProcessed);
-		});
-
-		FCoreDelegates::OnEnginePreExit.AddLambda([this]
-		{
-			VOXEL_SCOPE_READ_LOCK(CriticalSection);
-
-			for (FVoxelTaskContext* Context : Contexts_RequiresLock)
-			{
-				Context->bIsExiting.Set(true);
-			}
 		});
 	}
 	virtual void Tick() override
@@ -57,11 +45,11 @@ public:
 		VOXEL_FUNCTION_COUNTER();
 
 		TVoxelArray<FVoxelTaskContextStrongRef> StrongRefs;
-		StrongRefs.Reserve(Contexts_RequiresLock.Num());
+		StrongRefs.Reserve(GVoxelTaskContextArray->Contexts_RequiresLock.Num());
 		{
-			VOXEL_SCOPE_READ_LOCK(CriticalSection);
+			VOXEL_SCOPE_READ_LOCK(GVoxelTaskContextArray->CriticalSection);
 
-			for (FVoxelTaskContext* Context : Contexts_RequiresLock)
+			for (FVoxelTaskContext* Context : GVoxelTaskContextArray->Contexts_RequiresLock)
 			{
 				StrongRefs.Emplace(*Context);
 			}
@@ -73,7 +61,7 @@ public:
 		}
 	}
 };
-FVoxelTaskContextManager* GVoxelTaskContextManager = new FVoxelTaskContextManager();
+FVoxelTaskContextTicker* GVoxelTaskContextTicker = new FVoxelTaskContextTicker();
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -87,18 +75,18 @@ TUniquePtr<FVoxelTaskContextStrongRef> FVoxelTaskContextWeakRef::Pin() const
 		return {};
 	}
 
-	VOXEL_SCOPE_READ_LOCK(GVoxelTaskContextManager->CriticalSection);
+	VOXEL_SCOPE_READ_LOCK(GVoxelTaskContextArray->CriticalSection);
 
-	if (!GVoxelTaskContextManager->Contexts_RequiresLock.IsAllocated(Index))
+	if (!GVoxelTaskContextArray->Contexts_RequiresLock.IsAllocated(Index))
 	{
 		return {};
 	}
 
-	FVoxelTaskContext* Context = GVoxelTaskContextManager->Contexts_RequiresLock[Index];
+	FVoxelTaskContext* Context = GVoxelTaskContextArray->Contexts_RequiresLock[Index];
 	checkVoxelSlow(Context);
 	checkVoxelSlow(Context->SelfWeakRef.Index == Index);
 
-	if (Context->bIsExiting.Get() ||
+	if (Context->ShouldCancelTasks.Get() ||
 		Context->SelfWeakRef.Serial != Serial)
 	{
 		return nullptr;
@@ -126,20 +114,26 @@ FVoxelTaskContextStrongRef::~FVoxelTaskContextStrongRef()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FVoxelTaskContext::FVoxelTaskContext(const bool bTrackPromisesCallstacks)
-	: bTrackPromisesCallstacks(bTrackPromisesCallstacks)
+FVoxelTaskContext::FVoxelTaskContext(
+	const bool bCanCancelTasks,
+	const bool bTrackPromisesCallstacks)
+	: bCanCancelTasks(bCanCancelTasks)
+	, bTrackPromisesCallstacks(bTrackPromisesCallstacks)
 {
-	VOXEL_SCOPE_WRITE_LOCK(GVoxelTaskContextManager->CriticalSection);
+	VOXEL_SCOPE_WRITE_LOCK(GVoxelTaskContextArray->CriticalSection);
 
-	SelfWeakRef.Index = GVoxelTaskContextManager->Contexts_RequiresLock.Add(this);
-	SelfWeakRef.Serial = GVoxelTaskContextManager->SerialCounter.Increment_ReturnNew();
+	SelfWeakRef.Index = GVoxelTaskContextArray->Contexts_RequiresLock.Add(this);
+	SelfWeakRef.Serial = GVoxelTaskContextArray->SerialCounter.Increment_ReturnNew();
 }
 
 FVoxelTaskContext::~FVoxelTaskContext()
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	bIsExiting.Set(true);
+	if (bCanCancelTasks)
+	{
+		ShouldCancelTasks.Set(true);
+	}
 
 	while (true)
 	{
@@ -148,6 +142,12 @@ FVoxelTaskContext::~FVoxelTaskContext()
 
 			NumPendingTasks.Subtract(GameTasks_RequiresLock.Num());
 			GameTasks_RequiresLock.Empty();
+		}
+
+		if (NumRenderTasks.Get() > 0)
+		{
+			// Only do this if really necessary
+			FlushRenderingCommands();
 		}
 
 		{
@@ -160,7 +160,7 @@ FVoxelTaskContext::~FVoxelTaskContext()
 		if (NumStrongRefs.Get() == 0 &&
 			NumPendingTasks.Get() == 0)
 		{
-			if (GVoxelTaskContextManager->CriticalSection.TryWriteLock())
+			if (GVoxelTaskContextArray->CriticalSection.TryWriteLock())
 			{
 				if (NumStrongRefs.Get() == 0 &&
 					NumPendingTasks.Get() == 0)
@@ -175,11 +175,12 @@ FVoxelTaskContext::~FVoxelTaskContext()
 	check(NumStrongRefs.Get() == 0);
 	check(NumPendingTasks.Get() == 0);
 	check(NumLaunchedTasks.Get() == 0);
+	check(NumRenderTasks.Get() == 0);
 
-	check(GVoxelTaskContextManager->Contexts_RequiresLock[SelfWeakRef.Index] == this);
-	GVoxelTaskContextManager->Contexts_RequiresLock.RemoveAt(SelfWeakRef.Index);
+	check(GVoxelTaskContextArray->Contexts_RequiresLock[SelfWeakRef.Index] == this);
+	GVoxelTaskContextArray->Contexts_RequiresLock.RemoveAt(SelfWeakRef.Index);
 
-	GVoxelTaskContextManager->CriticalSection.WriteUnlock();
+	GVoxelTaskContextArray->CriticalSection.WriteUnlock();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -198,7 +199,7 @@ void FVoxelTaskContext::Dispatch(
 	};
 #endif
 
-	if (bIsExiting.Get())
+	if (ShouldCancelTasks.Get())
 	{
 		return;
 	}
@@ -223,19 +224,21 @@ void FVoxelTaskContext::Dispatch(
 	case EVoxelFutureThread::RenderThread:
 	{
 		NumPendingTasks.Increment();
+		NumRenderTasks.Increment();
 
 		// One ENQUEUE_RENDER_COMMAND per call, otherwise the command ordering can be incorrect
 		ENQUEUE_RENDER_COMMAND(FVoxelTaskContext)([this, Lambda = MoveTemp(Lambda)](FRHICommandList&)
 		{
 			VOXEL_SCOPE_COUNTER("FVoxelTaskContext::Dispatch");
 
-			if (!bIsExiting.Get())
+			if (!ShouldCancelTasks.Get())
 			{
 				FVoxelTaskScope Scope(*this);
 				Lambda();
 			}
 
 			NumPendingTasks.Decrement();
+			NumRenderTasks.Decrement();
 		});
 	}
 	break;
@@ -332,7 +335,7 @@ void FVoxelTaskContext::LaunchTask(TVoxelUniqueFunction<void()> Task)
 		TEXT("Voxel Task"),
 		[this, Task = MoveTemp(Task)]
 		{
-			if (!bIsExiting.Get())
+			if (!ShouldCancelTasks.Get())
 			{
 				FVoxelTaskScope Scope(*this);
 				Task();
@@ -374,7 +377,7 @@ void FVoxelTaskContext::ProcessGameTasks(bool& bAnyTaskProcessed)
 
 	for (const TVoxelUniqueFunction<void()>& Task : GameTasks)
 	{
-		if (!bIsExiting.Get())
+		if (!ShouldCancelTasks.Get())
 		{
 			Task();
 		}
