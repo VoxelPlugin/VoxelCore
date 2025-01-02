@@ -133,35 +133,25 @@ FVoxelTaskContext::~FVoxelTaskContext()
 	if (bCanCancelTasks)
 	{
 		ShouldCancelTasks.Set(true);
-	}
 
-	while (true)
-	{
-		if (bCanCancelTasks)
 		{
 			VOXEL_SCOPE_LOCK(GameTasksCriticalSection);
 
 			NumPendingTasks.Subtract(GameTasks_RequiresLock.Num());
 			GameTasks_RequiresLock.Empty();
 		}
-		else if (IsInGameThread())
-		{
-			Voxel::FlushGameTasks();
-		}
 
-		if (NumRenderTasks.Get() > 0)
-		{
-			// Only do this if really necessary
-			FlushRenderingCommands();
-		}
-
-		if (bCanCancelTasks)
 		{
 			VOXEL_SCOPE_LOCK(AsyncTasksCriticalSection);
 
 			NumPendingTasks.Subtract(AsyncTasks_RequiresLock.Num());
 			AsyncTasks_RequiresLock.Empty();
 		}
+	}
+
+	while (true)
+	{
+		FlushTasks();
 
 		if (NumStrongRefs.Get() == 0 &&
 			NumPendingTasks.Get() == 0)
@@ -272,9 +262,45 @@ void FVoxelTaskContext::Dispatch(
 	}
 }
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
+void FVoxelTaskContext::FlushTasks()
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	double LastLogTime = FPlatformTime::Seconds();
+
+	// if NumStrongRefs > 0, we need to wait for the promise who pinned us to complete
+
+	while (
+		NumStrongRefs.Get() > 0 ||
+		NumPendingTasks.Get() > 0)
+	{
+		if (IsInGameThread())
+		{
+			Voxel::FlushGameTasks();
+		}
+
+		if (NumRenderTasks.Get() > 0)
+		{
+			// Only do this if really necessary
+			FlushRenderingCommands();
+		}
+
+		if (NumStrongRefs.Get() == 0 &&
+			NumPendingTasks.Get() == 0)
+		{
+			return;
+		}
+
+		if (FPlatformTime::Seconds() - LastLogTime > 1)
+		{
+			LastLogTime = FPlatformTime::Seconds();
+
+			LOG_VOXEL(Log, "FlushTasks: waiting for %d tasks", NumPendingTasks.Get());
+		}
+
+		FPlatformProcess::Yield();
+	}
+}
 
 void FVoxelTaskContext::DumpToLog()
 {

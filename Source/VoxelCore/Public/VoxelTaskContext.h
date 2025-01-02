@@ -47,7 +47,7 @@ public:
 		EVoxelFutureThread Thread,
 		TVoxelUniqueFunction<void()> Lambda);
 
-public:
+	void FlushTasks();
 	void DumpToLog();
 
 public:

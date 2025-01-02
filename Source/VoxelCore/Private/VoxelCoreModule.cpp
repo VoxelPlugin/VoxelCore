@@ -72,6 +72,8 @@ public:
 	}
 	virtual void PreUnloadCallback() override
 	{
+		GVoxelGlobalTaskContext->FlushTasks();
+
 #if !WITH_EDITOR && (PLATFORM_MAC || PLATFORM_IOS)
 		// Getting exit crashes on Mac
 		return;
@@ -80,6 +82,8 @@ public:
 		// Run cleanup twice in case first cleanup added voxel nodes back to the pool
 		GOnVoxelModuleUnloaded_DoCleanup.Broadcast();
 		GOnVoxelModuleUnloaded_DoCleanup.Broadcast();
+
+		GVoxelGlobalTaskContext->FlushTasks();
 
 		FVoxelSingletonManager::Destroy();
 
