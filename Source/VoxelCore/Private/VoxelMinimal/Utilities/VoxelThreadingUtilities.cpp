@@ -44,7 +44,7 @@ FVoxelParallelTaskScope::~FVoxelParallelTaskScope()
 
 	for (const UE::Tasks::TTask<void>& Task : Tasks)
 	{
-		verify(Task.BusyWait());
+		verify(Task.Wait());
 	}
 }
 
