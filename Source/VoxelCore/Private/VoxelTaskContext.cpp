@@ -137,11 +137,16 @@ FVoxelTaskContext::~FVoxelTaskContext()
 
 	while (true)
 	{
+		if (bCanCancelTasks)
 		{
 			VOXEL_SCOPE_LOCK(GameTasksCriticalSection);
 
 			NumPendingTasks.Subtract(GameTasks_RequiresLock.Num());
 			GameTasks_RequiresLock.Empty();
+		}
+		else if (IsInGameThread())
+		{
+			Voxel::FlushGameTasks();
 		}
 
 		if (NumRenderTasks.Get() > 0)
@@ -150,6 +155,7 @@ FVoxelTaskContext::~FVoxelTaskContext()
 			FlushRenderingCommands();
 		}
 
+		if (bCanCancelTasks)
 		{
 			VOXEL_SCOPE_LOCK(AsyncTasksCriticalSection);
 
