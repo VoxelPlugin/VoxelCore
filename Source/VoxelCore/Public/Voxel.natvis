@@ -4,17 +4,17 @@
   <!-- FVoxelFuture visualizer -->
   <Type Name="FVoxelFuture">
     <DisplayString Condition="!PromiseState.Object">null</DisplayString>
-    <DisplayString Condition="PromiseState.Object &amp;&amp; PromiseState.Object->bIsComplete.Atomic._Storage._Value">[Done]</DisplayString>
-    <DisplayString Condition="PromiseState.Object &amp;&amp; !PromiseState.Object->bIsComplete.Atomic._Storage._Value">[Pending]</DisplayString>
+    <DisplayString Condition="PromiseState.Object &amp;&amp; PromiseState.Object->bIsComplete.Storage.Atomic._Storage._Value">[Done]</DisplayString>
+    <DisplayString Condition="PromiseState.Object &amp;&amp; !PromiseState.Object->bIsComplete.Storage.Atomic._Storage._Value">[Pending]</DisplayString>
   </Type>
 
   <!-- TVoxelFuture visualizer -->
   <Type Name="TVoxelFuture&lt;*&gt;">
     <DisplayString Condition="!PromiseState.Object">null</DisplayString>
-    <DisplayString Condition="PromiseState.Object &amp;&amp; PromiseState.Object->bIsComplete.Atomic._Storage._Value">[Done] {*($T1*)PromiseState.Object->Value_RequiresLock.Object}</DisplayString>
-    <DisplayString Condition="PromiseState.Object &amp;&amp; !PromiseState.Object->bIsComplete.Atomic._Storage._Value">[Pending]</DisplayString>
+    <DisplayString Condition="PromiseState.Object &amp;&amp; PromiseState.Object->bIsComplete.Storage.Atomic._Storage._Value">[Done] {*($T1*)PromiseState.Object->Value_RequiresLock.Object}</DisplayString>
+    <DisplayString Condition="PromiseState.Object &amp;&amp; !PromiseState.Object->bIsComplete.Storage.Atomic._Storage._Value">[Pending]</DisplayString>
     <Expand>
-      <Item Name="Value" Condition="PromiseState.Object &amp;&amp; PromiseState.Object->bIsComplete.Atomic._Storage._Value">*($T1*)PromiseState.Object->Value_RequiresLock.Object</Item>
+      <Item Name="Value" Condition="PromiseState.Object &amp;&amp; PromiseState.Object->bIsComplete.Storage.Atomic._Storage._Value">*($T1*)PromiseState.Object->Value_RequiresLock.Object</Item>
     </Expand>
   </Type>
 
