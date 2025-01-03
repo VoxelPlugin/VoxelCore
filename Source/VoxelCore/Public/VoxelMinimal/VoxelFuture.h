@@ -140,6 +140,40 @@ public:
 	FVoxelFuture() = default;
 	explicit FVoxelFuture(TConstVoxelArrayView<FVoxelFuture> Futures);
 
+	template<
+		typename... FutureTypes,
+		typename = std::enable_if_t<sizeof...(FutureTypes) != 1>,
+		typename = std::enable_if_t<(TIsDerivedFrom<std::remove_reference_t<FutureTypes>, FVoxelFuture>::Value && ...)>>
+	FVoxelFuture(FutureTypes&&... Futures)
+	{
+		checkStatic(sizeof...(Futures) > 1);
+
+		PromiseState = IVoxelPromiseState::New(nullptr, false);
+
+		const TSharedRef<FVoxelCounter32> Counter = MakeShared<FVoxelCounter32>(sizeof...(Futures));
+
+		const auto AddFuture = [&](const FVoxelFuture& Future)
+		{
+			if (Future.IsComplete())
+			{
+				if (Counter->Decrement_ReturnNew() == 0)
+				{
+					PromiseState->Set();
+				}
+				return;
+			}
+
+			Future.PromiseState->AddContinuation(EVoxelFutureThread::AnyThread, [Counter, PromiseState = PromiseState]
+			{
+				if (Counter->Decrement_ReturnNew() == 0)
+				{
+					PromiseState->Set();
+				}
+			});
+		};
+		VOXEL_FOLD_EXPRESSION(AddFuture(Futures));
+	}
+
 public:
 	template<
 		typename LambdaType,

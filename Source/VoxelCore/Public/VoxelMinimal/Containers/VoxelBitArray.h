@@ -465,3 +465,9 @@ const uint32* RESTRICT GetData(const TVoxelBitArray<Allocator>& Array)
 
 using FVoxelBitArray = TVoxelBitArray<FDefaultAllocator>;
 using FVoxelBitArray64 = TVoxelBitArray<FDefaultAllocator64>;
+
+template<int32 NumInlineElements>
+using TVoxelInlineBitArray = TVoxelBitArray<TInlineAllocator<FMath::DivideAndRoundUp(NumInlineElements, 32)>>;
+
+template<int32 MaxNumElements>
+using TVoxelFixedBitArray = TVoxelBitArray<TFixedAllocator<FMath::DivideAndRoundUp(MaxNumElements, 32)>>;
