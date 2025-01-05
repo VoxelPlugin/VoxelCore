@@ -382,6 +382,7 @@ public:
 		typename ReturnType = LambdaReturnType_T<LambdaType>,
 		typename = std::enable_if_t<
 			LambdaHasSignature_V<LambdaType, ReturnType(const T&)> ||
+			LambdaHasSignature_V<LambdaType, ReturnType(T&)> ||
 			LambdaHasSignature_V<LambdaType, ReturnType(T)>>,
 		typename = void>
 	FORCEINLINE TVoxelFutureType<ReturnType> Then(
@@ -411,6 +412,7 @@ public:
 		typename = std::enable_if_t< \
 			LambdaHasSignature_V<LambdaType, ReturnType(const TSharedRef<T>&)> || \
 			LambdaHasSignature_V<LambdaType, ReturnType(const T&)> || \
+			LambdaHasSignature_V<LambdaType, ReturnType(T&)> || \
 			LambdaHasSignature_V<LambdaType, ReturnType(T)>>> \
 	FORCEINLINE TVoxelFutureType<ReturnType> Then_ ## Thread ## Suffix(LambdaType Continuation) const \
 	{ \
@@ -451,6 +453,7 @@ public:
 		typename ReturnType = LambdaReturnType_T<LambdaType>,
 		typename = std::enable_if_t<
 			LambdaHasSignature_V<LambdaType, ReturnType(const T&)> ||
+			LambdaHasSignature_V<LambdaType, ReturnType(T&)> ||
 			LambdaHasSignature_V<LambdaType, ReturnType(T)>>,
 		typename = void>
 	FORCEINLINE TVoxelFutureType<ReturnType> Then_GameThread(LambdaType Continuation) const
