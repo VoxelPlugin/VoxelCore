@@ -271,8 +271,12 @@ public:
 		checkVoxelSlow(Count <= Num());
 		return FVoxelBitArrayHelpers::CountSetBits_UpperBound(GetWordData(), Count);
 	}
-	template<typename LambdaType>
-	FORCEINLINE void ForAllSetBits(LambdaType Lambda) const
+
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterate>>>
+	FORCEINLINE EVoxelIterate ForAllSetBits(LambdaType Lambda) const
 	{
 		return FVoxelBitArrayHelpers::ForAllSetBits(GetWordData(), NumWords(), Num(), Lambda);
 	}
@@ -345,19 +349,23 @@ public:
 		return FVoxelConstBitReference(this->GetWord(Index / NumBitsPerWord), 1u << (Index % NumBitsPerWord));
 	}
 
-	FORCEINLINE void AtomicallySet(SizeType Index, const bool bValue)
+	FORCEINLINE bool AtomicSet_ReturnOld(const int32 Index, const bool bValue)
 	{
 		uint32& Word = this->GetWord(Index / NumBitsPerWord);
 		const uint32 Mask = 1u << (Index % NumBitsPerWord);
 
 		if (bValue)
 		{
-			FPlatformAtomics::InterlockedOr(ReinterpretCastPtr<int32>(&Word), Mask);
+			return ReinterpretCastRef<TVoxelAtomic<uint32>>(Word).Or_ReturnOld(Mask) & Mask;
 		}
 		else
 		{
-			FPlatformAtomics::InterlockedAnd(ReinterpretCastPtr<int32>(&Word), ~Mask);
+			return ReinterpretCastRef<TVoxelAtomic<uint32>>(Word).And_ReturnOld(Mask) & Mask;
 		}
+	}
+	FORCEINLINE void AtomicSet(const int32 Index, const bool bValue)
+	{
+		AtomicSet_ReturnOld(Index, bValue);
 	}
 
 public:

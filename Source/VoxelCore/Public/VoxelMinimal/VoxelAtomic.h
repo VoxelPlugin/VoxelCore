@@ -236,6 +236,40 @@ public:
 	}
 
 public:
+	FORCEINLINE T Or_ReturnOld(const T Operand, const std::memory_order MemoryOrder = std::memory_order_seq_cst)
+	{
+		checkStatic(std::is_integral_v<T>);
+		const T OldValue = Storage.Atomic.fetch_or(Operand, MemoryOrder);
+		CheckValue(OldValue | Operand);
+		return OldValue;
+	}
+	FORCEINLINE T Or_ReturnNew(const T Operand, const std::memory_order MemoryOrder = std::memory_order_seq_cst)
+	{
+		return this->Or_ReturnOld(Operand, MemoryOrder) | Operand;
+	}
+	FORCEINLINE void Or(const T Operand, const std::memory_order MemoryOrder = std::memory_order_seq_cst)
+	{
+		this->Or_ReturnOld(Operand, MemoryOrder);
+	}
+
+public:
+	FORCEINLINE T And_ReturnOld(const T Operand, const std::memory_order MemoryOrder = std::memory_order_seq_cst)
+	{
+		checkStatic(std::is_integral_v<T>);
+		const T OldValue = Storage.Atomic.fetch_and(Operand, MemoryOrder);
+		CheckValue(OldValue & Operand);
+		return OldValue;
+	}
+	FORCEINLINE T And_ReturnNew(const T Operand, const std::memory_order MemoryOrder = std::memory_order_seq_cst)
+	{
+		return this->And_ReturnOld(Operand, MemoryOrder) & Operand;
+	}
+	FORCEINLINE void And(const T Operand, const std::memory_order MemoryOrder = std::memory_order_seq_cst)
+	{
+		this->And_ReturnOld(Operand, MemoryOrder);
+	}
+
+public:
 	T& AsNonAtomic()
 	{
 		return ReinterpretCastRef<T>(Storage.Atomic);

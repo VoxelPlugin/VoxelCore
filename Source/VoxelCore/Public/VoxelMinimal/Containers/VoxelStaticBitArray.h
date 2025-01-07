@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/VoxelAtomic.h"
 #include "VoxelMinimal/Containers/VoxelBitArray.h"
 #include "VoxelMinimal/Containers/VoxelStaticArray.h"
 
@@ -94,26 +95,29 @@ public:
 	{
 		FMemory::Memset(Array.GetData(), bValue ? 0xFF : 0x00, Array.Num() * Array.GetTypeSize());
 	}
-	TOptional<bool> TryGetAll() const
+	FORCEINLINE TOptional<bool> TryGetAll() const
 	{
 		return FVoxelBitArrayHelpers::TryGetAll(*this);
 	}
-	bool AllEqual(bool bValue) const
+	FORCEINLINE bool AllEqual(bool bValue) const
 	{
 		return FVoxelBitArrayHelpers::AllEqual(*this, bValue);
 	}
-	int32 CountSetBits() const
+	FORCEINLINE int32 CountSetBits() const
 	{
 		return FVoxelBitArrayHelpers::CountSetBits(GetWordData(), NumWords());
 	}
-	int32 CountSetBits(const int32 Count) const
+	FORCEINLINE int32 CountSetBits(const int32 Count) const
 	{
 		checkVoxelSlow(Count <= Num());
 		return FVoxelBitArrayHelpers::CountSetBits_UpperBound(GetWordData(), Count);
 	}
 
-	template<typename LambdaType>
-	void ForAllSetBits(LambdaType Lambda) const
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterate>>>
+	FORCEINLINE EVoxelIterate ForAllSetBits(LambdaType Lambda) const
 	{
 		return FVoxelBitArrayHelpers::ForAllSetBits(GetWordData(), NumWords(), Num(), Lambda);
 	}
@@ -136,6 +140,25 @@ public:
 	{
 		checkVoxelSlow(IsValidIndex(Index));
 		return FVoxelConstBitReference(Array[Index / NumBitsPerWord], 1u << (Index % NumBitsPerWord));
+	}
+
+	FORCEINLINE bool AtomicSet_ReturnOld(const int32 Index, const bool bValue)
+	{
+		uint32& Word = this->GetWord(Index / NumBitsPerWord);
+		const uint32 Mask = 1u << (Index % NumBitsPerWord);
+
+		if (bValue)
+		{
+			return ReinterpretCastRef<TVoxelAtomic<uint32>>(Word).Or_ReturnOld(Mask) & Mask;
+		}
+		else
+		{
+			return ReinterpretCastRef<TVoxelAtomic<uint32>>(Word).And_ReturnOld(Mask) & Mask;
+		}
+	}
+	FORCEINLINE void AtomicSet(const int32 Index, const bool bValue)
+	{
+		AtomicSet_ReturnOld(Index, bValue);
 	}
 
 	FORCEINLINE void SetRange(const int32 Index, const int32 Num, const bool bValue)

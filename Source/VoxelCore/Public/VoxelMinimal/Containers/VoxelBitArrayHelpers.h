@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/VoxelIterate.h"
 
 struct VOXELCORE_API FVoxelBitArrayHelpers
 {
@@ -447,15 +448,15 @@ public:
 
 	static void SetRange(uint32* RESTRICT Data, int32 Index, int32 Num, bool bValue);
 
-public:
+private:
 	template<typename WordType, typename LambdaType>
-	FORCEINLINE static bool ForAllSetBitsInWord(WordType Word, const int32 WordIndex, const int32 Num, LambdaType Lambda)
+	FORCEINLINE static EVoxelIterate ForAllSetBitsInWord(WordType Word, const int32 WordIndex, const int32 Num, LambdaType Lambda)
 	{
 		constexpr int32 NumBitsPerWordInLoop = sizeof(WordType) * 8;
 
 		if (!Word)
 		{
-			return false;
+			return EVoxelIterate::Continue;
 		}
 
 		int32 Index = WordIndex * NumBitsPerWordInLoop;
@@ -482,9 +483,9 @@ public:
 					}
 					else
 					{
-						if (!Lambda(Index))
+						if (Lambda(Index) == EVoxelIterate::Stop)
 						{
-							return true;
+							return EVoxelIterate::Stop;
 						}
 					}
 
@@ -503,9 +504,9 @@ public:
 			}
 			else
 			{
-				if (!Lambda(Index))
+				if (Lambda(Index) == EVoxelIterate::Stop)
 				{
-					return true;
+					return EVoxelIterate::Stop;
 				}
 			}
 
@@ -514,11 +515,15 @@ public:
 		}
 		while (Word);
 
-		return false;
+		return EVoxelIterate::Continue;
 	}
 
-	template<typename LambdaType>
-	FORCEINLINE static void ForAllSetBits(
+public:
+	template<
+		typename LambdaType,
+		typename ReturnType = LambdaReturnType_T<LambdaType>,
+		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterate>>>
+	FORCEINLINE static EVoxelIterate ForAllSetBits(
 		const uint32* RESTRICT Data,
 		const int32 NumWords,
 		const int32 Num,
@@ -530,9 +535,9 @@ public:
 		while (DataIt != DataEnd)
 		{
 			uint64 Word = *DataIt;
-			if (ForAllSetBitsInWord(Word, DataIt - reinterpret_cast<const uint64*>(Data), Num, Lambda))
+			if (FVoxelBitArrayHelpers::ForAllSetBitsInWord(Word, DataIt - reinterpret_cast<const uint64*>(Data), Num, Lambda) == EVoxelIterate::Stop)
 			{
-				return;
+				return EVoxelIterate::Stop;
 			}
 			DataIt++;
 		}
@@ -540,8 +545,13 @@ public:
 		if (NumWords % 2 == 1)
 		{
 			uint32 Word = *(Data + NumWords - 1);
-			ForAllSetBitsInWord(Word, NumWords - 1, Num, Lambda);
+			if (FVoxelBitArrayHelpers::ForAllSetBitsInWord(Word, NumWords - 1, Num, Lambda) == EVoxelIterate::Stop)
+			{
+				return EVoxelIterate::Stop;
+			}
 		}
+
+		return EVoxelIterate::Continue;
 	}
 
 	static int64 CountSetBits(const uint32* RESTRICT Data, int32 NumWords);

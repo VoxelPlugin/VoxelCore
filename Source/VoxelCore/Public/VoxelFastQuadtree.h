@@ -250,7 +250,7 @@ public:
 	template<
 		typename LambdaType,
 		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterate>>,
+		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterateTree>>,
 		typename = LambdaHasSignature_T<LambdaType, ReturnType(const FNodeRef&)>>
 	FORCENOINLINE void Traverse(const FNodeRef InNodeRef, LambdaType Lambda) const
 	{
@@ -272,9 +272,9 @@ public:
 				switch (Lambda(NodeRef))
 				{
 				default: VOXEL_ASSUME(false);
-				case EVoxelIterate::Continue: break;
-				case EVoxelIterate::SkipChildren: continue;
-				case EVoxelIterate::Stop: return;
+				case EVoxelIterateTree::Continue: break;
+				case EVoxelIterateTree::SkipChildren: continue;
+				case EVoxelIterateTree::Stop: return;
 				}
 			}
 
@@ -295,7 +295,7 @@ public:
 	template<
 		typename LambdaType,
 		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterate>>,
+		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterateTree>>,
 		typename = LambdaHasSignature_T<LambdaType, ReturnType(const FNodeRef&)>>
 	FORCEINLINE void Traverse(LambdaType Lambda) const
 	{
@@ -305,7 +305,7 @@ public:
 	template<
 		typename LambdaType,
 		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterate>>,
+		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterateTree>>,
 		typename = LambdaHasSignature_T<LambdaType, ReturnType(const FNodeRef&)>>
 	FORCEINLINE void TraverseChildren(const FNodeRef& NodeRef, LambdaType Lambda) const
 	{
@@ -320,7 +320,7 @@ public:
 	template<
 		typename LambdaType,
 		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterate>>,
+		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterateTree>>,
 		typename = LambdaHasSignature_T<LambdaType, ReturnType(const FNodeRef&)>>
 	FORCENOINLINE void TraverseBounds(const FVoxelIntBox2D& Bounds, LambdaType Lambda) const
 	{
@@ -346,9 +346,9 @@ public:
 				switch (Lambda(NodeRef))
 				{
 				default: VOXEL_ASSUME(false);
-				case EVoxelIterate::Continue: break;
-				case EVoxelIterate::SkipChildren: continue;
-				case EVoxelIterate::Stop: return;
+				case EVoxelIterateTree::Continue: break;
+				case EVoxelIterateTree::SkipChildren: continue;
+				case EVoxelIterateTree::Stop: return;
 				}
 			}
 
