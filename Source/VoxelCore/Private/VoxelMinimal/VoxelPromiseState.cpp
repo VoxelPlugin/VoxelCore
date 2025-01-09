@@ -90,6 +90,7 @@ FVoxelPromiseState::~FVoxelPromiseState()
 
 void FVoxelPromiseState::Set()
 {
+	checkVoxelSlow(!IsComplete());
 	checkVoxelSlow(!bHasValue);
 
 	const TUniquePtr<FVoxelTaskContextStrongRef> ContextStrongRef = ContextWeakRef.Pin();
@@ -103,6 +104,7 @@ void FVoxelPromiseState::Set()
 
 void FVoxelPromiseState::Set(const FSharedVoidRef& NewValue)
 {
+	checkVoxelSlow(!IsComplete());
 	checkVoxelSlow(bHasValue);
 
 	const TUniquePtr<FVoxelTaskContextStrongRef> ContextStrongRef = ContextWeakRef.Pin();

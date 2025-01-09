@@ -44,6 +44,18 @@ struct TVoxelFutureTypeImpl<TVoxelFuture<T>>
 };
 
 template<>
+struct TVoxelFutureTypeImpl<FVoxelPromise>
+{
+	using Type = FVoxelFuture;
+};
+
+template<typename T>
+struct TVoxelFutureTypeImpl<TVoxelPromise<T>>
+{
+	using Type = TVoxelFuture<T>;
+};
+
+template<>
 struct TVoxelFutureTypeImpl<void>
 {
 	using Type = FVoxelFuture;

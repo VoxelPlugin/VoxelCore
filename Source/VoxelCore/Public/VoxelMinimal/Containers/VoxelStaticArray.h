@@ -4,6 +4,7 @@
 
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
+#include "VoxelMinimal/Utilities/VoxelTypeUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelArrayUtilities.h"
 
 template<typename T, int32 Size, int32 Alignment = alignof(T), bool bForceInitToZero = false>
@@ -31,7 +32,7 @@ public:
 	{
 		for (T& Element : *this)
 		{
-			new (&Element) T{};
+			new (&Element) T{ FVoxelUtilities::MakeSafe<T>() };
 		}
 	}
 	INTELLISENSE_ONLY(template<typename = std::enable_if_t<bCanNoInit>>)
