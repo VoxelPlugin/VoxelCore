@@ -286,6 +286,7 @@ FPackedCluster FCluster::Pack(const FEncodingInfo& Info) const
 
 	Result.SetBitsPerAttribute(Info.BitsPerAttribute);
 	Result.SetNormalPrecision(Info.Settings.NormalBits);
+	Result.SetHasTangents(false);
 	Result.SetNumUVs(TextureCoordinates.Num());
 
 	check(TextureCoordinates.Num() <= NANITE_MAX_UVS);
