@@ -191,7 +191,17 @@ TSharedRef<SVoxelSegmentedControl<uint8>> FVoxelSegmentedEnumCustomization::Cust
 
 		for (const auto& It : Occurrences)
 		{
-			Result.Add(It.Key, It.Value == NumObjects ? ECheckBoxState::Checked : ECheckBoxState::Undetermined);
+			ECheckBoxState State = ECheckBoxState::Undetermined;
+			if (It.Value == NumObjects)
+			{
+				State = ECheckBoxState::Checked;
+			}
+			else if (It.Value == 0)
+			{
+				State = ECheckBoxState::Unchecked;
+			}
+
+			Result.Add(It.Key, State);
 		}
 
 		return Result;
