@@ -70,8 +70,8 @@ FORCEINLINE bool AreVoxelStatsEnabled()
 	const bool VOXEL_TRACE_ENABLED = AreVoxelStatsEnabled() && (Condition); \
 	if (VOXEL_TRACE_ENABLED) \
 	{ \
-		ensureVoxelSlow(!Description.IsNone()); \
-		FCpuProfilerTrace::OutputBeginDynamicEvent(Description, __FILE__, __LINE__); \
+		ensureVoxelSlow(!(Description).IsNone()); \
+		FCpuProfilerTrace::OutputBeginDynamicEvent((Description), __FILE__, __LINE__); \
 	} \
 	ON_SCOPE_EXIT \
 	{ \
