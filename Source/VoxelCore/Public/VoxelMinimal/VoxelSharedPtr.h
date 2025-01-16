@@ -200,6 +200,43 @@ FORCEINLINE TSharedRef<T> MakeShareable_CustomDestructor(T* Object, LambdaType&&
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+template<typename T, typename LambdaType>
+void CheckLambdaDoesNotCaptureSharedPtr(
+	const TSharedPtr<T>& SharedPtr,
+	const LambdaType& Lambda)
+{
+	if (!SharedPtr)
+	{
+		return;
+	}
+
+	if constexpr (std::is_copy_constructible_v<LambdaType>)
+	{
+		const auto IsValid = [&]
+		{
+			const int32 CountBefore = SharedPtr.GetSharedReferenceCount();
+			LambdaType LambdaCopy = Lambda;
+			const int32 CountAfter = SharedPtr.GetSharedReferenceCount();
+
+			return CountBefore == CountAfter;
+		};
+
+		for (int32 Index = 0; Index < 1000; Index++)
+		{
+			if (IsValid())
+			{
+				return;
+			}
+		}
+
+		ensureMsgf(false, TEXT("SharedPtr used in MakeWeakPtrLambda should not be captured. Pass it by ref or use MakeStrongPtrLambda"));
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 namespace Voxel::Internal
 {
 	struct FVoidPtr;

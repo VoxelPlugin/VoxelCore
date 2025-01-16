@@ -154,6 +154,10 @@ FORCEINLINE auto MakeLambdaDelegate(LambdaType Lambda)
 template<typename UserPolicy = FDefaultDelegateUserPolicy, typename T, typename LambdaType>
 FORCEINLINE auto MakeWeakPtrDelegate(const T& Ptr, LambdaType Lambda)
 {
+#if VOXEL_DEBUG
+	CheckLambdaDoesNotCaptureSharedPtr(MakeWeakPtr(Ptr).Pin(), Lambda);
+#endif
+
 	TDelegate<LambdaSignature_T<LambdaType>, UserPolicy> Delegate;
 
 	TSharedPtrLambdaDelegateInstance<UserPolicy, LambdaReturnType_T<LambdaType>, LambdaArgTypes_T<LambdaType>>::Create(
@@ -214,6 +218,10 @@ template<
 	typename = std::enable_if_t<std::is_void_v<LambdaReturnType_T<LambdaType>>>>
 FORCEINLINE auto MakeWeakPtrLambda(const T& Ptr, LambdaType Lambda)
 {
+#if VOXEL_DEBUG
+	CheckLambdaDoesNotCaptureSharedPtr(MakeWeakPtr(Ptr).Pin(), Lambda);
+#endif
+
 	return TMakeWeakPtrLambdaHelper<LambdaArgTypes_T<LambdaType>>::Make(Ptr, MoveTemp(Lambda));
 }
 
@@ -224,6 +232,10 @@ template<
 	typename = std::enable_if_t<!std::is_void_v<ReturnType> && FVoxelUtilities::CanMakeSafe<ReturnType>>>
 FORCEINLINE auto MakeWeakPtrLambda(const T& Ptr, LambdaType Lambda)
 {
+#if VOXEL_DEBUG
+	CheckLambdaDoesNotCaptureSharedPtr(MakeWeakPtr(Ptr).Pin(), Lambda);
+#endif
+
 	return TMakeWeakPtrLambdaHelper<LambdaArgTypes_T<LambdaType>>::Make(
 		Ptr,
 		MoveTemp(Lambda),
@@ -237,6 +249,10 @@ template<
 	typename = std::enable_if_t<!std::is_void_v<ReturnType>>>
 FORCEINLINE auto MakeWeakPtrLambda(const T& Ptr, LambdaType Lambda, ReturnType&& Default)
 {
+#if VOXEL_DEBUG
+	CheckLambdaDoesNotCaptureSharedPtr(MakeWeakPtr(Ptr).Pin(), Lambda);
+#endif
+
 	return TMakeWeakPtrLambdaHelper<LambdaArgTypes_T<LambdaType>>::Make(
 		Ptr,
 		MoveTemp(Lambda),
