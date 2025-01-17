@@ -62,6 +62,7 @@
 #define GET_SCALAR_ARRAY_ELEMENT(PackedArray, ElementIndex) PackedArray[ElementIndex>>2u][ElementIndex&3u]
 
 #define VOXEL_MARCHING_CUBE_VERTEX_FACTORY 1
+#define COMPILER_SUPPORTS_WAVE_BIT_ORAND 1
 
 struct FDefaultAttributes
 {

@@ -283,7 +283,7 @@ void ForEachAssetOfClass(LambdaType&& Operation)
 }
 
 template<typename T, typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<T&>()))>>>
-void ForEachObjectOfClass(LambdaType&& Operation, bool bIncludeDerivedClasses = true, EObjectFlags ExcludeFlags = RF_ClassDefaultObject, EInternalObjectFlags ExclusionInternalFlags = EInternalObjectFlags::None)
+void ForEachObjectOfClass(LambdaType&& Operation, bool bIncludeDerivedClasses = true, EObjectFlags ExcludeFlags = RF_ClassDefaultObject | RF_MirroredGarbage, EInternalObjectFlags ExclusionInternalFlags = EInternalObjectFlags::None)
 {
 	ForEachObjectOfClass(T::StaticClass(), [&](UObject* Object)
 	{
@@ -293,7 +293,7 @@ void ForEachObjectOfClass(LambdaType&& Operation, bool bIncludeDerivedClasses = 
 }
 
 template<typename T, typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<T&>()))>>>
-void ForEachObjectOfClass_Copy(LambdaType&& Operation, bool bIncludeDerivedClasses = true, EObjectFlags ExcludeFlags = RF_ClassDefaultObject, EInternalObjectFlags ExclusionInternalFlags = EInternalObjectFlags::None)
+void ForEachObjectOfClass_Copy(LambdaType&& Operation, bool bIncludeDerivedClasses = true, EObjectFlags ExcludeFlags = RF_ClassDefaultObject | RF_MirroredGarbage, EInternalObjectFlags ExclusionInternalFlags = EInternalObjectFlags::None)
 {
 	TVoxelChunkedArray<T*> Objects;
 	ForEachObjectOfClass<T>([&](T& Object)
