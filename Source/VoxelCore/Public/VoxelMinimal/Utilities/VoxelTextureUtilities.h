@@ -39,7 +39,7 @@ public:
 		bool bSRGB,
 		TextureFilter Filter,
 		EPixelFormat PixelFormat,
-		TFunction<void(TVoxelArrayView<uint8> Data)> InitializeMip0 = nullptr,
+		TFunction<void(TVoxelArrayView64<uint8> Data)> InitializeMip0 = nullptr,
 		UTexture2D* ExistingTexture = nullptr);
 
 	// Unload bulk data, saving CPU memory for textures that can be kept on the GPU

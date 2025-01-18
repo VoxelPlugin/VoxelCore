@@ -126,12 +126,12 @@ public:
 		return GetData()[Num() - IndexFromTheEnd - 1];
 	}
 
-	template<typename T, typename ToType = std::conditional_t<std::is_const_v<ElementType>, const T, T>>
-	FORCEINLINE TVoxelArrayView<ToType, SizeType> ReinterpretAs() const
+	template<typename T, typename ReturnSizeType = SizeType, typename ToType = std::conditional_t<std::is_const_v<ElementType>, const T, T>>
+	FORCEINLINE TVoxelArrayView<ToType, ReturnSizeType> ReinterpretAs() const
 	{
 		const int64 NumBytes = Num() * sizeof(ElementType);
 		checkVoxelSlow(NumBytes % sizeof(ToType) == 0);
-		return TVoxelArrayView<ToType, SizeType>(reinterpret_cast<ToType*>(GetData()), NumBytes / sizeof(T));
+		return TVoxelArrayView<ToType, ReturnSizeType>(reinterpret_cast<ToType*>(GetData()), NumBytes / sizeof(T));
 	}
 
 private:
@@ -196,7 +196,7 @@ FORCEINLINE auto MakeVoxelArrayView(ElementType* Pointer, const SizeType Size)
 template<typename T>
 FORCEINLINE auto MakeByteVoxelArrayView(T&& Value)
 {
-	return MakeVoxelArrayView(Value).template ReinterpretAs<uint8>();
+	return MakeVoxelArrayView(Value).template ReinterpretAs<uint8, int64>();
 }
 
 template<typename T, typename SizeType>

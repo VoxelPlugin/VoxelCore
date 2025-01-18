@@ -21,6 +21,10 @@ public:
 
 	VOXEL_COUNT_INSTANCES();
 
+	FORCEINLINE bool IsOutOfMemory() const
+	{
+		return PoolIndex == -1;
+	}
 	FORCEINLINE int64 Num() const
 	{
 		return PrivateNum;
@@ -47,6 +51,7 @@ public:
 	const int32 BytesPerElement;
 	const EPixelFormat PixelFormat;
 	const TCHAR* const BufferName;
+	FTSSimpleMulticastDelegate OnOutOfMemory;
 
 	FVoxelBufferPoolBase(
 		int32 BytesPerElement,
@@ -167,6 +172,7 @@ protected:
 		return int64(1) << (PoolIndex - 74);
 	}
 
+	FVoxelCriticalSection BufferCount_CriticalSection;
 	FVoxelCounter64 BufferCount;
 
 	FVoxelCriticalSection PoolIndexToPool_CriticalSection;
@@ -194,6 +200,8 @@ protected:
 
 	void CheckUploadQueue_AnyThread();
 	FVoxelFuture ProcessUploads_AnyThread();
+
+	virtual int64 GetMaxAllocatedNum() const = 0;
 	virtual FVoxelFuture ProcessUploadsImpl_AnyThread(TVoxelArray<FUpload>&& Uploads) = 0;
 };
 
@@ -221,6 +229,7 @@ public:
 
 protected:
 	//~ Begin FVoxelBufferPoolBase Interface
+	virtual int64 GetMaxAllocatedNum() const override;
 	virtual FVoxelFuture ProcessUploadsImpl_AnyThread(TVoxelArray<FUpload>&& Uploads) override;
 	//~ End FVoxelBufferPoolBase Interface
 
@@ -249,7 +258,13 @@ private:
 class VOXELCORE_API FVoxelTextureBufferPool : public FVoxelBufferPoolBase
 {
 public:
-	using FVoxelBufferPoolBase::FVoxelBufferPoolBase;
+	const int32 MaxTextureSize;
+
+	FVoxelTextureBufferPool(
+		int32 BytesPerElement,
+		EPixelFormat PixelFormat,
+		const TCHAR* BufferName,
+		int32 MaxTextureSize);
 	virtual ~FVoxelTextureBufferPool() override = default;
 
 	void AddReferencedObjects(FReferenceCollector& Collector);
@@ -268,6 +283,7 @@ public:
 
 protected:
 	//~ Begin FVoxelBufferPoolBase Interface
+	virtual int64 GetMaxAllocatedNum() const override;
 	virtual FVoxelFuture ProcessUploadsImpl_AnyThread(TVoxelArray<FUpload>&& Uploads) override;
 	//~ End FVoxelBufferPoolBase Interface
 

@@ -25,6 +25,11 @@ FVoxelBufferRef::FVoxelBufferRef(
 	, Index(Index)
 	, PrivateNum(Num)
 {
+	if (IsOutOfMemory())
+	{
+		return;
+	}
+
 	const int64 UsedMemory = PrivateNum * Pool.BytesPerElement;
 	const int64 PaddingMemory = Pool.GetPoolSize(PoolIndex) * Pool.BytesPerElement - UsedMemory;
 
@@ -34,6 +39,11 @@ FVoxelBufferRef::FVoxelBufferRef(
 
 FVoxelBufferRef::~FVoxelBufferRef()
 {
+	if (IsOutOfMemory())
+	{
+		return;
+	}
+
 	const TSharedPtr<FVoxelBufferPoolBase> Pool = WeakPool.Pin();
 	if (!Pool)
 	{
@@ -117,6 +127,15 @@ TSharedRef<FVoxelBufferRef> FVoxelBufferPoolBase::Allocate_AnyThread(const int64
 		return PoolIndexToPool_RequiresLock[PoolIndex].Allocate(*this);
 	};
 
+	if (Index == -1)
+	{
+		return MakeShared<FVoxelBufferRef>(
+			*this,
+			-1,
+			0,
+			Num);
+	}
+
 	return MakeShared<FVoxelBufferRef>(
 		*this,
 		PoolIndex,
@@ -141,6 +160,20 @@ TVoxelFuture<FVoxelBufferRef> FVoxelBufferPoolBase::Upload_AnyThread(
 	if (!BufferRef)
 	{
 		BufferRef = Allocate_AnyThread(Num);
+	}
+
+	if (BufferRef->IsOutOfMemory())
+	{
+		if (OnOutOfMemory.IsBound())
+		{
+			OnOutOfMemory.Broadcast();
+		}
+		else
+		{
+			VOXEL_MESSAGE(Error, "Out of memory: {0}", BufferName);
+		}
+
+		return BufferRef.ToSharedRef();
 	}
 
 	TVoxelPromise<FVoxelBufferRef> Promise;
@@ -171,6 +204,13 @@ int64 FVoxelBufferPoolBase::FAllocationPool::Allocate(FVoxelBufferPoolBase& Pool
 		{
 			return FreeIndices_RequiresLock.Pop();
 		}
+	}
+
+	VOXEL_SCOPE_LOCK(Pool.BufferCount_CriticalSection);
+
+	if (Pool.BufferCount.Get() + PoolSize > Pool.GetMaxAllocatedNum())
+	{
+		return -1;
 	}
 
 	const int64 Index = Pool.BufferCount.Add_ReturnOld(PoolSize);
@@ -252,12 +292,22 @@ FVoxelFuture FVoxelBufferPoolBase::ProcessUploads_AnyThread()
 	checkVoxelSlow(NumBytes <= MAX_int32);
 	checkVoxelSlow(NumBytes % BytesPerElement == 0);
 
-	return ProcessUploadsImpl_AnyThread(MoveTemp(Uploads));
+	UpdateStats();
+
+	return ProcessUploadsImpl_AnyThread(MoveTemp(Uploads)).Then_AnyThread(MakeWeakPtrLambda(this, [this]
+	{
+		UpdateStats();
+	}));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+
+int64 FVoxelBufferPool::GetMaxAllocatedNum() const
+{
+	return FMath::DivideAndRoundDown<int64>(MAX_uint32, BytesPerElement);
+}
 
 FVoxelFuture FVoxelBufferPool::ProcessUploadsImpl_AnyThread(TVoxelArray<FUpload>&& Uploads)
 {
@@ -373,7 +423,7 @@ void FVoxelBufferPool::ProcessCopies_RenderThread(
 	ensure(CopyInfos.Num() > 0);
 
 	// Do this after dequeuing all copies to make sure we allocate a big enough buffer for them
-	const int64 Num = BufferCount.Get();
+	const int64 Num = FMath::Min(BufferCount.Get(), GetMaxAllocatedNum());
 
 	int64 AllocatedNum = FMath::RoundUpToPowerOfTwo64(Num);
 
@@ -381,7 +431,7 @@ void FVoxelBufferPool::ProcessCopies_RenderThread(
 	AllocatedNum = FMath::Max<int64>(32 * 1024 * 1024, AllocatedNum);
 
 	ensure(AllocatedNum <= 1 << 30);
-	AllocatedMemory.Set(AllocatedNum);
+	AllocatedMemory.Set(AllocatedNum * BytesPerElement);
 
 	if (!BufferRHI_RenderThread ||
 		int64(BufferRHI_RenderThread->GetSize()) < AllocatedNum * BytesPerElement)
@@ -439,11 +489,28 @@ void FVoxelBufferPool::ProcessCopies_RenderThread(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+FVoxelTextureBufferPool::FVoxelTextureBufferPool(
+	const int32 BytesPerElement,
+	const EPixelFormat PixelFormat,
+	const TCHAR* BufferName,
+	const int32 MaxTextureSize)
+	: FVoxelBufferPoolBase(BytesPerElement, PixelFormat, BufferName)
+	, MaxTextureSize(MaxTextureSize)
+{
+	check(FMath::IsPowerOfTwo(MaxTextureSize));
+	check(FMath::Square(MaxTextureSize) * BytesPerElement <= MAX_uint32);
+}
+
 void FVoxelTextureBufferPool::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	VOXEL_FUNCTION_COUNTER();
 
 	Collector.AddReferencedObject(Texture_GameThread);
+}
+
+int64 FVoxelTextureBufferPool::GetMaxAllocatedNum() const
+{
+	return FMath::Square(MaxTextureSize);
 }
 
 FVoxelFuture FVoxelTextureBufferPool::ProcessUploadsImpl_AnyThread(TVoxelArray<FUpload>&& Uploads)
@@ -460,13 +527,13 @@ FVoxelFuture FVoxelTextureBufferPool::ProcessUploadsImpl_AnyThread(TVoxelArray<F
 		UTexture2D* OldTexture = Texture_GameThread;
 		{
 			// Do this after dequeuing all copies to make sure we allocate a big enough buffer for them
-			const int64 Num = BufferCount.Get();
+			const int64 Num = FMath::Min(BufferCount.Get(), GetMaxAllocatedNum());
 			const int32 Size = FMath::Max<int32>(1024, FMath::RoundUpToPowerOfTwo(FMath::CeilToInt(FMath::Sqrt(double(Num)))));
 
 			{
 				const int64 AllocatedNum = FMath::Square<int64>(Size);
 				ensure(AllocatedNum <= 1 << 30);
-				AllocatedMemory.Set(AllocatedNum);
+				AllocatedMemory.Set(AllocatedNum * BytesPerElement);
 			}
 
 			if (!Texture_GameThread ||

@@ -107,7 +107,7 @@ UTexture2D* FVoxelTextureUtilities::CreateTexture2D(
 	const bool bSRGB,
 	const TextureFilter Filter,
 	const EPixelFormat PixelFormat,
-	TFunction<void(TVoxelArrayView<uint8> Data)> InitializeMip0,
+	TFunction<void(TVoxelArrayView64<uint8> Data)> InitializeMip0,
 	UTexture2D* ExistingTexture)
 {
 	VOXEL_FUNCTION_COUNTER();
@@ -125,7 +125,7 @@ UTexture2D* FVoxelTextureUtilities::CreateTexture2D(
 	const int32 NumBlocksY = SizeY / GPixelFormats[PixelFormat].BlockSizeY;
 
 	const int64 NumBytes = int64(NumBlocksX) * int64(NumBlocksY) * int64(GPixelFormats[PixelFormat].BlockBytes);
-	if (!ensure(NumBytes < MAX_int32))
+	if (!ensure(NumBytes <= MAX_uint32))
 	{
 		return nullptr;
 	}
@@ -158,7 +158,7 @@ UTexture2D* FVoxelTextureUtilities::CreateTexture2D(
 		void* Data = Mip->BulkData.Realloc(NumBytes);
 		if (ensure(Data))
 		{
-			const TVoxelArrayView<uint8> DataView(static_cast<uint8*>(Data), NumBytes);
+			const TVoxelArrayView64<uint8> DataView(static_cast<uint8*>(Data), NumBytes);
 			if (InitializeMip0)
 			{
 				InitializeMip0(DataView);
