@@ -323,6 +323,7 @@ void CreatePageData(
 		return PageData.Num() - PageStartIndex;
 	};
 
+	const int32 StartVertexOffset = VertexOffset;
 	const int32 NumUVs = Clusters[0].TextureCoordinates.Num();
 
 	for (FCluster& Cluster : Clusters)
@@ -356,8 +357,11 @@ void CreatePageData(
 		FPackedCluster& PackedCluster = PackedClusters.Emplace_GetRef();
 		PackedCluster = Cluster.Pack(Info);
 
-		ensure(FVoxelUtilities::IsValidUINT16(VertexOffset));
-		PackedCluster.SetGroupIndex(VertexOffset);
+		{
+			const int32 RelativeVertexOffset = VertexOffset - StartVertexOffset;
+			ensure(FVoxelUtilities::IsValidUINT16(RelativeVertexOffset));
+			PackedCluster.SetGroupIndex(RelativeVertexOffset);
+		}
 		VertexOffset += Cluster.NumVertices();
 
 		constexpr int32 NumBits_BatchCount = 4;

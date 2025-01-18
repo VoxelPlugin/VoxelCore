@@ -5,7 +5,7 @@
 #include "Engine/StaticMesh.h"
 #include "Rendering/NaniteResources.h"
 
-TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
+TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData(TVoxelArray<int32>& OutVertexOffsets)
 {
 	VOXEL_FUNCTION_COUNTER();
 	check(Mesh.Positions.Num() == Mesh.Normals.Num());
@@ -218,6 +218,8 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
 
 		const int32 PageStartIndex = RootData.Num();
 
+		OutVertexOffsets.Add(VertexOffset);
+
 		CreatePageData(
 			Clusters,
 			EncodingSettings,
@@ -288,7 +290,8 @@ UStaticMesh* FVoxelNaniteBuilder::CreateStaticMesh()
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	return CreateStaticMesh(CreateRenderData());
+	TVoxelArray<int32> VertexOffsets;
+	return CreateStaticMesh(CreateRenderData(VertexOffsets));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
