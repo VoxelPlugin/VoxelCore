@@ -386,6 +386,15 @@ namespace FVoxelUtilities
 		return FloatBits(0xFFFFFFFFFFFFFFFF_u64);
 	}
 
+	FORCEINLINE float FloatInf()
+	{
+		return FloatBits(0x7F800000u);
+	}
+	FORCEINLINE double DoubleInf()
+	{
+		return FloatBits(0x7FF0000000000000_u64);
+	}
+
 	FORCEINLINE bool IsNaN(const float Value)
 	{
 		const bool bIsNaN = (IntBits(Value) & 0x7FFFFFFF) > 0x7F800000;
