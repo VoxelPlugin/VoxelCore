@@ -12,9 +12,11 @@ struct VOXELCORE_API FVoxelBox2D
 {
 	GENERATED_BODY()
 
+	// Included
 	UPROPERTY()
 	FVector2D Min = FVector2D(ForceInit);
 
+	// Included (has to be otherwise FVoxelBox2D(X).Contains(X) is false)
 	UPROPERTY()
 	FVector2D Max = FVector2D(ForceInit);
 
@@ -171,12 +173,12 @@ struct VOXELCORE_API FVoxelBox2D
 
 	FORCEINLINE bool Intersects(const FVoxelBox2D& Other) const
 	{
-		if (Min.X >= Other.Max.X || Other.Min.X >= Max.X)
+		if (Min.X > Other.Max.X || Other.Min.X > Max.X)
 		{
 			return false;
 		}
 
-		if (Min.Y >= Other.Max.Y || Other.Min.Y >= Max.Y)
+		if (Min.Y > Other.Max.Y || Other.Min.Y > Max.Y)
 		{
 			return false;
 		}
@@ -206,8 +208,8 @@ struct VOXELCORE_API FVoxelBox2D
 		const FVector2D NewMin = FVoxelUtilities::ComponentMax(Min, Other.Min);
 		const FVector2D NewMax = FVoxelUtilities::ComponentMin(Max, Other.Max);
 
-		if (NewMin.X >= NewMax.X ||
-			NewMin.Y >= NewMax.Y)
+		if (NewMin.X > NewMax.X ||
+			NewMin.Y > NewMax.Y)
 		{
 			return {};
 		}

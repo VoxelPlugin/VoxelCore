@@ -14,9 +14,11 @@ struct VOXELCORE_API FVoxelBox
 {
 	GENERATED_BODY()
 
+	// Included
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Voxel")
 	FVector Min = FVector3d(ForceInit);
 
+	// Included (has to be otherwise FVoxelBox(X).Contains(X) is false)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Voxel")
 	FVector Max = FVector3d(ForceInit);
 
@@ -144,13 +146,6 @@ struct VOXELCORE_API FVoxelBox
 	FORCEINLINE bool Contains(const double X, const double Y, const double Z) const
 	{
 		return
-			(Min.X <= X) && (X < Max.X) &&
-			(Min.Y <= Y) && (Y < Max.Y) &&
-			(Min.Z <= Z) && (Z < Max.Z);
-	}
-	FORCEINLINE bool ContainsInclusive(const double X, const double Y, const double Z) const
-	{
-		return
 			(Min.X <= X) && (X <= Max.X) &&
 			(Min.Y <= Y) && (Y <= Max.Y) &&
 			(Min.Z <= Z) && (Z <= Max.Z);
@@ -173,19 +168,6 @@ struct VOXELCORE_API FVoxelBox
 		return Contains(Vector.X, Vector.Y, Vector.Z);
 	}
 
-	FORCEINLINE bool ContainsInclusive(const FIntVector& Vector) const
-	{
-		return ContainsInclusive(Vector.X, Vector.Y, Vector.Z);
-	}
-	FORCEINLINE bool ContainsInclusive(const FVector3f& Vector) const
-	{
-		return ContainsInclusive(Vector.X, Vector.Y, Vector.Z);
-	}
-	FORCEINLINE bool ContainsInclusive(const FVector3d& Vector) const
-	{
-		return ContainsInclusive(Vector.X, Vector.Y, Vector.Z);
-	}
-
 	FORCEINLINE bool Contains(const FVoxelBox& Other) const
 	{
 		return
@@ -196,17 +178,17 @@ struct VOXELCORE_API FVoxelBox
 
 	FORCEINLINE bool Intersects(const FVoxelBox& Other) const
 	{
-		if (Min.X >= Other.Max.X || Other.Min.X >= Max.X)
+		if (Min.X > Other.Max.X || Other.Min.X > Max.X)
 		{
 			return false;
 		}
 
-		if (Min.Y >= Other.Max.Y || Other.Min.Y >= Max.Y)
+		if (Min.Y > Other.Max.Y || Other.Min.Y > Max.Y)
 		{
 			return false;
 		}
 
-		if (Min.Z >= Other.Max.Z || Other.Min.Z >= Max.Z)
+		if (Min.Z > Other.Max.Z || Other.Min.Z > Max.Z)
 		{
 			return false;
 		}
@@ -240,9 +222,9 @@ struct VOXELCORE_API FVoxelBox
 		const FVector NewMin = FVoxelUtilities::ComponentMax(Min, Other.Min);
 		const FVector NewMax = FVoxelUtilities::ComponentMin(Max, Other.Max);
 
-		if (NewMin.X >= NewMax.X ||
-			NewMin.Y >= NewMax.Y ||
-			NewMin.Z >= NewMax.Z)
+		if (NewMin.X > NewMax.X ||
+			NewMin.Y > NewMax.Y ||
+			NewMin.Z > NewMax.Z)
 		{
 			return {};
 		}
