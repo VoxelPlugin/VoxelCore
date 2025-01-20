@@ -420,44 +420,6 @@ struct VOXELCORE_API FVoxelIntBox
 		bool bUseOverlap,
 		int32 MaxChildren = -1) const;
 
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, bool>>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType(const FVoxelIntBox&)>>
-	void IterateChunks(const int32 ChunkSize, LambdaType&& Lambda) const
-	{
-		const FIntVector KeyMin = FVoxelUtilities::DivideFloor(Min, ChunkSize);
-		const FIntVector KeyMax = FVoxelUtilities::DivideCeil(Max, ChunkSize);
-
-		for (int32 X = KeyMin.X; X < KeyMax.X; X++)
-		{
-			for (int32 Y = KeyMin.Y; Y < KeyMax.Y; Y++)
-			{
-				for (int32 Z = KeyMin.Z; Z < KeyMax.Z; Z++)
-				{
-					FVoxelIntBox Chunk(
-						FIntVector(ChunkSize * (X + 0), ChunkSize * (Y + 0), ChunkSize * (Z + 0)),
-						FIntVector(ChunkSize * (X + 1), ChunkSize * (Y + 1), ChunkSize * (Z + 1)));
-
-					Chunk = Chunk.IntersectWith(*this);
-
-					if constexpr (std::is_void_v<ReturnType>)
-					{
-						Lambda(Chunk);
-					}
-					else
-					{
-						if (!Lambda(Chunk))
-						{
-							return;
-						}
-					}
-				}
-			}
-		}
-	}
-
 	FORCEINLINE FVoxelIntBox Scale(float S) const = delete;
 	FORCEINLINE FVoxelIntBox Scale(const int32 S) const
 	{
