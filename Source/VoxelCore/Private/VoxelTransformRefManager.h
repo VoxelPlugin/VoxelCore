@@ -23,7 +23,7 @@ private:
 
 	FVoxelCriticalSection CriticalSection;
 	TVoxelArray<TSharedPtr<FVoxelTransformRefImpl>> SharedTransformRefs_RequiresLock;
-	TVoxelMap<FObjectKey, TVoxelSet<TWeakPtr<FVoxelTransformRefImpl>>> ComponentToWeakTransformRefs_RequiresLock;
+	TVoxelMap<TObjectKey<USceneComponent>, TVoxelSet<TWeakPtr<FVoxelTransformRefImpl>>> ComponentToWeakTransformRefs_RequiresLock;
 	TVoxelMap<FVoxelTransformRefNodeArray, TWeakPtr<FVoxelTransformRefImpl>> NodeArrayToWeakTransformRef_RequiresLock;
 };
 extern FVoxelTransformRefManager* GVoxelTransformRefManager;

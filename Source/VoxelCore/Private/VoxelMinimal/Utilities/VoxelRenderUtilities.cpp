@@ -73,26 +73,24 @@ FMaterialRenderProxy* FVoxelUtilities::CreateColoredMaterialRenderProxy(
 ///////////////////////////////////////////////////////////////////////////////
 
 bool FVoxelUtilities::UpdateTextureRef(
-	UTexture2D* TextureObject,
+	FTextureResource* Resource,
 	FRHITexture* TextureRHI)
 {
 	VOXEL_FUNCTION_COUNTER();
 	ensure(IsInRenderingThread());
 
-	if (!ensure(TextureObject) ||
+	if (!ensure(Resource) ||
 		!ensure(TextureRHI))
 	{
 		return false;
 	}
 
-	ensure(TextureObject->GetSizeX() == TextureRHI->GetSizeX());
-	ensure(TextureObject->GetSizeY() == TextureRHI->GetSizeY());
-	ensure(TextureObject->GetPixelFormat() == TextureRHI->GetFormat());
+	ensure(Resource->GetSizeX() == TextureRHI->GetSizeX());
+	ensure(Resource->GetSizeY() == TextureRHI->GetSizeY());
 
-	FTextureResource* Resource = TextureObject->GetResource();
-	if (!ensure(Resource))
+	if (Resource->TextureRHI)
 	{
-		return false;
+		ensure(Resource->TextureRHI->GetFormat() == TextureRHI->GetFormat());
 	}
 
 	FTextureRHIRef OldTextureRHI = Resource->TextureRHI;
@@ -124,13 +122,13 @@ bool FVoxelUtilities::UpdateTextureRef(
 ///////////////////////////////////////////////////////////////////////////////
 
 FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
-	const TWeakObjectPtr<UTexture2D> TargetTexture,
+	UTexture2D* TargetTexture,
 	const TSharedRef<const TVoxelArray<uint8>>& Data)
 {
 	VOXEL_FUNCTION_COUNTER();
 	ensure(IsInGameThread());
 
-	if (!ensure(TargetTexture.IsValid()))
+	if (!ensure(TargetTexture))
 	{
 		return {};
 	}
@@ -145,20 +143,20 @@ FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
 
 	if (!GRHISupportsAsyncTextureCreation)
 	{
-		return Voxel::RenderTask([=]
+		FTextureResource* Resource = TargetTexture->GetResource();
+		if (!ensure(Resource))
+		{
+			return {};
+		}
+
+		return Voxel::RenderTask([
+			Data,
+			SizeX,
+			SizeY,
+			Format,
+			Resource]
 		{
 			VOXEL_FUNCTION_COUNTER();
-
-			if (!TargetTexture.IsValid())
-			{
-				return;
-			}
-
-			FTextureResource* Resource = TargetTexture->GetResource();
-			if (!ensure(Resource))
-			{
-				return;
-			}
 
 			const TRefCountPtr<FRHITexture> UploadTextureRHI = RHICreateTexture(
 				FRHITextureCreateDesc::Create2D(TEXT("AsyncCopyTexture"))
@@ -208,7 +206,12 @@ FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
 		});
 	}
 
-	return Voxel::AsyncTask([=]
+	return Voxel::AsyncTask([
+		Data,
+		SizeX,
+		SizeY,
+		Format,
+		WeakTargetTexture = MakeObjectKey(TargetTexture)]
 	{
 		VOXEL_FUNCTION_COUNTER();
 		VOXEL_SCOPE_COUNTER("RHIAsyncCreateTexture2D");
@@ -240,9 +243,24 @@ FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
 			return FVoxelFuture();
 		}
 
-		return Voxel::RenderTask([=]
+		return Voxel::GameTask([=]() -> FVoxelFuture
 		{
-			UpdateTextureRef(TargetTexture.Get(), UploadTextureRHI);
+			UTexture2D* ResolvedTargetTexture = WeakTargetTexture.ResolveObjectPtr();
+			if (!ensureVoxelSlow(ResolvedTargetTexture))
+			{
+				return {};
+			}
+
+			FTextureResource* Resource = ResolvedTargetTexture->GetResource();
+			if (!ensure(Resource))
+			{
+				return {};
+			}
+
+			return Voxel::RenderTask([=]
+			{
+				UpdateTextureRef(Resource, UploadTextureRHI);
+			});
 		});
 	});
 }

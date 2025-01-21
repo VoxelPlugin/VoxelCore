@@ -22,24 +22,26 @@ public:
 	FORCEINLINE UWorld* GetWorld() const
 	{
 		checkVoxelSlow(IsInGameThread());
-		checkVoxelSlow(PrivateWorld.IsValid());
-		return PrivateWorld.Get();
+
+		UWorld* World = PrivateWorld.ResolveObjectPtr();
+		ensureVoxelSlow(World);
+		return World;
 	}
-	FORCEINLINE FObjectKey GetWorld_AnyThread() const
+	FORCEINLINE TObjectKey<UWorld> GetWorld_AnyThread() const
 	{
-		return MakeObjectKey(PrivateWorld);
+		return PrivateWorld;
 	}
 
 protected:
 	static TSharedRef<IVoxelWorldSubsystem> GetInternal(
-		FObjectKey World,
+		TObjectKey<UWorld> World,
 		FName Name,
 		TSharedRef<IVoxelWorldSubsystem>(*Constructor)());
 
 	static TVoxelArray<TSharedRef<IVoxelWorldSubsystem>> GetAllInternal(FName Name);
 
 private:
-	TWeakObjectPtr<UWorld> PrivateWorld;
+	TObjectKey<UWorld> PrivateWorld;
 };
 
 #define GENERATED_VOXEL_WORLD_SUBSYSTEM_BODY(Name) \
@@ -50,13 +52,9 @@ private:
 	} \
 	FORCEINLINE static TSharedRef<Name> Get(const UWorld* World) \
 	{ \
-		return Get(MakeObjectKey(World)); \
+		return Get(MakeObjectKey(ConstCast(World))); \
 	} \
-	FORCEINLINE static TSharedRef<Name> Get(const TWeakObjectPtr<const UWorld> World) \
-	{ \
-		return Get(MakeObjectKey(World)); \
-	} \
-	FORCEINLINE static TSharedRef<Name> Get(const FObjectKey World) \
+	FORCEINLINE static TSharedRef<Name> Get(const TObjectKey<UWorld> World) \
 	{ \
 		return StaticCastSharedRef<Name>(GetInternal(World, STATIC_FNAME(#Name), &__Constructor)); \
 	} \

@@ -23,11 +23,11 @@ void UVoxelObjectWithGuid::PostLoad()
 	UpdateGuid();
 
 #if WITH_EDITOR
-	static TVoxelMap<FGuid, TWeakObjectPtr<UVoxelObjectWithGuid>> GuidToObject;
+	static TVoxelMap<FGuid, TObjectKey<UVoxelObjectWithGuid>> GuidToObject;
 
 	if (GuidToObject.Contains(PrivateGuid))
 	{
-		if (UVoxelObjectWithGuid* Object = GuidToObject.FindChecked(PrivateGuid).Get())
+		if (UVoxelObjectWithGuid* Object = GuidToObject.FindChecked(PrivateGuid).ResolveObjectPtr())
 		{
 			if (Object != this &&
 				Object->PrivateGuid == PrivateGuid)

@@ -75,7 +75,7 @@ public:
 
 	static TSharedRef<FVoxelMessageToken> CreateTextToken(const FString& Text);
 	static TSharedRef<FVoxelMessageToken> CreatePinToken(const UEdGraphPin* Pin);
-	static TSharedRef<FVoxelMessageToken> CreateObjectToken(TWeakObjectPtr<const UObject> WeakObject);
+	static TSharedRef<FVoxelMessageToken> CreateObjectToken(TObjectKey<UObject> WeakObject);
 	static TSharedRef<FVoxelMessageToken> CreateArrayToken(const TVoxelArray<TSharedRef<FVoxelMessageToken>>& Tokens);
 
 private:
@@ -127,12 +127,22 @@ DECLARE(double);
 ///////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-struct TVoxelMessageTokenFactory<TWeakObjectPtr<T>>
+struct TVoxelMessageTokenFactory<TObjectKey<T>>
 {
-	static TSharedRef<FVoxelMessageToken> CreateToken(const TWeakObjectPtr<const T> Object)
+	static TSharedRef<FVoxelMessageToken> CreateToken(const TObjectKey<T> Object)
 	{
 		// Don't require including T
-		return FVoxelMessageTokenFactory::CreateObjectToken(ReinterpretCastRef<TWeakObjectPtr<UObject>>(Object));
+		return FVoxelMessageTokenFactory::CreateObjectToken(ReinterpretCastRef<TObjectKey<UObject>>(Object));
+	}
+};
+
+template<typename T>
+struct TVoxelMessageTokenFactory<TWeakObjectPtr<T>>
+{
+	static TSharedRef<FVoxelMessageToken> CreateToken(const TWeakObjectPtr<T> Object)
+	{
+		// Don't require including T
+		return FVoxelMessageTokenFactory::CreateObjectToken(ReinterpretCastRef<TObjectKey<UObject>>(Object));
 	}
 };
 

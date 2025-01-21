@@ -12,18 +12,13 @@ FVoxelDebugDrawer::FVoxelDebugDrawer()
 {
 }
 
-FVoxelDebugDrawer::FVoxelDebugDrawer(const FObjectKey& World)
+FVoxelDebugDrawer::FVoxelDebugDrawer(const TObjectKey<UWorld>& World)
 {
 	PrivateState->PrivateWorld = World;
 }
 
 FVoxelDebugDrawer::FVoxelDebugDrawer(const UWorld* World)
-	: FVoxelDebugDrawer(MakeObjectKey(World))
-{
-}
-
-FVoxelDebugDrawer::FVoxelDebugDrawer(const TWeakObjectPtr<UWorld>& World)
-	: FVoxelDebugDrawer(MakeObjectKey(World))
+	: FVoxelDebugDrawer(MakeObjectKey(ConstCast(World)))
 {
 }
 
@@ -145,7 +140,7 @@ UWorld* FVoxelDebugDrawer::FState::GetWorld() const
 {
 	ensureVoxelSlow(IsInGameThread());
 
-	if (PrivateWorld == FObjectKey())
+	if (IsObjectKeyNull(PrivateWorld))
 	{
 		return GWorld;
 	}

@@ -39,12 +39,14 @@ public:
 	// Will be null if the asset is force deleted
 	FORCEINLINE UMaterialInterface* GetMaterial() const
 	{
-		checkVoxelSlow(Material == WeakMaterial.Get() || !WeakMaterial.IsValid());
+#if VOXEL_DEBUG
+		UMaterialInterface* ResolvedMaterial = WeakMaterial.ResolveObjectPtr();
+		ensure(!ResolvedMaterial || Material == ResolvedMaterial);
+#endif
 		return Material;
 	}
-	FORCEINLINE TWeakObjectPtr<UMaterialInterface> GetWeakMaterial() const
+	FORCEINLINE TObjectKey<UMaterialInterface> GetWeakMaterial() const
 	{
-		checkVoxelSlow(Material == WeakMaterial.Get() || !WeakMaterial.IsValid());
 		return WeakMaterial;
 	}
 	// If true, this a material instance the plugin created & we can set parameters on it
@@ -73,12 +75,12 @@ private:
 	FVoxelMaterialRef() = default;
 
 	TObjectPtr<UMaterialInterface> Material;
-	TWeakObjectPtr<UMaterialInterface> WeakMaterial;
+	TObjectKey<UMaterialInterface> WeakMaterial;
 	TSharedPtr<FVoxelMaterialInstanceRef> MaterialInstanceRef;
 
 	TVoxelMap<FName, float> ScalarParameters;
 	TVoxelMap<FName, FVector4> VectorParameters;
-	TVoxelMap<FName, TWeakObjectPtr<UTexture>> TextureParameters;
+	TVoxelMap<FName, TObjectKey<UTexture>> TextureParameters;
 	TVoxelMap<FName, TSharedPtr<FVoxelDynamicMaterialParameter>> DynamicParameters;
 
 	TQueue<FSharedVoidPtr, EQueueMode::Mpsc> Resources;

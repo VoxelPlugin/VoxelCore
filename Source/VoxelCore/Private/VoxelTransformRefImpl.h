@@ -12,13 +12,13 @@ public:
 	explicit FVoxelTransformRefProvider(const FMatrix& LocalToWorld)
 		: bIsConstant(true)
 		, LocalToWorld(LocalToWorld)
-		, WeakComponent({})
+		, Component({})
 	{
 	}
 	explicit FVoxelTransformRefProvider(const USceneComponent& Component)
 		: bIsConstant(false)
 		, LocalToWorld({})
-		, WeakComponent(&Component)
+		, Component(&Component)
 	{
 	}
 
@@ -31,10 +31,10 @@ public:
 		checkVoxelSlow(IsConstant());
 		return LocalToWorld;
 	}
-	FORCEINLINE const TWeakObjectPtr<const USceneComponent>& GetWeakComponent() const
+	FORCEINLINE const TObjectKey<USceneComponent>& GetComponent() const
 	{
 		checkVoxelSlow(!IsConstant());
-		return WeakComponent;
+		return Component;
 	}
 
 	FORCEINLINE bool operator==(const FVoxelTransformRefProvider& Other) const
@@ -49,7 +49,7 @@ public:
 			return LocalToWorld == Other.LocalToWorld;
 		}
 
-		return MakeObjectKey(WeakComponent) == MakeObjectKey(Other.WeakComponent);
+		return Component == Other.Component;
 	}
 
 	FORCEINLINE friend uint32 GetTypeHash(const FVoxelTransformRefProvider& Provider)
@@ -59,13 +59,13 @@ public:
 			return FVoxelUtilities::MurmurHash(Provider.LocalToWorld);
 		}
 
-		return GetTypeHash(Provider.WeakComponent);
+		return GetTypeHash(Provider.Component);
 	}
 
 private:
 	const bool bIsConstant;
 	const FMatrix LocalToWorld;
-	const TWeakObjectPtr<const USceneComponent> WeakComponent;
+	const TObjectKey<USceneComponent> Component;
 };
 
 struct FVoxelTransformRefNode
@@ -85,7 +85,7 @@ struct FVoxelTransformRefNode
 			return;
 		}
 
-		const USceneComponent* Component = Provider.GetWeakComponent().Get();
+		const USceneComponent* Component = Provider.GetComponent().ResolveObjectPtr();
 		if (!ensureVoxelSlow(Component))
 		{
 			return;

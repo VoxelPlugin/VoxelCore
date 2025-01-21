@@ -38,8 +38,8 @@ public:
 	TVoxelSet<TSharedPtr<FVoxelMaterialInstanceRef>> MaterialInstanceRefs;
 
 	// We don't want to keep the parents alive
-	TVoxelMap<TWeakObjectPtr<UMaterialInterface>, FVoxelInstancePool> InstancePools;
-	TVoxelMap<TWeakObjectPtr<UMaterialInstanceDynamic>, TVoxelArray<TWeakPtr<FVoxelMaterialRef>>> InstanceToChildren;
+	TVoxelMap<TObjectKey<UMaterialInterface>, FVoxelInstancePool> InstancePools;
+	TVoxelMap<TObjectKey<UMaterialInstanceDynamic>, TVoxelArray<TWeakPtr<FVoxelMaterialRef>>> InstanceToChildren;
 
 public:
 	//~ Begin FVoxelSingleton Interface
@@ -63,7 +63,8 @@ public:
 			const double AccessTimeThreshold = FPlatformTime::Seconds() - 30.f;
 			for (auto It = InstancePools.CreateIterator(); It; ++It)
 			{
-				if (!It.Key().IsValid() || It.Value().LastAccessTime < AccessTimeThreshold)
+				if (!It.Key().ResolveObjectPtr() ||
+					It.Value().LastAccessTime < AccessTimeThreshold)
 				{
 					DEC_VOXEL_COUNTER_BY(STAT_VoxelNumMaterialInstancesPooled, It.Value().Instances.Num());
 					It.RemoveCurrent();
@@ -212,7 +213,7 @@ TSharedRef<FVoxelMaterialRef> FVoxelMaterialRef::MakeInstance(UMaterialInterface
 
 		for (auto It = GVoxelMaterialRefManager->InstanceToChildren.CreateIterator(); It; ++It)
 		{
-			if (!It.Key().IsValid())
+			if (!It.Key().ResolveObjectPtr())
 			{
 				It.RemoveCurrent();
 			}
@@ -234,7 +235,7 @@ void FVoxelMaterialRef::RefreshInstance(UMaterialInstanceDynamic& Instance)
 	VOXEL_FUNCTION_COUNTER();
 	check(IsInGameThread());
 
-	const TVoxelArray<TWeakPtr<FVoxelMaterialRef>>* ChildrenPtr = GVoxelMaterialRefManager->InstanceToChildren.Find(TWeakObjectPtr<UMaterialInstanceDynamic>(&Instance));
+	const TVoxelArray<TWeakPtr<FVoxelMaterialRef>>* ChildrenPtr = GVoxelMaterialRefManager->InstanceToChildren.Find(&Instance);
 	if (!ChildrenPtr)
 	{
 		return;
@@ -268,7 +269,7 @@ void FVoxelMaterialRef::RefreshInstance(UMaterialInstanceDynamic& Instance)
 		}
 		for (const auto& It : MaterialRef->TextureParameters)
 		{
-			MaterialInstance->SetTextureParameterValue(It.Key, It.Value.Get());
+			MaterialInstance->SetTextureParameterValue(It.Key, It.Value.ResolveObjectPtr());
 		}
 		for (const auto& It : MaterialRef->DynamicParameters)
 		{
@@ -424,14 +425,15 @@ const FVector4* FVoxelMaterialRef::FindVectorParameter(const FName Name) const
 UTexture* FVoxelMaterialRef::FindTextureParameter(const FName Name) const
 {
 	ensureVoxelSlow(IsInstance());
-	const TWeakObjectPtr<UTexture>* TexturePtr = TextureParameters.Find(Name);
+	const TObjectKey<UTexture>* TexturePtr = TextureParameters.Find(Name);
 	if (!TexturePtr)
 	{
 		return nullptr;
 	}
 
-	ensure(TexturePtr->IsValid());
-	return TexturePtr->Get();
+	UTexture* Texture = TexturePtr->ResolveObjectPtr();
+	ensure(Texture);
+	return Texture;
 }
 
 TSharedPtr<FVoxelDynamicMaterialParameter> FVoxelMaterialRef::FindDynamicParameter(const FName Name) const

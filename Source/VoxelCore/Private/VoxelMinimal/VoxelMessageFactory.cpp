@@ -24,7 +24,7 @@ TSharedRef<FVoxelMessageToken> FVoxelMessageTokenFactory::CreatePinToken(const U
 	return Result;
 }
 
-TSharedRef<FVoxelMessageToken> FVoxelMessageTokenFactory::CreateObjectToken(const TWeakObjectPtr<const UObject> WeakObject)
+TSharedRef<FVoxelMessageToken> FVoxelMessageTokenFactory::CreateObjectToken(const TObjectKey<UObject> WeakObject)
 {
 	const TSharedRef<FVoxelMessageToken_Object> Result = MakeShared<FVoxelMessageToken_Object>();
 	Result->WeakObject = WeakObject;

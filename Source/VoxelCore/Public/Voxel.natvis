@@ -422,14 +422,14 @@
     <DisplayString>{(Components.Sign*-2+1) * 1.0f + Components.Mantissa/1024.0f}</DisplayString>
   </Type>
 
-  <!-- FObjectKey visualizer -->
-  <Type Name="FObjectKey">
-    <SmartPointer Usage="Minimal">GObjectArrayForDebugVisualizers->Objects[ObjectIndex / 65536][ObjectIndex % 65536].Object</SmartPointer>
+  <!-- TObjectKey visualizer -->
+  <Type Name="TObjectKey&lt;*&gt;">
+    <SmartPointer Usage="Minimal">($T1*)GObjectArrayForDebugVisualizers->Objects[ObjectIndex / 65536][ObjectIndex % 65536].Object</SmartPointer>
     <DisplayString Condition="ObjectSerialNumber &lt; 1">nullptr</DisplayString>
     <DisplayString Condition="GObjectArrayForDebugVisualizers->Objects[ObjectIndex / 65536][ObjectIndex % 65536].SerialNumber != ObjectSerialNumber">STALE</DisplayString>
-    <DisplayString>{GObjectArrayForDebugVisualizers->Objects[ObjectIndex / 65536][ObjectIndex % 65536].Object}</DisplayString>
+    <DisplayString>{($T1*)GObjectArrayForDebugVisualizers->Objects[ObjectIndex / 65536][ObjectIndex % 65536].Object}</DisplayString>
     <Expand>
-      <ExpandedItem>GObjectArrayForDebugVisualizers->Objects[ObjectIndex / 65536][ObjectIndex % 65536].Object</ExpandedItem>
+      <ExpandedItem>($T1*)GObjectArrayForDebugVisualizers->Objects[ObjectIndex / 65536][ObjectIndex % 65536].Object</ExpandedItem>
     </Expand>
   </Type>
 

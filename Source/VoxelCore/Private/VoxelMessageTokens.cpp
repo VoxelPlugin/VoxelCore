@@ -44,7 +44,7 @@ FString FVoxelMessageToken_Object::ToString() const
 {
 	ensure(IsInGameThread());
 
-	const UObject* Object = WeakObject.Get();
+	const UObject* Object = WeakObject.ResolveObjectPtr();
 	if (!Object)
 	{
 		return "<null>";
@@ -98,19 +98,15 @@ TSharedRef<IMessageToken> FVoxelMessageToken_Object::GetMessageToken() const
 	ensure(IsInGameThread());
 
 #if WITH_EDITOR
-	return FActionToken::Create(
-			FText::FromString(ToString()),
-			FText::FromString(WeakObject.IsValid() ? WeakObject->GetPathName() : "null"),
-			MakeLambdaDelegate([WeakObject = WeakObject]
-			{
-				const UObject* Object = WeakObject.Get();
-				if (!Object)
-				{
-					return;
-				}
+	const UObject* Object = WeakObject.ResolveObjectPtr();
 
-				FVoxelUtilities::FocusObject(Object);
-			}));
+	return FActionToken::Create(
+		FText::FromString(ToString()),
+		FText::FromString(Object ? Object->GetPathName() : "null"),
+		MakeWeakObjectPtrDelegate(Object, [Object]
+		{
+			FVoxelUtilities::FocusObject(Object);
+		}));
 #else
 	return Super::GetMessageToken();
 #endif
@@ -119,7 +115,7 @@ TSharedRef<IMessageToken> FVoxelMessageToken_Object::GetMessageToken() const
 void FVoxelMessageToken_Object::GetObjects(TSet<const UObject*>& OutObjects) const
 {
 	ensure(IsInGameThread());
-	OutObjects.Add(WeakObject.Get());
+	OutObjects.Add(WeakObject.ResolveObjectPtr());
 }
 
 ///////////////////////////////////////////////////////////////////////////////

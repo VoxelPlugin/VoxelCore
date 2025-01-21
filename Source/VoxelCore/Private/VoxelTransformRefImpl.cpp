@@ -97,7 +97,7 @@ void FVoxelTransformRefImpl::Update_GameThread()
 		}
 		else
 		{
-			const USceneComponent* Component = Node.Provider.GetWeakComponent().Get();
+			const USceneComponent* Component = Node.Provider.GetComponent().ResolveObjectPtr();
 			if (!/*ensureVoxelSlow*/(Component))
 			{
 				continue;

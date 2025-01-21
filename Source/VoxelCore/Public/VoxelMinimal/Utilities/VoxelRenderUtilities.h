@@ -7,6 +7,7 @@
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 #include "PixelShaderUtils.h"
 
+class FTextureResource;
 class FMeshElementCollector;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -49,11 +50,11 @@ namespace FVoxelUtilities
 		const UMaterialInterface* Material = nullptr);
 
 	VOXELCORE_API bool UpdateTextureRef(
-		UTexture2D* TextureObject,
+		FTextureResource* Resource,
 		FRHITexture* TextureRHI);
 
 	VOXELCORE_API FVoxelFuture AsyncCopyTexture(
-		TWeakObjectPtr<UTexture2D> TargetTexture,
+		UTexture2D* TargetTexture,
 		const TSharedRef<const TVoxelArray<uint8>>& Data);
 
 	VOXELCORE_API void ResetPreviousLocalToWorld(const UPrimitiveComponent& Component);

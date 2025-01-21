@@ -40,7 +40,7 @@ TSharedRef<FVoxelTransformRefImpl> FVoxelTransformRefManager::Make_AnyThread(con
 			continue;
 		}
 
-		ComponentToWeakTransformRefs_RequiresLock.FindOrAdd(MakeObjectKey(Node.Provider.GetWeakComponent())).Add(TransformRef);
+		ComponentToWeakTransformRefs_RequiresLock.FindOrAdd(Node.Provider.GetComponent()).Add(TransformRef);
 	}
 
 	// Keep the transform ref alive for better reuse between tasks

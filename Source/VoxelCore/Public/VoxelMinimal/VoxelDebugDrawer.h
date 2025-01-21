@@ -10,9 +10,8 @@ class VOXELCORE_API FVoxelDebugDrawer
 {
 public:
 	FVoxelDebugDrawer();
-	explicit FVoxelDebugDrawer(const FObjectKey& World);
+	explicit FVoxelDebugDrawer(const TObjectKey<UWorld>& World);
 	explicit FVoxelDebugDrawer(const UWorld* World);
-	explicit FVoxelDebugDrawer(const TWeakObjectPtr<UWorld>& World);
 	~FVoxelDebugDrawer();
 
 public:
@@ -57,7 +56,7 @@ public:
 private:
 	struct FState
 	{
-		FObjectKey PrivateWorld;
+		TObjectKey<UWorld> PrivateWorld;
 		FLinearColor Color = FLinearColor::Red;
 		float Thickness = 10.f;
 		float LifeTime = 10.f;

@@ -56,6 +56,12 @@ struct TIsObjectPtr<TObjectPtr<T>>
 };
 
 template<typename T>
+struct TIsObjectPtr<TObjectKey<T>>
+{
+	static constexpr bool Value = true;
+};
+
+template<typename T>
 struct TIsObjectPtr<TWeakObjectPtr<T>>
 {
 	static constexpr bool Value = true;
@@ -85,6 +91,12 @@ struct TObjectPtrInnerType<T*, std::enable_if_t<TIsDerivedFrom<T, UObject>::Valu
 
 template<typename T>
 struct TObjectPtrInnerType<TObjectPtr<T>>
+{
+	using Type = T;
+};
+
+template<typename T>
+struct TObjectPtrInnerType<TObjectKey<T>>
 {
 	using Type = T;
 };
@@ -463,21 +475,34 @@ FORCENOINLINE T* SlowPath_ResolveObjectPtrFast(const TObjectPtr<T>& ObjectPtr)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename T, typename = std::enable_if_t<TIsDerivedFrom<T, UObject>::Value>>
-FORCEINLINE FObjectKey MakeObjectKey(const T* Ptr)
-{
-	return FObjectKey(Ptr);
-}
 template<typename T>
-FORCEINLINE FObjectKey MakeObjectKey(const TWeakObjectPtr<T>& Ptr)
+FORCEINLINE bool IsObjectKeyNull(const TObjectKey<T> Key)
 {
-	return ReinterpretCastRef<FObjectKey>(Ptr);
+	return Key == TObjectKey<T>();
+}
+
+template<typename T>
+FORCEINLINE TObjectKey<T> MakeObjectKey(T* Object)
+{
+	return TObjectKey<T>(Object);
+}
+
+template<typename T>
+FORCEINLINE TObjectKey<T> MakeObjectKey(T& Object)
+{
+	return TObjectKey<T>(&Object);
 }
 
 template<typename T>
 FORCEINLINE TWeakObjectPtr<T> MakeWeakObjectPtr(T& Object)
 {
 	return TWeakObjectPtr<T>(&Object);
+}
+
+template<typename T>
+FORCEINLINE TWeakObjectPtr<T> MakeWeakObjectPtr(const TObjectKey<T> Object)
+{
+	return ReinterpretCastRef<TWeakObjectPtr<T>>(Object);
 }
 
 template<typename T>

@@ -32,7 +32,7 @@ namespace FVoxelUtilities
 		AActor& Actor,
 		TDelegate<void(bool bIsSelected)> Delegate);
 
-	VOXELCORE_API bool IsActorSelected_AnyThread(FObjectKey Actor);
+	VOXELCORE_API bool IsActorSelected_AnyThread(TObjectKey<AActor> Actor);
 #endif
 
 	VOXELCORE_API void CopyBodyInstance(
