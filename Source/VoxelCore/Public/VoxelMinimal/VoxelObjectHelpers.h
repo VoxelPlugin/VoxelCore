@@ -482,6 +482,17 @@ FORCEINLINE bool IsObjectKeyNull(const TObjectKey<T> Key)
 }
 
 template<typename T>
+FORCEINLINE bool operator==(const T* A, const TObjectKey<T>& B)
+{
+	return TObjectKey<T>(A) == B;
+}
+template<typename T>
+FORCEINLINE bool operator==(const TObjectKey<T>& A, const T* B)
+{
+	return TObjectKey<T>(A) == B;
+}
+
+template<typename T>
 FORCEINLINE TObjectKey<T> MakeObjectKey(T* Object)
 {
 	return TObjectKey<T>(Object);
