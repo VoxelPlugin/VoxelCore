@@ -269,6 +269,8 @@ FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+DEFINE_PRIVATE_ACCESS(FSceneVelocityData, ComponentData);
+
 void FVoxelUtilities::ResetPreviousLocalToWorld(const UPrimitiveComponent& Component)
 {
 	const UWorld* World = Component.GetWorld();
@@ -287,9 +289,19 @@ void FVoxelUtilities::ResetPreviousLocalToWorld(const UPrimitiveComponent& Compo
 	Voxel::RenderTask([
 		Scene,
 		PrimitiveSceneId = Component.GetPrimitiveSceneId(),
-		PreviousLocalToWorld = Component.GetRenderMatrix()]
+		LocalToWorld = Component.GetRenderMatrix()]
 	{
-		static_cast<FScene&>(*Scene).VelocityData.OverridePreviousTransform(PrimitiveSceneId, PreviousLocalToWorld);
+		FComponentVelocityData* VelocityData = PrivateAccess::ComponentData(static_cast<FScene&>(*Scene).VelocityData).Find(PrimitiveSceneId);
+		if (!VelocityData)
+		{
+			return;
+		}
+
+		// FSceneVelocityData::StartFrame will do PreviousLocalToWorld = VelocityData.LocalToWorld
+
+		VelocityData->LocalToWorld = LocalToWorld;
+		VelocityData->PreviousLocalToWorld = LocalToWorld;
+		VelocityData->bPreviousLocalToWorldValid = true;
 	});
 }
 
