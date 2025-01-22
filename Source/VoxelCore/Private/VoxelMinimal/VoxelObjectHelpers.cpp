@@ -27,6 +27,12 @@ void ForEachAssetDataOfClass(
 		AssetRegistry.SearchAllAssets(true);
 	}
 
+	if (AssetRegistry.IsLoadingAssets())
+	{
+		AssetRegistry.WaitForCompletion();
+		ensure(!AssetRegistry.IsLoadingAssets());
+	}
+
 	TArray<FAssetData> AssetDatas;
 
 	FARFilter Filter;
