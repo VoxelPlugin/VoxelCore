@@ -146,6 +146,55 @@ FString GetStringMetaDataHierarchical(const UStruct* Struct, const FName Name)
 }
 #endif
 
+void ForeachObjectReference(
+	UObject& Object,
+	const TFunctionRef<void(UObject*& ObjectRef)> Lambda,
+	const EPropertyFlags SkipFlags)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	class FArchiveForeachObjectReference : public FArchiveUObject
+	{
+	public:
+		const TFunctionRef<void(UObject*&)> Lambda;
+		const EPropertyFlags SkipFlags;
+
+		explicit FArchiveForeachObjectReference(
+			const TFunctionRef<void(UObject*&)> Lambda,
+			const EPropertyFlags SkipFlags)
+			: Lambda(Lambda)
+			, SkipFlags(SkipFlags)
+		{
+			ArIsObjectReferenceCollector = true;
+			ArIsModifyingWeakAndStrongReferences = true;
+		}
+
+		//~ Begin FArchiveUObject Interface
+		virtual bool ShouldSkipProperty(const FProperty* InProperty) const override
+		{
+			return InProperty->HasAnyPropertyFlags(SkipFlags);
+		}
+
+		virtual FArchive& operator<<(UObject*& Object) override
+		{
+			Lambda(Object);
+			return *this;
+		}
+		virtual FArchive& operator<<(FSoftObjectPtr& Value) override
+		{
+			UObject* Object = Value.LoadSynchronous();
+			*this << Object;
+			Value = Object;
+
+			return *this;
+		}
+		//~ End FArchiveUObject Interface
+	};
+
+	FArchiveForeachObjectReference Archive(Lambda, SkipFlags);
+	Object.Serialize(Archive);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

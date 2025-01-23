@@ -361,6 +361,11 @@ VOXELCORE_API TArray<UFunction*> GetClassFunctions(const UClass* Class, bool bIn
 VOXELCORE_API FString GetStringMetaDataHierarchical(const UStruct* Struct, FName Name);
 #endif
 
+VOXELCORE_API void ForeachObjectReference(
+	UObject& Object,
+	TFunctionRef<void(UObject*& ObjectRef)> Lambda,
+	EPropertyFlags SkipFlags = CPF_Transient);
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
