@@ -175,11 +175,11 @@ public:
 				return;
 			}
 
-			Future.PromiseState->AddContinuation(EVoxelFutureThread::AnyThread, [Counter, PromiseState = PromiseState]
+			Future.PromiseState->AddContinuation(EVoxelFutureThread::AnyThread, [Counter, LocalPromiseState = PromiseState]
 			{
 				if (Counter->Decrement_ReturnNew() == 0)
 				{
-					PromiseState->Set();
+					LocalPromiseState->Set();
 				}
 			});
 		};
