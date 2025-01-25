@@ -152,7 +152,7 @@ void FVoxelSingletonSceneViewExtension::PostRenderBasePassDeferred_RenderThread(
 void FVoxelSingletonSceneViewExtension::PostRenderBasePassMobile_RenderThread(FRHICommandList& RHICmdList, FSceneView& View)
 {
 	VOXEL_FUNCTION_COUNTER();
-	check(IsInRenderingThread());
+	check(IsInParallelRenderingThread());
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
