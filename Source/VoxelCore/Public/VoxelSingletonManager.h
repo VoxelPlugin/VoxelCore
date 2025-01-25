@@ -30,7 +30,6 @@ public:
 	//~ End FGCObject Interface
 
 private:
-	FGraphEventRef GraphEvent;
 	TVoxelArray<FVoxelSingleton*> Singletons;
 	TSharedPtr<FVoxelSingletonSceneViewExtension> ViewExtension;
 };

@@ -1,4 +1,4 @@
-﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelSingletonManager.h"
 #include "VoxelSingletonSceneViewExtension.h"
@@ -116,12 +116,6 @@ FVoxelSingletonManager::~FVoxelSingletonManager()
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	if (GraphEvent.IsValid())
-	{
-		VOXEL_SCOPE_COUNTER("Wait");
-		GraphEvent->Wait();
-	}
-
 	for (const FVoxelSingleton* Singleton : Singletons)
 	{
 		delete Singleton;
@@ -147,22 +141,6 @@ void FVoxelSingletonManager::Tick()
 	{
 		Singleton->Tick();
 	}
-
-	if (GraphEvent.IsValid())
-	{
-		VOXEL_SCOPE_COUNTER("Waiting for Tick_Async");
-		GraphEvent->Wait();
-	}
-
-	GraphEvent = TGraphTask<TVoxelGraphTask<ENamedThreads::AnyBackgroundThreadNormalTask>>::CreateTask().ConstructAndDispatchWhenReady([this]
-	{
-		VOXEL_SCOPE_COUNTER("FVoxelSingletonManager::Tick_Async");
-
-		for (FVoxelSingleton* Singleton : Singletons)
-		{
-			Singleton->Tick_Async();
-		}
-	});
 
 	Voxel::RenderTask([this](FRHICommandList& RHICmdList)
 	{

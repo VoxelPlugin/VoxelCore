@@ -10,41 +10,6 @@
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 #include "VoxelMinimal/Utilities/VoxelLambdaUtilities.h"
 
-template<ENamedThreads::Type Thread, ESubsequentsMode::Type SubsequentsMode = ESubsequentsMode::FireAndForget>
-class TVoxelGraphTask
-{
-public:
-	TVoxelUniqueFunction<void()> Lambda;
-
-	explicit TVoxelGraphTask(TVoxelUniqueFunction<void()> Lambda)
-		: Lambda(MoveTemp(Lambda))
-	{
-	}
-
-	void DoTask(ENamedThreads::Type, const FGraphEventRef&) const
-	{
-		VOXEL_SCOPE_COUNTER("TVoxelGraphTask");
-		Lambda();
-	}
-
-	static TStatId GetStatId()
-	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(TVoxelGraphTask, STATGROUP_Voxel);
-	}
-	static ENamedThreads::Type GetDesiredThread()
-	{
-		return Thread;
-	}
-	static ESubsequentsMode::Type GetSubsequentsMode()
-	{
-		return SubsequentsMode;
-	}
-};
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
 namespace Voxel
 {
 	extern VOXELCORE_API TMulticastDelegate<void(bool& bAnyTaskProcessed)> OnFlushGameTasks;
