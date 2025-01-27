@@ -60,18 +60,13 @@ build_library() {
 }
 
 flush_commands() {
-    local exit_code=0
+    local local_commands=()
     for command in "${COMMANDS[@]}"; do
-        echo "Executing $command"
-        if ! eval "$command"; then
-            echo "Error: Command failed: $command"
-            exit_code=1
-        fi
+      local_commands+=("$command || { echo \"Error: Command failed: $command\"; exit 1; }")
     done
 
-    if (( exit_code != 0 )); then
-        exit $exit_code
-    fi
+    printf "%s\n" "${local_commands[@]}" > commands.txt
+    xargs -S131072 -I {} -P 16 bash -c '{}' < commands.txt
 
     COMMANDS=()
 }
