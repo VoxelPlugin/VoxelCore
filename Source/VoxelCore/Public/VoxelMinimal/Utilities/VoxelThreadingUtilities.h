@@ -373,7 +373,8 @@ public:
 	~FVoxelParallelTaskScope();
 
 	void AddTask(TVoxelUniqueFunction<void()> Lambda);
+	void FlushTasks();
 
 private:
-	TVoxelChunkedArray<UE::Tasks::TTask<void>> Tasks;
+	TQueue<UE::Tasks::TTask<void>, EQueueMode::Mpsc> Tasks;
 };

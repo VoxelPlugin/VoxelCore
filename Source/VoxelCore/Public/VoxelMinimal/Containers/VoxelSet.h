@@ -132,6 +132,8 @@ public:
 			return;
 		}
 
+		VOXEL_FUNCTION_COUNTER_NUM(Number, 1024);
+
 		Elements.Reserve(Number);
 
 		const int32 NewHashSize = GetHashSize(Number);

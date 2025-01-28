@@ -199,6 +199,21 @@ using FVoxelSharedCriticalSection_NoPadding = TVoxelSharedCriticalSectionImpl<EV
 		(__VA_ARGS__).WriteUnlock(); \
 	};
 
+#define VOXEL_SCOPE_WRITE_LOCK_PROMOTED(...) \
+	checkVoxelSlow((__VA_ARGS__).IsLocked_Read()); \
+	(__VA_ARGS__).ReadUnlock(); \
+	{ \
+		VOXEL_SCOPE_COUNTER_COND((__VA_ARGS__).ShouldRecordStats_Write(), "WriteLock " #__VA_ARGS__); \
+		(__VA_ARGS__).WriteLock(); \
+	} \
+	ON_SCOPE_EXIT \
+	{ \
+		(__VA_ARGS__).WriteUnlock(); \
+		\
+		VOXEL_SCOPE_COUNTER_COND((__VA_ARGS__).ShouldRecordStats_Read(), "ReadLock " #__VA_ARGS__); \
+		(__VA_ARGS__).ReadLock(); \
+	};
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

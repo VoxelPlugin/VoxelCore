@@ -40,18 +40,26 @@ thread_local TVoxelChunkedArray<TVoxelUniqueFunction<void()>> GVoxelTasks;
 
 FVoxelParallelTaskScope::~FVoxelParallelTaskScope()
 {
-	VOXEL_FUNCTION_COUNTER();
-
-	for (const UE::Tasks::TTask<void>& Task : Tasks)
-	{
-		verify(Task.Wait());
-	}
+	FlushTasks();
 }
 
 void FVoxelParallelTaskScope::AddTask(TVoxelUniqueFunction<void()> Lambda)
 {
-	Tasks.Add(UE::Tasks::Launch(
+	Tasks.Enqueue(UE::Tasks::Launch(
 		TEXT("Voxel Parallel Task"),
 		MoveTemp(Lambda),
 		LowLevelTasks::ETaskPriority::BackgroundLow));
+}
+
+void FVoxelParallelTaskScope::FlushTasks()
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	UE::Tasks::TTask<void> Task;
+	while (Tasks.Dequeue(Task))
+	{
+		verify(Task.Wait());
+	}
+
+	check(Tasks.IsEmpty());
 }
