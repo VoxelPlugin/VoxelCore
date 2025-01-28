@@ -65,6 +65,17 @@ FViewport* FVoxelUtilities::GetViewport(const UWorld* World)
 	}
 }
 
+bool FVoxelUtilities::IsPlayInEditor()
+{
+#if WITH_EDITOR
+	return
+		GEditor->PlayWorld ||
+		GIsPlayInEditorWorld;
+#else
+	return false;
+#endif
+}
+
 bool FVoxelUtilities::GetCameraView(const UWorld* World, FVector& OutPosition, FRotator& OutRotation, float& OutFOV)
 {
 	VOXEL_FUNCTION_COUNTER();

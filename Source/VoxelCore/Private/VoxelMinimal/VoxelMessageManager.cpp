@@ -175,8 +175,7 @@ void FVoxelMessageManager::LogMessage_GameThread(const TSharedRef<FVoxelMessage>
 
 		const TSharedRef<FTokenizedMessage> TokenizedMessage = Message->CreateTokenizedMessage();
 
-		if (GEditor->PlayWorld ||
-			GIsPlayInEditorWorld)
+		if (FVoxelUtilities::IsPlayInEditor())
 		{
 			FMessageLog("PIE").AddMessage(TokenizedMessage);
 		}

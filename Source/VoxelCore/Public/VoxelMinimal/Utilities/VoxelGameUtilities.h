@@ -9,6 +9,7 @@ class FViewport;
 namespace FVoxelUtilities
 {
 	VOXELCORE_API FViewport* GetViewport(const UWorld* World);
+	VOXELCORE_API bool IsPlayInEditor();
 	VOXELCORE_API bool GetCameraView(const UWorld* World, FVector& OutPosition, FRotator& OutRotation, float& OutFOV);
 	VOXELCORE_API TOptional<FVector> GetCameraPosition(const UWorld* World);
 
