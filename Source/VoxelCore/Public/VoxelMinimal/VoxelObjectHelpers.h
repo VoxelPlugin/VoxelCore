@@ -380,9 +380,9 @@ VOXELCORE_API TVoxelDereferencingRange<TFieldRange<FProperty>> GetFunctionProper
 VOXELCORE_API TVoxelDereferencingRange<TFieldRange<FProperty>> GetFunctionProperties(const UFunction* Function, EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default);
 
 template<typename T>
-FORCEINLINE TVoxelDereferencingRange<TFieldRange<FProperty>> GetClassProperties()
+FORCEINLINE TVoxelDereferencingRange<TFieldRange<FProperty>> GetClassProperties(const EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default)
 {
-	return GetClassProperties(StaticClassFast<T>());
+	return GetClassProperties(StaticClassFast<T>(), IterationFlags);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
