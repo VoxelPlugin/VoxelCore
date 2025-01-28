@@ -66,6 +66,7 @@ public class VoxelCore : ModuleRules
 					"UnrealEd",
 					"UATHelper",
 					"GraphEditor",
+					"MaterialEditor",
 				}
 			);
 		}
