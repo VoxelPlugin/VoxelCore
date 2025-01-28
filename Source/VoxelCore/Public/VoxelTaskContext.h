@@ -53,7 +53,7 @@ public:
 public:
 	FORCEINLINE bool IsCancellingTasks() const
 	{
-		return ShouldCancelTasks.Get();
+		return ShouldCancelTasks.Get(std::memory_order_relaxed);
 	}
 	FORCEINLINE bool IsComplete() const
 	{
