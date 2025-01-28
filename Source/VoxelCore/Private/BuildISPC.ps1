@@ -76,26 +76,27 @@ function BuildLibrary {
 
     if (ShouldCompile -Target $TargetFile -Prerequisites $ObjectFiles) {
         Remove-Item -Path $TargetFile
-        $global:Commands += "& $LIB`"$TargetFile`" $($ObjectFiles -join " ")"
+        $QuotedObjectFiles = $ObjectFiles | ForEach-Object { "'$_'" }
+        $global:Commands += "& $LIB`"$TargetFile`" $($QuotedObjectFiles -join " ")"
     }
 }
 
 function FlushCommands {
     $Jobs = foreach ($Command in $global:Commands) {
         Write-Host "Executing $Command";
-        
+
         $Job = Start-Job -Name $Command -ScriptBlock {
             param ($Command)
             $Output = Invoke-Expression $Command
             $ExitCode = $LastExitCode
-            
+
             [PSCustomObject]@{
                 Command  = $Command
                 Output   = $Output
                 ExitCode = $ExitCode
             }
         } -ArgumentList $Command
-        
+
         [PSCustomObject]@{
             Command = $Command
             Job     = $Job
@@ -105,7 +106,7 @@ function FlushCommands {
     $Jobs | Wait-Job
 
     $ExitCode = 0;
-    
+
     foreach ($Job in $Jobs) {
         try {
             $Result = Receive-Job $Job.Job
@@ -117,19 +118,19 @@ function FlushCommands {
             $ExitCode = 1;
             continue;
         }
-        
+
         Write-Host $Result.Output;
-        
+
         if ($Result.ExitCode -ne 0) {
             Write-Host "Error: $($Result.Command) failed with exit code $($Result.ExitCode)";
             $ExitCode = 1;
         }
-    
+
         Remove-Job $Job.Job
     }
-    
+
     $global:Commands = @()
-    
+
     if ($ExitCode -ne 0) {
         exit $ExitCode;
     }
