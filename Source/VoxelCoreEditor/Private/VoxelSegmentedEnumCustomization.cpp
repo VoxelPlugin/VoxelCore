@@ -70,7 +70,8 @@ TSharedRef<SWidget> FVoxelSegmentedEnumCustomization::CustomizeEnum(const TShare
 	}
 
 	TSharedPtr<SVoxelSegmentedControl<uint8>> Widget;
-	if (PropertyHandle->HasMetaData("Bitmask"))
+	if (Enum->HasMetaData(TEXT("Bitflags")) ||
+		PropertyHandle->HasMetaData("Bitmask"))
 	{
 		Widget = CustomizeBitmaskEnum(
 			PropertyHandle,
@@ -84,7 +85,8 @@ TSharedRef<SWidget> FVoxelSegmentedEnumCustomization::CustomizeEnum(const TShare
 
 	for (int32 Index = 0; Index < Enum->NumEnums() - 1; Index++)
 	{
-		if (Enum->HasMetaData(TEXT("Hidden"), Index))
+		if (Enum->HasMetaData(TEXT("Hidden"), Index) ||
+			Enum->HasMetaData(TEXT("HideInUI"), Index))
 		{
 			continue;
 		}
@@ -160,10 +162,11 @@ TSharedRef<SVoxelSegmentedControl<uint8>> FVoxelSegmentedEnumCustomization::Cust
 
 		TMap<uint8, ECheckBoxState> Result;
 		TMap<uint8, int32> Occurrences;
-		
+
 		for (int32 Index = 0; Index < Enum->NumEnums() - 1; Index++)
 		{
-			if (Enum->HasMetaData(TEXT("Hidden"), Index))
+			if (Enum->HasMetaData(TEXT("Hidden"), Index) ||
+				Enum->HasMetaData(TEXT("HideInUI"), Index))
 			{
 				continue;
 			}
