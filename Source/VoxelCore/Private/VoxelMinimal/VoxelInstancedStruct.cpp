@@ -120,7 +120,7 @@ bool FVoxelInstancedStruct::Serialize(FArchive& Ar)
 			Ar << NewScriptStruct;
 
 			if (!NewScriptStruct &&
-				StructName != STATIC_FSTRING("<null>"))
+				StructName != TEXTVIEW("<null>"))
 			{
 				VOXEL_SCOPE_COUNTER("FindFirstObject");
 				NewScriptStruct = FindFirstObject<UScriptStruct>(*StructName, EFindFirstObjectOptions::EnsureIfAmbiguous);
@@ -269,14 +269,13 @@ bool FVoxelInstancedStruct::ExportTextItem(FString& ValueStr, const FVoxelInstan
 		return true;
 	}
 
-	const FVoxelInstancedStruct* DefaultValuePtr = &DefaultValue;
-
 	ValueStr += GetScriptStruct()->GetPathName();
+
 	GetScriptStruct()->ExportText(
 		ValueStr,
 		GetStructMemory(),
-		DefaultValuePtr && GetScriptStruct() == DefaultValuePtr->GetScriptStruct()
-		? DefaultValuePtr->GetStructMemory()
+		GetScriptStruct() == DefaultValue.GetScriptStruct()
+		? DefaultValue.GetStructMemory()
 		: nullptr,
 		Parent,
 		PortFlags,
