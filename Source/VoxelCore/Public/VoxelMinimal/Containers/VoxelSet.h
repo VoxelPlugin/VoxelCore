@@ -334,6 +334,10 @@ public:
 	{
 		return Elements[Index].Value;
 	}
+	FORCEINLINE const Type& GetFirstValue() const
+	{
+		return Elements[0].Value;
+	}
 	FORCEINLINE const Type& GetUniqueValue() const
 	{
 		checkVoxelSlow(Elements.Num() == 1);

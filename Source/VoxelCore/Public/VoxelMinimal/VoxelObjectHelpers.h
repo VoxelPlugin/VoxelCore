@@ -324,11 +324,11 @@ void ForEachObjectOfClass_Copy(LambdaType&& Operation, bool bIncludeDerivedClass
 ///////////////////////////////////////////////////////////////////////////////
 
 template<typename T = void, typename ArrayType = std::conditional_t<std::is_void_v<T>, UClass*, TSubclassOf<T>>>
-TArray<ArrayType> GetDerivedClasses(const UClass* BaseClass = T::StaticClass(), const bool bRecursive = true, const bool bRemoveDeprecated = true)
+TVoxelArray<ArrayType> GetDerivedClasses(const UClass* BaseClass = T::StaticClass(), const bool bRecursive = true, const bool bRemoveDeprecated = true)
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	TArray<UClass*> Result;
+	TVoxelArray<UClass*> Result;
 	GetDerivedClasses(BaseClass, Result, bRecursive);
 
 	if (bRemoveDeprecated)
@@ -339,13 +339,13 @@ TArray<ArrayType> GetDerivedClasses(const UClass* BaseClass = T::StaticClass(), 
 		});
 	}
 
-	return ReinterpretCastArray<ArrayType>(MoveTemp(Result));
+	return ReinterpretCastVoxelArray<ArrayType>(MoveTemp(Result));
 }
 
-VOXELCORE_API TArray<UScriptStruct*> GetDerivedStructs(const UScriptStruct* BaseStruct, bool bIncludeBase = false);
+VOXELCORE_API TVoxelArray<UScriptStruct*> GetDerivedStructs(const UScriptStruct* BaseStruct, bool bIncludeBase = false);
 
 template<typename T>
-TArray<UScriptStruct*> GetDerivedStructs(const bool bIncludeBase = false)
+TVoxelArray<UScriptStruct*> GetDerivedStructs(const bool bIncludeBase = false)
 {
 	return GetDerivedStructs(T::StaticStruct(), bIncludeBase);
 }
@@ -355,7 +355,7 @@ TArray<UScriptStruct*> GetDerivedStructs(const bool bIncludeBase = false)
 ///////////////////////////////////////////////////////////////////////////////
 
 VOXELCORE_API bool IsFunctionInput(const FProperty& Property);
-VOXELCORE_API TArray<UFunction*> GetClassFunctions(const UClass* Class, bool bIncludeSuper = false);
+VOXELCORE_API TVoxelArray<UFunction*> GetClassFunctions(const UClass* Class, bool bIncludeSuper = false);
 
 #if WITH_EDITOR
 VOXELCORE_API FString GetStringMetaDataHierarchical(const UStruct* Struct, FName Name);

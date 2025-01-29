@@ -33,7 +33,7 @@ void ForEachAssetDataOfClass(
 		ensure(!AssetRegistry.IsLoadingAssets());
 	}
 
-	TArray<FAssetData> AssetDatas;
+	TVoxelArray<FAssetData> AssetDatas;
 
 	FARFilter Filter;
 	Filter.ClassPaths.Add(ClassToLookFor->GetClassPathName());
@@ -63,11 +63,11 @@ void ForEachAssetOfClass(
 	});
 }
 
-TArray<UScriptStruct*> GetDerivedStructs(const UScriptStruct* BaseStruct, const bool bIncludeBase)
+TVoxelArray<UScriptStruct*> GetDerivedStructs(const UScriptStruct* BaseStruct, const bool bIncludeBase)
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	TArray<UScriptStruct*> Result;
+	TVoxelArray<UScriptStruct*> Result;
 	ForEachObjectOfClass<UScriptStruct>([&](UScriptStruct& Struct)
 	{
 		if (!Struct.IsChildOf(BaseStruct))
@@ -112,10 +112,21 @@ public:
 	}
 };
 
-TArray<UFunction*> GetClassFunctions(const UClass* Class, const bool bIncludeSuper)
+TVoxelArray<UFunction*> GetClassFunctions(const UClass* Class, const bool bIncludeSuper)
 {
-	TArray<TObjectPtr<UFunction>> Functions;
-	FRestoreClassInfo::GetFunctionMap(Class).GenerateValueArray(Functions);
+	VOXEL_FUNCTION_COUNTER();
+
+	TVoxelArray<UFunction*> Functions;
+	{
+		const TMap<FName, TObjectPtr<UFunction>>& Map = FRestoreClassInfo::GetFunctionMap(Class);
+
+		Functions.Reserve(bIncludeSuper ? FMath::Max(Map.Num(), 128) : Map.Num());
+
+		for (const auto& It : Map)
+		{
+			Functions.Add(It.Value);
+		}
+	}
 
 	if (bIncludeSuper)
 	{
