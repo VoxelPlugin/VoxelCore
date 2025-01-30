@@ -137,7 +137,7 @@ FVoxelDependency::FVoxelDependency(const FString& Name)
 	: Name(Name)
 {
 	VOXEL_FUNCTION_COUNTER();
-	TrackerRefs_RequiresLock.Reserve(8192);
+
 	UpdateStats();
 }
 

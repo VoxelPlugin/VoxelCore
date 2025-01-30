@@ -3,10 +3,10 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
-#include "VoxelMinimal/Containers/VoxelBitArray.h"
-#include "VoxelMinimal/Containers/VoxelChunkedArray.h"
+#include "VoxelMinimal/Containers/VoxelStaticArray.h"
+#include "VoxelMinimal/Containers/VoxelStaticBitArray.h"
 
-template<typename Type, int32 MaxBytesPerChunk = GVoxelDefaultAllocationSize>
+template<typename Type, int32 NumPerChunk = 1024>
 class TVoxelChunkedSparseArray
 {
 public:
@@ -16,143 +16,148 @@ public:
 		Empty();
 	}
 
-	FORCEINLINE void Reserve(const int32 Number)
-	{
-		Array.Reserve(Number);
-		AllocationFlags.Reserve(Number);
-	}
-	FORCEINLINE void Empty()
+	void Empty()
 	{
 		if (!std::is_trivially_destructible_v<Type>)
 		{
-			AllocationFlags.ForAllSetBits([&](const int32 Index)
+			VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
+
+			this->Foreach([&](Type& Value)
 			{
-				ReinterpretCastRef<Type>(Array[Index].Value).~Type();
+				Value.~Type();
 			});
 		}
 
 		ArrayNum = 0;
+		ArrayMax = 0;
 		FirstFreeIndex = -1;
-		Array.Empty();
-		AllocationFlags.Empty();
-	}
-	FORCEINLINE void Shrink()
-	{
-		Array.Shrink();
-		AllocationFlags.Shrink();
+		Chunks.Empty();
 	}
 	FORCEINLINE int32 Num() const
 	{
-		checkVoxelSlow(ArrayNum == AllocationFlags.CountSetBits());
 		return ArrayNum;
 	}
 	FORCEINLINE int64 GetAllocatedSize() const
 	{
 		return
-			Array.GetAllocatedSize() +
-			AllocationFlags.GetAllocatedSize();
+			Chunks.GetAllocatedSize() +
+			Chunks.Num() * sizeof(FChunk);
 	}
 	FORCEINLINE bool IsValidIndex(const int32 Index) const
 	{
-		checkVoxelSlow(Array.Num() == AllocationFlags.Num());
-		return Array.IsValidIndex(Index) && AllocationFlags[Index];
+		if (!(0 <= Index && Index < ArrayMax))
+		{
+			return false;
+		}
+
+		const int32 ChunkIndex = FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index);
+		const int32 ChunkOffset = FVoxelUtilities::GetChunkOffset<NumPerChunk>(Index);
+
+		return this->Chunks[ChunkIndex]->AllocationFlags[ChunkOffset];
 	}
 
-	template<typename LambdaType>
-	FORCEINLINE void Foreach(LambdaType Lambda)
+	template<typename LambdaType, typename = std::enable_if_t<
+		LambdaHasSignature_V<LambdaType, void(Type)> ||
+		LambdaHasSignature_V<LambdaType, void(Type&)> ||
+		LambdaHasSignature_V<LambdaType, void(const Type&)> ||
+		LambdaHasSignature_V<LambdaType, EVoxelIterate(Type)> ||
+		LambdaHasSignature_V<LambdaType, EVoxelIterate(Type&)> ||
+		LambdaHasSignature_V<LambdaType, EVoxelIterate(const Type&)>>>
+	FORCEINLINE EVoxelIterate Foreach(LambdaType Lambda)
 	{
-		AllocationFlags.ForAllSetBits([&](const int32 Index)
+		for (const TUniquePtr<FChunk>& Chunk : Chunks)
 		{
-			Lambda((*this)[Index]);
-		});
+			const EVoxelIterate Iterate = Chunk->AllocationFlags.ForAllSetBits([&](const int32 Index)
+			{
+				return Lambda(ReinterpretCastRef<Type>(Chunk->Values[Index].Value));
+			});
+
+			if (Iterate == EVoxelIterate::Stop)
+			{
+				return EVoxelIterate::Stop;
+			}
+		}
+
+		return EVoxelIterate::Continue;
 	}
-	template<typename LambdaType>
-	FORCEINLINE void Foreach(LambdaType Lambda) const
+	template<typename LambdaType, typename = std::enable_if_t<
+		LambdaHasSignature_V<LambdaType, void(Type)> ||
+		LambdaHasSignature_V<LambdaType, void(const Type&)> ||
+		LambdaHasSignature_V<LambdaType, EVoxelIterate(Type)> ||
+		LambdaHasSignature_V<LambdaType, EVoxelIterate(const Type&)>>>
+	FORCEINLINE EVoxelIterate Foreach(LambdaType Lambda) const
 	{
-		AllocationFlags.ForAllSetBits([&](const int32 Index)
-		{
-			Lambda((*this)[Index]);
-		});
+		return ConstCast(this)->Foreach(MoveTemp(Lambda));
 	}
 
 public:
-	FORCEINLINE int32 AddUninitialized()
-	{
-		ArrayNum++;
-
-		if (FirstFreeIndex != -1)
-		{
-			const int32 Result = FirstFreeIndex;
-			FirstFreeIndex = Array[Result].NextFreeIndex;
-
-			checkVoxelSlow(!AllocationFlags[Result]);
-			AllocationFlags[Result] = true;
-
-#if VOXEL_DEBUG
-			Array[Result].NextFreeIndex = -2;
-#endif
-			return Result;
-		}
-
-		const int32 ArrayIndex = Array.AddUninitialized();
-		const int32 BitIndex = AllocationFlags.Add(true);
-		checkVoxelSlow(ArrayIndex == BitIndex);
-
-#if VOXEL_DEBUG
-		Array[ArrayIndex].NextFreeIndex = -2;
-#endif
-		return ArrayIndex;
-	}
-
 	FORCEINLINE int32 Add(const Type& Value)
 	{
-		const int32 Index = AddUninitialized();
-		new (&(*this)[Index]) Type(Value);
+		TTypeCompatibleBytes<Type>* ValuePtr;
+		const int32 Index = this->AddUninitialized(ValuePtr);
+		new (ValuePtr) Type(Value);
 		return Index;
 	}
 	FORCEINLINE int32 Add(Type&& Value)
 	{
-		const int32 Index = AddUninitialized();
-		new (&(*this)[Index]) Type(MoveTemp(Value));
+		TTypeCompatibleBytes<Type>* ValuePtr;
+		const int32 Index = this->AddUninitialized(ValuePtr);
+		new (ValuePtr) Type(MoveTemp(Value));
 		return Index;
 	}
 
 	template<typename... ArgTypes, typename = std::enable_if_t<TIsConstructible<Type, ArgTypes...>::Value>>
 	FORCEINLINE int32 Emplace(ArgTypes&&... Args)
 	{
-		const int32 Index = AddUninitialized();
-		Type& Value = (*this)[Index];
-		new (&Value) Type(Forward<ArgTypes>(Args)...);
+		TTypeCompatibleBytes<Type>* ValuePtr;
+		const int32 Index = this->AddUninitialized(ValuePtr);
+		new (ValuePtr) Type(Forward<ArgTypes>(Args)...);
 		return Index;
 	}
 	template<typename... ArgTypes, typename = std::enable_if_t<TIsConstructible<Type, ArgTypes...>::Value>>
 	FORCEINLINE Type& Emplace_GetRef(ArgTypes&&... Args)
 	{
-		const int32 Index = AddUninitialized();
-		Type& Value = (*this)[Index];
-		new (&Value) Type(Forward<ArgTypes>(Args)...);
-		return Value;
+		TTypeCompatibleBytes<Type>* ValuePtr;
+		this->AddUninitialized(ValuePtr);
+		return *new (ValuePtr) Type(Forward<ArgTypes>(Args)...);
 	}
 
 	FORCEINLINE void RemoveAt(const int32 Index)
 	{
+		checkVoxelSlow(IsValidIndex(Index));
+
 		ArrayNum--;
 		checkVoxelSlow(ArrayNum >= 0);
 
-		checkVoxelSlow(IsValidIndex(Index));
-		AllocationFlags[Index] = false;
+		const int32 ChunkIndex = FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index);
+		const int32 ChunkOffset = FVoxelUtilities::GetChunkOffset<NumPerChunk>(Index);
+		FChunk& Chunk = *this->Chunks[ChunkIndex];
 
-		ReinterpretCastRef<Type>(Array[Index].Value).~Type();
+		checkVoxelSlow(Chunk.AllocationFlags[ChunkOffset]);
+		Chunk.AllocationFlags[ChunkOffset] = false;
 
-		Array[Index].NextFreeIndex = FirstFreeIndex;
+		FValue& Value = Chunk.Values[ChunkOffset];
+
+		ReinterpretCastRef<Type>(Value.Value).~Type();
+
+		Value.NextFreeIndex = FirstFreeIndex;
 		FirstFreeIndex = Index;
+	}
+	FORCEINLINE Type RemoveAt_ReturnValue(const int32 Index)
+	{
+		Type Value = MoveTemp((*this)[Index]);
+		RemoveAt(Index);
+		return MoveTemp(Value);
 	}
 
 public:
 	FORCEINLINE Type& operator[](const int32 Index)
 	{
 		checkVoxelSlow(IsValidIndex(Index));
-		return ReinterpretCastRef<Type>(Array[Index].Value);
+
+		const int32 ChunkIndex = FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index);
+		const int32 ChunkOffset = FVoxelUtilities::GetChunkOffset<NumPerChunk>(Index);
+		return ReinterpretCastRef<Type>(this->Chunks[ChunkIndex]->Values[ChunkOffset].Value);
 	}
 	FORCEINLINE const Type& operator[](const int32 Index) const
 	{
@@ -160,13 +165,65 @@ public:
 	}
 
 private:
-	union FElement
+	union FValue
 	{
 		TTypeCompatibleBytes<Type> Value;
 		int32 NextFreeIndex = -1;
 	};
 	int32 ArrayNum = 0;
+	int32 ArrayMax = 0;
 	int32 FirstFreeIndex = -1;
-	FVoxelBitArray AllocationFlags;
-	TVoxelChunkedArray<FElement, MaxBytesPerChunk> Array;
+
+	struct FChunk
+	{
+		// Clear flags to ensure padding is always 0
+		TVoxelStaticBitArray<NumPerChunk> AllocationFlags{ ForceInit };
+		TVoxelStaticArray<FValue, NumPerChunk> Values{ NoInit };
+	};
+	TVoxelInlineArray<TUniquePtr<FChunk>, 1> Chunks;
+
+	FORCEINLINE int32 AddUninitialized(TTypeCompatibleBytes<Type>*& OutValuePtr)
+	{
+		ArrayNum++;
+
+		if (FirstFreeIndex != -1)
+		{
+			const int32 Index = FirstFreeIndex;
+
+			const int32 ChunkIndex = FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index);
+			const int32 ChunkOffset = FVoxelUtilities::GetChunkOffset<NumPerChunk>(Index);
+			FChunk& Chunk = *Chunks[ChunkIndex];
+			FValue& Value = Chunk.Values[ChunkOffset];
+
+			FirstFreeIndex = Value.NextFreeIndex;
+
+			checkVoxelSlow(!Chunk.AllocationFlags[ChunkOffset]);
+			Chunk.AllocationFlags[ChunkOffset] = true;
+
+			OutValuePtr = &Value.Value;
+			return Index;
+		}
+		else
+		{
+			if (ArrayMax % NumPerChunk == 0)
+			{
+				AllocateNewChunk();
+			}
+			const int32 Index = ArrayMax++;
+
+			const int32 ChunkIndex = FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index);
+			const int32 ChunkOffset = FVoxelUtilities::GetChunkOffset<NumPerChunk>(Index);
+			FChunk& Chunk = *Chunks[ChunkIndex];
+
+			checkVoxelSlow(!Chunk.AllocationFlags[ChunkOffset]);
+			Chunk.AllocationFlags[ChunkOffset] = true;
+
+			OutValuePtr = &Chunk.Values[ChunkOffset].Value;
+			return Index;
+		}
+	}
+	FORCENOINLINE void AllocateNewChunk()
+	{
+		Chunks.Add(MakeUnique<FChunk>());
+	}
 };
