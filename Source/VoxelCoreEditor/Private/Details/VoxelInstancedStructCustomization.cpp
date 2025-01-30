@@ -66,14 +66,14 @@ void FVoxelInstancedStructCustomization::CustomizeHeader(
 
 void FVoxelInstancedStructCustomization::CustomizeChildren(
 	TSharedRef<IPropertyHandle> PropertyHandle,
-	IDetailChildrenBuilder& StructBuilder,
+	IDetailChildrenBuilder& ChildBuilder,
 	IPropertyTypeCustomizationUtils& CustomizationUtils)
 {
 	VOXEL_FUNCTION_COUNTER();
 
 	const TSharedRef<FVoxelInstancedStructNodeBuilder> Builder = MakeShared<FVoxelInstancedStructNodeBuilder>(PropertyHandle);
 	Builder->Initialize();
-	StructBuilder.AddCustomBuilder(Builder);
+	ChildBuilder.AddCustomBuilder(Builder);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

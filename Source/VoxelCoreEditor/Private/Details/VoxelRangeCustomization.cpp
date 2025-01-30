@@ -52,9 +52,9 @@ public:
 		];
 	}
 
-	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override
+	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override
 	{
-		StructBuilder.AddCustomRow(INVTEXT("Min"))
+		ChildBuilder.AddCustomRow(INVTEXT("Min"))
 		.NameContent()
 		[
 			MinValueHandle->CreatePropertyNameWidget()
@@ -64,7 +64,7 @@ public:
 			CreateValueWidget(true)
 		];
 
-		StructBuilder.AddCustomRow(INVTEXT("Max"))
+		ChildBuilder.AddCustomRow(INVTEXT("Max"))
 		.NameContent()
 		[
 			MaxValueHandle->CreatePropertyNameWidget()

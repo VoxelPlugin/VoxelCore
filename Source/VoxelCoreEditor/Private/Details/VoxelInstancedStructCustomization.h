@@ -15,7 +15,7 @@ public:
 
 	virtual void CustomizeChildren(
 		TSharedRef<IPropertyHandle> PropertyHandle,
-		IDetailChildrenBuilder& StructBuilder,
+		IDetailChildrenBuilder& ChildBuilder,
 		IPropertyTypeCustomizationUtils& CustomizationUtils) override;
 	//~ End IPropertyTypeCustomization Interface
 

@@ -167,5 +167,5 @@ void FVoxelInstancedStructNodeBuilder::Tick(float DeltaTime)
 
 FName FVoxelInstancedStructNodeBuilder::GetName() const
 {
-	return "VoxelInstancedStructDataDetails";
+	return "VoxelInstancedStructNodeBuilder";
 }
