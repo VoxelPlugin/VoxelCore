@@ -36,11 +36,7 @@ namespace FVoxelUtilities
 	{
 		checkVoxelSlow(DivisorLog2 >= 0);
 		ensureVoxelSlow(DivisorLog2 < 32);
-		constexpr int32 Offset = 1 << 30;
-		checkVoxelSlow(Dividend < Offset);
-		checkVoxelSlow(Dividend > -Offset);
-		// Make the dividend positive to be able to use bit shifts
-		const int32 Result = ((Dividend + Offset) >> DivisorLog2) - (Offset >> DivisorLog2);
+		const int32 Result = Dividend >> DivisorLog2;
 		checkVoxelSlow(Result == DivideFloor(Dividend, 1 << DivisorLog2));
 		return Result;
 	}

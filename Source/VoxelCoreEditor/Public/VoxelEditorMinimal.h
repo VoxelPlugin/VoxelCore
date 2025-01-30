@@ -14,3 +14,4 @@
 #include "VoxelStructDetailsWrapper.h"
 #include "VoxelPlaceableItemUtilities.h"
 #include "VoxelInstancedStructDetailsWrapper.h"
+#include "VoxelPropertyTypeCustomizationUtils.h"

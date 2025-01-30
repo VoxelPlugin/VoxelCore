@@ -225,6 +225,8 @@ public:
 	template<typename T>
 	static void ForeachData(const TSharedPtr<IPropertyHandle>& PropertyHandle, TFunctionRef<void(T&)> Lambda)
 	{
+		VOXEL_FUNCTION_COUNTER();
+
 		TrackHandle(PropertyHandle);
 
 		if (!ensure(PropertyHandle) ||
@@ -236,8 +238,9 @@ public:
 
 		PropertyHandle->EnumerateRawData([&](void* RawData, const int32 DataIndex, const int32 NumDatas)
 		{
-			if (!ensure(RawData))
+			if (!RawData)
 			{
+				// Will happen when removing array entries
 				return true;
 			}
 
@@ -248,6 +251,8 @@ public:
 	template<typename T>
 	static void ForeachDataPtr(const TSharedPtr<IPropertyHandle>& PropertyHandle, TFunctionRef<void(T*)> Lambda)
 	{
+		VOXEL_FUNCTION_COUNTER();
+
 		TrackHandle(PropertyHandle);
 
 		if (!ensure(PropertyHandle) ||

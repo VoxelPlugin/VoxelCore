@@ -133,20 +133,14 @@ void FVoxelInstancedStructDetailsWrapper::SyncFromSource() const
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	FVoxelEditorUtilities::ForeachDataPtr<FVoxelInstancedStruct>(InstancedStructHandle, [&](FVoxelInstancedStruct* InstancedStruct)
+	FVoxelEditorUtilities::ForeachData<FVoxelInstancedStruct>(InstancedStructHandle, [&](FVoxelInstancedStruct& InstancedStruct)
 	{
-		if (!InstancedStruct)
-		{
-			// Will happen when removing array entries
-			return;
-		}
-
-		if (!ensureVoxelSlow(InstancedStruct->GetScriptStruct() == StructOnScope->GetStruct()))
+		if (!ensureVoxelSlow(InstancedStruct.GetScriptStruct() == StructOnScope->GetStruct()))
 		{
 			return;
 		}
 
-		FVoxelStructView(*InstancedStruct).CopyTo(*StructOnScope);
+		FVoxelStructView(InstancedStruct).CopyTo(*StructOnScope);
 	});
 }
 
