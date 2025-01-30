@@ -689,10 +689,7 @@ public:
 	template<typename InType>
 	struct TIterator
 	{
-		Type* Value = nullptr;
-		const TUniquePtr<FChunk>* ChunkIterator = nullptr;
-		const TUniquePtr<FChunk>* ChunkIteratorEnd = nullptr;
-
+	public:
 		FORCEINLINE InType& operator*() const
 		{
 			return *Value;
@@ -721,6 +718,13 @@ public:
 		{
 			return Value != End;
 		}
+
+	private:
+		Type* Value = nullptr;
+		const TUniquePtr<FChunk>* ChunkIterator = nullptr;
+		const TUniquePtr<FChunk>* ChunkIteratorEnd = nullptr;
+
+		friend TVoxelChunkedArray;
 	};
 
 	FORCEINLINE TIterator<Type> begin()
@@ -730,12 +734,11 @@ public:
 			return {};
 		}
 
-		return TIterator<Type>
-		{
-			&GetChunkView(0)[0],
-			PrivateChunks.GetData(),
-			PrivateChunks.GetData() + PrivateChunks.Num()
-		};
+		TIterator<Type> Iterator;
+		Iterator.Value = &GetChunkView(0)[0];
+		Iterator.ChunkIterator = PrivateChunks.GetData();
+		Iterator.ChunkIteratorEnd = PrivateChunks.GetData() + PrivateChunks.Num();
+		return Iterator;
 	}
 	FORCEINLINE TIterator<const Type> begin() const
 	{

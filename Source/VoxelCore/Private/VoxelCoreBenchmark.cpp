@@ -7,9 +7,20 @@
 
 #define LOG(Format, ...) GLogConsole->Serialize(*FString::Printf(TEXT(Format), ##__VA_ARGS__), ELogVerbosity::Display, "Voxel");
 
+#if 0
+VOXEL_RUN_ON_STARTUP_GAME()
+{
+	FVoxelCoreBenchmark::Run();
+}
+#endif
+
 void FVoxelCoreBenchmark::Run()
 {
-	FSlateApplication::Get().GetActiveTopLevelWindow()->Minimize();
+	if (const TSharedPtr<SWindow> Window = FSlateApplication::Get().GetActiveTopLevelWindow())
+	{
+		Window->Minimize();
+	}
+
 	GLogConsole->Show(true);
 
 	LOG("####################################################");
@@ -29,6 +40,10 @@ void FVoxelCoreBenchmark::Run()
 		LOG("####################################################");
 		LOG("####################################################");
 		LOG("####################################################");
+
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
 
 		{
 			int32 Value = 0;
@@ -55,6 +70,10 @@ void FVoxelCoreBenchmark::Run()
 					}
 				});
 		}
+
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
 
 		{
 			int32 Value = 0;
@@ -89,6 +108,10 @@ void FVoxelCoreBenchmark::Run()
 					}
 				});
 		}
+
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
 
 		{
 			constexpr int32 NumInnerRuns = 100000;
@@ -141,6 +164,10 @@ void FVoxelCoreBenchmark::Run()
 				});
 		}
 
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+
 		{
 			TMap<int32, int32> EngineMap;
 			TVoxelMap<int32, int32> VoxelMap;
@@ -165,6 +192,10 @@ void FVoxelCoreBenchmark::Run()
 					VoxelMap.Reserve(1000000);
 				});
 		}
+
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
 
 		{
 			constexpr int32 NumInnerRuns = 1000000;
@@ -207,6 +238,10 @@ void FVoxelCoreBenchmark::Run()
 				});
 		}
 
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+
 		{
 			constexpr int32 NumInnerRuns = 100000;
 
@@ -248,6 +283,10 @@ void FVoxelCoreBenchmark::Run()
 				});
 		}
 
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+
 		{
 			constexpr int32 NumInnerRuns = 1000000;
 
@@ -271,17 +310,21 @@ void FVoxelCoreBenchmark::Run()
 				{
 					for (int32 Run = 0; Run < NumRuns; Run++)
 					{
-						EngineMap.Add(NumRuns);
+						EngineMap.Add(Run);
 					}
 				},
 				[&](const int32 NumRuns)
 				{
 					for (int32 Run = 0; Run < NumRuns; Run++)
 					{
-						VoxelMap.Add_CheckNew(NumRuns);
+						VoxelMap.Add_CheckNew(Run);
 					}
 				});
 		}
+
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
 
 		{
 			TSparseArray<int32> EngineArray;
@@ -308,6 +351,10 @@ void FVoxelCoreBenchmark::Run()
 				});
 		}
 
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+
 		{
 			constexpr int32 NumInnerRuns = 1000000;
 
@@ -315,7 +362,7 @@ void FVoxelCoreBenchmark::Run()
 			TVoxelSparseArray<int32> VoxelArray;
 
 			RunBenchmark(
-				"TSparseArray::Add",
+				"TSparseArray::Add (empty)",
 				NumInnerRuns,
 				[&]
 				{
@@ -342,6 +389,274 @@ void FVoxelCoreBenchmark::Run()
 					}
 				});
 		}
+
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+
+		{
+			constexpr int32 NumInnerRuns = 1000000;
+
+			TSparseArray<int32> EngineArray;
+			TVoxelSparseArray<int32> VoxelArray;
+
+			RunBenchmark(
+				"TSparseArray::Add (full)",
+				NumInnerRuns,
+				[&]
+				{
+					EngineArray.Empty();
+					EngineArray.Reserve(NumInnerRuns);
+
+					for (int32 Index = 0; Index < NumInnerRuns; Index++)
+					{
+						EngineArray.Add(Index);
+					}
+					for (int32 Index = 0; Index < NumInnerRuns; Index++)
+					{
+						EngineArray.RemoveAt(Index);
+					}
+				},
+				[&]
+				{
+					VoxelArray.Empty();
+					VoxelArray.Reserve(NumInnerRuns);
+
+					for (int32 Index = 0; Index < NumInnerRuns; Index++)
+					{
+						VoxelArray.Add(Index);
+					}
+					for (int32 Index = 0; Index < NumInnerRuns; Index++)
+					{
+						VoxelArray.RemoveAt(Index);
+					}
+				},
+				[&](const int32 NumRuns)
+				{
+					for (int32 Run = 0; Run < NumRuns; Run++)
+					{
+						EngineArray.Add(NumRuns);
+					}
+				},
+				[&](const int32 NumRuns)
+				{
+					for (int32 Run = 0; Run < NumRuns; Run++)
+					{
+						VoxelArray.Add(NumRuns);
+					}
+				});
+		}
+
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+
+		for (const float Percent : TArray<float>{ 0, 0.1, 0.5, 0.7, 0.9, 1 })
+		{
+			constexpr int32 NumInnerRuns = 1000000;
+
+			TSparseArray<int32> EngineArray;
+			TVoxelSparseArray<int32> VoxelArray;
+
+			for (int32 Index = 0; Index < NumInnerRuns; Index++)
+			{
+				EngineArray.Add(Index);
+				VoxelArray.Add(Index);
+			}
+
+			const FRandomStream Stream(323234);
+			uint64 ExpectedCount = 0;
+			for (int32 Index = 0; Index < NumInnerRuns; Index++)
+			{
+				if (Stream.GetFraction() > Percent)
+				{
+					ExpectedCount += FVoxelUtilities::MurmurHash32(Index);
+				}
+				else
+				{
+					EngineArray.RemoveAt(Index);
+					VoxelArray.RemoveAt(Index);
+				}
+			}
+
+			RunBenchmark(
+				FString::Printf(TEXT("TSparseArray::TIterator %d%% empty"), int32(Percent * 100)),
+				NumInnerRuns,
+				[&]
+				{
+				},
+				[&]
+				{
+				},
+				[&](const int32)
+				{
+					uint64 Count = 0;
+					for (const int32 Index : EngineArray)
+					{
+						Count += FVoxelUtilities::MurmurHash32(Index);
+					}
+
+					if (Count != ExpectedCount)
+					{
+						LOG_VOXEL(Fatal, "");
+					}
+				},
+				[&](const int32)
+				{
+					uint64 Count = 0;
+					for (const int32 Index : VoxelArray)
+					{
+						Count += FVoxelUtilities::MurmurHash32(Index);
+					}
+
+					if (Count != ExpectedCount)
+					{
+						LOG_VOXEL(Fatal, "");
+					}
+				});
+		}
+
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+
+		for (const float Percent : TArray<float>{ 0, 0.1, 0.5, 0.7, 0.9, 1 })
+		{
+			constexpr int32 NumInnerRuns = 1000000;
+
+			TSparseArray<int32> EngineArray;
+			TVoxelSparseArray<int32> VoxelArray;
+
+			for (int32 Index = 0; Index < NumInnerRuns; Index++)
+			{
+				EngineArray.Add(Index);
+				VoxelArray.Add(Index);
+			}
+
+			const FRandomStream Stream(323234);
+			uint64 ExpectedCount = 0;
+			for (int32 Index = 0; Index < NumInnerRuns; Index++)
+			{
+				if (Stream.GetFraction() > Percent)
+				{
+					ExpectedCount += FVoxelUtilities::MurmurHash32(Index);
+				}
+				else
+				{
+					EngineArray.RemoveAt(Index);
+					VoxelArray.RemoveAt(Index);
+				}
+			}
+
+			RunBenchmark(
+				FString::Printf(TEXT("TSparseArray::Foreach %d%% empty"), int32(Percent * 100)),
+				NumInnerRuns,
+				[&]
+				{
+				},
+				[&]
+				{
+				},
+				[&](const int32)
+				{
+					uint64 Count = 0;
+					for (const int32 Index : EngineArray)
+					{
+						Count += FVoxelUtilities::MurmurHash32(Index);
+					}
+
+					if (Count != ExpectedCount)
+					{
+						LOG_VOXEL(Fatal, "");
+					}
+				},
+				[&](const int32)
+				{
+					uint64 Count = 0;
+					VoxelArray.Foreach([&](const int32 Index)
+					{
+						Count += FVoxelUtilities::MurmurHash32(Index);
+					});
+
+					if (Count != ExpectedCount)
+					{
+						LOG_VOXEL(Fatal, "");
+					}
+				});
+		}
+
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+
+		for (const float Percent : TArray<float>{ 0, 0.1, 0.5, 0.7, 0.9, 1 })
+		{
+			constexpr int32 NumInnerRuns = 1000000;
+
+			TSparseArray<int32> EngineArray;
+			TVoxelChunkedSparseArray<int32> VoxelArray;
+
+			for (int32 Index = 0; Index < NumInnerRuns; Index++)
+			{
+				EngineArray.Add(Index);
+				VoxelArray.Add(Index);
+			}
+
+			const FRandomStream Stream(323234);
+			uint64 ExpectedCount = 0;
+			for (int32 Index = 0; Index < NumInnerRuns; Index++)
+			{
+				if (Stream.GetFraction() > Percent)
+				{
+					ExpectedCount += FVoxelUtilities::MurmurHash32(Index);
+				}
+				else
+				{
+					EngineArray.RemoveAt(Index);
+					VoxelArray.RemoveAt(Index);
+				}
+			}
+
+			RunBenchmark(
+				FString::Printf(TEXT("TVoxelChunkedSparseArray::Foreach %d%% empty"), int32(Percent * 100)),
+				NumInnerRuns,
+				[&]
+				{
+				},
+				[&]
+				{
+				},
+				[&](const int32)
+				{
+					uint64 Count = 0;
+					for (const int32 Index : EngineArray)
+					{
+						Count += FVoxelUtilities::MurmurHash32(Index);
+					}
+
+					if (Count != ExpectedCount)
+					{
+						LOG_VOXEL(Fatal, "");
+					}
+				},
+				[&](const int32)
+				{
+					uint64 Count = 0;
+					VoxelArray.Foreach([&](const int32 Index)
+					{
+						Count += FVoxelUtilities::MurmurHash32(Index);
+					});
+
+					if (Count != ExpectedCount)
+					{
+						LOG_VOXEL(Fatal, "");
+					}
+				});
+		}
+
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
 
 		{
 			constexpr int32 NumInnerRuns = 1000000;
@@ -378,6 +693,10 @@ void FVoxelCoreBenchmark::Run()
 				});
 		}
 
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+
 		{
 			constexpr int32 NumInnerRuns = 1000000;
 
@@ -411,6 +730,10 @@ void FVoxelCoreBenchmark::Run()
 					Value += VoxelArray.CountSetBits();
 				});
 		}
+
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
 
 		{
 			constexpr int32 NumInnerRuns = 1000000;
@@ -474,6 +797,10 @@ void FVoxelCoreBenchmark::Run()
 				});
 		}
 
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+
 		{
 			constexpr int32 NumInnerRuns = 1000000;
 
@@ -509,6 +836,10 @@ void FVoxelCoreBenchmark::Run()
 				});
 		}
 
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+
 		{
 			uint64 Value = 0;
 
@@ -533,6 +864,10 @@ void FVoxelCoreBenchmark::Run()
 				});
 		}
 
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+
 		{
 			TMap<uint16, uint16> EngineMap;
 			TVoxelMap<uint16, uint16> VoxelMap;
@@ -542,13 +877,17 @@ void FVoxelCoreBenchmark::Run()
 			for (int32 Index = 0; Index < 1000000; Index++)
 			{
 				EngineMap.Add(Index, Index);
-				VoxelMap.Add_CheckNew(Index, Index);
+				VoxelMap.FindOrAdd(Index) = Index;
 			}
 
 			LOG("TMap<uint16, uint16> with 1M elements: Engine: %s Voxel: %s",
 				*FVoxelUtilities::BytesToString(EngineMap.GetAllocatedSize()),
 				*FVoxelUtilities::BytesToString(VoxelMap.GetAllocatedSize()));
 		}
+
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
 
 		{
 			TMap<uint32, uint32> EngineMap;
@@ -566,6 +905,10 @@ void FVoxelCoreBenchmark::Run()
 				*FVoxelUtilities::BytesToString(EngineMap.GetAllocatedSize()),
 				*FVoxelUtilities::BytesToString(VoxelMap.GetAllocatedSize()));
 		}
+
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
 
 		FPlatformProcess::Sleep(1);
 	}

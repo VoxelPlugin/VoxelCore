@@ -490,14 +490,14 @@
     </Expand>
   </Type>
 
-  <!-- TSparseArray visualizer -->
-  <Type Name="TSparseArray&lt;*,FVoxelSparseArrayAllocator&gt;">
-    <DisplayString Condition="(Data.ArrayNum - NumFreeIndices) &lt;= 0">Empty</DisplayString>
-    <DisplayString Condition="Data.ArrayNum &lt;= Data.ArrayMax">Num={Data.ArrayNum - NumFreeIndices}</DisplayString>
+  <!-- TVoxelSparseArray visualizer -->
+  <Type Name="TVoxelSparseArray&lt;*&gt;">
+    <DisplayString Condition="ArrayNum == 0">Empty</DisplayString>
+    <DisplayString Condition="ArrayNum != 0">Num={ArrayNum}</DisplayString>
     <Expand>
-      <IndexListItems Condition="Data.ArrayNum &gt; 0 &amp;&amp; Data.ArrayNum &lt;= Data.ArrayMax">
-        <Size>Data.ArrayNum</Size>
-        <ValueNode Condition="(reinterpret_cast&lt;uint32*&gt;(AllocationFlags.AllocatorInstance.Data)[$i/32]&gt;&gt;($i%32) &amp; 1) != 0">*reinterpret_cast&lt;ElementType*&gt;(reinterpret_cast&lt;FElementOrFreeListLink*&gt;(Data.AllocatorInstance.Data) + $i)</ValueNode>
+      <IndexListItems Condition="ArrayNum &gt; 0">
+        <Size>Values.ArrayNum</Size>
+        <ValueNode Condition="(reinterpret_cast&lt;uint32*&gt;(AllocationFlags.AllocatorInstance.Data)[$i/32]&gt;&gt;($i%32) &amp; 1) != 0">*reinterpret_cast&lt;$T1*&gt;(reinterpret_cast&lt;FValue*&gt;(Values.AllocatorInstance.Data) + $i)</ValueNode>
         <ValueNode Condition="(reinterpret_cast&lt;uint32*&gt;(AllocationFlags.AllocatorInstance.Data)[$i/32]&gt;&gt;($i%32) &amp; 1) == 0">"Invalid",sb</ValueNode>
       </IndexListItems>
     </Expand>
