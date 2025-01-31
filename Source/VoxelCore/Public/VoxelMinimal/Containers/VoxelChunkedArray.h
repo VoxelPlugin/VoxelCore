@@ -413,31 +413,13 @@ public:
 public:
 	FORCEINLINE int32 AddUninitialized()
 	{
-		if (ArrayNum % NumPerChunk == 0)
-		{
-			AllocateNewChunk();
-		}
-		return ArrayNum++;
+		checkStatic(std::is_trivially_destructible_v<Type>);
+		return AddUninitializedImpl();
 	}
 	FORCEINLINE int32 AddUninitialized(const int32 Count)
 	{
-		checkVoxelSlow(Count >= 0);
-
-		const int32 OldNum = ArrayNum;
-		ArrayNum += Count;
-		const int32 NewNum = ArrayNum;
-
-		const int32 OldNumChunks = FVoxelUtilities::DivideCeil_Positive(OldNum, NumPerChunk);
-		const int32 NewNumChunks = FVoxelUtilities::DivideCeil_Positive(NewNum, NumPerChunk);
-
-		checkVoxelSlow(PrivateChunks.Num() == OldNumChunks);
-		for (int32 ChunkIndex = OldNumChunks; ChunkIndex < NewNumChunks; ChunkIndex++)
-		{
-			AllocateNewChunk();
-		}
-		checkVoxelSlow(PrivateChunks.Num() == NewNumChunks);
-
-		return OldNum;
+		checkStatic(std::is_trivially_destructible_v<Type>);
+		return AddUninitializedImpl(Count);
 	}
 
 	FORCEINLINE int32 AddZeroed(const int32 Count)
@@ -446,7 +428,7 @@ public:
 		checkStatic(std::is_trivially_destructible_v<Type>);
 		checkVoxelSlow(Count >= 0);
 
-		const int32 Index = AddUninitialized(Count);
+		const int32 Index = AddUninitializedImpl(Count);
 
 		this->ForeachView(
 			Index,
@@ -462,7 +444,7 @@ public:
 	{
 		checkVoxelSlow(Count >= 0);
 
-		const int32 Index = AddUninitialized(Count);
+		const int32 Index = AddUninitializedImpl(Count);
 
 		this->ForeachView(
 			Index,
@@ -487,20 +469,20 @@ public:
 
 	FORCEINLINE int32 Add(const Type& Value)
 	{
-		const int32 Index = AddUninitialized();
+		const int32 Index = AddUninitializedImpl();
 		new (&(*this)[Index]) Type(Value);
 		return Index;
 	}
 	FORCEINLINE int32 Add(Type&& Value)
 	{
-		const int32 Index = AddUninitialized();
+		const int32 Index = AddUninitializedImpl();
 		new (&(*this)[Index]) Type(MoveTemp(Value));
 		return Index;
 	}
 	template<typename... ArgsType>
 	FORCEINLINE int32 Emplace(ArgsType&&... Args)
 	{
-		const int32 Index = AddUninitialized();
+		const int32 Index = AddUninitializedImpl();
 		new (&(*this)[Index]) Type(Forward<ArgsType>(Args)...);
 		return Index;
 	}
@@ -509,7 +491,7 @@ public:
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 1024);
 
-		const int32 StartIndex = this->AddUninitialized(Other.Num());
+		const int32 StartIndex = this->AddUninitializedImpl(Other.Num());
 
 		if constexpr (std::is_trivially_destructible_v<Type>)
 		{
@@ -552,7 +534,7 @@ public:
 
 	FORCEINLINE Type& Add_GetRef(Type&& Value)
 	{
-		const int32 Index = AddUninitialized();
+		const int32 Index = AddUninitializedImpl();
 		Type& ValueRef = (*this)[Index];
 		new (&ValueRef) Type(MoveTemp(Value));
 		return ValueRef;
@@ -560,7 +542,7 @@ public:
 	template<typename... ArgTypes>
 	FORCEINLINE Type& Emplace_GetRef(ArgTypes&&... Args)
 	{
-		const int32 Index = AddUninitialized();
+		const int32 Index = AddUninitializedImpl();
 		Type& ValueRef = (*this)[Index];
 		new (&ValueRef) Type(Forward<ArgTypes>(Args)...);
 		return ValueRef;
@@ -765,6 +747,35 @@ public:
 private:
 	int32 ArrayNum = 0;
 	FChunkArray PrivateChunks;
+
+	FORCEINLINE int32 AddUninitializedImpl()
+	{
+		if (ArrayNum % NumPerChunk == 0)
+		{
+			AllocateNewChunk();
+		}
+		return ArrayNum++;
+	}
+	FORCEINLINE int32 AddUninitializedImpl(const int32 Count)
+	{
+		checkVoxelSlow(Count >= 0);
+
+		const int32 OldNum = ArrayNum;
+		ArrayNum += Count;
+		const int32 NewNum = ArrayNum;
+
+		const int32 OldNumChunks = FVoxelUtilities::DivideCeil_Positive(OldNum, NumPerChunk);
+		const int32 NewNumChunks = FVoxelUtilities::DivideCeil_Positive(NewNum, NumPerChunk);
+
+		checkVoxelSlow(PrivateChunks.Num() == OldNumChunks);
+		for (int32 ChunkIndex = OldNumChunks; ChunkIndex < NewNumChunks; ChunkIndex++)
+		{
+			AllocateNewChunk();
+		}
+		checkVoxelSlow(PrivateChunks.Num() == NewNumChunks);
+
+		return OldNum;
+	}
 
 	FORCENOINLINE void AllocateNewChunk()
 	{
