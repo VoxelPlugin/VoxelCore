@@ -330,11 +330,6 @@
     </Expand>
   </Type>
 
-  <!-- FVoxelRuntimeInfo visualizer -->
-  <Type Name="FVoxelRuntimeInfo">
-    <DisplayString>Label={WeakRootComponent->OwnerPrivate->ActorLabel,sb} Graph={GraphPath,sb}</DisplayString>
-  </Type>
-
   <!-- FVoxelTransformRef visualizer -->
   <Type Name="FVoxelTransformRef">
     <DisplayString Condition="!Impl.Object">Identity</DisplayString>
