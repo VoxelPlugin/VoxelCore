@@ -104,9 +104,9 @@ void FVoxelBufferPoolBase::UpdateStats()
 	const int64 UsedMemoryNew = UsedMemory.Get();
 	const int64 PaddingMemoryNew = PaddingMemory.Get();
 
-	const int64 AllocatedMemoryOld = AllocatedMemory_Reported.Exchange_ReturnOld(AllocatedMemoryNew);
-	const int64 UsedMemoryOld = UsedMemory_Reported.Exchange_ReturnOld(UsedMemoryNew);
-	const int64 PaddingMemoryOld = PaddingMemory_Reported.Exchange_ReturnOld(PaddingMemoryNew);
+	const int64 AllocatedMemoryOld = AllocatedMemory_Reported.Set_ReturnOld(AllocatedMemoryNew);
+	const int64 UsedMemoryOld = UsedMemory_Reported.Set_ReturnOld(UsedMemoryNew);
+	const int64 PaddingMemoryOld = PaddingMemory_Reported.Set_ReturnOld(PaddingMemoryNew);
 
 	Voxel_AddAmountToDynamicStat(AllocatedMemory_Name, AllocatedMemoryNew - AllocatedMemoryOld);
 	Voxel_AddAmountToDynamicStat(UsedMemory_Name, UsedMemoryNew - UsedMemoryOld);
@@ -235,7 +235,7 @@ void FVoxelBufferPoolBase::CheckUploadQueue_AnyThread()
 		return;
 	}
 
-	if (IsProcessingUploads.Exchange_ReturnOld(true) == true)
+	if (IsProcessingUploads.Set_ReturnOld(true) == true)
 	{
 		return;
 	}
@@ -246,7 +246,7 @@ void FVoxelBufferPoolBase::CheckUploadQueue_AnyThread()
 
 		ProcessUploads_AnyThread().Then_AnyThread(MakeWeakPtrLambda(this, [this]
 		{
-			ensure(IsProcessingUploads.Exchange_ReturnOld(false));
+			ensure(IsProcessingUploads.Set_ReturnOld(false));
 
 			CheckUploadQueue_AnyThread();
 		}));

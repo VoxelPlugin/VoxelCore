@@ -194,11 +194,11 @@ VOXELCORE_API FName VoxelStats_AddNum(const FString& Format, int32 Num);
 		FVoxelStatsRefHelper() = default; \
 		FVoxelStatsRefHelper(FVoxelStatsRefHelper&& Other) \
 		{ \
-			AllocatedSize.Set(Other.AllocatedSize.Exchange_ReturnOld(0)); \
+			AllocatedSize.Set(Other.AllocatedSize.Set_ReturnOld(0)); \
 		} \
 		FVoxelStatsRefHelper& operator=(FVoxelStatsRefHelper&& Other) \
 		{ \
-			AllocatedSize.Set(Other.AllocatedSize.Exchange_ReturnOld(0)); \
+			AllocatedSize.Set(Other.AllocatedSize.Set_ReturnOld(0)); \
 			return *this; \
 		} \
 		FVoxelStatsRefHelper(const FVoxelStatsRefHelper& Other) \
@@ -209,7 +209,7 @@ VOXELCORE_API FName VoxelStats_AddNum(const FString& Format, int32 Num);
 		FVoxelStatsRefHelper& operator=(const FVoxelStatsRefHelper& Other) \
 		{ \
 			const int64 NewAllocatedSize = Other.AllocatedSize.Get(); \
-			const int64 OldAllocatedSize = AllocatedSize.Exchange_ReturnOld(NewAllocatedSize); \
+			const int64 OldAllocatedSize = AllocatedSize.Set_ReturnOld(NewAllocatedSize); \
 			DEC_VOXEL_MEMORY_STAT_BY(StatName, OldAllocatedSize); \
 			INC_VOXEL_MEMORY_STAT_BY(StatName, NewAllocatedSize); \
 			return *this; \
@@ -223,7 +223,7 @@ VOXELCORE_API FName VoxelStats_AddNum(const FString& Format, int32 Num);
 	void UpdateStats() const \
 	{ \
 		const int64 NewAllocatedSize = GetAllocatedSize(); \
-		const int64 OldAllocatedSize = VOXEL_APPEND_LINE(__VoxelStatsRefHelper).AllocatedSize.Exchange_ReturnOld(NewAllocatedSize); \
+		const int64 OldAllocatedSize = VOXEL_APPEND_LINE(__VoxelStatsRefHelper).AllocatedSize.Set_ReturnOld(NewAllocatedSize); \
 		\
 		if (NewAllocatedSize == OldAllocatedSize) \
 		{ \
@@ -301,7 +301,7 @@ VOXELCORE_API FName VoxelStats_AddNum(const FString& Format, int32 Num);
 		} \
 		FVoxelStatsRefHelper& operator=(const int64 NewAllocatedSize) \
 		{ \
-			const int64 OldAllocatedSize = AllocatedSize.Exchange_ReturnOld(NewAllocatedSize); \
+			const int64 OldAllocatedSize = AllocatedSize.Set_ReturnOld(NewAllocatedSize); \
 			DEC_VOXEL_MEMORY_STAT_BY(StatName, OldAllocatedSize); \
 			INC_VOXEL_MEMORY_STAT_BY(StatName, NewAllocatedSize); \
 			return *this; \
@@ -317,40 +317,84 @@ VOXELCORE_API FName VoxelStats_AddNum(const FString& Format, int32 Num);
 	public:\
 		FVoxelStatsRefHelper() = default; \
 		FVoxelStatsRefHelper(FVoxelStatsRefHelper&& Other) \
+			: Value(Other.Value.Set_ReturnOld(0)) \
 		{ \
-			Value = Other.Value; \
-			Other.Value = 0; \
 		} \
 		FVoxelStatsRefHelper& operator=(FVoxelStatsRefHelper&& Other) \
 		{ \
-			Value = Other.Value; \
-			Other.Value = 0; \
+			*this = 0; \
+			Value.Set(Other.Value.Set_ReturnOld(0)); \
 			return *this; \
 		} \
 		FVoxelStatsRefHelper(const FVoxelStatsRefHelper& Other) \
 		{ \
-			Value = Other.Value; \
-			INC_VOXEL_COUNTER_BY(StatName, Value); \
+			*this = Other.Value.Get(); \
 		} \
 		FVoxelStatsRefHelper& operator=(const FVoxelStatsRefHelper& Other) \
 		{ \
-			Value = Other.Value; \
-			INC_VOXEL_COUNTER_BY(StatName, Value); \
+			*this = Other.Value.Get(); \
 			return *this; \
 		} \
 		FORCEINLINE ~FVoxelStatsRefHelper() \
 		{ \
-			DEC_VOXEL_COUNTER_BY(StatName, Value); \
+			*this = 0; \
 		} \
-		FVoxelStatsRefHelper& operator=(int64 NewValue) \
+		FVoxelStatsRefHelper& operator=(const int64 NewValue) \
 		{ \
-			DEC_VOXEL_COUNTER_BY(StatName, Value); \
-			Value = NewValue; \
-			INC_VOXEL_COUNTER_BY(StatName, Value); \
+			const int64 OldValue = Value.Set_ReturnOld(NewValue); \
+			INC_VOXEL_COUNTER_BY(StatName, NewValue - OldValue); \
 			return *this; \
 		} \
 	private: \
-		int64 Value = 0; \
+		FVoxelCounter64 Value; \
+	}; \
+	mutable FVoxelStatsRefHelper Name;
+
+#define VOXEL_CUSTOM_COUNTER_HELPER(Name) \
+	class FVoxelStatsRefHelper \
+	{ \
+	public:\
+		explicit FVoxelStatsRefHelper(const FName StatName) \
+			: StatName(StatName) \
+		{ \
+		} \
+		FVoxelStatsRefHelper(FVoxelStatsRefHelper&& Other) \
+			: StatName(Other.StatName) \
+			, Value(Other.Value.Set_ReturnOld(0)) \
+		{ \
+		} \
+		FVoxelStatsRefHelper& operator=(FVoxelStatsRefHelper&& Other) \
+		{ \
+			*this = 0; \
+			StatName = Other.StatName; \
+			Value.Set(Other.Value.Set_ReturnOld(0)); \
+			return *this; \
+		} \
+		FVoxelStatsRefHelper(const FVoxelStatsRefHelper& Other) \
+			: StatName(Other.StatName) \
+		{ \
+			*this = Other.Value.Get(); \
+		} \
+		FVoxelStatsRefHelper& operator=(const FVoxelStatsRefHelper& Other) \
+		{ \
+			*this = 0; \
+			StatName = Other.StatName; \
+			*this = Other.Value.Get(); \
+			return *this; \
+		} \
+		FORCEINLINE ~FVoxelStatsRefHelper() \
+		{ \
+			*this = 0; \
+		} \
+		FVoxelStatsRefHelper& operator=(const int64 NewValue) \
+		{ \
+			const int64 OldValue = Value.Set_ReturnOld(NewValue); \
+			Voxel_AddAmountToDynamicStat(StatName, NewValue - OldValue); \
+			return *this; \
+		} \
+	private: \
+		FName StatName; \
+		FVoxelCounter64 Value; \
 	}; \
 	mutable FVoxelStatsRefHelper Name;
 
@@ -384,7 +428,19 @@ VOXELCORE_API void Voxel_AddAmountToDynamicStat(FName Name, int64 Amount);
 	}; \
 	mutable FVoxelStatsRefHelper Name;
 
-#define VOXEL_COUNTER_HELPER(StatName, Name) \
+#define VOXEL_CUSTOM_COUNTER_HELPER(Name) \
+	class FVoxelStatsRefHelper \
+	{ \
+	public:\
+		FVoxelStatsRefHelper(const FName) {} \
+		FVoxelStatsRefHelper& operator=(int64 NewValue) \
+		{ \
+			return *this; \
+		} \
+	}; \
+	mutable FVoxelStatsRefHelper Name;
+
+#define VOXEL_COUNTER_HELPER(Name) \
 	class FVoxelStatsRefHelper \
 	{ \
 	public:\

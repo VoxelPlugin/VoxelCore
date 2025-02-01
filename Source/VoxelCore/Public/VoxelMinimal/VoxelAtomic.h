@@ -109,7 +109,7 @@ public:
 		Storage.Atomic.store(NewValue, MemoryOrder);
 	}
 
-	FORCEINLINE T Exchange_ReturnOld(const T NewValue, const std::memory_order MemoryOrder = std::memory_order_seq_cst)
+	FORCEINLINE T Set_ReturnOld(const T NewValue, const std::memory_order MemoryOrder = std::memory_order_seq_cst)
 	{
 		CheckValue(NewValue);
 		return Storage.Atomic.exchange(NewValue, MemoryOrder);

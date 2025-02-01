@@ -9,7 +9,7 @@ namespace FVoxelUtilities
 {
 	FORCEINLINE bool TryLockAtomic(TVoxelAtomic<bool>& bIsLocked)
 	{
-		return bIsLocked.Exchange_ReturnOld(true, std::memory_order_acquire) == false;
+		return bIsLocked.Set_ReturnOld(true, std::memory_order_acquire) == false;
 	}
 	FORCEINLINE void LockAtomic(TVoxelAtomic<bool>& bIsLocked)
 	{
