@@ -18,16 +18,7 @@ public:
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) {}
 
 public:
-	// Always safe to call in Tick
-	FORCEINLINE UWorld* GetWorld() const
-	{
-		checkVoxelSlow(IsInGameThread());
-
-		UWorld* World = PrivateWorld.ResolveObjectPtr();
-		ensureVoxelSlow(World);
-		return World;
-	}
-	FORCEINLINE TObjectKey<UWorld> GetWorld_AnyThread() const
+	FORCEINLINE TObjectKey<UWorld> GetWorld() const
 	{
 		return PrivateWorld;
 	}
