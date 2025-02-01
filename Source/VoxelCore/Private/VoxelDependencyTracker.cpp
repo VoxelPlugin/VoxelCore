@@ -31,8 +31,7 @@ int64 FVoxelDependencyTracker::GetAllocatedSize() const
 
 void FVoxelDependencyTracker::AddDependency(
 	const TSharedRef<FVoxelDependency>& Dependency,
-	const TOptional<FVoxelBox>& Bounds,
-	const TOptional<uint64>& Tag)
+	const TOptional<FVoxelBox>& Bounds)
 {
 	VOXEL_FUNCTION_COUNTER();
 
@@ -44,12 +43,6 @@ void FVoxelDependencyTracker::AddDependency(
 		{
 			TrackerRef.bHasBounds = true;
 			TrackerRef.Bounds = Bounds.GetValue();
-		}
-
-		if (Tag.IsSet())
-		{
-			TrackerRef.bHasTag = true;
-			TrackerRef.Tag = Tag.GetValue();
 		}
 	}
 

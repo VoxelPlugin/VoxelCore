@@ -162,13 +162,6 @@ void FVoxelDependency::GetInvalidatedTrackers(
 			return;
 		}
 
-		if (Parameters.LessOrEqualTag.IsSet() &&
-			TrackerRef.bHasTag &&
-			!(Parameters.LessOrEqualTag.GetValue() <= TrackerRef.Tag))
-		{
-			return;
-		}
-
 		OutTrackers.Add(TrackerRef.WeakTracker);
 	});
 }

@@ -32,8 +32,7 @@ public:
 public:
 	void AddDependency(
 		const TSharedRef<FVoxelDependency>& Dependency,
-		const TOptional<FVoxelBox>& Bounds = {},
-		const TOptional<uint64>& Tag = {});
+		const TOptional<FVoxelBox>& Bounds = {});
 
 	void AddObjectToKeepAlive(const FSharedVoidPtr& ObjectToKeepAlive);
 

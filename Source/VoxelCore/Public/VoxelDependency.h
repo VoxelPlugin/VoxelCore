@@ -13,7 +13,6 @@ DECLARE_VOXEL_MEMORY_STAT(VOXELCORE_API, STAT_VoxelDependencies, "Dependencies")
 struct FVoxelDependencyInvalidationParameters
 {
 	TSharedPtr<const FVoxelAABBTree> Bounds;
-	TOptional<uint64> LessOrEqualTag;
 };
 
 class VOXELCORE_API FVoxelDependencyInvalidationScope
@@ -71,26 +70,16 @@ private:
 		bool bHasBounds = false;
 		FVoxelBox Bounds;
 
-		bool bHasTag = false;
-		uint64 Tag = 0;
-
 		FORCEINLINE bool operator==(const FTrackerRef& Other) const
 		{
 			if (WeakTracker != Other.WeakTracker ||
-				bHasBounds != Other.bHasBounds ||
-				bHasTag != Other.bHasTag)
+				bHasBounds != Other.bHasBounds)
 			{
 				return false;
 			}
 
 			if (bHasBounds &&
 				Bounds != Other.Bounds)
-			{
-				return false;
-			}
-
-			if (bHasTag &&
-				Tag != Other.Tag)
 			{
 				return false;
 			}
