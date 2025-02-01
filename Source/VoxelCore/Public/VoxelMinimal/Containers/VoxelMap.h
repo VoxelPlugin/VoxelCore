@@ -224,6 +224,10 @@ public:
 			Rehash();
 		}
 	}
+	void ReserveGrow(const int32 Number)
+	{
+		Reserve(Num() + Number);
+	}
 
 	bool OrderIndependentEqual(const TVoxelMap& Other) const
 	{
@@ -276,7 +280,7 @@ public:
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 1024);
 
-		this->Reserve(Num() + Other.Num());
+		this->ReserveGrow(Other.Num());
 
 		for (const FElement& Element : Other.Elements)
 		{

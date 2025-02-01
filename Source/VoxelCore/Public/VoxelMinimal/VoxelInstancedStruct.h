@@ -182,19 +182,19 @@ public:
 	}
 
 	template<typename T>
-	TSharedRef<T> AsShared()
+	TSharedRef<T> ToSharedRef()
 	{
 		checkVoxelSlow(IsA<T>())
 		return ReinterpretCastRef<TSharedRef<T>>(PrivateStructMemory);
 	}
 	template<typename T>
-	TSharedRef<const T> AsShared() const
+	TSharedRef<const T> ToSharedRef() const
 	{
-		return ConstCast(this)->AsShared<const T>();
+		return ConstCast(this)->ToSharedRef<const T>();
 	}
 
 	template<typename T>
-	TSharedPtr<T> AsSharedPtr()
+	TSharedPtr<T> ToSharedPtr()
 	{
 		if (!IsA<T>())
 		{
@@ -204,9 +204,9 @@ public:
 		return ReinterpretCastRef<TSharedPtr<T>>(PrivateStructMemory);
 	}
 	template<typename T>
-	TSharedPtr<const T> AsSharedPtr() const
+	TSharedPtr<const T> ToSharedPtr() const
 	{
-		return ConstCast(this)->AsSharedPtr<const T>();
+		return ConstCast(this)->ToSharedPtr<const T>();
 	}
 
 	template<typename T>
@@ -358,25 +358,25 @@ public:
 	using FVoxelInstancedStruct::Reset;
 
 	template<typename OtherType = T, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
-	FORCEINLINE TSharedRef<OtherType> AsShared()
+	FORCEINLINE TSharedRef<OtherType> ToSharedRef()
 	{
-		return FVoxelInstancedStruct::AsShared<OtherType>();
+		return FVoxelInstancedStruct::ToSharedRef<OtherType>();
 	}
 	template<typename OtherType = T, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
-	FORCEINLINE TSharedRef<const OtherType> AsShared() const
+	FORCEINLINE TSharedRef<const OtherType> ToSharedRef() const
 	{
-		return FVoxelInstancedStruct::AsShared<const OtherType>();
+		return FVoxelInstancedStruct::ToSharedRef<const OtherType>();
 	}
 
 	template<typename OtherType = T, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
-	FORCEINLINE TSharedPtr<OtherType> AsSharedPtr()
+	FORCEINLINE TSharedPtr<OtherType> ToSharedPtr()
 	{
-		return FVoxelInstancedStruct::AsSharedPtr<OtherType>();
+		return FVoxelInstancedStruct::ToSharedPtr<OtherType>();
 	}
 	template<typename OtherType = T, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
 	FORCEINLINE TSharedPtr<const OtherType> AsSharedPtr() const
 	{
-		return FVoxelInstancedStruct::AsShared<const OtherType>();
+		return FVoxelInstancedStruct::ToSharedPtr<const OtherType>();
 	}
 
 public:

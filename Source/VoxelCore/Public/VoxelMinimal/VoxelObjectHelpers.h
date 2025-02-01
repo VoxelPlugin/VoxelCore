@@ -483,7 +483,8 @@ FORCENOINLINE T* SlowPath_ResolveObjectPtrFast(const TObjectPtr<T>& ObjectPtr)
 template<typename T>
 FORCEINLINE bool IsObjectKeyNull(const TObjectKey<T> Key)
 {
-	return Key == TObjectKey<T>();
+	checkVoxelSlow(ReinterpretCastRef<uint64>(FObjectKey()) == 0);
+	return ReinterpretCastRef<uint64>(Key) == 0;
 }
 
 template<typename T>
@@ -507,6 +508,14 @@ template<typename T>
 FORCEINLINE TObjectKey<T> MakeObjectKey(T& Object)
 {
 	return TObjectKey<T>(&Object);
+}
+
+VOXELCORE_API FName GetObjectKeyName(FObjectKey ObjectKey);
+
+template<typename T>
+FORCEINLINE FName GetObjectKeyName(const TObjectKey<T> ObjectKey)
+{
+	return GetObjectKeyName(ReinterpretCastRef<FObjectKey>(ObjectKey));
 }
 
 template<typename T>

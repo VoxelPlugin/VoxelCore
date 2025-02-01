@@ -278,3 +278,16 @@ FSharedVoidRef MakeShareableStruct(const UScriptStruct* Struct, void* StructMemo
 		FMemory::Free(InMemory);
 	}).ToSharedRef());
 }
+
+FName GetObjectKeyName(const FObjectKey ObjectKey)
+{
+	checkVoxelSlow(IsInGameThread());
+
+	const UObject* Object = ObjectKey.ResolveObjectPtr();
+	if (!Object)
+	{
+		return STATIC_FNAME("<null>");
+	}
+
+	return Object->GetFName();
+}

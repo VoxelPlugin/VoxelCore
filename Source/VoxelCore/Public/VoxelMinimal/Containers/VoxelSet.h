@@ -143,6 +143,10 @@ public:
 			Rehash();
 		}
 	}
+	void ReserveGrow(const int32 Number)
+	{
+		Reserve(Num() + Number);
+	}
 
 	template<typename PredicateType>
 	void Sort(const PredicateType& Predicate)
@@ -165,7 +169,7 @@ public:
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Array.Num(), 1024);
 
-		this->Reserve(Num() + Array.Num());
+		this->ReserveGrow(Array.Num());
 
 		for (const OtherType& Value : Array)
 		{
@@ -177,7 +181,7 @@ public:
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Set.Num(), 1024);
 
-		this->Reserve(Num() + Set.Num());
+		this->ReserveGrow(Set.Num());
 
 		for (const OtherType& Value : Set)
 		{

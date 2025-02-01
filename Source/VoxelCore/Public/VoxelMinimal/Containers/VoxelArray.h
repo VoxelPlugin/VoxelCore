@@ -250,6 +250,10 @@ public:
 			this->ResizeTo(Number);
 		}
 	}
+	FORCEINLINE void ReserveGrow(const SizeType Number)
+	{
+		this->Reserve(Num() + Number);
+	}
 
 public:
 	FORCEINLINE void RemoveAt(SizeType Index)

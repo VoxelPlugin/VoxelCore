@@ -18,16 +18,16 @@ public:
 	using ArrayType = TVoxelStaticArray<uint32, FVoxelUtilities::DivideCeil(Size, NumBitsPerWord)>;
 
 	TVoxelStaticBitArray() = default;
-	TVoxelStaticBitArray(EForceInit)
+	FORCEINLINE TVoxelStaticBitArray(EForceInit)
 	{
 		Clear();
 	}
 
-	void Clear()
+	FORCEINLINE void Clear()
 	{
 		Array.Memzero();
 	}
-	void Memzero()
+	FORCEINLINE void Memzero()
 	{
 		Array.Memzero();
 	}
