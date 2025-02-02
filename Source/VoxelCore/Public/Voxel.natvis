@@ -206,18 +206,6 @@
     </Expand>
   </Type>
 
-  <!-- FVoxelParameterPath visualizer -->
-  <Type Name="FVoxelParameterPath">
-    <DisplayString Condition="Guids.ArrayNum == 0">Empty</DisplayString>
-    <DisplayString Condition="Guids.ArrayNum == 1">{Guids.AllocatorInstance.InlineData[0]}</DisplayString>
-    <DisplayString Condition="Guids.ArrayNum == 2">{Guids.AllocatorInstance.InlineData[0]} {Guids.AllocatorInstance.InlineData[1]}</DisplayString>
-    <DisplayString Condition="Guids.ArrayNum == 3">{Guids.AllocatorInstance.InlineData[0]} {Guids.AllocatorInstance.InlineData[1]} {Guids.AllocatorInstance.InlineData[2]}</DisplayString>
-    <DisplayString Condition="Guids.ArrayNum > 0">{Guids}</DisplayString>
-    <Expand>
-      <ExpandedItem>Guids</ExpandedItem>
-    </Expand>
-  </Type>
-
   <!-- TVoxelChunkedArray visualizer -->
   <Type Name="TVoxelChunkedArray&lt;*&gt;">
     <DisplayString>Num={ArrayNum}</DisplayString>
