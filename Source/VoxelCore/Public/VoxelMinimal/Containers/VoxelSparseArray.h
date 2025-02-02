@@ -155,6 +155,12 @@ public:
 		Value.NextFreeIndex = FirstFreeIndex;
 		FirstFreeIndex = Index;
 	}
+	FORCEINLINE Type RemoveAt_ReturnValue(const int32 Index)
+	{
+		Type Value = MoveTemp((*this)[Index]);
+		RemoveAt(Index);
+		return MoveTemp(Value);
+	}
 
 public:
 	FORCEINLINE Type& operator[](const int32 Index)
