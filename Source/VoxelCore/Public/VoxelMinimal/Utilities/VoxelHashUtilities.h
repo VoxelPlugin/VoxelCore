@@ -82,7 +82,14 @@ namespace FVoxelUtilities
 		}
 		if constexpr (sizeof(T) == sizeof(uint64))
 		{
-			return MurmurHash64(H ^ uint64(ReinterpretCastRef<uint64>(Value)));
+			if constexpr (alignof(T) >= alignof(uint64))
+			{
+				return MurmurHash64(H ^ uint64(ReinterpretCastRef<uint64>(Value)));
+			}
+			else
+			{
+				return MurmurHash64(H ^ uint64(ReinterpretCastRef_Unaligned<uint64>(Value)));
+			}
 		}
 
 		constexpr int32 Size = sizeof(T) / sizeof(uint32);
@@ -164,8 +171,8 @@ namespace FVoxelUtilities
 			};
 
 			return
-				FVoxelUtilities::MurmurHash64(ReinterpretCastRef<FRawGuid>(Value).A) ^
-				FVoxelUtilities::MurmurHash64(ReinterpretCastRef<FRawGuid>(Value).B);
+				FVoxelUtilities::MurmurHash64(ReinterpretCastRef_Unaligned<FRawGuid>(Value).A) ^
+				FVoxelUtilities::MurmurHash64(ReinterpretCastRef_Unaligned<FRawGuid>(Value).B);
 		}
 
 		if constexpr (std::is_same_v<T, FIntPoint>)

@@ -483,8 +483,7 @@ FORCENOINLINE T* SlowPath_ResolveObjectPtrFast(const TObjectPtr<T>& ObjectPtr)
 template<typename T>
 FORCEINLINE bool IsObjectKeyNull(const TObjectKey<T> Key)
 {
-	checkVoxelSlow(ReinterpretCastRef<uint64>(FObjectKey()) == 0);
-	return ReinterpretCastRef<uint64>(Key) == 0;
+	return Key == TObjectKey<T>();
 }
 
 template<typename T>

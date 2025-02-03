@@ -57,7 +57,7 @@ namespace ispc
 	};
 }
 
-struct FVoxelOctahedron : ispc::FVoxelOctahedron
+struct alignas(2) FVoxelOctahedron : ispc::FVoxelOctahedron
 {
 	FVoxelOctahedron() = default;
 	FORCEINLINE explicit FVoxelOctahedron(EForceInit)
