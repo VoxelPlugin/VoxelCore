@@ -440,7 +440,7 @@ VOXELCORE_API void Voxel_AddAmountToDynamicStat(FName Name, int64 Amount);
 	}; \
 	mutable FVoxelStatsRefHelper Name;
 
-#define VOXEL_COUNTER_HELPER(Name) \
+#define VOXEL_COUNTER_HELPER(StatName, Name) \
 	class FVoxelStatsRefHelper \
 	{ \
 	public:\
