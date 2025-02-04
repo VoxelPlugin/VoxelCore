@@ -40,6 +40,9 @@
 #undef TEXTVIEW
 #define TEXTVIEW(String) FStringView(TEXT(String))
 
+#undef offsetof
+#define offsetof __builtin_offsetof
+
 #error "Compiler defined as parser"
 #else
 #define INTELLISENSE_ONLY(...)
