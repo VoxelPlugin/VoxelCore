@@ -291,3 +291,16 @@ FName GetObjectKeyName(const FObjectKey ObjectKey)
 
 	return Object->GetFName();
 }
+
+FString GetObjectKeyPathName(const FObjectKey ObjectKey)
+{
+	check(IsInGameThread());
+
+	const UObject* Object = ObjectKey.ResolveObjectPtr();
+	if (!Object)
+	{
+		return "<null>";
+	}
+
+	return Object->GetPathName();
+}

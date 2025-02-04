@@ -510,11 +510,17 @@ FORCEINLINE TObjectKey<T> MakeObjectKey(T& Object)
 }
 
 VOXELCORE_API FName GetObjectKeyName(FObjectKey ObjectKey);
+VOXELCORE_API FString GetObjectKeyPathName(FObjectKey ObjectKey);
 
 template<typename T>
 FORCEINLINE FName GetObjectKeyName(const TObjectKey<T> ObjectKey)
 {
 	return GetObjectKeyName(ReinterpretCastRef<FObjectKey>(ObjectKey));
+}
+template<typename T>
+FORCEINLINE FString GetObjectKeyPathName(const TObjectKey<T> ObjectKey)
+{
+	return GetObjectKeyPathName(ReinterpretCastRef<FObjectKey>(ObjectKey));
 }
 
 template<typename T>

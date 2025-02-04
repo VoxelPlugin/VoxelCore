@@ -85,11 +85,15 @@ FORCEINLINE SharedPointerInternals::TRawPtrProxy<T> MakeShareable(TUniquePtr<T> 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename T>
-FORCEINLINE TSharedRef<T> MakeNullSharedRef()
+struct FVoxelNullSharedRef
 {
-	return ReinterpretCastRef<TSharedRef<T>>(TSharedPtr<T>());
-}
+	template<typename T>
+	FORCEINLINE operator TSharedRef<T>() const
+	{
+		return ReinterpretCastRef<TSharedRef<T>>(TSharedPtr<T>());
+	}
+};
+constexpr FVoxelNullSharedRef SharedRef_Null;
 
 template<typename T>
 FORCEINLINE TSharedRef<T> ToSharedRefFast(TSharedPtr<T>&& SharedPtr)
