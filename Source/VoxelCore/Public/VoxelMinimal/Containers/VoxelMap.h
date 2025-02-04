@@ -5,27 +5,8 @@
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/Containers/VoxelSet.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
-#include "VoxelMinimal/Containers/VoxelChunkedArray.h"
 #include "VoxelMinimal/Utilities/VoxelTypeUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelHashUtilities.h"
-
-template<typename Allocator = FDefaultAllocator>
-struct TVoxelMapArrayType
-{
-	template<typename Type>
-	using TArrayType = TVoxelArray<Type, Allocator>;
-
-	template<typename Type>
-	static void SetNumFast(TArrayType<Type>& Array, const int32 Num)
-	{
-		FVoxelUtilities::SetNumFast(Array, Num);
-	}
-	template<typename Type>
-	static void Memset(TArrayType<Type>& Array, const uint8 Value)
-	{
-		FVoxelUtilities::Memset(Array, Value);
-	}
-};
 
 // Minimize padding by using the best of all possible permutation between Key, Value and NextElementIndex
 // In practice we only need to check two permutations:
@@ -99,6 +80,15 @@ private:
 	friend class TVoxelMap;
 };
 
+template<typename KeyType, typename ValueType>
+struct TVoxelDefaultMapAllocator
+{
+	static constexpr int32 MinHashSize = 0;
+
+	using FHashArray = TVoxelArray<int32>;
+	using FElementArray = TVoxelArray<TVoxelMapElement<KeyType, ValueType>>;
+};
+
 // Simple map with an array of elements and a hash table
 // The array isn't sparse, so removal will not keep order (it's basically a RemoveSwap)
 //
@@ -108,13 +98,10 @@ private:
 // TVoxelMap::Reserve(1M)  74.4x faster
 // TVoxelMap::FindOrAdd     2.2x faster
 // TVoxelMap::Add_CheckNew  4.0x faster
-template<typename KeyType, typename ValueType, typename ArrayType = TVoxelMapArrayType<>>
+template<typename KeyType, typename ValueType, typename Allocator = TVoxelDefaultMapAllocator<KeyType, ValueType>>
 class TVoxelMap
 {
 public:
-	template<typename Type>
-	using TMapArray = typename ArrayType::template TArrayType<Type>;
-
 	using FElement = TVoxelMapElement<KeyType, ValueType>;
 
 	TVoxelMap() = default;
@@ -122,15 +109,13 @@ public:
 	TVoxelMap& operator=(const TVoxelMap&) = default;
 
 	TVoxelMap(TVoxelMap&& Other)
-		: HashSize(Other.HashSize)
-		, HashTable(MoveTemp(Other.HashTable))
+		: HashTable(MoveTemp(Other.HashTable))
 		, Elements(MoveTemp(Other.Elements))
 	{
 		Other.Reset();
 	}
 	TVoxelMap& operator=(TVoxelMap&& Other)
 	{
-		HashSize = Other.HashSize;
 		HashTable = MoveTemp(Other.HashTable);
 		Elements = MoveTemp(Other.Elements);
 		Other.Reset();
@@ -168,7 +153,6 @@ public:
 
 	void Reset()
 	{
-		HashSize = 0;
 		Elements.Reset();
 		HashTable.Reset();
 	}
@@ -179,7 +163,6 @@ public:
 	}
 	void Empty()
 	{
-		HashSize = 0;
 		Elements.Empty();
 		HashTable.Empty();
 	}
@@ -194,17 +177,16 @@ public:
 			return;
 		}
 
-		HashTable.Shrink();
-		Elements.Shrink();
-
-		const int32 NewHashSize = GetHashSize(Num());
-		if (HashSize != NewHashSize)
+		if (HashTable.Num() != GetHashSize(Num()))
 		{
-			ensure(HashSize > NewHashSize);
-			HashSize = NewHashSize;
+			checkVoxelSlow(HashTable.Num() > GetHashSize(Num()));
 
+			HashTable.Reset();
 			Rehash();
 		}
+
+		HashTable.Shrink();
+		Elements.Shrink();
 	}
 	void Reserve(const int32 Number)
 	{
@@ -218,9 +200,9 @@ public:
 		Elements.Reserve(Number);
 
 		const int32 NewHashSize = GetHashSize(Number);
-		if (HashSize < NewHashSize)
+		if (HashTable.Num() < NewHashSize)
 		{
-			HashSize = NewHashSize;
+			FVoxelUtilities::SetNumFast(HashTable, NewHashSize);
 			Rehash();
 		}
 	}
@@ -360,7 +342,7 @@ public:
 		checkVoxelSlow(this->HashValue(Key) == Hash);
 		CheckInvariants();
 
-		if (HashSize == 0)
+		if (HashTable.Num() == 0)
 		{
 			return nullptr;
 		}
@@ -612,7 +594,7 @@ public:
 		const int32 NewElementIndex = Elements.Emplace(Key);
 		FElement& Element = Elements[NewElementIndex];
 
-		if (HashSize < GetHashSize(Elements.Num()))
+		if (HashTable.Num() < GetHashSize(Elements.Num()))
 		{
 			Rehash();
 		}
@@ -634,7 +616,7 @@ public:
 		const int32 NewElementIndex = Elements.Emplace(Key);
 		FElement& Element = Elements[NewElementIndex];
 
-		checkVoxelSlow(HashSize >= GetHashSize(Elements.Num()));
+		checkVoxelSlow(GetHashSize(Elements.Num()) <= HashTable.Num());
 
 		int32& ElementIndex = this->GetElementIndex(Hash);
 		Element.NextElementIndex = ElementIndex;
@@ -644,7 +626,7 @@ public:
 	}
 	FORCEINLINE ValueType& AddHashed_CheckNew_EnsureNoRehash(const uint32 Hash, const KeyType& Key)
 	{
-		ensureVoxelSlow(GetHashSize(Elements.Num()) <= HashSize);
+		ensureVoxelSlow(GetHashSize(Elements.Num()) <= HashTable.Num());
 		return this->AddHashed_CheckNew(Hash, Key);
 	}
 
@@ -838,78 +820,72 @@ public:
 	}
 
 private:
-	int32 HashSize = 0;
-	TMapArray<int32> HashTable;
-	TMapArray<FElement> Elements;
+	typename Allocator::FHashArray HashTable;
+	typename Allocator::FElementArray Elements;
 
 	FORCEINLINE static int32 GetHashSize(const int32 NumElements)
 	{
-		return TSetAllocator<>::GetNumberOfHashBuckets(NumElements);
+		int32 NewHashSize = FVoxelUtilities::GetHashTableSize(NumElements);
+
+		if constexpr (Allocator::MinHashSize != 0)
+		{
+			NewHashSize = FMath::Max(NewHashSize, Allocator::MinHashSize);
+		}
+
+		return NewHashSize;
 	}
 	FORCEINLINE void CheckInvariants() const
 	{
 		if (Elements.Num() > 0)
 		{
-			checkVoxelSlow(HashSize >= GetHashSize(Elements.Num()));
+			checkVoxelSlow(HashTable.Num() >= GetHashSize(Elements.Num()));
 		}
 	}
 
 	FORCEINLINE int32& GetElementIndex(const uint32 Hash)
 	{
+		const int32 HashSize = HashTable.Num();
 		checkVoxelSlow(HashSize != 0);
 		checkVoxelSlow(FMath::IsPowerOfTwo(HashSize));
 		return HashTable[Hash & (HashSize - 1)];
 	}
 	FORCEINLINE const int32& GetElementIndex(const uint32 Hash) const
 	{
-		checkVoxelSlow(HashSize != 0);
-		checkVoxelSlow(FMath::IsPowerOfTwo(HashSize));
-		return HashTable[Hash & (HashSize - 1)];
+		return ConstCast(this)->GetElementIndex(Hash);
 	}
 
 	FORCENOINLINE void Rehash()
 	{
-		VOXEL_FUNCTION_COUNTER_NUM(HashSize, 1024);
+		VOXEL_FUNCTION_COUNTER_NUM(Elements.Num(), 1024);
+
+		const int32 NewHashSize = FMath::Max(HashTable.Num(), GetHashSize(Elements.Num()));
+		checkVoxelSlow(NewHashSize >= 0);
+		checkVoxelSlow(FMath::IsPowerOfTwo(NewHashSize));
 
 		HashTable.Reset();
-		HashSize = FMath::Max(HashSize, GetHashSize(Elements.Num()));
-		checkVoxelSlow(HashSize >= 0);
 
-		checkVoxelSlow(FMath::IsPowerOfTwo(HashSize));
-		ArrayType::SetNumFast(HashTable, HashSize);
-		ArrayType::Memset(HashTable, 0xFF);
+		FVoxelUtilities::SetNumFast(HashTable, NewHashSize);
+		FVoxelUtilities::Memset(HashTable, 0xFF);
 
 		for (int32 Index = 0; Index < Elements.Num(); Index++)
 		{
 			FElement& Element = Elements[Index];
 
-			int32& ElementIndex = this->GetElementIndex(HashValue(Element.Key));
+			int32& ElementIndex = this->GetElementIndex(this->HashValue(Element.Key));
 			Element.NextElementIndex = ElementIndex;
 			ElementIndex = Index;
 		}
 	}
 };
 
-template<int32 MaxBytesPerChunk>
-struct TVoxelMapChunkedArrayType
+template<typename KeyType, typename ValueType, int32 NumInlineElements>
+struct TVoxelInlineMapAllocator
 {
-	template<typename Type>
-	using TArrayType = TVoxelChunkedArray<Type, MaxBytesPerChunk>;
+	static constexpr int32 MinHashSize = FVoxelUtilities::GetHashTableSize<NumInlineElements>();
 
-	template<typename Type>
-	static void SetNumFast(TArrayType<Type>& Array, const int32 Num)
-	{
-		Array.SetNumUninitialized(Num);
-	}
-	template<typename Type>
-	static void Memset(TArrayType<Type>& Array, const uint8 Value)
-	{
-		Array.Memset(Value);
-	}
+	using FHashArray = TVoxelInlineArray<int32, MinHashSize>;
+	using FElementArray = TVoxelInlineArray<TVoxelMapElement<KeyType, ValueType>, NumInlineElements>;
 };
 
-template<typename KeyType, typename ValueType, int32 MaxBytesPerChunk = GVoxelDefaultAllocationSize>
-using TVoxelChunkedMap = TVoxelMap<KeyType, ValueType, TVoxelMapChunkedArrayType<MaxBytesPerChunk>>;
-
 template<typename KeyType, typename ValueType, int32 NumInlineElements>
-using TVoxelInlineMap = TVoxelMap<KeyType, ValueType, TVoxelMapArrayType<TInlineAllocator<NumInlineElements>>>;
+using TVoxelInlineMap = TVoxelMap<KeyType, ValueType, TVoxelInlineMapAllocator<KeyType, ValueType, NumInlineElements>>;
