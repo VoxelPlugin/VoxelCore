@@ -10,7 +10,7 @@ If you have questions or suggestions about the code, feel free to ask in #cpp in
 
 ## Compatibility
 
-Voxel Core currently compiles on **5.4**. Check branches for older engine versions.
+Voxel Core usually compiles on the last few Unreal releases. Check branches for older engine versions.
 
 ## Getting started
 
