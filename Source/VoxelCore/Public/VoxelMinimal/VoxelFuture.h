@@ -155,7 +155,7 @@ public:
 	template<
 		typename... FutureTypes,
 		typename = std::enable_if_t<sizeof...(FutureTypes) != 1>,
-		typename = std::enable_if_t<(TIsDerivedFrom<std::remove_reference_t<FutureTypes>, FVoxelFuture>::Value && ...)>>
+		typename = std::enable_if_t<(std::derived_from<std::remove_reference_t<FutureTypes>, FVoxelFuture> && ...)>>
 	FVoxelFuture(FutureTypes&&... Futures)
 	{
 		checkStatic(sizeof...(Futures) > 1);

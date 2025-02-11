@@ -146,7 +146,7 @@ struct TVoxelMessageTokenFactory<TWeakInterfacePtr<T>>
 };
 
 template<typename T>
-struct TVoxelMessageTokenFactory<T, std::enable_if_t<TIsDerivedFrom<T, UObject>::Value>>
+struct TVoxelMessageTokenFactory<T, std::enable_if_t<std::derived_from<T, UObject>>>
 {
 	static TSharedRef<FVoxelMessageToken> CreateToken(const T* Object)
 	{
@@ -168,7 +168,7 @@ struct TVoxelMessageTokenFactory<T, std::enable_if_t<TIsDerivedFrom<T, UObject>:
 };
 
 template<typename T>
-struct TVoxelMessageTokenFactory<T, std::enable_if_t<TAnd<TNot<TIsDerivedFrom<T, UObject>>, TIsDerivedFrom<T, IInterface>>::Value>>
+struct TVoxelMessageTokenFactory<T, std::enable_if_t<!std::derived_from<T, UObject> && std::derived_from<T, IInterface>>>
 {
 	static TSharedRef<FVoxelMessageToken> CreateToken(const T* Interface)
 	{
@@ -190,7 +190,7 @@ struct TVoxelMessageTokenFactory<T, std::enable_if_t<TAnd<TNot<TIsDerivedFrom<T,
 };
 
 template<typename T>
-struct TVoxelMessageTokenFactory<TObjectPtr<T>, std::enable_if_t<TIsDerivedFrom<T, UObject>::Value>>
+struct TVoxelMessageTokenFactory<TObjectPtr<T>, std::enable_if_t<std::derived_from<T, UObject>>>
 {
 	static TSharedRef<FVoxelMessageToken> CreateToken(const TObjectPtr<T>& Object)
 	{

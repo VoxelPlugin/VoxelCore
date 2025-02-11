@@ -202,9 +202,9 @@ struct TStructOpsTypeTraits<FVoxelVirtualStruct> : TStructOpsTypeTraitsBase2<FVo
 		typename To, \
 		typename From, \
 		typename = std::enable_if_t<!std::is_const_v<From>>, \
-		typename = std::enable_if_t<!TIsDerivedFrom<From, UObject>::Value>, \
-		typename = std::enable_if_t<TIsDerivedFrom<From, FVoxelVirtualStruct>::Value>, \
-		typename = std::enable_if_t<TIsDerivedFrom<To, From>::Value>>
+		typename = std::enable_if_t<!std::derived_from<From, UObject>>, \
+		typename = std::enable_if_t<std::derived_from<From, FVoxelVirtualStruct>>, \
+		typename = std::enable_if_t<std::derived_from<To, From>>>
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

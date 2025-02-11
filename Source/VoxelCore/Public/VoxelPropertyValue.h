@@ -53,7 +53,7 @@ public:
 public:
 	template<typename T, typename = std::enable_if_t<
 		TIsSafeVoxelPropertyValue<T>::Value &&
-		!TIsDerivedFrom<T, UObject>::Value>>
+		!std::derived_from<T, UObject>>>
 	static FVoxelPropertyTerminalValue Make(const T& Value = FVoxelUtilities::MakeSafe<T>())
 	{
 		FVoxelPropertyTerminalValue Result(FVoxelPropertyType::Make<T>());

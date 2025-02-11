@@ -181,7 +181,7 @@ public:
 	template<typename T>
 	static bool GetPropertyValue(const TSharedPtr<IPropertyHandle>& Handle, T*& OutValue)
 	{
-		checkStatic(!TIsDerivedFrom<T, UObject>::Value);
+		checkStatic(!std::derived_from<T, UObject>);
 		TrackHandle(Handle);
 
 		OutValue = nullptr;

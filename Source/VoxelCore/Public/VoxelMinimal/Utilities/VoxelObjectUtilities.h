@@ -209,19 +209,19 @@ namespace FVoxelUtilities
 
 	template<typename T>
 	using TPropertyType = std::conditional_t<
-		std::is_same_v<T, bool>          , FBoolProperty      , std::conditional_t<
-		std::is_same_v<T, uint8>         , FByteProperty      , std::conditional_t<
-		std::is_same_v<T, float>         , FFloatProperty     , std::conditional_t<
-		std::is_same_v<T, double>        , FDoubleProperty    , std::conditional_t<
-		std::is_same_v<T, int32>         , FIntProperty       , std::conditional_t<
-		std::is_same_v<T, int64>         , FInt64Property     , std::conditional_t<
-		std::is_same_v<T, FName>         , FNameProperty      , std::conditional_t<
-		TIsEnum<T>::Value                , FEnumProperty      , std::conditional_t<
-		TIsDerivedFrom<T, UObject>::Value, FObjectProperty    , std::conditional_t<
-		TIsTObjectPtr<T>::Value          , FObjectProperty    , std::conditional_t<
-		TIsSoftObjectPtr<T>::Value       , FSoftObjectProperty, std::conditional_t<
-		TIsTSubclassOf<T>::Value         , FClassProperty
-			                             , FStructProperty
+		std::is_same_v<T, bool>      , FBoolProperty      , std::conditional_t<
+		std::is_same_v<T, uint8>     , FByteProperty      , std::conditional_t<
+		std::is_same_v<T, float>     , FFloatProperty     , std::conditional_t<
+		std::is_same_v<T, double>    , FDoubleProperty    , std::conditional_t<
+		std::is_same_v<T, int32>     , FIntProperty       , std::conditional_t<
+		std::is_same_v<T, int64>     , FInt64Property     , std::conditional_t<
+		std::is_same_v<T, FName>     , FNameProperty      , std::conditional_t<
+		TIsEnum<T>::Value            , FEnumProperty      , std::conditional_t<
+		std::derived_from<T, UObject>, FObjectProperty    , std::conditional_t<
+		TIsTObjectPtr<T>::Value      , FObjectProperty    , std::conditional_t<
+		TIsSoftObjectPtr<T>::Value   , FSoftObjectProperty, std::conditional_t<
+		TIsTSubclassOf<T>::Value     , FClassProperty
+			                         , FStructProperty
 		>>>>>>>>>>>>;
 
 	template<typename T>
@@ -325,7 +325,7 @@ namespace FVoxelUtilities::Internal
 	template<typename T>
 	static bool MatchesPropertyImpl(const FProperty& Property, T*&, const bool bAllowInheritance)
 	{
-		checkStatic(TIsDerivedFrom<T, UObject>::Value);
+		checkStatic(std::derived_from<T, UObject>);
 		return MatchesProperty<T>(Property, bAllowInheritance);
 	}
 	template<typename T, typename AllocatorType>

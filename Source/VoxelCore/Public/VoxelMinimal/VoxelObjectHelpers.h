@@ -39,13 +39,13 @@ struct TIsObjectPtr
 };
 
 template<typename T>
-struct TIsObjectPtr<T, std::enable_if_t<TIsDerivedFrom<T, UObject>::Value>>
+struct TIsObjectPtr<T, std::enable_if_t<std::derived_from<T, UObject>>>
 {
 	static constexpr bool Value = true;
 };
 
 template<typename T>
-struct TIsObjectPtr<T*, std::enable_if_t<TIsDerivedFrom<T, UObject>::Value>>
+struct TIsObjectPtr<T*, std::enable_if_t<std::derived_from<T, UObject>>>
 {
 	static constexpr bool Value = true;
 };
@@ -85,13 +85,13 @@ template<typename, typename = void>
 struct TObjectPtrInnerType;
 
 template<typename T>
-struct TObjectPtrInnerType<T, std::enable_if_t<TIsDerivedFrom<T, UObject>::Value>>
+struct TObjectPtrInnerType<T, std::enable_if_t<std::derived_from<T, UObject>>>
 {
 	using Type = T;
 };
 
 template<typename T>
-struct TObjectPtrInnerType<T*, std::enable_if_t<TIsDerivedFrom<T, UObject>::Value>>
+struct TObjectPtrInnerType<T*, std::enable_if_t<std::derived_from<T, UObject>>>
 {
 	using Type = T;
 };
@@ -182,10 +182,9 @@ FORCEINLINE To* CastEnsured(const TObjectPtr<From>& Src)
 	return CastEnsured<To>(Src.Get());
 }
 
-template<typename ToType, typename FromType, typename Allocator, typename = std::enable_if_t<TIsDerivedFrom<
+template<typename ToType, typename FromType, typename Allocator, typename = std::enable_if_t<std::derived_from<
 	std::remove_const_t<ToType>,
-	std::remove_const_t<FromType>
->::Value>>
+	std::remove_const_t<FromType>>>>
 FORCEINLINE const TArray<ToType*, Allocator>& CastChecked(const TArray<FromType*, Allocator>& Array)
 {
 #if VOXEL_DEBUG
@@ -199,15 +198,15 @@ FORCEINLINE const TArray<ToType*, Allocator>& CastChecked(const TArray<FromType*
 }
 
 template<typename ToType, typename FromType, typename = std::enable_if_t<
-	TIsDerivedFrom<
+	std::derived_from<
 		std::remove_const_t<ToType>,
 		UObject
-	>::Value
+	>
 	&&
-	TIsDerivedFrom<
+	std::derived_from<
 		std::remove_const_t<ToType>,
 		std::remove_const_t<FromType>
-	>::Value>>
+	>>>
 FORCEINLINE std::conditional_t<std::is_const_v<FromType>, const ToType, ToType>& CastChecked(FromType& Object)
 {
 	return *CastChecked<ToType>(&Object);
@@ -413,7 +412,7 @@ template<typename T>
 FProperty& FindFPropertyChecked_Impl(const FName Name)
 {
 	UStruct* Struct;
-	if constexpr (TIsDerivedFrom<T, UObject>::Value)
+	if constexpr (std::derived_from<T, UObject>)
 	{
 		Struct = T::StaticClass();
 	}

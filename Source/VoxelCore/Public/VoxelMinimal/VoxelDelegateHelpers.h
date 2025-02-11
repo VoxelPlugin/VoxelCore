@@ -306,7 +306,7 @@ template<
 	typename LambdaType,
 	typename ReturnType = LambdaReturnType_T<LambdaType>,
 	typename = std::enable_if_t<
-		(TIsDerivedFrom<T, UObject>::Value || TIsDerivedFrom<T, IInterface>::Value) &&
+		(std::derived_from<T, UObject> || std::derived_from<T, IInterface>) &&
 		std::is_void_v<ReturnType>>>
 FORCEINLINE auto MakeWeakObjectPtrLambda(T* Ptr, LambdaType Lambda)
 {
@@ -318,7 +318,7 @@ template<
 	typename LambdaType,
 	typename ReturnType = LambdaReturnType_T<LambdaType>,
 	typename = std::enable_if_t<
-		(TIsDerivedFrom<T, UObject>::Value || TIsDerivedFrom<T, IInterface>::Value) &&
+		(std::derived_from<T, UObject> || std::derived_from<T, IInterface>) &&
 		!std::is_void_v<ReturnType>>>
 FORCEINLINE auto MakeWeakObjectPtrLambda(T* Ptr, LambdaType Lambda, ReturnType&& Default = {})
 {
@@ -328,7 +328,7 @@ FORCEINLINE auto MakeWeakObjectPtrLambda(T* Ptr, LambdaType Lambda, ReturnType&&
 template<
 	typename T,
 	typename LambdaType,
-	typename = std::enable_if_t<TIsDerivedFrom<T, UObject>::Value || TIsDerivedFrom<T, IInterface>::Value>>
+	typename = std::enable_if_t<std::derived_from<T, UObject> || std::derived_from<T, IInterface>>>
 FORCEINLINE auto MakeWeakObjectPtrDelegate(T* Ptr, LambdaType Lambda)
 {
 	return TDelegate<LambdaSignature_T<LambdaType>>::CreateWeakLambda(Ptr, MoveTemp(Lambda));

@@ -76,7 +76,7 @@ public:
 		checkVoxelSlow(&Struct);
 
 		FVoxelInstancedStruct InstancedStruct;
-		if constexpr (TIsDerivedFrom<T, FVoxelVirtualStruct>::Value)
+		if constexpr (std::derived_from<T, FVoxelVirtualStruct>)
 		{
 			InstancedStruct.InitializeAs(Struct.GetStruct(), &Struct);
 		}
@@ -337,7 +337,7 @@ public:
 	template<typename OtherType> requires(std::derived_from<OtherType, T>)
 	FORCEINLINE TVoxelInstancedStruct& operator=(const TSharedRef<OtherType>& Other)
 	{
-		if constexpr (TIsDerivedFrom<OtherType, FVoxelVirtualStruct>::Value)
+		if constexpr (std::derived_from<OtherType, FVoxelVirtualStruct>)
 		{
 			PrivateScriptStruct = Other->GetStruct();
 		}
@@ -390,7 +390,7 @@ public:
 		return ConstCast(*this).Get();
 	}
 
-	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value && !std::is_same_v<OtherType, T>>>
+	template<typename OtherType, typename = std::enable_if_t<std::derived_from<OtherType, T> && !std::is_same_v<OtherType, T>>>
 	FORCEINLINE OtherType& Get()
 	{
 		CheckType();
@@ -398,7 +398,7 @@ public:
 		checkVoxelSlow(IsA<OtherType>());
 		return *static_cast<OtherType*>(GetStructMemory());
 	}
-	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value && !std::is_same_v<OtherType, T>>>
+	template<typename OtherType, typename = std::enable_if_t<std::derived_from<OtherType, T> && !std::is_same_v<OtherType, T>>>
 	FORCEINLINE const OtherType& Get() const
 	{
 		return ConstCast(*this).template Get<OtherType>();
@@ -416,19 +416,19 @@ public:
 		return static_cast<const T*>(GetStructMemory());
 	}
 
-	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value && !std::is_same_v<OtherType, T>>>
+	template<typename OtherType, typename = std::enable_if_t<std::derived_from<OtherType, T> && !std::is_same_v<OtherType, T>>>
 	FORCEINLINE OtherType* GetPtr()
 	{
 		return FVoxelInstancedStruct::GetPtr<OtherType>();
 	}
-	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value && !std::is_same_v<OtherType, T>>>
+	template<typename OtherType, typename = std::enable_if_t<std::derived_from<OtherType, T> && !std::is_same_v<OtherType, T>>>
 	FORCEINLINE const OtherType* GetPtr() const
 	{
 		return FVoxelInstancedStruct::GetPtr<OtherType>();
 	}
 
 public:
-	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value && !std::is_same_v<OtherType, T>>>
+	template<typename OtherType, typename = std::enable_if_t<std::derived_from<OtherType, T> && !std::is_same_v<OtherType, T>>>
 	FORCEINLINE bool IsA() const
 	{
 		return FVoxelInstancedStruct::IsA<OtherType>();

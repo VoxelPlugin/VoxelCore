@@ -23,7 +23,7 @@ namespace FVoxelUtilities
 	template<typename T>
 	static constexpr bool CanMakeSafe =
 		!TIsTSharedRef_V<T> &&
-		!TIsDerivedFrom<T, UObject>::Value;
+		!std::derived_from<T, UObject>;
 
 	template<typename T, typename = std::enable_if_t<CanMakeSafe<T>>>
 	std::enable_if_t<!IsForceInitializable_V<T>, T> MakeSafe()

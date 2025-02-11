@@ -65,24 +65,18 @@ public:
 			std::is_const_v<T>
 		)
 		&&
-		TOr
-		<
-			TIntegralConstant<bool, std::is_void_v<T> || std::is_void_v<OtherType>>,
-			TIsDerivedFrom<OtherType, T>
-		>::Value
-		>>
+		(
+			std::is_void_v<T> ||
+			std::is_void_v<OtherType> ||
+			std::derived_from<OtherType, T>
+		)>>
 	FORCEINLINE TVoxelStructView(const TVoxelStructView<OtherType>& Other)
 	{
 		ScriptStruct = Other.GetStruct();
 		StructMemory = Other.GetMemory();
 	}
 
-	template<typename ChildType, typename = std::enable_if_t<
-		TOr
-		<
-			TIntegralConstant<bool, std::is_void_v<T>>,
-			TIsDerivedFrom<ChildType, T>
-		>::Value>>
+	template<typename ChildType, typename = std::enable_if_t<std::is_const_v<T> && (std::is_void_v<T> || std::derived_from<ChildType, T>)>>
 	FORCEINLINE TVoxelStructView(TVoxelInstancedStruct<ChildType>& InstancedStruct)
 	{
 		checkStatic(!std::is_const_v<ChildType>);
@@ -101,14 +95,7 @@ public:
 		}
 	}
 
-	template<typename ChildType, typename = std::enable_if_t<
-		std::is_const_v<T>
-		&&
-		TOr
-		<
-			TIntegralConstant<bool, std::is_void_v<T>>,
-			TIsDerivedFrom<ChildType, T>
-		>::Value>>
+	template<typename ChildType, typename = std::enable_if_t<std::is_const_v<T> && (std::is_void_v<T> || std::derived_from<ChildType, T>)>>
 	FORCEINLINE TVoxelStructView(const TVoxelInstancedStruct<ChildType>& InstancedStruct)
 		: TVoxelStructView(ConstCast(InstancedStruct))
 	{
@@ -178,7 +165,7 @@ public:
 	FORCEINLINE UScriptStruct* GetStruct() const
 	{
 #if VOXEL_DEBUG
-		if constexpr (std::is_void_v<T> || TIsDerivedFrom<T, FVoxelVirtualStruct>::Value)
+		if constexpr (std::is_void_v<T> || std::derived_from<T, FVoxelVirtualStruct>)
 		{
 			if (ScriptStruct &&
 				ScriptStruct->IsChildOf(StaticStructFast<FVoxelVirtualStruct>()))
@@ -242,7 +229,7 @@ template<typename T>
 FORCEINLINE TVoxelStructView<T> MakeVoxelStructView(T& Value)
 {
 	UScriptStruct* ScriptStruct;
-	if constexpr (TIsDerivedFrom<T, FVoxelVirtualStruct>::Value)
+	if constexpr (std::derived_from<T, FVoxelVirtualStruct>)
 	{
 		ScriptStruct = Value.GetStruct();
 	}
