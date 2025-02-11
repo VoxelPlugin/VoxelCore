@@ -124,7 +124,7 @@ void FVoxelInstancedStructNodeBuilder::GenerateChildContent(IDetailChildrenBuild
 		}
 	}
 	else
-#else
+#endif
 	{
 		const TArray<TSharedPtr<IPropertyHandle>> ChildProperties = StructProperty->AddChildStructure(StructProvider);
 
@@ -152,7 +152,6 @@ void FVoxelInstancedStructNodeBuilder::GenerateChildContent(IDetailChildrenBuild
 			ChildBuilder.AddProperty(ChildHandle.ToSharedRef());
 		}
 	}
-#endif
 }
 
 void FVoxelInstancedStructNodeBuilder::Tick(float DeltaTime)
