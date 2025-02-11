@@ -3,8 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
-#include "UObject/ObjectKey.h"
-#include "VoxelMinimal/Utilities/VoxelObjectUtilities.h"
+#include "VoxelMinimal/VoxelObjectPtr.h"
 
 class VOXELCORE_API IVoxelWorldSubsystem : public TSharedFromThis<IVoxelWorldSubsystem>
 {
@@ -18,21 +17,21 @@ public:
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) {}
 
 public:
-	FORCEINLINE TObjectKey<UWorld> GetWorld() const
+	FORCEINLINE TVoxelObjectPtr<UWorld> GetWorld() const
 	{
 		return PrivateWorld;
 	}
 
 protected:
 	static TSharedRef<IVoxelWorldSubsystem> GetInternal(
-		TObjectKey<UWorld> World,
+		TVoxelObjectPtr<const UWorld> World,
 		FName Name,
 		TSharedRef<IVoxelWorldSubsystem>(*Constructor)());
 
 	static TVoxelArray<TSharedRef<IVoxelWorldSubsystem>> GetAllInternal(FName Name);
 
 private:
-	TObjectKey<UWorld> PrivateWorld;
+	TVoxelObjectPtr<UWorld> PrivateWorld;
 };
 
 #define GENERATED_VOXEL_WORLD_SUBSYSTEM_BODY(Name) \
@@ -43,9 +42,9 @@ private:
 	} \
 	FORCEINLINE static TSharedRef<Name> Get(const UWorld* World) \
 	{ \
-		return Get(MakeObjectKey(ConstCast(World))); \
+		return Get(MakeVoxelObjectPtr(World)); \
 	} \
-	FORCEINLINE static TSharedRef<Name> Get(const TObjectKey<UWorld> World) \
+	FORCEINLINE static TSharedRef<Name> Get(const TVoxelObjectPtr<const UWorld> World) \
 	{ \
 		return StaticCastSharedRef<Name>(GetInternal(World, STATIC_FNAME(#Name), &__Constructor)); \
 	} \

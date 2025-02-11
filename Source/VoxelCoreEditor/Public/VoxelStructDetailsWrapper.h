@@ -15,19 +15,19 @@ public:
 	TMap<FName, FString> InstanceMetadataMap;
 
 	static TSharedRef<FVoxelStructDetailsWrapper> Make(
-		const TArray<TWeakObjectPtr<UObject>>& WeakObjects,
+		const TArray<TVoxelObjectPtr<UObject>>& WeakObjects,
 		const UScriptStruct& ScriptStruct,
 		const FGetStructView& GetStructView,
 		const FSetStructView& SetStructView);
 
 	template<typename ObjectType, typename StructType>
 	static TSharedRef<FVoxelStructDetailsWrapper> Make(
-		const TArray<TWeakObjectPtr<ObjectType>>& WeakObjects,
+		const TArray<TVoxelObjectPtr<ObjectType>>& WeakObjects,
 		const TFunction<const StructType*(const ObjectType&)>& GetStruct,
 		const TFunction<void(ObjectType&, const StructType&)>& SetStruct)
 	{
 		return FVoxelStructDetailsWrapper::Make(
-			TArray<TWeakObjectPtr<UObject>>(WeakObjects),
+			TArray<TVoxelObjectPtr<UObject>>(WeakObjects),
 			*StaticStructFast<StructType>(),
 			[=](const UObject& Object) -> FConstVoxelStructView
 			{
@@ -52,7 +52,7 @@ public:
 		TArray<TWeakObjectPtr<UObject>> WeakObjects;
 		DetailLayout.GetObjectsBeingCustomized(WeakObjects);
 
-		TArray<TWeakObjectPtr<ObjectType>> TypedWeakObjects;
+		TArray<TVoxelObjectPtr<ObjectType>> TypedWeakObjects;
 		for (const TWeakObjectPtr<UObject>& WeakObject : WeakObjects)
 		{
 			if (!ensureVoxelSlow(WeakObject.IsValid()))
@@ -86,7 +86,7 @@ public:
 
 private:
 	const TSharedRef<FStructOnScope> StructOnScope;
-	const TArray<TWeakObjectPtr<UObject>> WeakObjects;
+	const TArray<TVoxelObjectPtr<UObject>> WeakObjects;
 	const FGetStructView GetStructView;
 	const FSetStructView SetStructView;
 
@@ -95,7 +95,7 @@ private:
 
 	FVoxelStructDetailsWrapper(
 		const TSharedRef<FStructOnScope>& StructOnScope,
-		const TArray<TWeakObjectPtr<UObject>>& WeakObjects,
+		const TArray<TVoxelObjectPtr<UObject>>& WeakObjects,
 		const FGetStructView& GetStructView,
 		const FSetStructView& SetStructView)
 		: StructOnScope(StructOnScope)

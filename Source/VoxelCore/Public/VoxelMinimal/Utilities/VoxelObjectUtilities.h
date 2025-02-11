@@ -146,7 +146,7 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	VOXELCORE_API uint32 HashProperty(const FProperty& Property, const void* DataPtr);
+	VOXELCORE_API uint64 HashProperty(const FProperty& Property, const void* DataPtr);
 	VOXELCORE_API void DestroyStruct_Safe(const UScriptStruct* Struct, void* StructMemory);
 	VOXELCORE_API void AddStructReferencedObjects(FReferenceCollector& Collector, const FVoxelStructView& StructView);
 

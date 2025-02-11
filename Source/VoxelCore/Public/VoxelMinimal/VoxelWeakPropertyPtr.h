@@ -76,7 +76,7 @@ public:
 	}
 
 private:
-	TWeakObjectPtr<ObjectType> WeakObject;
+	TVoxelObjectPtr<ObjectType> WeakObject;
 	T* PropertyPtr = nullptr;
 
 	template<typename>

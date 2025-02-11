@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/VoxelIterate.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelStaticArray.h"
 #include "VoxelMinimal/Utilities/VoxelMathUtilities.h"
@@ -119,9 +120,22 @@ public:
 			}
 		}
 
-		for (int32 Index = OldArrayNum; Index < ArrayNum; Index++)
+		if constexpr (TIsZeroConstructType<Type>::Value)
 		{
-			new (&(*this)[Index]) Type();
+			this->ForeachView(
+				OldArrayNum,
+				ArrayNum - OldArrayNum,
+				[&](const int32 ViewIndex, const TVoxelArrayView<Type> View)
+				{
+					FVoxelUtilities::Memzero(View);
+				});
+		}
+		else
+		{
+			for (int32 Index = OldArrayNum; Index < ArrayNum; Index++)
+			{
+				new(&(*this)[Index]) Type();
+			}
 		}
 	}
 	void Reserve(const int32 Number)
@@ -144,6 +158,8 @@ public:
 	}
 	void Empty()
 	{
+		VOXEL_FUNCTION_COUNTER_NUM(Num(), 4 * NumPerChunk);
+
 		Reset();
 		PrivateChunks.Empty();
 	}
@@ -332,8 +348,8 @@ public:
 
 	template<typename LambdaType, typename = std::enable_if_t<
 		LambdaHasSignature_V<LambdaType, void(int32, TVoxelArrayView<Type>)> ||
-		LambdaHasSignature_V<LambdaType, bool(int32, TVoxelArrayView<Type>)>>>
-	FORCEINLINE void ForeachView(
+		LambdaHasSignature_V<LambdaType, EVoxelIterate(int32, TVoxelArrayView<Type>)>>>
+	FORCEINLINE EVoxelIterate ForeachView(
 		const int32 StartIndex,
 		const int32 Count,
 		LambdaType Lambda)
@@ -352,20 +368,22 @@ public:
 			}
 			else
 			{
-				if (!Lambda(Index, GetChunkView(ChunkIndex).Slice(ChunkOffset, NumInChunk)))
+				if (Lambda(Index, GetChunkView(ChunkIndex).Slice(ChunkOffset, NumInChunk)) == EVoxelIterate::Stop)
 				{
-					return;
+					return EVoxelIterate::Stop;
 				}
 			}
 
 			Index += NumInChunk;
 		}
 		checkVoxelSlow(Index == EndIndex);
+
+		return EVoxelIterate::Continue;
 	}
 	template<typename LambdaType, typename = std::enable_if_t<
 		LambdaHasSignature_V<LambdaType, void(int32, TConstVoxelArrayView<Type>)> ||
-		LambdaHasSignature_V<LambdaType, bool(int32, TConstVoxelArrayView<Type>)>>>
-	FORCEINLINE void ForeachView(
+		LambdaHasSignature_V<LambdaType, EVoxelIterate(int32, TConstVoxelArrayView<Type>)>>>
+	FORCEINLINE EVoxelIterate ForeachView(
 		const int32 StartIndex,
 		const int32 Count,
 		LambdaType Lambda) const
@@ -384,30 +402,32 @@ public:
 			}
 			else
 			{
-				if (!Lambda(Index, GetChunkView(ChunkIndex).Slice(ChunkOffset, NumInChunk)))
+				if (Lambda(Index, GetChunkView(ChunkIndex).Slice(ChunkOffset, NumInChunk)) == EVoxelIterate::Stop)
 				{
-					return;
+					return EVoxelIterate::Stop;
 				}
 			}
 
 			Index += NumInChunk;
 		}
 		checkVoxelSlow(Index == EndIndex);
+
+		return EVoxelIterate::Continue;
 	}
 
 	template<typename LambdaType, typename = std::enable_if_t<
 		LambdaHasSignature_V<LambdaType, void(int32, TVoxelArrayView<Type>)> ||
-		LambdaHasSignature_V<LambdaType, bool(int32, TVoxelArrayView<Type>)>>>
-	FORCEINLINE void ForeachView(LambdaType Lambda)
+		LambdaHasSignature_V<LambdaType, EVoxelIterate(int32, TVoxelArrayView<Type>)>>>
+	FORCEINLINE EVoxelIterate ForeachView(LambdaType Lambda)
 	{
-		this->ForeachView(0, Num(), MoveTemp(Lambda));
+		return this->ForeachView(0, Num(), MoveTemp(Lambda));
 	}
 	template<typename LambdaType, typename = std::enable_if_t<
 		LambdaHasSignature_V<LambdaType, void(int32, TConstVoxelArrayView<Type>)> ||
-		LambdaHasSignature_V<LambdaType, bool(int32, TConstVoxelArrayView<Type>)>>>
-	FORCEINLINE void ForeachView(LambdaType Lambda) const
+		LambdaHasSignature_V<LambdaType, EVoxelIterate(int32, TConstVoxelArrayView<Type>)>>>
+	FORCEINLINE EVoxelIterate ForeachView(LambdaType Lambda) const
 	{
-		this->ForeachView(0, Num(), MoveTemp(Lambda));
+		return this->ForeachView(0, Num(), MoveTemp(Lambda));
 	}
 
 public:
@@ -574,10 +594,10 @@ public:
 				}
 
 				Index = ViewIndex + int32(&Value - View.GetData());
-				return false;
+				return EVoxelIterate::Stop;
 			}
 
-			return true;
+			return EVoxelIterate::Continue;
 		});
 
 		checkVoxelSlow(Index == -1 || (*this)[Index] == Item);

@@ -4,13 +4,14 @@
 
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelBox.h"
+#include "VoxelMinimal/VoxelObjectPtr.h"
 #include "VoxelMinimal/VoxelUniqueFunction.h"
 
 class VOXELCORE_API FVoxelDebugDrawer
 {
 public:
 	FVoxelDebugDrawer();
-	explicit FVoxelDebugDrawer(const TObjectKey<UWorld>& World);
+	explicit FVoxelDebugDrawer(TVoxelObjectPtr<const UWorld> World);
 	explicit FVoxelDebugDrawer(const UWorld* World);
 	~FVoxelDebugDrawer();
 
@@ -56,13 +57,13 @@ public:
 private:
 	struct FState
 	{
-		TObjectKey<UWorld> PrivateWorld;
+		TVoxelObjectPtr<const UWorld> PrivateWorld;
 		FLinearColor Color = FLinearColor::Red;
 		float Thickness = 10.f;
 		float LifeTime = 10.f;
 		TVoxelArray<TVoxelUniqueFunction<void(const FState&)>> Drawers;
 
-		UWorld* GetWorld() const;
+		const UWorld* GetWorld() const;
 	};
 	const TSharedRef<FState> PrivateState = MakeShared<FState>();
 };

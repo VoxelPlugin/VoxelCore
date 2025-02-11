@@ -84,14 +84,14 @@ FVoxelBufferPoolBase::FVoxelBufferPoolBase(
 		PoolIndexToPool_RequiresLock.Add(FAllocationPool(PoolIndex));
 	}
 
-	Voxel_AddAmountToDynamicStat(BufferName, AllocatedMemory.Get());
+	Voxel_AddAmountToDynamicMemoryStat(BufferName, AllocatedMemory.Get());
 }
 
 FVoxelBufferPoolBase::~FVoxelBufferPoolBase()
 {
-	Voxel_AddAmountToDynamicStat(AllocatedMemory_Name, -AllocatedMemory_Reported.Get());
-	Voxel_AddAmountToDynamicStat(UsedMemory_Name, -UsedMemory_Reported.Get());
-	Voxel_AddAmountToDynamicStat(PaddingMemory_Name, -PaddingMemory_Reported.Get());
+	Voxel_AddAmountToDynamicMemoryStat(AllocatedMemory_Name, -AllocatedMemory_Reported.Get());
+	Voxel_AddAmountToDynamicMemoryStat(UsedMemory_Name, -UsedMemory_Reported.Get());
+	Voxel_AddAmountToDynamicMemoryStat(PaddingMemory_Name, -PaddingMemory_Reported.Get());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -108,9 +108,9 @@ void FVoxelBufferPoolBase::UpdateStats()
 	const int64 UsedMemoryOld = UsedMemory_Reported.Set_ReturnOld(UsedMemoryNew);
 	const int64 PaddingMemoryOld = PaddingMemory_Reported.Set_ReturnOld(PaddingMemoryNew);
 
-	Voxel_AddAmountToDynamicStat(AllocatedMemory_Name, AllocatedMemoryNew - AllocatedMemoryOld);
-	Voxel_AddAmountToDynamicStat(UsedMemory_Name, UsedMemoryNew - UsedMemoryOld);
-	Voxel_AddAmountToDynamicStat(PaddingMemory_Name, PaddingMemoryNew - PaddingMemoryOld);
+	Voxel_AddAmountToDynamicMemoryStat(AllocatedMemory_Name, AllocatedMemoryNew - AllocatedMemoryOld);
+	Voxel_AddAmountToDynamicMemoryStat(UsedMemory_Name, UsedMemoryNew - UsedMemoryOld);
+	Voxel_AddAmountToDynamicMemoryStat(PaddingMemory_Name, PaddingMemoryNew - PaddingMemoryOld);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

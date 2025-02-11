@@ -48,7 +48,7 @@ FVoxelStructDetailsWrapperTicker* GVoxelStructDetailsWrapperTicker = new FVoxelS
 ///////////////////////////////////////////////////////////////////////////////
 
 TSharedRef<FVoxelStructDetailsWrapper> FVoxelStructDetailsWrapper::Make(
-	const TArray<TWeakObjectPtr<UObject>>& WeakObjects,
+	const TArray<TVoxelObjectPtr<UObject>>& WeakObjects,
 	const UScriptStruct& ScriptStruct,
 	const FGetStructView& GetStructView,
 	const FSetStructView& SetStructView)
@@ -57,9 +57,9 @@ TSharedRef<FVoxelStructDetailsWrapper> FVoxelStructDetailsWrapper::Make(
 
 	// Make sure the struct also has a valid package set, so that properties that rely on this (like FText) work correctly
 	{
-		for (const TWeakObjectPtr<UObject>& WeakObject : WeakObjects)
+		for (const TVoxelObjectPtr<UObject>& WeakObject : WeakObjects)
 		{
-			const UObject* Object = WeakObject.Get();
+			const UObject* Object = WeakObject.Resolve();
 			if (!ensureVoxelSlow(Object))
 			{
 				continue;
@@ -108,9 +108,9 @@ void FVoxelStructDetailsWrapper::SyncFromSource() const
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	for (const TWeakObjectPtr<UObject>& WeakObject : WeakObjects)
+	for (const TVoxelObjectPtr<UObject>& WeakObject : WeakObjects)
 	{
-		const UObject* Object = WeakObject.Get();
+		const UObject* Object = WeakObject.Resolve();
 		if (!ensureVoxelSlow(Object))
 		{
 			continue;
@@ -132,9 +132,9 @@ void FVoxelStructDetailsWrapper::SyncToSource() const
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	for (const TWeakObjectPtr<UObject>& WeakObject : WeakObjects)
+	for (const TVoxelObjectPtr<UObject>& WeakObject : WeakObjects)
 	{
-		UObject* Object = WeakObject.Get();
+		UObject* Object = WeakObject.Resolve();
 		if (!ensureVoxelSlow(Object))
 		{
 			continue;
@@ -156,9 +156,9 @@ void FVoxelStructDetailsWrapper::SetupChildHandle(const TSharedRef<IPropertyHand
 	{
 		VOXEL_SCOPE_COUNTER("PreEditChange");
 
-		for (const TWeakObjectPtr<UObject>& WeakObject : WeakObjects)
+		for (const TVoxelObjectPtr<UObject>& WeakObject : WeakObjects)
 		{
-			UObject* Object = WeakObject.Get();
+			UObject* Object = WeakObject.Resolve();
 			if (!ensureVoxelSlow(Object))
 			{
 				continue;
@@ -182,9 +182,9 @@ void FVoxelStructDetailsWrapper::SetupChildHandle(const TSharedRef<IPropertyHand
 
 		VOXEL_SCOPE_COUNTER("PostEditChangeProperty");
 
-		for (const TWeakObjectPtr<UObject>& WeakObject : WeakObjects)
+		for (const TVoxelObjectPtr<UObject>& WeakObject : WeakObjects)
 		{
-			UObject* Object = WeakObject.Get();
+			UObject* Object = WeakObject.Resolve();
 			if (!ensureVoxelSlow(Object))
 			{
 				continue;

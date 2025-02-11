@@ -258,3 +258,8 @@ using TConstVoxelStructView = TVoxelStructView<const T>;
 
 using FVoxelStructView = TVoxelStructView<void>;
 using FConstVoxelStructView = TConstVoxelStructView<void>;
+
+VOXELCORE_API void ForeachObjectReference(
+	FVoxelStructView Struct,
+	TFunctionRef<void(UObject*& ObjectRef)> Lambda,
+	EPropertyFlags SkipFlags = CPF_Transient);

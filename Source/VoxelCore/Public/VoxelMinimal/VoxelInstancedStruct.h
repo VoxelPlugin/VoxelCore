@@ -89,7 +89,6 @@ public:
 
 public:
 	void Reset();
-	uint64 GetPropertyHash() const;
 	bool NetSerialize(FArchive& Ar, UPackageMap& Map);
 
 	//~ Begin TStructOpsTypeTraits Interface

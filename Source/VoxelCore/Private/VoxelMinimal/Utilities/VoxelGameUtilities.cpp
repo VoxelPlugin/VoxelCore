@@ -197,7 +197,7 @@ bool FVoxelUtilities::GetCameraView(const UWorld* World, FVector& OutPosition, F
 		FRotator Rotation;
 		float FOV;
 	};
-	static TMap<TObjectKey<UWorld>, FCacheEntry> Cache;
+	static TMap<TVoxelObjectPtr<const UWorld>, FCacheEntry> Cache;
 
 	if (GVoxelFreezeCamera)
 	{
@@ -234,7 +234,7 @@ TOptional<FVector> FVoxelUtilities::GetCameraPosition(const UWorld* World)
 bool FVoxelUtilities::ComputeInvokerChunks(
 	TVoxelSet<FIntVector>& OutChunks,
 	TVoxelArray<FSphere> Invokers,
-	const FMatrix& LocalToWorld,
+	const FTransform& LocalToWorld,
 	const double ChunkSize,
 	const int32 MaxNumChunks)
 {
@@ -281,7 +281,7 @@ bool FVoxelUtilities::ComputeInvokerChunks(
 	{
 		VOXEL_SCOPE_COUNTER("Make ChunkedInvokers");
 
-		const FMatrix WorldToLocal = LocalToWorld.Inverse();
+		const FMatrix WorldToLocal = LocalToWorld.ToInverseMatrixWithScale();
 		const float WorldToLocalScale = WorldToLocal.GetMaximumAxisScale();
 
 		for (const FSphere& Invoker : Invokers)
@@ -358,10 +358,10 @@ bool FVoxelUtilities::ComputeInvokerChunks(
 class FVoxelActorSelectionTracker : public FVoxelSingleton
 {
 public:
-	TVoxelMap<TObjectKey<AActor>, TMulticastDelegate<void(bool)>> ActorToDelegate;
+	TVoxelMap<TVoxelObjectPtr<AActor>, TMulticastDelegate<void(bool)>> ActorToDelegate;
 
 	FVoxelCriticalSection CriticalSection;
-	TVoxelSet<TObjectKey<AActor>> SelectedActors_RequiresLock;
+	TVoxelSet<TVoxelObjectPtr<const AActor>> SelectedActors_RequiresLock;
 
 	double LastCleanup = FPlatformTime::Seconds();
 
@@ -385,7 +385,7 @@ public:
 
 		for (auto It = ActorToDelegate.CreateIterator(); It; ++It)
 		{
-			if (!It.Key().ResolveObjectPtr())
+			if (!It.Key().IsValid_Slow())
 			{
 				It.RemoveCurrent();
 			}
@@ -398,7 +398,7 @@ public:
 	{
 		VOXEL_FUNCTION_COUNTER();
 
-		TVoxelSet<TObjectKey<AActor>> NewSelectedActors;
+		TVoxelSet<TVoxelObjectPtr<const AActor>> NewSelectedActors;
 		{
 			USelection* Selection = GEditor->GetSelectedActors();
 			NewSelectedActors.Reserve(Selection->Num());
@@ -410,8 +410,8 @@ public:
 			}
 		}
 
-		TVoxelSet<TObjectKey<AActor>> ActorsToSelect;
-		TVoxelSet<TObjectKey<AActor>> ActorsToDeselect;
+		TVoxelSet<TVoxelObjectPtr<const AActor>> ActorsToSelect;
+		TVoxelSet<TVoxelObjectPtr<const AActor>> ActorsToDeselect;
 		{
 			VOXEL_SCOPE_LOCK(CriticalSection);
 
@@ -421,7 +421,7 @@ public:
 			SelectedActors_RequiresLock = MoveTemp(NewSelectedActors);
 		}
 
-		for (const TObjectKey<AActor>& Actor : ActorsToSelect)
+		for (const TVoxelObjectPtr<const AActor>& Actor : ActorsToSelect)
 		{
 			const TMulticastDelegate<void(bool)>* Delegate = ActorToDelegate.Find(Actor);
 			if (!Delegate)
@@ -432,7 +432,7 @@ public:
 			Delegate->Broadcast(true);
 		}
 
-		for (const TObjectKey<AActor>& Actor : ActorsToDeselect)
+		for (const TVoxelObjectPtr<const AActor>& Actor : ActorsToDeselect)
 		{
 			const TMulticastDelegate<void(bool)>* Delegate = ActorToDelegate.Find(Actor);
 			if (!Delegate)
@@ -453,7 +453,7 @@ void FVoxelUtilities::OnActorSelectionChanged(
 	GVoxelActorSelectionTracker->ActorToDelegate.FindOrAdd(&Actor).Add(MoveTemp(Delegate));
 }
 
-bool FVoxelUtilities::IsActorSelected_AnyThread(const TObjectKey<AActor> Actor)
+bool FVoxelUtilities::IsActorSelected_AnyThread(const TVoxelObjectPtr<AActor> Actor)
 {
 	VOXEL_SCOPE_LOCK(GVoxelActorSelectionTracker->CriticalSection);
 	return GVoxelActorSelectionTracker->SelectedActors_RequiresLock.Contains(Actor);

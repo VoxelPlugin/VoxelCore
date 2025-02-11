@@ -84,7 +84,7 @@ public:
 	//~ End FGCObject Interface
 
 private:
-	TWeakObjectPtr<UObject> Asset;
+	TVoxelObjectPtr<UObject> WeakAsset;
 	TSharedPtr<FVoxelToolkit> Toolkit;
 	TArray<FName> RegisteredTabIds;
 	bool bClosed = false;

@@ -46,6 +46,9 @@ void FVoxelDependencyInvalidationScope::Invalidate()
 			Invalidation.Dependency->GetInvalidatedTrackers(Invalidation.Parameters, Trackers);
 		}
 		Invalidations.Reset();
+
+		Trackers.Append(InvalidatedTrackers);
+		InvalidatedTrackers.Reset();
 	};
 
 	FlushInvalidations();
@@ -93,6 +96,11 @@ void FVoxelDependencyInvalidationScope::Invalidate()
 	}
 }
 
+FVoxelDependencyInvalidationScope& FVoxelDependencyInvalidationScope::RootScope()
+{
+	return *GVoxelDependencyInvalidationScope;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -106,7 +114,7 @@ void FVoxelDependency::Invalidate(const FVoxelDependencyInvalidationParameters& 
 		OnInvalidated.Broadcast(Parameters);
 
 		FVoxelDependencyInvalidationScope LocalScope;
-		FVoxelDependencyInvalidationScope& RootScope = *GVoxelDependencyInvalidationScope;
+		FVoxelDependencyInvalidationScope& RootScope = FVoxelDependencyInvalidationScope::RootScope();
 
 		RootScope.Invalidations.Add(FVoxelDependencyInvalidationScope::FInvalidation
 		{

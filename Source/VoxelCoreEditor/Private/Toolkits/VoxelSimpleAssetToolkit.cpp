@@ -58,7 +58,7 @@ void FVoxelSimpleAssetToolkit::Initialize()
 	PrivatePreviewScene->SetFloorVisibility(ShowFloor(), true);
 
 	CachedWorld = GetPreviewScene().GetWorld();
-	if (!ensure(CachedWorld.IsValid()))
+	if (!ensure(CachedWorld.IsValid_Slow()))
 	{
 		return;
 	}

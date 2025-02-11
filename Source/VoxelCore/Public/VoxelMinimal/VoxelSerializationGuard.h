@@ -7,7 +7,7 @@
 struct VOXELCORE_API FVoxelSerializationGuard
 {
 public:
-	FVoxelSerializationGuard(FArchive& Ar);
+	explicit FVoxelSerializationGuard(FArchive& Ar);
 	~FVoxelSerializationGuard();
 
 private:

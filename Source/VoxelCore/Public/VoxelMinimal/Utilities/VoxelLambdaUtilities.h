@@ -28,14 +28,16 @@ struct TVoxelFunctionInfo<InReturnType(InArgTypes...)>
 	using Signature = InReturnType(InArgTypes...);
 };
 
-template<typename ReturnType, typename Class, typename... ArgTypes>
-struct TVoxelFunctionInfo<ReturnType(Class::*)(ArgTypes...) const> : TVoxelFunctionInfo<ReturnType(ArgTypes...)>
+template<typename ReturnType, typename InClass, typename... ArgTypes>
+struct TVoxelFunctionInfo<ReturnType(InClass::*)(ArgTypes...) const> : TVoxelFunctionInfo<ReturnType(ArgTypes...)>
 {
+	using Class = InClass;
 };
 
-template<typename ReturnType, typename Class, typename... ArgTypes>
-struct TVoxelFunctionInfo<ReturnType(Class::*)(ArgTypes...)> : TVoxelFunctionInfo<ReturnType(ArgTypes...)>
+template<typename ReturnType, typename InClass, typename... ArgTypes>
+struct TVoxelFunctionInfo<ReturnType(InClass::*)(ArgTypes...)> : TVoxelFunctionInfo<ReturnType(ArgTypes...)>
 {
+	using Class = InClass;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

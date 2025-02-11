@@ -106,7 +106,7 @@ public:
 			return nullptr;
 		}
 
-		Component->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+		Component->SetupAttachment(RootComponent);
 		Component->SetWorldTransform(FTransform::Identity);
 		Component->RegisterComponent();
 		return Component;
@@ -114,7 +114,7 @@ public:
 
 	FORCEINLINE UWorld* GetWorld() const
 	{
-		return CachedWorld.Get();
+		return CachedWorld.Resolve();
 	}
 	FORCEINLINE USceneComponent* GetRootComponent() const
 	{
@@ -122,7 +122,7 @@ public:
 	}
 
 private:
-	TWeakObjectPtr<UWorld> CachedWorld;
+	TVoxelObjectPtr<UWorld> CachedWorld;
 
 	UPROPERTY()
 	TArray<TObjectPtr<AActor>> PrivateActors;

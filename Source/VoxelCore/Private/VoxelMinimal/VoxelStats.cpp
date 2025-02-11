@@ -47,14 +47,6 @@ void ExitVoxelLLMScope()
 		GVoxelLLMScope.Reset();
 	}
 }
-void CheckVoxelLLMScope()
-{
-	if (!GIsEditor &&
-		!GVoxelLLMDisabled)
-	{
-		ensureMsgf(GVoxelLLMScopeCounter > 0, TEXT("Missing VOXEL_FUNCTION_COUNTER or VOXEL_SCOPE_COUNTER"));
-	}
-}
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -126,6 +118,7 @@ FString VoxelStats_CleanupFunctionName(const FString& FunctionName)
 #endif
 }
 
+#if !INTELLISENSE_PARSER
 FName VoxelStats_PrintfImpl(const TCHAR* Format, ...)
 {
 	constexpr int32 BufferSize = 512;
@@ -146,6 +139,7 @@ FName VoxelStats_PrintfImpl(const TCHAR* Format, ...)
 
 	return FName(FStringView(Buffer, Result));
 }
+#endif
 
 FName VoxelStats_AddNum(const FString& Format, const int32 Num)
 {
@@ -161,10 +155,10 @@ FName VoxelStats_AddNum(const FString& Format, const int32 Num)
 ///////////////////////////////////////////////////////////////////////////////
 
 #if STATS
-FName Voxel_GetDynamicStatName(const FName Name)
+FName Voxel_GetDynamicMemoryStatName(const FName Name)
 {
 	static FVoxelCriticalSection CriticalSection;
-	static TMap<FName, FName> Map;
+	static TVoxelMap<FName, FName> Map;
 
 	VOXEL_SCOPE_LOCK(CriticalSection);
 
@@ -173,7 +167,7 @@ FName Voxel_GetDynamicStatName(const FName Name)
 		return *StatName;
 	}
 
-	using Group = FStatGroup_STATGROUP_VoxelMemory;
+	using Group = FStatGroup_STATGROUP_Voxel;
 
 	FStartupMessages::Get().AddMetadata(
 		Name,
@@ -200,10 +194,52 @@ FName Voxel_GetDynamicStatName(const FName Name)
 			Group::GetSortByName(),
 			FPlatformMemory::MCR_Physical).GetName();
 
-	return Map.Add(Name, StatName);
+	return Map.Add_CheckNew(Name, StatName);
 }
 
-void Voxel_AddAmountToDynamicStat(const FName Name, const int64 Amount)
+FName Voxel_GetDynamicCounterStatName(const FName Name)
+{
+	static FVoxelCriticalSection CriticalSection;
+	static TVoxelMap<FName, FName> Map;
+
+	VOXEL_SCOPE_LOCK(CriticalSection);
+
+	if (const FName* StatName = Map.Find(Name))
+	{
+		return *StatName;
+	}
+
+	using Group = FStatGroup_STATGROUP_Voxel;
+
+	FStartupMessages::Get().AddMetadata(
+		Name,
+		*Name.ToString(),
+		Group::GetGroupName(),
+		Group::GetGroupCategory(),
+		Group::GetDescription(),
+		false,
+		EStatDataType::ST_int64,
+		false,
+		Group::GetSortByName(),
+		FPlatformMemory::MCR_Invalid);
+
+	const FName StatName =
+		IStatGroupEnableManager::Get().GetHighPerformanceEnableForStat(
+			Name,
+			Group::GetGroupName(),
+			Group::GetGroupCategory(),
+			true,
+			false,
+			EStatDataType::ST_int64,
+			*Name.ToString(),
+			false,
+			Group::GetSortByName(),
+			FPlatformMemory::MCR_Invalid).GetName();
+
+	return Map.Add_CheckNew(Name, StatName);
+}
+
+void Voxel_AddAmountToDynamicMemoryStat(const FName Name, const int64 Amount)
 {
 	VOXEL_FUNCTION_COUNTER();
 
@@ -212,7 +248,30 @@ void Voxel_AddAmountToDynamicStat(const FName Name, const int64 Amount)
 		return;
 	}
 
-	const FName StatName = Voxel_GetDynamicStatName(Name);
+	const FName StatName = Voxel_GetDynamicMemoryStatName(Name);
+
+	if (Amount > 0)
+	{
+		FThreadStats::AddMessage(StatName, EStatOperation::Add, Amount);
+	}
+	else
+	{
+		FThreadStats::AddMessage(StatName, EStatOperation::Subtract, -Amount);
+	}
+
+	TRACE_STAT_ADD(Name, Amount);
+}
+
+void Voxel_AddAmountToDynamicCounterStat(const FName Name, const int64 Amount)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	if (Amount == 0)
+	{
+		return;
+	}
+
+	const FName StatName = Voxel_GetDynamicCounterStatName(Name);
 
 	if (Amount > 0)
 	{
@@ -245,13 +304,13 @@ void FVoxelStackTrace::Capture()
 ///////////////////////////////////////////////////////////////////////////////
 
 #if STATS
-TMap<FName, const FVoxelCounter64*> GVoxelStatNameToInstanceCounter;
+TVoxelMap<FName, const FVoxelCounter64*> GVoxelStatNameToInstanceCounter;
 
-VOXELCORE_API void RegisterVoxelInstanceCounter(const FName StatName, const FVoxelCounter64& Counter)
+void RegisterVoxelInstanceCounter(const FName StatName, const FVoxelCounter64& Counter)
 {
 	check(IsInGameThread());
-	check(!GVoxelStatNameToInstanceCounter.Contains(StatName));
-	GVoxelStatNameToInstanceCounter.Add(StatName, &Counter);
+	GVoxelStatNameToInstanceCounter.Reserve(128);
+	GVoxelStatNameToInstanceCounter.Add_CheckNew(StatName, &Counter);
 }
 
 class FVoxelInstanceCounterTicker : public FVoxelTicker
@@ -285,7 +344,7 @@ VOXEL_RUN_ON_STARTUP_GAME()
 			}
 
 			FString Name = It.Key.ToString();
-			ensure(Name.RemoveFromStart("//STATGROUP_VoxelCounters//STAT_Num"));
+			ensure(Name.RemoveFromStart("//STATGROUP_VoxelTypes//STAT_Num"));
 
 			const int32 Index = Name.Find("///");
 			if (ensure(Index != -1))

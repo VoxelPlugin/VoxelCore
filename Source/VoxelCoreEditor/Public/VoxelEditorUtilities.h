@@ -117,7 +117,7 @@ public:
 		TVoxelArray<T*> Result;
 		for (const TWeakObjectPtr<UObject>& Object : Objects)
 		{
-			T* TypedObject = Cast<T>(Object);
+			T* TypedObject = Cast<T>(Object.Get());
 			if (!ensure(TypedObject))
 			{
 				continue;
@@ -146,13 +146,13 @@ public:
 		return TypedObject;
 	}
 	template<typename T = UObject>
-	static TVoxelArray<TWeakObjectPtr<T>> GetTypedOuters(const TSharedRef<IPropertyHandle> PropertyHandle)
+	static TVoxelArray<TVoxelObjectPtr<T>> GetTypedOuters(const TSharedRef<IPropertyHandle> PropertyHandle)
 	{
 		// Only GetOuterPackages works when using AddExternalStructure
 		TArray<UPackage*> OuterPackages;
 		PropertyHandle->GetOuterPackages(OuterPackages);
 
-		TVoxelArray<TWeakObjectPtr<T>> Outers;
+		TVoxelArray<TVoxelObjectPtr<T>> Outers;
 		for (const UPackage* Package : OuterPackages)
 		{
 			ForEachObjectWithPackage(Package, [&](UObject* Object)
@@ -229,9 +229,14 @@ public:
 
 		TrackHandle(PropertyHandle);
 
-		if (!ensure(PropertyHandle) ||
-			!ensure(PropertyHandle->GetProperty()) ||
-			!ensure(FVoxelUtilities::MatchesProperty<T>(*PropertyHandle->GetProperty(), false)))
+		if (!ensure(PropertyHandle))
+		{
+			return;
+		}
+
+		FProperty* Property = PropertyHandle->GetProperty();
+		if (Property &&
+			!ensure(FVoxelUtilities::MatchesProperty<T>(*Property, false)))
 		{
 			return;
 		}
@@ -255,9 +260,14 @@ public:
 
 		TrackHandle(PropertyHandle);
 
-		if (!ensure(PropertyHandle) ||
-			!ensure(PropertyHandle->GetProperty()) ||
-			!ensure(FVoxelUtilities::MatchesProperty<T>(*PropertyHandle->GetProperty(), false)))
+		if (!ensure(PropertyHandle))
+		{
+			return;
+		}
+
+		FProperty* Property = PropertyHandle->GetProperty();
+		if (Property &&
+			!ensure(FVoxelUtilities::MatchesProperty<T>(*Property, false)))
 		{
 			return;
 		}
@@ -647,9 +657,9 @@ private:
 		{ \
 			return FVoxelEditorUtilities::GetUniqueObjectBeingCustomized<Class>(DetailLayout); \
 		} \
-		static TVoxelArray<TWeakObjectPtr<Class>> GetWeakObjectsBeingCustomized(IDetailLayoutBuilder& DetailLayout) \
+		static TVoxelArray<TVoxelObjectPtr<Class>> GetWeakObjectsBeingCustomized(IDetailLayoutBuilder& DetailLayout) \
 		{ \
-			return TVoxelArray<TWeakObjectPtr<Class>>(GetObjectsBeingCustomized(DetailLayout)); \
+			return TVoxelArray<TVoxelObjectPtr<Class>>(GetObjectsBeingCustomized(DetailLayout)); \
 		} \
 		virtual void CustomizeDetails(IDetailLayoutBuilder& DetailLayout) override; \
 	}; \

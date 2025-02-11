@@ -157,6 +157,44 @@ FString GetStringMetaDataHierarchical(const UStruct* Struct, const FName Name)
 }
 #endif
 
+class FVoxelArchiveForeachObjectReference : public FArchiveUObject
+{
+public:
+	const TFunctionRef<void(UObject*&)> Lambda;
+	const EPropertyFlags SkipFlags;
+
+	explicit FVoxelArchiveForeachObjectReference(
+		const TFunctionRef<void(UObject*&)> Lambda,
+		const EPropertyFlags SkipFlags)
+		: Lambda(Lambda)
+		, SkipFlags(SkipFlags)
+	{
+		ArIsObjectReferenceCollector = true;
+		ArIsModifyingWeakAndStrongReferences = true;
+	}
+
+	//~ Begin FArchiveUObject Interface
+	virtual bool ShouldSkipProperty(const FProperty* InProperty) const override
+	{
+		return InProperty->HasAnyPropertyFlags(SkipFlags);
+	}
+
+	virtual FArchive& operator<<(UObject*& Object) override
+	{
+		Lambda(Object);
+		return *this;
+	}
+	virtual FArchive& operator<<(FSoftObjectPtr& Value) override
+	{
+		UObject* Object = Value.LoadSynchronous();
+		*this << Object;
+		Value = Object;
+
+		return *this;
+	}
+	//~ End FArchiveUObject Interface
+};
+
 void ForeachObjectReference(
 	UObject& Object,
 	const TFunctionRef<void(UObject*& ObjectRef)> Lambda,
@@ -164,46 +202,19 @@ void ForeachObjectReference(
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	class FArchiveForeachObjectReference : public FArchiveUObject
-	{
-	public:
-		const TFunctionRef<void(UObject*&)> Lambda;
-		const EPropertyFlags SkipFlags;
-
-		explicit FArchiveForeachObjectReference(
-			const TFunctionRef<void(UObject*&)> Lambda,
-			const EPropertyFlags SkipFlags)
-			: Lambda(Lambda)
-			, SkipFlags(SkipFlags)
-		{
-			ArIsObjectReferenceCollector = true;
-			ArIsModifyingWeakAndStrongReferences = true;
-		}
-
-		//~ Begin FArchiveUObject Interface
-		virtual bool ShouldSkipProperty(const FProperty* InProperty) const override
-		{
-			return InProperty->HasAnyPropertyFlags(SkipFlags);
-		}
-
-		virtual FArchive& operator<<(UObject*& Object) override
-		{
-			Lambda(Object);
-			return *this;
-		}
-		virtual FArchive& operator<<(FSoftObjectPtr& Value) override
-		{
-			UObject* Object = Value.LoadSynchronous();
-			*this << Object;
-			Value = Object;
-
-			return *this;
-		}
-		//~ End FArchiveUObject Interface
-	};
-
-	FArchiveForeachObjectReference Archive(Lambda, SkipFlags);
+	FVoxelArchiveForeachObjectReference Archive(Lambda, SkipFlags);
 	Object.Serialize(Archive);
+}
+
+void ForeachObjectReference(
+	const FVoxelStructView Struct,
+	const TFunctionRef<void(UObject*& ObjectRef)> Lambda,
+	const EPropertyFlags SkipFlags)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	FVoxelArchiveForeachObjectReference Archive(Lambda, SkipFlags);
+	Struct.GetStruct()->SerializeItem(Archive, Struct.GetMemory(), nullptr);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -277,30 +288,4 @@ FSharedVoidRef MakeShareableStruct(const UScriptStruct* Struct, void* StructMemo
 		FVoxelUtilities::DestroyStruct_Safe(Struct, InMemory);
 		FMemory::Free(InMemory);
 	}).ToSharedRef());
-}
-
-FName GetObjectKeyName(const FObjectKey ObjectKey)
-{
-	checkVoxelSlow(IsInGameThread());
-
-	const UObject* Object = ObjectKey.ResolveObjectPtr();
-	if (!Object)
-	{
-		return STATIC_FNAME("<null>");
-	}
-
-	return Object->GetFName();
-}
-
-FString GetObjectKeyPathName(const FObjectKey ObjectKey)
-{
-	check(IsInGameThread());
-
-	const UObject* Object = ObjectKey.ResolveObjectPtr();
-	if (!Object)
-	{
-		return "<null>";
-	}
-
-	return Object->GetPathName();
 }

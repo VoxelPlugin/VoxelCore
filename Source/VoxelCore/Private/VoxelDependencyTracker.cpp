@@ -1,6 +1,7 @@
 ﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelDependencyTracker.h"
+#include "VoxelDependencySink.h"
 
 DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelDependencyTracker);
 DEFINE_VOXEL_MEMORY_STAT(STAT_VoxelDependencyTrackerMemory);
@@ -118,6 +119,19 @@ bool FVoxelDependencyTracker::SetOnInvalidated(
 	CriticalSection.Unlock();
 
 	return true;
+}
+
+void FVoxelDependencyTracker::Invalidate()
+{
+	FVoxelDependencySink::AddAction(MakeWeakPtrLambda(this, [this]
+	{
+		VOXEL_FUNCTION_COUNTER();
+
+		FVoxelDependencyInvalidationScope LocalScope;
+		FVoxelDependencyInvalidationScope& RootScope = FVoxelDependencyInvalidationScope::RootScope();
+
+		RootScope.InvalidatedTrackers.Add(AsWeak());
+	}));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

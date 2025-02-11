@@ -28,10 +28,10 @@
     <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 5">int64</DisplayString>
     <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 6">name</DisplayString>
     <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 7 &amp;&amp; !PrivateInternalField.DebugPtr">uint8</DisplayString>
-    <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 8 &amp;&amp; PrivateInternalField.DebugPtr">{PrivateInternalField.DebugPtr->NamePrivate,sb}</DisplayString>
-    <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 8">{PrivateInternalField.DebugPtr->NamePrivate,sb} (class)</DisplayString>
-    <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 9">{PrivateInternalField.DebugPtr->NamePrivate,sb}</DisplayString>
-    <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 10">F{PrivateInternalField.DebugPtr->NamePrivate,sb}</DisplayString>
+    <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 8 &amp;&amp; PrivateInternalField.DebugPtr">{PrivateInternalField.DebugPtr-&gt;NamePrivate,sb}</DisplayString>
+    <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 8">{PrivateInternalField.DebugPtr-&gt;NamePrivate,sb} (class)</DisplayString>
+    <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 9">{PrivateInternalField.DebugPtr-&gt;NamePrivate,sb}</DisplayString>
+    <DisplayString Condition="ContainerType == 0 &amp;&amp; InternalType == 10">F{PrivateInternalField.DebugPtr-&gt;NamePrivate,sb}</DisplayString>
 
     <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 0">null (array)</DisplayString>
     <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 1">bool (array)</DisplayString>
@@ -41,10 +41,10 @@
     <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 5">int64 (array)</DisplayString>
     <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 6">name (array)</DisplayString>
     <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 7 &amp;&amp; !PrivateInternalField.DebugPtr">uint8 (array)</DisplayString>
-    <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 8 &amp;&amp; PrivateInternalField.DebugPtr">{PrivateInternalField.DebugPtr->NamePrivate,sb} (array)</DisplayString>
-    <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 8">{PrivateInternalField.DebugPtr->NamePrivate,sb} (class array)</DisplayString>
-    <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 9">{PrivateInternalField.DebugPtr->NamePrivate,sb} (array)</DisplayString>
-    <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 10">F{PrivateInternalField.DebugPtr->NamePrivate,sb} (array)</DisplayString>
+    <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 8 &amp;&amp; PrivateInternalField.DebugPtr">{PrivateInternalField.DebugPtr-&gt;NamePrivate,sb} (array)</DisplayString>
+    <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 8">{PrivateInternalField.DebugPtr-&gt;NamePrivate,sb} (class array)</DisplayString>
+    <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 9">{PrivateInternalField.DebugPtr-&gt;NamePrivate,sb} (array)</DisplayString>
+    <DisplayString Condition="ContainerType == 1 &amp;&amp; InternalType == 10">F{PrivateInternalField.DebugPtr-&gt;NamePrivate,sb} (array)</DisplayString>
   </Type>
 
   <!-- FVoxelPropertyTerminalValue visualizer -->
@@ -109,10 +109,10 @@
     <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 6">int64 (array)</DisplayString>
     <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 7">name (array)</DisplayString>
     <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 8 &amp;&amp; !PrivateInternalField.DebugPtr">uint8 (array)</DisplayString>
-    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 8 &amp;&amp; PrivateInternalField.DebugPtr">{PrivateInternalField.DebugPtr->NamePrivate,sb} (array)</DisplayString>
-    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 9">{PrivateInternalField.DebugPtr->NamePrivate,sb} (class array)</DisplayString>
-    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 10">{PrivateInternalField.DebugPtr->NamePrivate,sb} (array)</DisplayString>
-    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 11">F{PrivateInternalField.DebugPtr->NamePrivate,sb} (array)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 8 &amp;&amp; PrivateInternalField.DebugPtr">{PrivateInternalField.DebugPtr-&gt;NamePrivate,sb} (array)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 9">{PrivateInternalField.DebugPtr-&gt;NamePrivate,sb} (class array)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 10">{PrivateInternalField.DebugPtr-&gt;NamePrivate,sb} (array)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; bIsBufferArray &amp;&amp; InternalType == 11">F{PrivateInternalField.DebugPtr-&gt;NamePrivate,sb} (array)</DisplayString>
 
     <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 0">null (buffer)</DisplayString>
     <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 1">wildcard (buffer)</DisplayString>
@@ -123,10 +123,10 @@
     <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 6">int64 (buffer)</DisplayString>
     <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 7">name (buffer)</DisplayString>
     <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 8 &amp;&amp; !PrivateInternalField.DebugPtr">uint8 (buffer)</DisplayString>
-    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 8 &amp;&amp; PrivateInternalField.DebugPtr">{PrivateInternalField.DebugPtr->NamePrivate,sb} (buffer)</DisplayString>
-    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 9">{PrivateInternalField.DebugPtr->NamePrivate,sb} (class buffer)</DisplayString>
-    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 10">{PrivateInternalField.DebugPtr->NamePrivate,sb} (buffer)</DisplayString>
-    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 11">F{PrivateInternalField.DebugPtr->NamePrivate,sb} (buffer)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 8 &amp;&amp; PrivateInternalField.DebugPtr">{PrivateInternalField.DebugPtr-&gt;NamePrivate,sb} (buffer)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 9">{PrivateInternalField.DebugPtr-&gt;NamePrivate,sb} (class buffer)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 10">{PrivateInternalField.DebugPtr-&gt;NamePrivate,sb} (buffer)</DisplayString>
+    <DisplayString Condition="bIsBuffer &amp;&amp; !bIsBufferArray &amp;&amp; InternalType == 11">F{PrivateInternalField.DebugPtr-&gt;NamePrivate,sb} (buffer)</DisplayString>
 
     <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 0">null</DisplayString>
     <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 1">wildcard</DisplayString>
@@ -137,10 +137,10 @@
     <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 6">int64</DisplayString>
     <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 7">name</DisplayString>
     <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 8 &amp;&amp; !PrivateInternalField.DebugPtr">uint8</DisplayString>
-    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 8 &amp;&amp; PrivateInternalField.DebugPtr">{PrivateInternalField.DebugPtr->NamePrivate,sb}</DisplayString>
-    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 9">{PrivateInternalField.DebugPtr->NamePrivate,sb} (class)</DisplayString>
-    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 10">{PrivateInternalField.DebugPtr->NamePrivate,sb}</DisplayString>
-    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 11">F{PrivateInternalField.DebugPtr->NamePrivate,sb}</DisplayString>
+    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 8 &amp;&amp; PrivateInternalField.DebugPtr">{PrivateInternalField.DebugPtr-&gt;NamePrivate,sb}</DisplayString>
+    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 9">{PrivateInternalField.DebugPtr-&gt;NamePrivate,sb} (class)</DisplayString>
+    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 10">{PrivateInternalField.DebugPtr-&gt;NamePrivate,sb}</DisplayString>
+    <DisplayString Condition="!bIsBuffer &amp;&amp; InternalType == 11">F{PrivateInternalField.DebugPtr-&gt;NamePrivate,sb}</DisplayString>
   </Type>
 
   <!-- FVoxelTerminalPinValue visualizer -->
@@ -196,11 +196,11 @@
     <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 6">({Type}) {Int64}</DisplayString>
     <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 7">({Type}) {Name} </DisplayString>
     <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 8">({Type}) {Byte}</DisplayString>
-    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 9">({Type}) {Class.Class}</DisplayString>
+    <DisplayString Condition="!Type.bIsBuffer &amp;&amp; Type.InternalType == 9">({Type}) {Class}</DisplayString>
     <DisplayString Condition="Type.bIsBuffer || Type.InternalType == 11">({Type}) {*(FVoxelVirtualStruct*)SharedStruct.Object}</DisplayString>
     <Expand>
       <Item Name="Type">Type</Item>
-      <Item Name="Class" Condition="Type.InternalType == 9">Class.Class</Item>
+      <Item Name="Class" Condition="Type.InternalType == 9">Class</Item>
       <Item Name="Value" Condition="Type.bIsBuffer || Type.InternalType == 11">*(FVoxelVirtualStruct*)SharedStruct.Object</Item>
       <Item Name="Memory" Condition="Type.bIsBuffer || Type.InternalType == 11">(void*)SharedStruct.Object</Item>
     </Expand>
@@ -299,20 +299,20 @@
     </Expand>
   </Type>
 
-  <!-- FVoxelCallstack visualizer -->
-  <Type Name="FVoxelCallstack">
+  <!-- FVoxelGraphCallstack visualizer -->
+  <Type Name="FVoxelGraphCallstack">
     <DisplayString>{NodeRef}</DisplayString>
     <Expand>
       <CustomListItems>
-        <Variable Name="Self" InitialValue="Parent.Object"/>
+        <Variable Name="Self" InitialValue="Parent"/>
         <Loop>
-          <If Condition="Self == Parent.Object">
+          <If Condition="Self == Parent">
             <Item>NodeRef</Item>
           </If>
           <If Condition="Self != nullptr">
             <Item>Self->NodeRef</Item>
           </If>
-          <Exec>Self = Self->Parent.Object</Exec>
+          <Exec>Self = Self->Parent</Exec>
         </Loop>
       </CustomListItems>
     </Expand>
@@ -405,8 +405,8 @@
     <DisplayString>{(Components.Sign*-2+1) * 1.0f + Components.Mantissa/1024.0f}</DisplayString>
   </Type>
 
-  <!-- TObjectKey visualizer -->
-  <Type Name="TObjectKey&lt;*&gt;">
+  <!-- TVoxelObjectPtr visualizer -->
+  <Type Name="TVoxelObjectPtr&lt;*&gt;">
     <SmartPointer Usage="Minimal">($T1*)GObjectArrayForDebugVisualizers->Objects[ObjectKey.ObjectIndex / 65536][ObjectKey.ObjectIndex % 65536].Object</SmartPointer>
     <DisplayString Condition="ObjectKey.ObjectSerialNumber &lt; 1">nullptr</DisplayString>
     <DisplayString Condition="GObjectArrayForDebugVisualizers->Objects[ObjectKey.ObjectIndex / 65536][ObjectKey.ObjectIndex % 65536].SerialNumber != ObjectKey.ObjectSerialNumber">STALE</DisplayString>

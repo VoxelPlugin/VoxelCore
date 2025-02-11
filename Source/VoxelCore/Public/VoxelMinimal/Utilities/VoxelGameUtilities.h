@@ -20,7 +20,7 @@ namespace FVoxelUtilities
 	VOXELCORE_API bool ComputeInvokerChunks(
 		TVoxelSet<FIntVector>& OutChunks,
 		TVoxelArray<FSphere> Invokers,
-		const FMatrix& LocalToWorld,
+		const FTransform& LocalToWorld,
 		double ChunkSize,
 		int32 MaxNumChunks);
 
@@ -33,7 +33,7 @@ namespace FVoxelUtilities
 		AActor& Actor,
 		TDelegate<void(bool bIsSelected)> Delegate);
 
-	VOXELCORE_API bool IsActorSelected_AnyThread(TObjectKey<AActor> Actor);
+	VOXELCORE_API bool IsActorSelected_AnyThread(TVoxelObjectPtr<AActor> Actor);
 #endif
 
 	VOXELCORE_API void CopyBodyInstance(

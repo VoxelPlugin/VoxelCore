@@ -613,7 +613,7 @@ public:
 		checkVoxelSlow(this->HashValue(Key) == Hash);
 		CheckInvariants();
 
-		const int32 NewElementIndex = Elements.Emplace(Key);
+		const int32 NewElementIndex = Elements.Emplace_CheckNoGrow(Key);
 		FElement& Element = Elements[NewElementIndex];
 
 		checkVoxelSlow(GetHashSize(Elements.Num()) <= HashTable.Num());

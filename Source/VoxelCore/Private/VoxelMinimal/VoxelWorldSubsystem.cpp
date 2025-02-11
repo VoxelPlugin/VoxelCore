@@ -8,7 +8,7 @@ class FVoxelWorldSubsystemManager : public FVoxelSingleton
 {
 public:
 	FVoxelCriticalSection CriticalSection;
-	TVoxelMap<TObjectKey<UWorld>, TVoxelMap<FName, TSharedPtr<IVoxelWorldSubsystem>>> WorldToNameToSubsystem_RequiresLock;
+	TVoxelMap<TVoxelObjectPtr<UWorld>, TVoxelMap<FName, TSharedPtr<IVoxelWorldSubsystem>>> WorldToNameToSubsystem_RequiresLock;
 
 	//~ Begin FVoxelSingleton Interface
 	virtual void Initialize() override
@@ -31,9 +31,8 @@ public:
 
 			for (auto It = WorldToNameToSubsystem_RequiresLock.CreateIterator(); It; ++It)
 			{
-				const UWorld* World = It.Key().ResolveObjectPtr();
-				if (!World ||
-					!ensure(World->IsA<UWorld>()))
+				const UWorld* World = It.Key().Resolve();
+				if (!World)
 				{
 					It.RemoveCurrent();
 					continue;
@@ -82,18 +81,18 @@ FVoxelWorldSubsystemManager* GVoxelWorldSubsystemManager = new FVoxelWorldSubsys
 ///////////////////////////////////////////////////////////////////////////////
 
 TSharedRef<IVoxelWorldSubsystem> IVoxelWorldSubsystem::GetInternal(
-	const TObjectKey<UWorld> World,
+	const TVoxelObjectPtr<const UWorld> World,
 	const FName Name,
 	TSharedRef<IVoxelWorldSubsystem>(*Constructor)())
 {
-	ensureVoxelSlow(!IsObjectKeyNull(World));
+	ensureVoxelSlow(!World.IsExplicitlyNull());
 	VOXEL_SCOPE_LOCK(GVoxelWorldSubsystemManager->CriticalSection);
 
 	TSharedPtr<IVoxelWorldSubsystem>& Subsystem = GVoxelWorldSubsystemManager->WorldToNameToSubsystem_RequiresLock.FindOrAdd(World).FindOrAdd(Name);
 	if (!Subsystem)
 	{
 		Subsystem = (*Constructor)();
-		Subsystem->PrivateWorld = World;
+		Subsystem->PrivateWorld = ConstCast(World);
 	}
 	return Subsystem.ToSharedRef();
 }

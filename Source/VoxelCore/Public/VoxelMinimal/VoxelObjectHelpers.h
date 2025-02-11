@@ -6,6 +6,7 @@
 #include "UObject/UObjectHash.h"
 #include "UObject/WeakInterfacePtr.h"
 #include "VoxelMinimal/VoxelSharedPtr.h"
+#include "VoxelMinimal/VoxelObjectPtr.h"
 #include "VoxelMinimal/VoxelDereferencingIterator.h"
 #include "VoxelMinimal/Containers/VoxelChunkedArray.h"
 
@@ -68,6 +69,12 @@ struct TIsObjectPtr<TWeakObjectPtr<T>>
 };
 
 template<typename T>
+struct TIsObjectPtr<TVoxelObjectPtr<T>>
+{
+	static constexpr bool Value = true;
+};
+
+template<typename T>
 static constexpr bool IsObjectPtr = TIsObjectPtr<T>::Value;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -103,6 +110,12 @@ struct TObjectPtrInnerType<TObjectKey<T>>
 
 template<typename T>
 struct TObjectPtrInnerType<TWeakObjectPtr<T>>
+{
+	using Type = T;
+};
+
+template<typename T>
+struct TObjectPtrInnerType<TVoxelObjectPtr<T>>
 {
 	using Type = T;
 };
@@ -153,6 +166,13 @@ template<typename To, typename From>
 FORCEINLINE To* CastEnsured(From* Src)
 {
 	To* Result = Cast<To>(Src);
+	ensure(!Src || Result);
+	return Result;
+}
+template<typename To, typename From>
+FORCEINLINE const To* CastEnsured(const From* Src)
+{
+	const To* Result = Cast<To>(Src);
 	ensure(!Src || Result);
 	return Result;
 }
@@ -479,61 +499,6 @@ FORCENOINLINE T* SlowPath_ResolveObjectPtrFast(const TObjectPtr<T>& ObjectPtr)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-template<typename T>
-FORCEINLINE bool IsObjectKeyNull(const TObjectKey<T> Key)
-{
-	return Key == TObjectKey<T>();
-}
-
-template<typename T>
-FORCEINLINE bool operator==(const T* A, const TObjectKey<T>& B)
-{
-	return TObjectKey<T>(A) == B;
-}
-template<typename T>
-FORCEINLINE bool operator==(const TObjectKey<T>& A, const T* B)
-{
-	return TObjectKey<T>(A) == B;
-}
-
-template<typename T>
-FORCEINLINE TObjectKey<T> MakeObjectKey(T* Object)
-{
-	return TObjectKey<T>(Object);
-}
-
-template<typename T>
-FORCEINLINE TObjectKey<T> MakeObjectKey(T& Object)
-{
-	return TObjectKey<T>(&Object);
-}
-
-VOXELCORE_API FName GetObjectKeyName(FObjectKey ObjectKey);
-VOXELCORE_API FString GetObjectKeyPathName(FObjectKey ObjectKey);
-
-template<typename T>
-FORCEINLINE FName GetObjectKeyName(const TObjectKey<T> ObjectKey)
-{
-	return GetObjectKeyName(ReinterpretCastRef<FObjectKey>(ObjectKey));
-}
-template<typename T>
-FORCEINLINE FString GetObjectKeyPathName(const TObjectKey<T> ObjectKey)
-{
-	return GetObjectKeyPathName(ReinterpretCastRef<FObjectKey>(ObjectKey));
-}
-
-template<typename T>
-FORCEINLINE TWeakObjectPtr<T> MakeWeakObjectPtr(T& Object)
-{
-	return TWeakObjectPtr<T>(&Object);
-}
-
-template<typename T>
-FORCEINLINE TWeakObjectPtr<T> MakeWeakObjectPtr(const TObjectKey<T> Object)
-{
-	return ReinterpretCastRef<TWeakObjectPtr<T>>(Object);
-}
 
 template<typename T>
 FORCEINLINE TWeakInterfacePtr<T> MakeWeakInterfacePtr(T* Ptr)

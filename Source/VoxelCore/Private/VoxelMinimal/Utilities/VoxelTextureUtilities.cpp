@@ -448,17 +448,25 @@ bool FVoxelTextureUtilities::Uncompress_RGB(
 		return false;
 	}
 
-	if (!VOXEL_INLINE_COUNTER("SetCompressed", ImageWrapper->SetCompressed(CompressedData.GetData(), CompressedData.Num())))
 	{
-		ensure(false);
-		return false;
+		VOXEL_SCOPE_COUNTER("SetCompressed");
+
+		if (!ImageWrapper->SetCompressed(CompressedData.GetData(), CompressedData.Num()))
+		{
+			ensure(false);
+			return false;
+		}
 	}
 
 	TArray64<uint8> RawData;
-	if (!VOXEL_INLINE_COUNTER("GetRaw", ImageWrapper->GetRaw(ERGBFormat::RGBA, 8, RawData)))
 	{
-		ensure(false);
-		return false;
+		VOXEL_SCOPE_COUNTER("GetRaw");
+
+		if (!ImageWrapper->GetRaw(ERGBFormat::RGBA, 8, RawData))
+		{
+			ensure(false);
+			return false;
+		}
 	}
 
 	OutWidth = ImageWrapper->GetWidth();
@@ -505,17 +513,25 @@ bool FVoxelTextureUtilities::UncompressPng_Grayscale(
 		return false;
 	}
 
-	if (!VOXEL_INLINE_COUNTER("SetCompressed", ImageWrapper->SetCompressed(CompressedData.GetData(), CompressedData.Num())))
 	{
-		ensure(false);
-		return false;
+		VOXEL_SCOPE_COUNTER("SetCompressed");
+
+		if (!ImageWrapper->SetCompressed(CompressedData.GetData(), CompressedData.Num()))
+		{
+			ensure(false);
+			return false;
+		}
 	}
 
 	TArray64<uint8> RawData;
-	if (!VOXEL_INLINE_COUNTER("GetRaw", ImageWrapper->GetRaw(ERGBFormat::Gray, 16, RawData)))
 	{
-		ensure(false);
-		return false;
+		VOXEL_SCOPE_COUNTER("GetRaw");
+
+		if (!ImageWrapper->GetRaw(ERGBFormat::Gray, 16, RawData))
+		{
+			ensure(false);
+			return false;
+		}
 	}
 
 	if (!ensure(ImageWrapper->GetBitDepth() == 16))

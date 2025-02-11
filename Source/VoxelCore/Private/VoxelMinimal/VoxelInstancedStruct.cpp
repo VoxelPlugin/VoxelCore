@@ -27,23 +27,6 @@ void FVoxelInstancedStruct::Reset()
 	*this = FVoxelInstancedStruct();
 }
 
-uint64 FVoxelInstancedStruct::GetPropertyHash() const
-{
-	if (!IsValid())
-	{
-		return 0;
-	}
-
-	uint64 Hash = FVoxelUtilities::MurmurHash(GetScriptStruct());
-	int32 Index = 0;
-	for (const FProperty& Property : GetStructProperties(GetScriptStruct()))
-	{
-		const uint32 PropertyHash = FVoxelUtilities::HashProperty(Property, Property.ContainerPtrToValuePtr<void>(this));
-		Hash ^= FVoxelUtilities::MurmurHash(PropertyHash, Index++);
-	}
-	return Hash;
-}
-
 bool FVoxelInstancedStruct::NetSerialize(FArchive& Ar, UPackageMap& Map)
 {
 	if (Ar.IsSaving())

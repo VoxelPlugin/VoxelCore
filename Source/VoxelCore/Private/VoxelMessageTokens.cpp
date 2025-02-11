@@ -21,7 +21,7 @@ TSharedRef<IMessageToken> FVoxelMessageToken_Text::GetMessageToken() const
 
 bool FVoxelMessageToken_Text::TryMerge(const FVoxelMessageToken& Other)
 {
-	const FVoxelMessageToken_Text* OtherText = Cast<FVoxelMessageToken_Text>(Other);
+	const FVoxelMessageToken_Text* OtherText = CastStruct<FVoxelMessageToken_Text>(Other);
 	if (!OtherText)
 	{
 		return false;
@@ -44,7 +44,7 @@ FString FVoxelMessageToken_Object::ToString() const
 {
 	ensure(IsInGameThread());
 
-	const UObject* Object = WeakObject.ResolveObjectPtr();
+	const UObject* Object = WeakObject.Resolve();
 	if (!Object)
 	{
 		return "<null>";
@@ -98,7 +98,7 @@ TSharedRef<IMessageToken> FVoxelMessageToken_Object::GetMessageToken() const
 	ensure(IsInGameThread());
 
 #if WITH_EDITOR
-	const UObject* Object = WeakObject.ResolveObjectPtr();
+	const UObject* Object = WeakObject.Resolve();
 
 	return FActionToken::Create(
 		FText::FromString(ToString()),
@@ -115,7 +115,7 @@ TSharedRef<IMessageToken> FVoxelMessageToken_Object::GetMessageToken() const
 void FVoxelMessageToken_Object::GetObjects(TSet<const UObject*>& OutObjects) const
 {
 	ensure(IsInGameThread());
-	OutObjects.Add(WeakObject.ResolveObjectPtr());
+	OutObjects.Add(WeakObject.Resolve());
 }
 
 ///////////////////////////////////////////////////////////////////////////////

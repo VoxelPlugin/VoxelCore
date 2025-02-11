@@ -12,13 +12,13 @@ FVoxelDebugDrawer::FVoxelDebugDrawer()
 {
 }
 
-FVoxelDebugDrawer::FVoxelDebugDrawer(const TObjectKey<UWorld>& World)
+FVoxelDebugDrawer::FVoxelDebugDrawer(const TVoxelObjectPtr<const UWorld> World)
 {
 	PrivateState->PrivateWorld = World;
 }
 
 FVoxelDebugDrawer::FVoxelDebugDrawer(const UWorld* World)
-	: FVoxelDebugDrawer(MakeObjectKey(ConstCast(World)))
+	: FVoxelDebugDrawer(MakeVoxelObjectPtr(World))
 {
 }
 
@@ -136,14 +136,14 @@ FVoxelDebugDrawer& FVoxelDebugDrawer::DrawBox(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-UWorld* FVoxelDebugDrawer::FState::GetWorld() const
+const UWorld* FVoxelDebugDrawer::FState::GetWorld() const
 {
 	ensureVoxelSlow(IsInGameThread());
 
-	if (IsObjectKeyNull(PrivateWorld))
+	if (PrivateWorld.IsExplicitlyNull())
 	{
 		return GWorld;
 	}
 
-	return CastEnsured<UWorld>(PrivateWorld.ResolveObjectPtr());
+	return PrivateWorld.Resolve_Ensured();
 }

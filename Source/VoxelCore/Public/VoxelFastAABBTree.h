@@ -141,6 +141,86 @@ public:
 	}
 
 public:
+	bool Intersects(
+		const FVector3f& BoundsMin,
+		const FVector3f& BoundsMax) const
+	{
+		return Intersects(BoundsMin, BoundsMax, [](int32)
+		{
+			return true;
+		});
+	}
+	template<typename LambdaType>
+	bool Intersects(
+		const FVector3f& BoundsMin,
+		const FVector3f& BoundsMax,
+		LambdaType&& CustomCheck) const
+	{
+		if (Nodes.Num() == 0)
+		{
+			return false;
+		}
+
+		TVoxelInlineArray<int32, 64> QueuedNodes;
+		QueuedNodes.Add(0);
+
+		while (QueuedNodes.Num() > 0)
+		{
+			const int32 NodeIndex = QueuedNodes.Pop();
+
+			const FNode& Node = Nodes[NodeIndex];
+			if (Node.bLeaf)
+			{
+				const FLeaf& Leaf = Leaves[Node.LeafIndex];
+				for (int32 Index = 0; Index < Leaf.Elements.Num(); Index++)
+				{
+					if (!Intersects(
+						BoundsMin,
+						BoundsMax,
+						FVector3f(
+							Leaf.Elements.MinX[Index],
+							Leaf.Elements.MinY[Index],
+							Leaf.Elements.MinZ[Index]),
+						FVector3f(
+							Leaf.Elements.MaxX[Index],
+							Leaf.Elements.MaxY[Index],
+							Leaf.Elements.MaxZ[Index])))
+					{
+						continue;
+					}
+
+					if (CustomCheck(Leaf.Elements.Payload[Index]))
+					{
+						return true;
+					}
+				}
+			}
+			else
+			{
+				if (Intersects(
+					BoundsMin,
+					BoundsMax,
+					Node.ChildBounds0_Min,
+					Node.ChildBounds0_Max))
+				{
+					QueuedNodes.Add(Node.ChildIndex0);
+				}
+
+				if (Intersects(
+					BoundsMin,
+					BoundsMax,
+					Node.ChildBounds1_Min,
+					Node.ChildBounds1_Max))
+				{
+					QueuedNodes.Add(Node.ChildIndex1);
+				}
+			}
+		}
+
+		return false;
+	}
+
+public:
 	template<typename ShouldVisitType, typename VisitType>
 	void Traverse(ShouldVisitType&& ShouldVisit, VisitType&& Visit) const
 	{
@@ -202,12 +282,12 @@ public:
 			[&](const FVector3f& Min, const FVector3f& Max)
 			{
 				return
-					Min.X < BoundsMax.X &&
-					Min.Y < BoundsMax.Y &&
-					Min.Z < BoundsMax.Z &&
-					BoundsMin.X < Max.X &&
-					BoundsMin.Y < Max.Y &&
-					BoundsMin.Z < Max.Z;
+					Min.X <= BoundsMax.X &&
+					Min.Y <= BoundsMax.Y &&
+					Min.Z <= BoundsMax.Z &&
+					BoundsMin.X <= Max.X &&
+					BoundsMin.Y <= Max.Y &&
+					BoundsMin.Z <= Max.Z;
 			},
 			MoveTemp(Visit));
 	}
@@ -216,4 +296,28 @@ private:
 	TVoxelArray<FNode> Nodes;
 	TVoxelArray<FLeaf> Leaves;
 	FElementArray Elements;
+
+	FORCEINLINE static bool Intersects(
+		const FVector3f& MinA,
+		const FVector3f& MaxA,
+		const FVector3f& MinB,
+		const FVector3f& MaxB)
+	{
+		if (MinA.X > MaxB.X || MinB.X > MaxA.X)
+		{
+			return false;
+		}
+
+		if (MinA.Y > MaxB.Y || MinB.Y > MaxA.Y)
+		{
+			return false;
+		}
+
+		if (MinA.Z > MaxB.Z || MinB.Z > MaxA.Z)
+		{
+			return false;
+		}
+
+		return true;
+	}
 };

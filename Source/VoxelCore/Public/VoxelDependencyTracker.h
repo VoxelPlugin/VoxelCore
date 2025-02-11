@@ -42,6 +42,8 @@ public:
 		bool bFireNow = true,
 		bool bFinalize = true);
 
+	void Invalidate();
+
 private:
 	TVoxelAtomic<bool> bIsInvalidated;
 

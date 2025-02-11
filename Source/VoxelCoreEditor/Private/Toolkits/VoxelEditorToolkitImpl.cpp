@@ -134,7 +134,7 @@ void FVoxelToolkitApplicationMode::AddReferencedObjects(FReferenceCollector& Col
 
 void FVoxelEditorToolkitImpl::InitVoxelEditor(const TSharedPtr<IToolkitHost>& EditWithinLevelEditor, UObject* ObjectToEdit)
 {
-	Asset = ObjectToEdit;
+	WeakAsset = ObjectToEdit;
 
 	Toolkit = MakeSharedStruct<FVoxelToolkit>(ToolkitStruct);
 
@@ -439,14 +439,16 @@ void FVoxelEditorToolkitImpl::OnClose()
 	bClosed = true;
 
 	const FName CurrentMode = GetCurrentMode();
-	if (!CurrentMode.IsNone() &&
-		ensure(Asset.IsValid()))
+	if (!CurrentMode.IsNone())
 	{
-		GConfig->SetString(
-			TEXT("FVoxelEditorToolkitImpl_LastMode"),
-			*Asset->GetPathName(),
-			*CurrentMode.ToString(),
-			GEditorPerProjectIni);
+		if (const UObject* Asset = WeakAsset.Resolve_Ensured())
+		{
+			GConfig->SetString(
+				TEXT("FVoxelEditorToolkitImpl_LastMode"),
+				*Asset->GetPathName(),
+				*CurrentMode.ToString(),
+				GEditorPerProjectIni);
+		}
 	}
 
 	if (Toolkit)

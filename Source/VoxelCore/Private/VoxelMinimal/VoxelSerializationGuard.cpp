@@ -12,8 +12,9 @@ FVoxelSerializationGuard::FVoxelSerializationGuard(FArchive& Ar)
 		return;
 	}
 
-	if (!ensure(Offset != -1))
+	if (Offset == -1)
 	{
+		// eg FPackageHarvester
 		return;
 	}
 
@@ -33,8 +34,9 @@ FVoxelSerializationGuard::~FVoxelSerializationGuard()
 		return;
 	}
 
-	if (!ensure(Offset != -1))
+	if (Offset == -1)
 	{
+		// eg FPackageHarvester
 		return;
 	}
 

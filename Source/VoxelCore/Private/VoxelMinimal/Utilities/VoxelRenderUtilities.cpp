@@ -211,7 +211,7 @@ FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
 		SizeX,
 		SizeY,
 		Format,
-		WeakTargetTexture = MakeObjectKey(TargetTexture)]
+		WeakTargetTexture = MakeVoxelObjectPtr(TargetTexture)]
 	{
 		VOXEL_FUNCTION_COUNTER();
 		VOXEL_SCOPE_COUNTER("RHIAsyncCreateTexture2D");
@@ -245,7 +245,7 @@ FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
 
 		return Voxel::GameTask([=]() -> FVoxelFuture
 		{
-			UTexture2D* ResolvedTargetTexture = WeakTargetTexture.ResolveObjectPtr();
+			UTexture2D* ResolvedTargetTexture = WeakTargetTexture.Resolve();
 			if (!ensureVoxelSlow(ResolvedTargetTexture))
 			{
 				return {};

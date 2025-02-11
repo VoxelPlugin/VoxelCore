@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 #include "VoxelMinimal/Utilities/VoxelMathUtilities.h"
 
@@ -108,31 +109,21 @@ namespace FVoxelUtilities
 		return MurmurHash64(H ^ uint32(Size));
 	}
 
-	FORCEINLINE uint64 MurmurHashBytes(const TConstVoxelArrayView<uint8>& Bytes, const uint32 Seed = 0)
+	VOXELCORE_API uint64 MurmurHashBytes(TConstVoxelArrayView<uint8> Bytes, uint32 Seed = 0);
+
+	template<typename T, typename = std::enable_if_t<
+		std::is_trivially_destructible_v<T> &&
+		!TIsTArrayView<T>::Value>>
+	FORCEINLINE uint64 MurmurHashView(const TConstVoxelArrayView<T> Array, const uint32 Seed = 0)
 	{
-		constexpr int32 WordSize = sizeof(uint32);
-		const int32 Size = Bytes.Num() / WordSize;
-		const uint32* RESTRICT Hash = reinterpret_cast<const uint32*>(Bytes.GetData());
-
-		uint32 H = 1831214719 * (1460481823 + Seed);
-		for (int32 Index = 0; Index < Size; Index++)
-		{
-			uint32 K = Hash[Index];
-			K *= 0xcc9e2d51;
-			K = (K << 15) | (K >> 17);
-			K *= 0x1b873593;
-			H ^= K;
-			H = (H << 13) | (H >> 19);
-			H = H * 5 + 0xe6546b64;
-		}
-
-		uint32 Tail = 0;
-		for (int32 Index = Size * WordSize; Index < Bytes.Num(); Index++)
-		{
-			Tail = (Tail << 8) | Bytes[Index];
-		}
-
-		return MurmurHash64(H ^ Tail ^ uint32(Size));
+		return FVoxelUtilities::MurmurHashBytes(Array.template ReinterpretAs<uint8>(), Seed);
+	}
+	template<typename T, typename AllocatorType, typename = std::enable_if_t<
+		std::is_trivially_destructible_v<T> &&
+		!TIsTArrayView<T>::Value>>
+	FORCEINLINE uint64 MurmurHashView(const TVoxelArray<T, AllocatorType>& Array, const uint32 Seed = 0)
+	{
+		return FVoxelUtilities::MurmurHashBytes(Array.template View<uint8>(), Seed);
 	}
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -275,5 +266,6 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
+	VOXELCORE_API uint64 HashString(const FStringView& Name);
 	VOXELCORE_API FSHAHash ShaHash(TConstVoxelArrayView64<uint8> Data);
 }

@@ -28,10 +28,15 @@ private:
 		FVoxelDependencyInvalidationParameters Parameters;
 	};
 	TVoxelChunkedArray<FInvalidation> Invalidations;
+	// Manually invalidated trackers
+	TVoxelSet<TWeakPtr<FVoxelDependencyTracker>> InvalidatedTrackers;
 
 	void Invalidate();
 
+	static FVoxelDependencyInvalidationScope& RootScope();
+
 	friend FVoxelDependency;
+	friend FVoxelDependencyTracker;
 };
 
 class VOXELCORE_API FVoxelDependency : public TSharedFromThis<FVoxelDependency>

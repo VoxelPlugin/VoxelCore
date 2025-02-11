@@ -8,11 +8,11 @@
 struct VOXELCOREEDITOR_API FVoxelTransaction
 {
 public:
-	explicit FVoxelTransaction(const TWeakObjectPtr<UObject>& Object, const FString& Text = {})
-		: Object(Object)
+	explicit FVoxelTransaction(UObject* Object, const FString& Text = {})
+		: WeakObject(Object)
 		, Transaction(FText::FromString(Text), !GIsTransacting)
 	{
-		if (ensure(Object.IsValid()))
+		if (ensure(Object))
 		{
 			Object->PreEditChange(nullptr);
 		}
@@ -36,7 +36,7 @@ public:
 	}
 	~FVoxelTransaction()
 	{
-		if (ensure(Object.IsValid()))
+		if (UObject* Object = WeakObject.Resolve_Ensured())
 		{
 			FPropertyChangedEvent Event(ChangedProperty);
 			Event.SetActiveMemberProperty(ChangedMemberProperty);
@@ -45,7 +45,7 @@ public:
 	}
 
 private:
-	const TWeakObjectPtr<UObject> Object;
+	const TVoxelObjectPtr<UObject> WeakObject;
 	FProperty* ChangedProperty = nullptr;
 	FProperty* ChangedMemberProperty = nullptr;
 	const FScopedTransaction Transaction;

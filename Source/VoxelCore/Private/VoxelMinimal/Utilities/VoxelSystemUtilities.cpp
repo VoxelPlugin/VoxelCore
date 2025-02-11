@@ -3,8 +3,9 @@
 #include "VoxelMinimal.h"
 #include "VoxelZipReader.h"
 #include "VoxelPluginVersion.h"
-#include "Interfaces/IPluginManager.h"
 #include "HAL/PlatformStackWalk.h"
+#include "UObject/CoreRedirects.h"
+#include "Interfaces/IPluginManager.h"
 #include "Application/ThrottleManager.h"
 #include "Framework/Application/SlateApplication.h"
 
@@ -39,7 +40,7 @@ void FVoxelUtilities::SetNumWorkerThreads(const int32 NumWorkerThreads)
 	LOG_VOXEL(Log, "FVoxelUtilities::SetNumWorkerThreads %d", NumWorkerThreads);
 	LOG_VOXEL(Log, "!!! Changing the number of Unreal worker threads !!!");
 
-	const int32 NumBackgroundWorkers = FMath::Max(1, NumWorkerThreads - FMath::Min<int>(2, NumWorkerThreads));
+	const int32 NumBackgroundWorkers = FMath::Max(1, NumWorkerThreads - FMath::Min<int32>(2, NumWorkerThreads));
 	const int32 NumForegroundWorkers = FMath::Max(1, NumWorkerThreads - NumBackgroundWorkers);
 
 	LOG_VOXEL(Log, "%d background workers", NumBackgroundWorkers);
@@ -163,21 +164,6 @@ IPlugin& FVoxelUtilities::GetPlugin()
 	{
 		Plugin = IPluginManager::Get().FindPlugin("VoxelCore");
 	}
-	if (!Plugin)
-	{
-		Plugin = IPluginManager::Get().FindPlugin("Voxel-dev");
-	}
-	if (!Plugin)
-	{
-		for (const TSharedRef<IPlugin>& OtherPlugin : IPluginManager::Get().GetEnabledPlugins())
-		{
-			if (OtherPlugin->GetName().StartsWith("Voxel-2"))
-			{
-				ensure(!Plugin);
-				Plugin = OtherPlugin;
-			}
-		}
-	}
 	return *Plugin;
 }
 
@@ -199,6 +185,272 @@ FVoxelPluginVersion FVoxelUtilities::GetPluginVersion()
 
 	return Version;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#if WITH_EDITOR
+void FVoxelUtilities::CleanupRedirects(const FString& RedirectsPath)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	TVoxelArray<FString> Lines;
+	if (!ensure(FFileHelper::LoadFileToStringArray(Lines, *RedirectsPath)))
+	{
+		return;
+	}
+
+	TVoxelArray<FString> NewLines;
+	NewLines.Reserve(Lines.Num());
+
+	for (const FString& OriginalLine : Lines)
+	{
+		if (OriginalLine.StartsWith("[CoreRedirects]") ||
+			OriginalLine.StartsWith(";") ||
+			OriginalLine.TrimStartAndEnd().IsEmpty())
+		{
+			NewLines.Add(OriginalLine);
+			continue;
+		}
+
+		FString Line = OriginalLine;
+		if (!ensure(Line.RemoveFromStart("+")))
+		{
+			return;
+		}
+
+		int32 Index = 0;
+
+		const auto IsValidIndex = [&]
+		{
+			return Index < Line.Len();
+		};
+
+		const auto SkipWhitespaces = [&]
+		{
+			while (
+				Index < Line.Len() &&
+				FChar::IsWhitespace(Line[Index]))
+			{
+				Index++;
+			}
+		};
+
+		const auto Next = [&]
+		{
+			SkipWhitespaces();
+
+			if (!ensure(Index < Line.Len()))
+			{
+				return TEXT('\0');
+			}
+
+			return Line[Index++];
+		};
+
+		const auto Parse = [&](const TCHAR Delimiter)
+		{
+			FString Result;
+			while (true)
+			{
+				if (Index == Line.Len())
+				{
+					ensure(false);
+					return Result;
+				}
+
+				if (FChar::IsWhitespace(Line[Index]))
+				{
+					Index++;
+					continue;
+				}
+
+				if (Line[Index] == Delimiter)
+				{
+					Index++;
+					break;
+				}
+
+				Result += Line[Index];
+				Index++;
+			}
+			return Result;
+		};
+
+		const FString Type = Parse(TEXT('='));
+
+		if (!ensure(Next() == TEXT('(')))
+		{
+			return;
+		}
+
+		TVoxelMap<FString, FString> KeyToValue;
+
+		bool bSkip = false;
+		while (true)
+		{
+			const FString Key = Parse(TEXT('='));
+
+			if (Key == "ValueChanges")
+			{
+				// TODO?
+				NewLines.Add(OriginalLine);
+				bSkip = true;
+				break;
+			}
+
+			if (!ensure(Next() == TEXT('"')))
+			{
+				return;
+			}
+
+			const FString Value = Parse(TEXT('"'));
+
+			if (!ensure(!KeyToValue.Contains(Key)))
+			{
+				return;
+			}
+			KeyToValue.Add_EnsureNew(Key, Value);
+
+			SkipWhitespaces();
+
+			if (!ensure(IsValidIndex()))
+			{
+				return;
+			}
+
+			if (Line[Index] == TEXT(','))
+			{
+				Index++;
+				continue;
+			}
+
+			if (Line[Index] == TEXT(')'))
+			{
+				Index++;
+				break;
+			}
+		}
+
+		if (bSkip)
+		{
+			continue;
+		}
+
+		SkipWhitespaces();
+
+		if (!ensure(Index == Line.Len()))
+		{
+			return;
+		}
+
+		if (!ensure(KeyToValue.KeyArray() == TVoxelArray<FString>({ "OldName", "NewName" })))
+		{
+			return;
+		}
+
+		const FString OldName = KeyToValue["OldName"];
+		FString NewName = KeyToValue["NewName"];
+
+		const auto ApplyRedirect = [&](const ECoreRedirectFlags Flags)
+		{
+			FCoreRedirectObjectName RedirectedName;
+			if (FCoreRedirects::RedirectNameAndValues(
+				Flags,
+				FCoreRedirectObjectName(NewName),
+				RedirectedName,
+				nullptr,
+				ECoreRedirectMatchFlags::AllowPartialMatch))
+			{
+				NewName = FTopLevelAssetPath(RedirectedName.PackageName, RedirectedName.ObjectName).ToString();
+			}
+		};
+
+		bool bIsValid;
+		if (Type == "ClassRedirects")
+		{
+			ApplyRedirect(ECoreRedirectFlags::Type_Class);
+			bIsValid = LoadObject<UClass>(nullptr, *NewName) != nullptr;
+		}
+		else if (Type == "StructRedirects")
+		{
+			ApplyRedirect(ECoreRedirectFlags::Type_Struct);
+			bIsValid = LoadObject<UScriptStruct>(nullptr, *NewName) != nullptr;
+		}
+		else if (Type == "EnumRedirects")
+		{
+			ApplyRedirect(ECoreRedirectFlags::Type_Enum);
+			bIsValid = LoadObject<UEnum>(nullptr, *NewName) != nullptr;
+		}
+		else if (Type == "FunctionRedirects")
+		{
+			ApplyRedirect(ECoreRedirectFlags::Type_Function);
+			bIsValid = LoadObject<UFunction>(nullptr, *NewName) != nullptr;
+		}
+		else if (Type == "PackageRedirects")
+		{
+			ApplyRedirect(ECoreRedirectFlags::Type_Package);
+			bIsValid = FindPackage(nullptr, *NewName) != nullptr;
+		}
+		else if (Type == "PropertyRedirects")
+		{
+			ApplyRedirect(ECoreRedirectFlags::Type_Property);
+
+			FString SearchName = NewName;
+			int32 DelimiterIndex = 0;
+			if (SearchName.FindLastChar(TEXT('.'), DelimiterIndex))
+			{
+				SearchName[DelimiterIndex] = TEXT(':');
+			}
+
+			bIsValid = FindFPropertyByPath(*SearchName) != nullptr;
+		}
+		else
+		{
+			ensure(false);
+			return;
+		}
+
+		if (!bIsValid ||
+			OldName == NewName)
+		{
+			continue;
+		}
+
+		NewLines.Add(FString::Printf(TEXT("+%s=(OldName=\"%s\",NewName=\"%s\")"),
+			*Type,
+			*OldName,
+			*NewName));
+	}
+
+	for (FString& Line : NewLines)
+	{
+		Line = Line.TrimStartAndEnd();
+	}
+
+	for (int32 Index = 1; Index < NewLines.Num(); Index++)
+	{
+		if (NewLines[Index - 1].IsEmpty() &&
+			NewLines[Index].IsEmpty())
+		{
+			NewLines.RemoveAt(Index);
+			Index--;
+		}
+	}
+
+	while (
+		NewLines.Num() > 0 &&
+		NewLines.Last().TrimStartAndEnd().IsEmpty())
+	{
+		NewLines.Pop();
+	}
+
+	ensure(FFileHelper::SaveStringToFile(
+		FString::Join(NewLines, TEXT("\n")),
+		*RedirectsPath));
+}
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

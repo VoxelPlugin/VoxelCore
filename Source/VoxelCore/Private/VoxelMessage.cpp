@@ -39,7 +39,7 @@ void FVoxelMessage::AddText(const FString& Text)
 
 void FVoxelMessage::AddToken(const TSharedRef<FVoxelMessageToken>& Token)
 {
-	if (const FVoxelMessageToken_Group* GroupToken = Cast<FVoxelMessageToken_Group>(*Token))
+	if (const FVoxelMessageToken_Group* GroupToken = CastStruct<FVoxelMessageToken_Group>(*Token))
 	{
 		for (const TSharedRef<FVoxelMessageToken>& OtherToken : GroupToken->GetTokens())
 		{
@@ -74,7 +74,7 @@ uint64 FVoxelMessage::GetHash() const
 		Data.Add(Token->GetHash());
 	}
 
-	return FVoxelUtilities::MurmurHashBytes(MakeByteVoxelArrayView(Data));
+	return FVoxelUtilities::MurmurHashView(Data);
 }
 
 FString FVoxelMessage::ToString() const

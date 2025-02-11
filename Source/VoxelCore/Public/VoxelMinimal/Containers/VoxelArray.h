@@ -116,6 +116,22 @@ public:
 		return this->Add(Item);
 	}
 
+	FORCEINLINE ElementType& Add_GetRef_CheckNoGrow(const ElementType& Item)
+	{
+		CheckAddress(&Item);
+		checkVoxelSlow(ArrayNum < ArrayMax);
+
+		const SizeType Index = ArrayNum++;
+
+		ElementType* Ptr = GetData() + Index;
+		return *new (Ptr) ElementType(Item);
+	}
+	FORCEINLINE ElementType& Add_GetRef_EnsureNoGrow(const ElementType& Item)
+	{
+		ensureVoxelSlow(ArrayNum < ArrayMax);
+		return this->Add_GetRef(Item);
+	}
+
 	FORCEINLINE SizeType Add(ElementType&& Item)
 	{
 		CheckAddress(&Item);
@@ -175,6 +191,16 @@ public:
 	{
 		ensureVoxelSlow(ArrayNum < ArrayMax);
 		return this->Emplace_GetRef(Forward<ArgsType>(Args)...);
+	}
+	template<typename... ArgsType>
+	FORCEINLINE ElementType& Emplace_GetRef_CheckNoGrow(ArgsType&&... Args)
+	{
+		checkVoxelSlow(ArrayNum < ArrayMax);
+
+		const SizeType Index = ArrayNum++;
+
+		ElementType* Ptr = GetData() + Index;
+		return *new (Ptr) ElementType(Forward<ArgsType>(Args)...);
 	}
 
 	FORCEINLINE ElementType& Last(SizeType IndexFromTheEnd = 0)
