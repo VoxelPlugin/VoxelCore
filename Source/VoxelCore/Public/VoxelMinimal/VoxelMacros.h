@@ -175,12 +175,6 @@ FORCEINLINE const FName& VoxelStaticName(const T&)
 // This is needed in classes, where just doing class Name would fwd declare it in the class scope
 #define VOXEL_FWD_DECLARE_CLASS(Name) void PREPROCESSOR_JOIN(__VoxelDeclareDummy_, __LINE__)(class Name*);
 
-#define DECLARE_VOXEL_THIS_TYPE_IMPL(ThisType) \
-	void VOXEL_APPEND_LINE(PREPROCESSOR_JOIN(__VoxelDummy_, ThisType))() const; \
-	using ThisType = TVoxelFunctionInfo<decltype(&VOXEL_APPEND_LINE(PREPROCESSOR_JOIN(__VoxelDummy_, ThisType)))>::Class;
-
-#define DECLARE_VOXEL_THIS_TYPE() DECLARE_VOXEL_THIS_TYPE_IMPL(ThisType);
-
 // This makes the macro parameter show up as a class in Resharper
 #if INTELLISENSE_PARSER
 #define VOXEL_FWD_DECLARE_CLASS_INTELLISENSE(Name) VOXEL_FWD_DECLARE_CLASS(Name)

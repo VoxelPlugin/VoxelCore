@@ -138,8 +138,6 @@ private:
 #endif
 
 #define GENERATED_VIRTUAL_STRUCT_BODY_ALIASES() \
-	DECLARE_VOXEL_THIS_TYPE_IMPL(VOXEL_APPEND_LINE(__VirtualStructThisType)); \
-	\
 	FORCEINLINE auto MakeSharedCopy() const -> decltype(auto) \
 	{ \
 		const TSharedRef<VOXEL_THIS_TYPE> SharedRef = StaticCastSharedRef<VOXEL_THIS_TYPE>(Super::MakeSharedCopy()); \
@@ -155,32 +153,6 @@ private:
 	FORCEINLINE static auto MakeSharedCopy(const T& Data) -> decltype(auto) \
 	{ \
 		return ::MakeSharedCopy(Data); \
-	} \
-	\
-	template<typename T, typename = std::enable_if_t<TIsDerivedFrom<T, VOXEL_APPEND_LINE(__VirtualStructThisType)>::Value>> \
-	FORCEINLINE bool IsA() const \
-	{ \
-		return Super::IsA<T>(); \
-	} \
-	template<typename T, typename = std::enable_if_t<TIsDerivedFrom<T, VOXEL_APPEND_LINE(__VirtualStructThisType)>::Value>> \
-	FORCEINLINE T* As() \
-	{ \
-		return Super::As<T>(); \
-	} \
-	template<typename T, typename = std::enable_if_t<TIsDerivedFrom<T, VOXEL_APPEND_LINE(__VirtualStructThisType)>::Value>> \
-	FORCEINLINE const T* As() const \
-	{ \
-		return Super::As<T>(); \
-	} \
-	template<typename T, typename = std::enable_if_t<TIsDerivedFrom<T, VOXEL_APPEND_LINE(__VirtualStructThisType)>::Value>> \
-	FORCEINLINE T& AsChecked() \
-	{ \
-		return Super::AsChecked<T>(); \
-	} \
-	template<typename T, typename = std::enable_if_t<TIsDerivedFrom<T, VOXEL_APPEND_LINE(__VirtualStructThisType)>::Value>> \
-	FORCEINLINE const T& AsChecked() const \
-	{ \
-		return Super::AsChecked<T>(); \
 	}
 
 #define GENERATED_VIRTUAL_STRUCT_BODY_IMPL(Parent) \
