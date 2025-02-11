@@ -125,7 +125,7 @@ public:
 		Result.Get<T>() = Value;
 		return Result;
 	}
-	template<typename T> requires(std::derived_from<T, UObject>)
+	template<typename T, typename = std::enable_if_t<std::derived_from<T, UObject>>>
 	static FVoxelPropertyValue Make(const TObjectPtr<T>& Value)
 	{
 		FVoxelPropertyValue Result(FVoxelPropertyType::Make<T>());
