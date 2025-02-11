@@ -532,6 +532,10 @@ uint64 FVoxelUtilities::HashProperty(const FProperty& Property, const void* Data
 	CASE(FInt64Property);
 #undef CASE
 
+	case FStrProperty::StaticClassCastFlags():
+	{
+		return HashString(CastFieldChecked<FStrProperty>(Property).GetPropertyValue(DataPtr));
+	}
 	case FNameProperty::StaticClassCastFlags():
 	{
 		return HashString(CastFieldChecked<FNameProperty>(Property).GetPropertyValue(DataPtr).ToString());
@@ -573,10 +577,7 @@ uint64 FVoxelUtilities::HashProperty(const FProperty& Property, const void* Data
 
 		return HashString(Object->GetPathName());
 	}
-	default: break;
-	}
-
-	if (Property.IsA<FArrayProperty>())
+	case FArrayProperty::StaticClassCastFlags():
 	{
 		const FArrayProperty& ArrayProperty = CastFieldChecked<FArrayProperty>(Property);
 		FScriptArrayHelper Helper(&ArrayProperty, DataPtr);
@@ -591,8 +592,7 @@ uint64 FVoxelUtilities::HashProperty(const FProperty& Property, const void* Data
 
 		return MurmurHashView(Hashes, Helper.Num());
 	}
-
-	if (Property.IsA<FSetProperty>())
+	case FSetProperty::StaticClassCastFlags():
 	{
 		const FSetProperty& SetProperty = CastFieldChecked<FSetProperty>(Property);
 		FScriptSetHelper Helper(&SetProperty, DataPtr);
@@ -612,8 +612,7 @@ uint64 FVoxelUtilities::HashProperty(const FProperty& Property, const void* Data
 
 		return MurmurHashView(Hashes, Helper.Num());
 	}
-
-	if (Property.IsA<FMapProperty>())
+	case FMapProperty::StaticClassCastFlags():
 	{
 		const FMapProperty& MapProperty = CastFieldChecked<FMapProperty>(Property);
 		FScriptMapHelper Helper(&MapProperty, DataPtr);
@@ -634,72 +633,75 @@ uint64 FVoxelUtilities::HashProperty(const FProperty& Property, const void* Data
 
 		return MurmurHashView(Hashes, Helper.Num());
 	}
-
-	if (!ensure(Property.IsA<FStructProperty>()))
+	case FStructProperty::StaticClassCastFlags():
 	{
-		return 0;
-	}
+		const UScriptStruct* Struct = CastFieldChecked<FStructProperty>(Property).Struct;
 
-	const UScriptStruct* Struct = CastFieldChecked<FStructProperty>(Property).Struct;
+		if (Struct == StaticStructFast<FVoxelInstancedStruct>())
+		{
+			const FVoxelInstancedStruct& InstancedStruct = *static_cast<const FVoxelInstancedStruct*>(DataPtr);
+			if (!InstancedStruct.IsValid())
+			{
+				return 0;
+			}
 
-	if (Struct == StaticStructFast<FVoxelInstancedStruct>())
-	{
-		const FVoxelInstancedStruct& InstancedStruct = *static_cast<const FVoxelInstancedStruct*>(DataPtr);
-		if (!InstancedStruct.IsValid())
+			Struct = InstancedStruct.GetScriptStruct();
+			DataPtr = InstancedStruct.GetStructMemory();
+		}
+
+#define CASE(Type) \
+		if (Struct == StaticStructFast<Type>()) \
+		{ \
+			return FVoxelUtilities::MurmurHash(*static_cast<const Type*>(DataPtr)); \
+		}
+
+		CASE(FVector2D);
+		CASE(FVector);
+		CASE(FVector4);
+		CASE(FIntPoint);
+		CASE(FIntVector);
+		CASE(FRotator);
+		CASE(FQuat);
+		CASE(FTransform);
+		CASE(FColor);
+		CASE(FLinearColor);
+		CASE(FMatrix);
+
+#undef CASE
+
+		TVoxelInlineArray<uint64, 64> Hashes;
+		for (FProperty& ChildProperty : GetStructProperties(Struct))
+		{
+			Hashes.Add(HashProperty(ChildProperty, ChildProperty.ContainerPtrToValuePtr<void>(DataPtr)));
+		}
+
+		if (Hashes.Num() > 0)
+		{
+			return MurmurHashView(Hashes);
+		}
+
+		if (Struct->GetPropertiesSize() == 1)
+		{
+			// Empty struct
+			return 0;
+		}
+
+		UScriptStruct::ICppStructOps* CppStructOps = Struct->GetCppStructOps();
+		check(CppStructOps);
+
+		if (!ensureMsgf(CppStructOps->HasGetTypeHash(), TEXT("Missing hash for %s"), *Struct->GetName()))
 		{
 			return 0;
 		}
 
-		Struct = InstancedStruct.GetScriptStruct();
-		DataPtr = InstancedStruct.GetStructMemory();
+		return CppStructOps->GetStructTypeHash(DataPtr);
 	}
-
-#define CASE(Type) \
-	if (Struct == StaticStructFast<Type>()) \
-	{ \
-		return FVoxelUtilities::MurmurHash(*static_cast<const Type*>(DataPtr)); \
-	}
-
-	CASE(FVector2D);
-	CASE(FVector);
-	CASE(FVector4);
-	CASE(FIntPoint);
-	CASE(FIntVector);
-	CASE(FRotator);
-	CASE(FQuat);
-	CASE(FTransform);
-	CASE(FColor);
-	CASE(FLinearColor);
-	CASE(FMatrix);
-
-#undef CASE
-
-	TVoxelInlineArray<uint64, 64> Hashes;
-	for (FProperty& ChildProperty : GetStructProperties(Struct))
+	default:
 	{
-		Hashes.Add(HashProperty(ChildProperty, ChildProperty.ContainerPtrToValuePtr<void>(DataPtr)));
-	}
-
-	if (Hashes.Num() > 0)
-	{
-		return MurmurHashView(Hashes);
-	}
-
-	if (Struct->GetPropertiesSize() == 1)
-	{
-		// Empty struct
+		ensure(false);
 		return 0;
 	}
-
-	UScriptStruct::ICppStructOps* CppStructOps = Struct->GetCppStructOps();
-	check(CppStructOps);
-
-	if (!ensureMsgf(CppStructOps->HasGetTypeHash(), TEXT("Missing hash for %s"), *Struct->GetName()))
-	{
-		return 0;
 	}
-
-	return CppStructOps->GetStructTypeHash(DataPtr);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
