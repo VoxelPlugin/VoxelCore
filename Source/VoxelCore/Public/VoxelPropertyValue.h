@@ -111,9 +111,7 @@ public:
 	FVoxelPropertyValue() = default;
 	explicit FVoxelPropertyValue(const FVoxelPropertyType& Type);
 
-	template<typename T, typename = std::enable_if_t<
-		TIsSafeVoxelPropertyValue<T>::Value &&
-		!TIsDerivedFrom<T, UObject>::Value>>
+	template<typename T> requires(!std::derived_from<T, UObject> && TIsSafeVoxelPropertyValue<T>::Value)
 	static FVoxelPropertyValue Make(const T& Value = FVoxelUtilities::MakeSafe<T>())
 	{
 		FVoxelPropertyValue Result(FVoxelPropertyType::Make<T>());
