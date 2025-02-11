@@ -56,16 +56,24 @@ public:
 	}
 
 private:
-	template<char Char>
-	static constexpr std::enable_if_t<'0' <= Char && Char <= '9', uint32> CharToInt()
+	template<char Char> requires
+	(
+		'0' <= Char && Char <= '9'
+	)
+	static constexpr uint32 CharToInt()
 	{
 		return Char - '0';
 	}
-	template<char Char>
-	static constexpr std::enable_if_t<'A' <= Char && Char <= 'F', uint32> CharToInt()
+
+	template<char Char> requires
+	(
+		'A' <= Char && Char <= 'F'
+	)
+	static constexpr uint32 CharToInt()
 	{
 		return 10 + Char - 'A';
 	}
+
 	template<char Char0, char Char1, char Char2, char Char3, char Char4, char Char5, char Char6, char Char7>
 	static constexpr uint32 CharsToInt()
 	{
@@ -81,6 +89,7 @@ private:
 			(CharToInt<Char7>() << 0)
 		};
 	}
+
 	template<char Char0, char Char1, char Char2, char Char3, char Char4, char Char5, char Char6, char Char7>
 	static constexpr uint32 CharsToIntLegacy()
 	{

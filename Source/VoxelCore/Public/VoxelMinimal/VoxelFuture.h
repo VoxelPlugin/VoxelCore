@@ -188,10 +188,10 @@ public:
 	}
 
 public:
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	(
+		LambdaHasSignature_V<LambdaType, ReturnType()>
+	)
 	static FORCEINLINE TVoxelFutureType<ReturnType> Execute(
 		const EVoxelFutureThread Thread,
 		LambdaType Lambda)
@@ -226,10 +226,10 @@ public:
 	}
 
 public:
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	(
+		LambdaHasSignature_V<LambdaType, ReturnType()>
+	)
 	FORCEINLINE TVoxelFutureType<ReturnType> Then(
 		const EVoxelFutureThread Thread,
 		LambdaType Continuation) const
@@ -256,10 +256,10 @@ public:
 	}
 
 #define Define(Thread, Suffix) \
-	template< \
-		typename LambdaType, \
-		typename ReturnType = LambdaReturnType_T<LambdaType>, \
-		typename = LambdaHasSignature_T<LambdaType, ReturnType()>> \
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires \
+	( \
+		LambdaHasSignature_V<LambdaType, ReturnType()> \
+	) \
 	FORCEINLINE TVoxelFutureType<ReturnType> Then_ ## Thread ## Suffix(LambdaType Continuation) const \
 	{ \
 		return this->Then(EVoxelFutureThread::Thread, MoveTemp(Continuation)); \
@@ -272,10 +272,10 @@ public:
 
 #undef Define
 
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	(
+		LambdaHasSignature_V<LambdaType, ReturnType()>
+	)
 	FORCEINLINE TVoxelFutureType<ReturnType> Then_GameThread(LambdaType Continuation) const
 	{
 		if (IsComplete() &&
@@ -369,10 +369,10 @@ public:
 	}
 
 public:
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType(const TSharedRef<T>&)>>
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	(
+		LambdaHasSignature_V<LambdaType, ReturnType(const TSharedRef<T>&)>
+	)
 	FORCEINLINE TVoxelFutureType<ReturnType> Then(
 		const EVoxelFutureThread Thread,
 		LambdaType Continuation) const
@@ -438,10 +438,10 @@ public:
 
 #undef Define
 
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType(const TSharedRef<T>&)>>
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	(
+		LambdaHasSignature_V<LambdaType, ReturnType(const TSharedRef<T>&)>
+	)
 	FORCEINLINE TVoxelFutureType<ReturnType> Then_GameThread(LambdaType Continuation) const
 	{
 		if (IsComplete() &&

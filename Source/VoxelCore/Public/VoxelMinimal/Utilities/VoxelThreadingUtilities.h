@@ -19,10 +19,10 @@ namespace Voxel
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	(
+		LambdaHasSignature_V<LambdaType, ReturnType()>
+	)
 	FORCEINLINE TVoxelFutureType<ReturnType> GameTask(LambdaType Lambda)
 	{
 		if (IsInGameThread())
@@ -43,10 +43,10 @@ namespace Voxel
 
 	// Will never be called right away, even if we are on the game thread
 	// Useful to avoid deadlocks
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	(
+		LambdaHasSignature_V<LambdaType, ReturnType()>
+	)
 	FORCEINLINE TVoxelFutureType<ReturnType> GameTask_Async(LambdaType Lambda)
 	{
 		return FVoxelFuture::Execute(EVoxelFutureThread::GameThread, MoveTemp(Lambda));
@@ -56,23 +56,21 @@ namespace Voxel
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	(
+		LambdaHasSignature_V<LambdaType, ReturnType()>
+	)
 	FORCEINLINE TVoxelFutureType<ReturnType> RenderTask(LambdaType Lambda)
 	{
 		return FVoxelFuture::Execute(EVoxelFutureThread::RenderThread, MoveTemp(Lambda));
 	}
 
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = std::enable_if_t<
-			LambdaHasSignature_V<LambdaType, ReturnType(FRHICommandList&)> ||
-			LambdaHasSignature_V<LambdaType, ReturnType(FRHICommandListBase&)> ||
-			LambdaHasSignature_V<LambdaType, ReturnType(FRHICommandListImmediate&)>>,
-		typename = void>
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	(
+		LambdaHasSignature_V<LambdaType, ReturnType(FRHICommandList&)> ||
+		LambdaHasSignature_V<LambdaType, ReturnType(FRHICommandListBase&)> ||
+		LambdaHasSignature_V<LambdaType, ReturnType(FRHICommandListImmediate&)>
+	)
 	FORCEINLINE TVoxelFutureType<ReturnType> RenderTask(LambdaType Lambda)
 	{
 		return FVoxelFuture::Execute(EVoxelFutureThread::RenderThread, [Lambda = MoveTemp(Lambda)]
@@ -85,10 +83,10 @@ namespace Voxel
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	(
+		LambdaHasSignature_V<LambdaType, ReturnType()>
+	)
 	FORCEINLINE TVoxelFutureType<ReturnType> AsyncTask(LambdaType Lambda)
 	{
 		return FVoxelFuture::Execute(EVoxelFutureThread::AsyncThread, MoveTemp(Lambda));
@@ -100,10 +98,10 @@ namespace Voxel
 
 	VOXELCORE_API void AsyncTask_ThreadPool_Impl(TVoxelUniqueFunction<void()> Lambda);
 
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType()>>
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	(
+		LambdaHasSignature_V<LambdaType, ReturnType()>
+	)
 	FORCEINLINE TVoxelFutureType<ReturnType> AsyncTask_ThreadPool(LambdaType Lambda)
 	{
 		TVoxelPromiseType<ReturnType> Promise;
@@ -279,14 +277,12 @@ void ParallelFor(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<
-	typename KeyType,
-	typename ValueType,
-	typename ArrayType,
-	typename LambdaType,
-	typename = LambdaHasSignature_T<LambdaType, void(typename TVoxelMap<KeyType, ValueType, ArrayType>::FElement&)>>
+template<typename KeyType, typename ValueType, typename Allocator, typename LambdaType> requires
+(
+	LambdaHasSignature_V<LambdaType, void(typename TVoxelMap<KeyType, ValueType, Allocator>::FElement&)>
+)
 void ParallelFor(
-	TVoxelMap<KeyType, ValueType, ArrayType>& Map,
+	TVoxelMap<KeyType, ValueType, Allocator>& Map,
 	LambdaType Lambda)
 {
 	return ParallelFor(
@@ -294,69 +290,61 @@ void ParallelFor(
 		MoveTemp(Lambda));
 }
 
-template<
-	typename KeyType,
-	typename ValueType,
-	typename ArrayType,
-	typename LambdaType,
-	typename = LambdaHasSignature_T<LambdaType, void(const typename TVoxelMap<KeyType, ValueType, ArrayType>::FElement&)>>
+template<typename KeyType, typename ValueType, typename Allocator, typename LambdaType> requires
+(
+	LambdaHasSignature_V<LambdaType, void(typename TVoxelMap<KeyType, ValueType, Allocator>::FElement&)>
+)
 void ParallelFor(
-	const TVoxelMap<KeyType, ValueType, ArrayType>& Map,
+	const TVoxelMap<KeyType, ValueType, Allocator>& Map,
 	LambdaType Lambda)
 {
 	return ParallelFor(
 		Map.GetElements(),
 		MoveTemp(Lambda));
 }
-template<
-	typename KeyType,
-	typename ValueType,
-	typename ArrayType,
-	typename LambdaType,
-	typename = LambdaHasSignature_T<LambdaType, void(const KeyType&)>>
+template<typename KeyType, typename ValueType, typename Allocator, typename LambdaType> requires
+(
+	LambdaHasSignature_V<LambdaType, void(const KeyType&)>
+)
 void ParallelFor_Keys(
-	const TVoxelMap<KeyType, ValueType, ArrayType>& Map,
+	const TVoxelMap<KeyType, ValueType, Allocator>& Map,
 	LambdaType Lambda)
 {
 	return ParallelFor(
 		Map.GetElements(),
-		[&](const typename TVoxelMap<KeyType, ValueType, ArrayType>::FElement& Element)
+		[&](const typename TVoxelMap<KeyType, ValueType, Allocator>::FElement& Element)
 		{
 			Lambda(Element.Key);
 		});
 }
 
-template<
-	typename KeyType,
-	typename ValueType,
-	typename ArrayType,
-	typename LambdaType,
-	typename = LambdaHasSignature_T<LambdaType, void(ValueType&)>>
+template<typename KeyType, typename ValueType, typename Allocator, typename LambdaType> requires
+(
+	LambdaHasSignature_V<LambdaType, void(ValueType&)>
+)
 void ParallelFor_Values(
-	TVoxelMap<KeyType, ValueType, ArrayType>& Map,
+	TVoxelMap<KeyType, ValueType, Allocator>& Map,
 	LambdaType Lambda)
 {
 	return ParallelFor(
 		Map.GetElements(),
-		[&](typename TVoxelMap<KeyType, ValueType, ArrayType>::FElement& Element)
+		[&](typename TVoxelMap<KeyType, ValueType, Allocator>::FElement& Element)
 		{
 			Lambda(Element.Value);
 		});
 }
 
-template<
-	typename KeyType,
-	typename ValueType,
-	typename ArrayType,
-	typename LambdaType,
-	typename = LambdaHasSignature_T<LambdaType, void(const ValueType&)>>
+template<typename KeyType, typename ValueType, typename Allocator, typename LambdaType> requires
+(
+	LambdaHasSignature_V<LambdaType, void(const ValueType&)>
+)
 void ParallelFor_Values(
-	const TVoxelMap<KeyType, ValueType, ArrayType>& Map,
+	const TVoxelMap<KeyType, ValueType, Allocator>& Map,
 	LambdaType Lambda)
 {
 	return ParallelFor(
 		Map.GetElements(),
-		[&](const typename TVoxelMap<KeyType, ValueType, ArrayType>::FElement& Element)
+		[&](const typename TVoxelMap<KeyType, ValueType, Allocator>::FElement& Element)
 		{
 			Lambda(Element.Value);
 		});

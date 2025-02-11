@@ -369,11 +369,11 @@ struct VOXELCORE_API FVoxelIntBox2D
 		bool bUseOverlap,
 		int32 MaxChildren = -1) const;
 
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, bool>>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType(const FVoxelIntBox2D&)>>
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	(
+		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, bool>) &&
+		LambdaHasSignature_V<LambdaType, ReturnType(const FVoxelIntBox2D&)>
+	)
 	void IterateChunks(const int32 ChunkSize, LambdaType&& Lambda) const
 	{
 		const FIntPoint KeyMin = FVoxelUtilities::DivideFloor(Min, ChunkSize);
@@ -445,11 +445,11 @@ struct VOXELCORE_API FVoxelIntBox2D
 		return Min == Other.Min && Max == Other.Max;
 	}
 
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, bool>>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType(const FIntPoint&)>>
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	(
+		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, bool>) &&
+		LambdaHasSignature_V<LambdaType, ReturnType(const FIntPoint&)>
+	)
 	FORCEINLINE void Iterate(LambdaType&& Lambda) const
 	{
 		for (int32 X = Min.X; X < Max.X; X++)
