@@ -60,14 +60,14 @@ public:
 		Result.Get<T>() = Value;
 		return Result;
 	}
-	template<typename T, typename = std::enable_if_t<TIsDerivedFrom<T, UObject>::Value>>
+	template<typename T> requires(std::derived_from<T, UObject>)
 	static FVoxelPropertyTerminalValue Make(T* Value = nullptr)
 	{
 		FVoxelPropertyTerminalValue Result(FVoxelPropertyType::Make<T>());
 		Result.Get<T>() = Value;
 		return Result;
 	}
-	template<typename T, typename = std::enable_if_t<TIsDerivedFrom<T, UObject>::Value>>
+	template<typename T> requires(std::derived_from<T, UObject>)
 	static FVoxelPropertyTerminalValue Make(const TObjectPtr<T>& Value)
 	{
 		FVoxelPropertyTerminalValue Result(FVoxelPropertyType::Make<T>());
@@ -120,14 +120,14 @@ public:
 		Result.Get<T>() = Value;
 		return Result;
 	}
-	template<typename T, typename = std::enable_if_t<TIsDerivedFrom<T, UObject>::Value>>
+	template<typename T> requires(std::derived_from<T, UObject>)
 	static FVoxelPropertyValue Make(T* Value = nullptr)
 	{
 		FVoxelPropertyValue Result(FVoxelPropertyType::Make<T>());
 		Result.Get<T>() = Value;
 		return Result;
 	}
-	template<typename T, typename = std::enable_if_t<TIsDerivedFrom<T, UObject>::Value>>
+	template<typename T> requires(std::derived_from<T, UObject>)
 	static FVoxelPropertyValue Make(const TObjectPtr<T>& Value)
 	{
 		FVoxelPropertyValue Result(FVoxelPropertyType::Make<T>());

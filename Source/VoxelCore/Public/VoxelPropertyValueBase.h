@@ -141,7 +141,7 @@ public:
 			using Type = typename TSubclassOfType<T>::Type;
 			return ReinterpretCastRef<TSubclassOf<Type>>(Class);
 		}
-		else if constexpr (TIsDerivedFrom<T, UObject>::Value)
+		else if constexpr (std::derived_from<T, UObject>)
 		{
 			ensure(!Object || Object->IsA<T>());
 			return ReinterpretCastRef<TObjectPtr<T>>(Object);

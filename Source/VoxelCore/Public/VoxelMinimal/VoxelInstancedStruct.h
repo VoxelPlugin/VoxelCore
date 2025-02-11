@@ -260,18 +260,18 @@ struct TVoxelInstancedStruct : private FVoxelInstancedStruct
 public:
 	TVoxelInstancedStruct() = default;
 
-	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
+	template<typename OtherType> requires(std::derived_from<OtherType, T>)
 	FORCEINLINE TVoxelInstancedStruct(const TVoxelInstancedStruct<OtherType>& Other)
 		: FVoxelInstancedStruct(Other)
 	{
 	}
-	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
+	template<typename OtherType> requires(std::derived_from<OtherType, T>)
 	FORCEINLINE TVoxelInstancedStruct(TVoxelInstancedStruct<OtherType>&& Other)
 		: FVoxelInstancedStruct(MoveTemp(Other))
 	{
 	}
 
-	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
+	template<typename OtherType> requires(std::derived_from<OtherType, T>)
 	FORCEINLINE TVoxelInstancedStruct(const OtherType& Other)
 		: FVoxelInstancedStruct(FVoxelInstancedStruct::Make(Other))
 	{
@@ -295,13 +295,13 @@ public:
 	}
 
 public:
-	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
+	template<typename OtherType> requires(std::derived_from<OtherType, T>)
 	FORCEINLINE TVoxelInstancedStruct& operator=(const TVoxelInstancedStruct<OtherType>& Other)
 	{
 		FVoxelInstancedStruct::operator=(Other);
 		return *this;
 	}
-	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
+	template<typename OtherType> requires(std::derived_from<OtherType, T>)
 	FORCEINLINE TVoxelInstancedStruct& operator=(TVoxelInstancedStruct<OtherType>&& Other)
 	{
 		FVoxelInstancedStruct::operator=(MoveTemp(Other));
@@ -321,7 +321,7 @@ public:
 		return *this;
 	}
 
-	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
+	template<typename OtherType> requires(std::derived_from<OtherType, T>)
 	FORCEINLINE TVoxelInstancedStruct& operator=(const TSharedPtr<OtherType>& Other)
 	{
 		if (Other)
@@ -334,7 +334,7 @@ public:
 		}
 		return *this;
 	}
-	template<typename OtherType, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
+	template<typename OtherType> requires(std::derived_from<OtherType, T>)
 	FORCEINLINE TVoxelInstancedStruct& operator=(const TSharedRef<OtherType>& Other)
 	{
 		if constexpr (TIsDerivedFrom<OtherType, FVoxelVirtualStruct>::Value)
@@ -356,23 +356,23 @@ public:
 	using FVoxelInstancedStruct::AddStructReferencedObjects;
 	using FVoxelInstancedStruct::Reset;
 
-	template<typename OtherType = T, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
+	template<typename OtherType = T> requires(std::derived_from<OtherType, T>)
 	FORCEINLINE TSharedRef<OtherType> ToSharedRef()
 	{
 		return FVoxelInstancedStruct::ToSharedRef<OtherType>();
 	}
-	template<typename OtherType = T, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
+	template<typename OtherType = T> requires(std::derived_from<OtherType, T>)
 	FORCEINLINE TSharedRef<const OtherType> ToSharedRef() const
 	{
 		return FVoxelInstancedStruct::ToSharedRef<const OtherType>();
 	}
 
-	template<typename OtherType = T, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
+	template<typename OtherType = T> requires(std::derived_from<OtherType, T>)
 	FORCEINLINE TSharedPtr<OtherType> ToSharedPtr()
 	{
 		return FVoxelInstancedStruct::ToSharedPtr<OtherType>();
 	}
-	template<typename OtherType = T, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
+	template<typename OtherType = T> requires(std::derived_from<OtherType, T>)
 	FORCEINLINE TSharedPtr<const OtherType> AsSharedPtr() const
 	{
 		return FVoxelInstancedStruct::ToSharedPtr<const OtherType>();
@@ -444,7 +444,7 @@ public:
 			ensureVoxelSlow(GetScriptStruct()->IsChildOf(StaticStructFast<T>()));
 	}
 
-	template<typename OtherType = T, typename = std::enable_if_t<TIsDerivedFrom<OtherType, T>::Value>>
+	template<typename OtherType = T> requires(std::derived_from<OtherType, T>)
 	FORCEINLINE TSharedRef<OtherType> MakeSharedCopy() const
 	{
 		return FVoxelInstancedStruct::MakeSharedCopy<OtherType>();

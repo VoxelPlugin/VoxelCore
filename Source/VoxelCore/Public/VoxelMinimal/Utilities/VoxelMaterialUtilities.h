@@ -19,7 +19,7 @@ namespace FVoxelUtilities
 		UObject& Outer,
 		TSubclassOf<UMaterialExpression> ExpressionClass);
 
-	template<typename T, typename = std::enable_if_t<TIsDerivedFrom<T, UMaterialExpression>::Value>>
+	template<typename T> requires(std::derived_from<T, UMaterialExpression>)
 	T& CreateMaterialExpression(UObject& Outer)
 	{
 		return *CastChecked<T>(&FVoxelUtilities::CreateMaterialExpression(Outer, T::StaticClass()));
