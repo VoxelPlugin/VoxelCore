@@ -53,13 +53,15 @@ public:
 	{
 		return GetStruct()->IsChildOf(Struct);
 	}
-	template<typename T> requires(std::derived_from<T, FVoxelVirtualStruct>)
+	template<typename T>
+	requires std::derived_from<T, FVoxelVirtualStruct>
 	FORCEINLINE bool IsA() const
 	{
 		return this->IsA(T::StaticStruct());
 	}
 
-	template<typename T> requires(std::derived_from<T, FVoxelVirtualStruct>)
+	template<typename T>
+	requires std::derived_from<T, FVoxelVirtualStruct>
 	FORCEINLINE T* As()
 	{
 		if (!IsA<T>())
@@ -69,7 +71,8 @@ public:
 
 		return static_cast<T*>(this);
 	}
-	template<typename T> requires(std::derived_from<T, FVoxelVirtualStruct>)
+	template<typename T>
+	requires std::derived_from<T, FVoxelVirtualStruct>
 	FORCEINLINE const T* As() const
 	{
 		if (!IsA<T>())
@@ -80,13 +83,15 @@ public:
 		return static_cast<const T*>(this);
 	}
 
-	template<typename T> requires(std::derived_from<T, FVoxelVirtualStruct>)
+	template<typename T>
+	requires std::derived_from<T, FVoxelVirtualStruct>
 	FORCEINLINE T& AsChecked()
 	{
 		checkVoxelSlow(IsA<T>());
 		return static_cast<T&>(*this);
 	}
-	template<typename T> requires(std::derived_from<T, FVoxelVirtualStruct>)
+	template<typename T>
+	requires std::derived_from<T, FVoxelVirtualStruct>
 	FORCEINLINE const T& AsChecked() const
 	{
 		checkVoxelSlow(IsA<T>());

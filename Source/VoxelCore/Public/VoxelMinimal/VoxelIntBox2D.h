@@ -369,7 +369,8 @@ struct VOXELCORE_API FVoxelIntBox2D
 		bool bUseOverlap,
 		int32 MaxChildren = -1) const;
 
-	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
+	requires
 	(
 		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, bool>) &&
 		LambdaHasSignature_V<LambdaType, ReturnType(const FVoxelIntBox2D&)>
@@ -445,7 +446,8 @@ struct VOXELCORE_API FVoxelIntBox2D
 		return Min == Other.Min && Max == Other.Max;
 	}
 
-	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
+	requires
 	(
 		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, bool>) &&
 		LambdaHasSignature_V<LambdaType, ReturnType(const FIntPoint&)>

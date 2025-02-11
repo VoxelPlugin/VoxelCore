@@ -152,7 +152,8 @@ public:
 	FVoxelFuture() = default;
 	explicit FVoxelFuture(TConstVoxelArrayView<FVoxelFuture> Futures);
 
-	template<typename... FutureTypes> requires
+	template<typename... FutureTypes>
+	requires
 	(
 		sizeof...(FutureTypes) != 1 &&
 		(std::derived_from<std::remove_reference_t<FutureTypes>, FVoxelFuture> && ...)
@@ -188,10 +189,8 @@ public:
 	}
 
 public:
-	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
-	(
-		LambdaHasSignature_V<LambdaType, ReturnType()>
-	)
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
+	requires LambdaHasSignature_V<LambdaType, ReturnType()>
 	static FORCEINLINE TVoxelFutureType<ReturnType> Execute(
 		const EVoxelFutureThread Thread,
 		LambdaType Lambda)
@@ -226,10 +225,8 @@ public:
 	}
 
 public:
-	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
-	(
-		LambdaHasSignature_V<LambdaType, ReturnType()>
-	)
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
+	requires LambdaHasSignature_V<LambdaType, ReturnType()>
 	FORCEINLINE TVoxelFutureType<ReturnType> Then(
 		const EVoxelFutureThread Thread,
 		LambdaType Continuation) const
@@ -256,10 +253,8 @@ public:
 	}
 
 #define Define(Thread, Suffix) \
-	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires \
-	( \
-		LambdaHasSignature_V<LambdaType, ReturnType()> \
-	) \
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> \
+	requires LambdaHasSignature_V<LambdaType, ReturnType()> \
 	FORCEINLINE TVoxelFutureType<ReturnType> Then_ ## Thread ## Suffix(LambdaType Continuation) const \
 	{ \
 		return this->Then(EVoxelFutureThread::Thread, MoveTemp(Continuation)); \
@@ -272,10 +267,8 @@ public:
 
 #undef Define
 
-	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
-	(
-		LambdaHasSignature_V<LambdaType, ReturnType()>
-	)
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
+	requires LambdaHasSignature_V<LambdaType, ReturnType()>
 	FORCEINLINE TVoxelFutureType<ReturnType> Then_GameThread(LambdaType Continuation) const
 	{
 		if (IsComplete() &&
@@ -334,7 +327,8 @@ public:
 	}
 
 	// nullptr constructor, a bit convoluted to fix some compile errors
-	template<typename NullType> requires
+	template<typename NullType>
+	requires
 	(
 		std::is_null_pointer_v<NullType> &&
 		// Wrap in a dummy type to disable this as copy constructor without failing to compile on clang if T is forward declared
@@ -369,10 +363,8 @@ public:
 	}
 
 public:
-	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
-	(
-		LambdaHasSignature_V<LambdaType, ReturnType(const TSharedRef<T>&)>
-	)
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
+	requires LambdaHasSignature_V<LambdaType, ReturnType(const TSharedRef<T>&)>
 	FORCEINLINE TVoxelFutureType<ReturnType> Then(
 		const EVoxelFutureThread Thread,
 		LambdaType Continuation) const
@@ -392,7 +384,8 @@ public:
 		});
 		return Promise;
 	}
-	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
+	requires
 	(
 		LambdaHasSignature_V<LambdaType, ReturnType(const T&)> ||
 		LambdaHasSignature_V<LambdaType, ReturnType(T&)> ||
@@ -419,7 +412,8 @@ public:
 	}
 
 #define Define(Thread, Suffix) \
-	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires \
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> \
+	requires \
 	( \
 		LambdaHasSignature_V<LambdaType, ReturnType(const TSharedRef<T>&)> || \
 		LambdaHasSignature_V<LambdaType, ReturnType(const T&)> || \
@@ -438,10 +432,8 @@ public:
 
 #undef Define
 
-	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
-	(
-		LambdaHasSignature_V<LambdaType, ReturnType(const TSharedRef<T>&)>
-	)
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
+	requires LambdaHasSignature_V<LambdaType, ReturnType(const TSharedRef<T>&)>
 	FORCEINLINE TVoxelFutureType<ReturnType> Then_GameThread(LambdaType Continuation) const
 	{
 		if (IsComplete() &&
@@ -460,7 +452,8 @@ public:
 
 		return this->Then(EVoxelFutureThread::GameThread, MoveTemp(Continuation));
 	}
-	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
+	requires
 	(
 		LambdaHasSignature_V<LambdaType, ReturnType(const T&)> ||
 		LambdaHasSignature_V<LambdaType, ReturnType(T&)> ||
@@ -534,7 +527,8 @@ public:
 	{
 	}
 
-	template<typename NullType> requires
+	template<typename NullType>
+	requires
 	(
 		std::is_same_v<decltype(nullptr), NullType> &&
 		TIsTSharedPtr_V<T>

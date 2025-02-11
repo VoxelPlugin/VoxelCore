@@ -8,14 +8,15 @@
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 
-template<typename T, typename = void>
+template<typename T>
 struct TVoxelCanBulkSerialize
 {
 	static constexpr bool Value = TCanBulkSerialize<T>::Value;
 };
 
 template<typename T>
-struct TVoxelCanBulkSerialize<T, std::enable_if_t<std::is_arithmetic_v<T>>>
+requires std::is_arithmetic_v<T>
+struct TVoxelCanBulkSerialize<T>
 {
 	static constexpr bool Value = true;
 };
@@ -42,28 +43,28 @@ namespace FVoxelUtilities
 		FMemory::Memset(GetData(Array), Value, GetNum(Array) * sizeof(decltype(*GetData(Array))));
 	}
 
-	template<
-		typename DstArrayType,
-		typename SrcArrayType,
-		typename = std::enable_if_t<
-			!std::is_const_v<std::remove_reference_t<decltype(*GetData(DeclVal<DstArrayType>()))>> &&
-			std::is_same_v<
-				VOXEL_GET_TYPE(*GetData(DeclVal<DstArrayType>())),
-				VOXEL_GET_TYPE(*GetData(DeclVal<SrcArrayType>()))
-			>>>
+	template<typename DstArrayType, typename SrcArrayType>
+	requires
+	(
+		!std::is_const_v<std::remove_reference_t<decltype(*GetData(DeclVal<DstArrayType>()))>> &&
+		std::is_same_v<
+			VOXEL_GET_TYPE(*GetData(DeclVal<DstArrayType>())),
+			VOXEL_GET_TYPE(*GetData(DeclVal<SrcArrayType>()))>
+	)
 	FORCEINLINE void Memcpy(DstArrayType&& Dest, SrcArrayType&& Src)
 	{
 		checkVoxelSlow(GetNum(Dest) == GetNum(Src));
 		FMemory::Memcpy(GetData(Dest), GetData(Src), GetNum(Dest) * sizeof(decltype(*GetData(Dest))));
 	}
 
-	template<typename ArrayTypeA, typename ArrayTypeB, typename = std::enable_if_t<
+	template<typename ArrayTypeA, typename ArrayTypeB>
+	requires
+	(
 		std::is_same_v<
 			VOXEL_GET_TYPE(*GetData(DeclVal<ArrayTypeA>())),
-			VOXEL_GET_TYPE(*GetData(DeclVal<ArrayTypeB>()))
-		> &&
+			VOXEL_GET_TYPE(*GetData(DeclVal<ArrayTypeB>()))> &&
 		std::is_trivially_destructible_v<VOXEL_GET_TYPE(*GetData(DeclVal<ArrayTypeA>()))>
-	>>
+	)
 	FORCEINLINE bool Equal(ArrayTypeA&& A, ArrayTypeB&& B)
 	{
 		return

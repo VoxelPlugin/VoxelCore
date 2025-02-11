@@ -212,10 +212,8 @@ struct TMakeWeakPtrLambdaHelper<TVoxelTypes<ArgTypes...>>
 	}
 };
 
-template<typename T, typename LambdaType> requires
-(
-	std::is_void_v<LambdaReturnType_T<LambdaType>>
-)
+template<typename T, typename LambdaType>
+requires std::is_void_v<LambdaReturnType_T<LambdaType>>
 FORCEINLINE auto MakeWeakPtrLambda(const T& Ptr, LambdaType Lambda)
 {
 #if VOXEL_DEBUG
@@ -225,7 +223,8 @@ FORCEINLINE auto MakeWeakPtrLambda(const T& Ptr, LambdaType Lambda)
 	return TMakeWeakPtrLambdaHelper<LambdaArgTypes_T<LambdaType>>::Make(Ptr, MoveTemp(Lambda));
 }
 
-template<typename T, typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+template<typename T, typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
+requires
 (
 	!std::is_void_v<ReturnType> &&
 	FVoxelUtilities::CanMakeSafe<ReturnType>
@@ -242,10 +241,8 @@ FORCEINLINE auto MakeWeakPtrLambda(const T& Ptr, LambdaType Lambda)
 		FVoxelUtilities::MakeSafe<ReturnType>());
 }
 
-template<typename T, typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
-(
-	!std::is_void_v<ReturnType>
-)
+template<typename T, typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
+requires !std::is_void_v<ReturnType>
 FORCEINLINE auto MakeWeakPtrLambda(const T& Ptr, LambdaType Lambda, ReturnType&& Default)
 {
 #if VOXEL_DEBUG
@@ -300,7 +297,8 @@ struct TMakeWeakObjectPtrLambdaHelper<TVoxelTypes<ArgTypes...>>
 	}
 };
 
-template<typename T, typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+template<typename T, typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
+requires
 (
 	(std::derived_from<T, UObject> || std::derived_from<T, IInterface>) &&
 	std::is_void_v<ReturnType>
@@ -310,7 +308,8 @@ FORCEINLINE auto MakeWeakObjectPtrLambda(T* Ptr, LambdaType Lambda)
 	return TMakeWeakObjectPtrLambdaHelper<LambdaArgTypes_T<LambdaType>>::Make(Ptr, MoveTemp(Lambda));
 }
 
-template<typename T, typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+template<typename T, typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
+requires
 (
 	(std::derived_from<T, UObject> || std::derived_from<T, IInterface>) &&
 	!std::is_void_v<ReturnType>
@@ -320,7 +319,8 @@ FORCEINLINE auto MakeWeakObjectPtrLambda(T* Ptr, LambdaType Lambda, ReturnType&&
 	return TMakeWeakObjectPtrLambdaHelper<LambdaArgTypes_T<LambdaType>>::Make(Ptr, MoveTemp(Lambda), MoveTemp(Default));
 }
 
-template<typename T, typename LambdaType> requires
+template<typename T, typename LambdaType>
+requires
 (
 	std::derived_from<T, UObject> ||
 	std::derived_from<T, IInterface>

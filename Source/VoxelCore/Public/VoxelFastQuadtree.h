@@ -247,7 +247,8 @@ public:
 	}
 
 public:
-	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
+	requires
 	(
 		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterateTree>) &&
 		LambdaHasSignature_V<LambdaType, ReturnType(const FNodeRef&)>
@@ -292,7 +293,8 @@ public:
 		}
 	}
 
-	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
+	requires
 	(
 		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterateTree>) &&
 		LambdaHasSignature_V<LambdaType, ReturnType(const FNodeRef&)>
@@ -302,7 +304,8 @@ public:
 		this->Traverse(Root(), Lambda);
 	}
 
-	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
+	requires
 	(
 		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterateTree>) &&
 		LambdaHasSignature_V<LambdaType, ReturnType(const FNodeRef&)>
@@ -317,7 +320,8 @@ public:
 		if (Children[3] != -1) { this->Traverse(FNodeRef(Children[3], NodeRef.Height - 1, NodeRef.GetChildCenter(3)), Lambda); }
 	}
 
-	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
+	requires
 	(
 		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterateTree>) &&
 		LambdaHasSignature_V<LambdaType, ReturnType(const FNodeRef&)>

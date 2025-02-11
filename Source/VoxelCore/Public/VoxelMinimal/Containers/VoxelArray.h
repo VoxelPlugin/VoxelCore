@@ -431,18 +431,21 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename To, typename ElementType, typename Allocator, typename = std::enable_if_t<sizeof(To) == sizeof(ElementType)>>
+template<typename To, typename ElementType, typename Allocator>
+requires (sizeof(To) == sizeof(ElementType))
 FORCEINLINE TVoxelArray<To, Allocator>& ReinterpretCastVoxelArray(TVoxelArray<ElementType, Allocator>& Array)
 {
 	return reinterpret_cast<TVoxelArray<To, Allocator>&>(Array);
 }
-template<typename To, typename ElementType, typename Allocator, typename = std::enable_if_t<sizeof(To) == sizeof(ElementType)>>
+template<typename To, typename ElementType, typename Allocator>
+requires (sizeof(To) == sizeof(ElementType))
 FORCEINLINE TVoxelArray<To, Allocator>&& ReinterpretCastVoxelArray(TVoxelArray<ElementType, Allocator>&& Array)
 {
 	return reinterpret_cast<TVoxelArray<To, Allocator>&&>(Array);
 }
 
-template<typename To, typename ElementType, typename Allocator, typename = std::enable_if_t<sizeof(To) == sizeof(ElementType)>>
+template<typename To, typename ElementType, typename Allocator>
+requires (sizeof(To) == sizeof(ElementType))
 FORCEINLINE const TVoxelArray<To, Allocator>& ReinterpretCastVoxelArray(const TVoxelArray<ElementType, Allocator>& Array)
 {
 	return reinterpret_cast<const TVoxelArray<To, Allocator>&>(Array);
@@ -452,14 +455,17 @@ FORCEINLINE const TVoxelArray<To, Allocator>& ReinterpretCastVoxelArray(const TV
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename ToType, typename ToAllocator, typename FromType, typename Allocator, typename = std::enable_if_t<sizeof(FromType) != sizeof(ToType)>>
+template<typename ToType, typename ToAllocator, typename FromType, typename Allocator>
+requires (sizeof(FromType) != sizeof(ToType))
 TVoxelArray<ToType, ToAllocator> ReinterpretCastVoxelArray_Copy(const TVoxelArray<FromType, Allocator>& Array)
 {
 	const int64 NumBytes = Array.Num() * sizeof(FromType);
 	check(NumBytes % sizeof(ToType) == 0);
 	return TVoxelArray<ToType, Allocator>(reinterpret_cast<const ToType*>(Array.GetData()), NumBytes / sizeof(ToType));
 }
-template<typename ToType, typename FromType, typename Allocator, typename = std::enable_if_t<sizeof(FromType) != sizeof(ToType)>>
+
+template<typename ToType, typename FromType, typename Allocator>
+requires (sizeof(FromType) != sizeof(ToType))
 TVoxelArray<ToType, Allocator> ReinterpretCastVoxelArray_Copy(const TVoxelArray<FromType, Allocator>& Array)
 {
 	return ReinterpretCastVoxelArray_Copy<ToType, Allocator>(Array);

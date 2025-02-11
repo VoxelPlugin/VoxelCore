@@ -80,12 +80,14 @@ public:
 		: FVoxelObjectPtr(Object)
 	{
 	}
-	template<typename ChildType> requires(std::derived_from<ChildType, ObjectType>)
+	template<typename ChildType>
+	requires std::derived_from<ChildType, ObjectType>
 	FORCEINLINE TVoxelObjectPtr(const TObjectPtr<ChildType> Object)
 		: FVoxelObjectPtr(Object.Get())
 	{
 	}
-	template<typename ChildType> requires(std::derived_from<ChildType, ObjectType>)
+	template<typename ChildType>
+	requires std::derived_from<ChildType, ObjectType>
 	FORCEINLINE TVoxelObjectPtr(const TWeakObjectPtr<ChildType> Object)
 		: FVoxelObjectPtr(ReinterpretCastRef_Unaligned<FVoxelObjectPtr>(Object))
 	{
@@ -110,7 +112,8 @@ public:
 	{
 		return ReinterpretCastRef<TVoxelObjectPtr<const ObjectType>>(*this);
 	}
-	template<typename ParentType> requires(std::derived_from<ObjectType, ParentType>)
+	template<typename ParentType>
+	requires std::derived_from<ObjectType, ParentType>
 	FORCEINLINE operator TVoxelObjectPtr<ParentType>() const
 	{
 		return ReinterpretCastRef<TVoxelObjectPtr<ParentType>>(*this);

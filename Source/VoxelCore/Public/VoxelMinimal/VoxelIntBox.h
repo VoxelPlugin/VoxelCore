@@ -461,7 +461,8 @@ struct VOXELCORE_API FVoxelIntBox
 		return Min == Other.Min && Max == Other.Max;
 	}
 
-	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
+	requires
 	(
 		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, bool>) &&
 		LambdaHasSignature_V<LambdaType, ReturnType(const FIntVector&)>

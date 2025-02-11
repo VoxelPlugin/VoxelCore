@@ -56,19 +56,15 @@ public:
 	}
 
 private:
-	template<char Char> requires
-	(
-		'0' <= Char && Char <= '9'
-	)
+	template<char Char>
+	requires ('0' <= Char && Char <= '9')
 	static constexpr uint32 CharToInt()
 	{
 		return Char - '0';
 	}
 
-	template<char Char> requires
-	(
-		'A' <= Char && Char <= 'F'
-	)
+	template<char Char>
+	requires ('A' <= Char && Char <= 'F')
 	static constexpr uint32 CharToInt()
 	{
 		return 10 + Char - 'A';
