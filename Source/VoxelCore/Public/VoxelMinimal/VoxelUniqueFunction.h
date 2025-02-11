@@ -35,7 +35,7 @@ private:
 
 		static constexpr bool Value =
 			std::is_same_v<ReturnType, FunctorReturnType> ||
-			TIsConstructible<ReturnType, FunctorReturnType>::Value;
+			std::is_constructible_v<ReturnType, FunctorReturnType>;
 	};
 
 public:

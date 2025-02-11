@@ -534,12 +534,14 @@ FORCEINLINE const ToType& ReinterpretCastRef(const FromType& From)
 	return reinterpret_cast<const ToType&>(From);
 }
 
-template<typename ToType, typename FromType, typename = std::enable_if_t<
+template<typename ToType, typename FromType> requires
+(
 	sizeof(ToType) == sizeof(FromType) &&
 	// Should use regular ReinterpretCastRef if true
 	!CanReinterpretCast_V<ToType, FromType> &&
 	std::is_trivially_destructible_v<ToType> &&
-	std::is_trivially_destructible_v<FromType>>>
+	std::is_trivially_destructible_v<FromType>
+)
 FORCEINLINE const ToType ReinterpretCastRef_Unaligned(const FromType& From)
 {
 	// Memcpy will be optimized away on x86 (unaligned loads allowed)
@@ -551,29 +553,51 @@ FORCEINLINE const ToType ReinterpretCastRef_Unaligned(const FromType& From)
 	return Result;
 }
 
-template<typename ToType, typename FromType, typename = std::enable_if_t<CanReinterpretCast_V<ToType, FromType> && !TIsReferenceType<FromType>::Value>>
+template<typename ToType, typename FromType> requires
+(
+	CanReinterpretCast_V<ToType, FromType> &&
+	!std::is_reference_v<FromType>
+)
 FORCEINLINE ToType&& ReinterpretCastRef(FromType&& From)
 {
 	return reinterpret_cast<ToType&&>(From);
 }
 
-template<typename ToType, typename FromType, typename = std::enable_if_t<CanReinterpretCast_V<ToType, FromType> && std::is_const_v<FromType> == std::is_const_v<ToType>>>
+template<typename ToType, typename FromType> requires
+(
+	CanReinterpretCast_V<ToType, FromType> &&
+	std::is_const_v<FromType> == std::is_const_v<ToType>
+)
 FORCEINLINE TSharedPtr<ToType>& ReinterpretCastSharedPtr(TSharedPtr<FromType>& From)
 {
 	return ReinterpretCastRef<TSharedPtr<ToType>>(From);
 }
-template<typename ToType, typename FromType, typename = std::enable_if_t<CanReinterpretCast_V<ToType, FromType> && std::is_const_v<FromType> == std::is_const_v<ToType>>>
+
+template<typename ToType, typename FromType> requires
+(
+	CanReinterpretCast_V<ToType, FromType> &&
+	std::is_const_v<FromType> == std::is_const_v<ToType>
+)
 FORCEINLINE TSharedRef<ToType>& ReinterpretCastSharedPtr(TSharedRef<FromType>& From)
 {
 	return ReinterpretCastRef<TSharedRef<ToType>>(From);
 }
 
-template<typename ToType, typename FromType, typename = std::enable_if_t<CanReinterpretCast_V<ToType, FromType> && std::is_const_v<FromType> == std::is_const_v<ToType>>>
+template<typename ToType, typename FromType> requires
+(
+	CanReinterpretCast_V<ToType, FromType> &&
+	std::is_const_v<FromType> == std::is_const_v<ToType>
+)
 FORCEINLINE const TSharedPtr<ToType>& ReinterpretCastSharedPtr(const TSharedPtr<FromType>& From)
 {
 	return ReinterpretCastRef<TSharedPtr<ToType>>(From);
 }
-template<typename ToType, typename FromType, typename = std::enable_if_t<CanReinterpretCast_V<ToType, FromType> && std::is_const_v<FromType> == std::is_const_v<ToType>>>
+
+template<typename ToType, typename FromType> requires
+(
+	CanReinterpretCast_V<ToType, FromType> &&
+	std::is_const_v<FromType> == std::is_const_v<ToType>
+)
 FORCEINLINE const TSharedRef<ToType>& ReinterpretCastSharedRef(const TSharedRef<FromType>& From)
 {
 	return ReinterpretCastRef<TSharedRef<ToType>>(From);

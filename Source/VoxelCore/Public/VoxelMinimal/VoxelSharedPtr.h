@@ -47,7 +47,7 @@ FORCEINLINE TWeakPtr<T> MakeWeakPtr(const TSharedRef<T>& Ptr)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-// Need TEnableIf as &&& is equivalent to &, so T could get matched with Smthg&
+// Need std::enable_if_t as &&& is equivalent to &, so T could get matched with Smthg&
 template<typename T>
 FORCEINLINE std::enable_if_t<!TIsReferenceType<T>::Value, TSharedRef<T>> MakeSharedCopy(T&& Data)
 {

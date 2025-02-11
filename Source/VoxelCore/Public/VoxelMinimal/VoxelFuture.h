@@ -152,10 +152,11 @@ public:
 	FVoxelFuture() = default;
 	explicit FVoxelFuture(TConstVoxelArrayView<FVoxelFuture> Futures);
 
-	template<
-		typename... FutureTypes,
-		typename = std::enable_if_t<sizeof...(FutureTypes) != 1>,
-		typename = std::enable_if_t<(std::derived_from<std::remove_reference_t<FutureTypes>, FVoxelFuture> && ...)>>
+	template<typename... FutureTypes> requires
+	(
+		sizeof...(FutureTypes) != 1 &&
+		(std::derived_from<std::remove_reference_t<FutureTypes>, FVoxelFuture> && ...)
+	)
 	FVoxelFuture(FutureTypes&&... Futures)
 	{
 		checkStatic(sizeof...(Futures) > 1);
@@ -333,10 +334,12 @@ public:
 	}
 
 	// nullptr constructor, a bit convoluted to fix some compile errors
-	template<typename NullType, typename = std::enable_if_t<
+	template<typename NullType> requires
+	(
 		std::is_null_pointer_v<NullType> &&
 		// Wrap in a dummy type to disable this as copy constructor without failing to compile on clang if T is forward declared
-		TIsConstructible<std::conditional_t<std::is_same_v<NullType, TVoxelFuture>, void, T>, const NullType&>::Value>>
+		std::is_constructible_v<std::conditional_t<std::is_same_v<NullType, TVoxelFuture>, void, T>, const NullType&>
+	)
 	TVoxelFuture(const NullType& OtherValue)
 		: TVoxelFuture(T(OtherValue))
 	{
@@ -389,14 +392,12 @@ public:
 		});
 		return Promise;
 	}
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = std::enable_if_t<
-			LambdaHasSignature_V<LambdaType, ReturnType(const T&)> ||
-			LambdaHasSignature_V<LambdaType, ReturnType(T&)> ||
-			LambdaHasSignature_V<LambdaType, ReturnType(T)>>,
-		typename = void>
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	(
+		LambdaHasSignature_V<LambdaType, ReturnType(const T&)> ||
+		LambdaHasSignature_V<LambdaType, ReturnType(T&)> ||
+		LambdaHasSignature_V<LambdaType, ReturnType(T)>
+	)
 	FORCEINLINE TVoxelFutureType<ReturnType> Then(
 		const EVoxelFutureThread Thread,
 		LambdaType Continuation) const
@@ -418,14 +419,13 @@ public:
 	}
 
 #define Define(Thread, Suffix) \
-	template< \
-		typename LambdaType, \
-		typename ReturnType = LambdaReturnType_T<LambdaType>, \
-		typename = std::enable_if_t< \
-			LambdaHasSignature_V<LambdaType, ReturnType(const TSharedRef<T>&)> || \
-			LambdaHasSignature_V<LambdaType, ReturnType(const T&)> || \
-			LambdaHasSignature_V<LambdaType, ReturnType(T&)> || \
-			LambdaHasSignature_V<LambdaType, ReturnType(T)>>> \
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires \
+	( \
+		LambdaHasSignature_V<LambdaType, ReturnType(const TSharedRef<T>&)> || \
+		LambdaHasSignature_V<LambdaType, ReturnType(const T&)> || \
+		LambdaHasSignature_V<LambdaType, ReturnType(T&)> || \
+		LambdaHasSignature_V<LambdaType, ReturnType(T)> \
+	) \
 	FORCEINLINE TVoxelFutureType<ReturnType> Then_ ## Thread ## Suffix(LambdaType Continuation) const \
 	{ \
 		return this->Then(EVoxelFutureThread::Thread, MoveTemp(Continuation)); \
@@ -460,14 +460,12 @@ public:
 
 		return this->Then(EVoxelFutureThread::GameThread, MoveTemp(Continuation));
 	}
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = std::enable_if_t<
-			LambdaHasSignature_V<LambdaType, ReturnType(const T&)> ||
-			LambdaHasSignature_V<LambdaType, ReturnType(T&)> ||
-			LambdaHasSignature_V<LambdaType, ReturnType(T)>>,
-		typename = void>
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	(
+		LambdaHasSignature_V<LambdaType, ReturnType(const T&)> ||
+		LambdaHasSignature_V<LambdaType, ReturnType(T&)> ||
+		LambdaHasSignature_V<LambdaType, ReturnType(T)>
+	)
 	FORCEINLINE TVoxelFutureType<ReturnType> Then_GameThread(LambdaType Continuation) const
 	{
 		if (IsComplete() &&
@@ -536,9 +534,11 @@ public:
 	{
 	}
 
-	template<
-		typename NullType,
-		typename = std::enable_if_t<std::is_same_v<decltype(nullptr), NullType> && TIsTSharedPtr_V<T>>>
+	template<typename NullType> requires
+	(
+		std::is_same_v<decltype(nullptr), NullType> &&
+		TIsTSharedPtr_V<T>
+	)
 	FORCEINLINE void Set(const NullType& Value) const
 	{
 		this->Set(T(Value));

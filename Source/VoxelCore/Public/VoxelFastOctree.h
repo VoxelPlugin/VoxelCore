@@ -253,11 +253,11 @@ public:
 	}
 
 public:
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterateTree>>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType(const FNodeRef&)>>
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	(
+		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterateTree>) &&
+		LambdaHasSignature_V<LambdaType, ReturnType(const FNodeRef&)>
+	)
 	FORCENOINLINE void Traverse(const FNodeRef InNodeRef, LambdaType Lambda) const
 	{
 		TVoxelStaticArray<FNodeRef, 8 * MaxDepth> NodesToTraverse{ NoInit };
@@ -302,21 +302,21 @@ public:
 		}
 	}
 
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterateTree>>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType(const FNodeRef&)>>
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	(
+		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterateTree>) &&
+		LambdaHasSignature_V<LambdaType, ReturnType(const FNodeRef&)>
+	)
 	FORCEINLINE void Traverse(LambdaType Lambda) const
 	{
 		this->Traverse(Root(), Lambda);
 	}
 
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterateTree>>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType(const FNodeRef&)>>
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	(
+		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterateTree>) &&
+		LambdaHasSignature_V<LambdaType, ReturnType(const FNodeRef&)>
+	)
 	FORCEINLINE void TraverseChildren(const FNodeRef& NodeRef, LambdaType Lambda) const
 	{
 		const FChildren Children = IndexToChildren[NodeRef.Index];
@@ -331,11 +331,11 @@ public:
 		if (Children[7] != -1) { this->Traverse(FNodeRef(Children[7], NodeRef.Height - 1, NodeRef.GetChildCenter(7)), Lambda); }
 	}
 
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterateTree>>,
-		typename = LambdaHasSignature_T<LambdaType, ReturnType(const FNodeRef&)>>
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> requires
+	(
+		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterateTree>) &&
+		LambdaHasSignature_V<LambdaType, ReturnType(const FNodeRef&)>
+	)
 	FORCENOINLINE void TraverseBounds(const FVoxelIntBox& Bounds, LambdaType Lambda) const
 	{
 		TVoxelStaticArray<FNodeRef, 8 * MaxDepth> NodesToTraverse{ NoInit };
