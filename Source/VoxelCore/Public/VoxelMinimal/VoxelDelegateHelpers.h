@@ -242,7 +242,7 @@ FORCEINLINE auto MakeWeakPtrLambda(const T& Ptr, LambdaType Lambda)
 }
 
 template<typename T, typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
-requires !std::is_void_v<ReturnType>
+requires (!std::is_void_v<ReturnType>)
 FORCEINLINE auto MakeWeakPtrLambda(const T& Ptr, LambdaType Lambda, ReturnType&& Default)
 {
 #if VOXEL_DEBUG
