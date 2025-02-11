@@ -19,6 +19,11 @@ should_compile() {
         return 0
     fi
 
+    if [ ! "$(wc -c < "$target")" -gt 16 ]; then
+        echo "$target is smaller than 16B"
+        return 0
+    fi
+
     local target_time=$(stat -c %Y "$target")
     for prereq in "${prerequisites[@]}"; do
         local prereq_time=$(stat -c %Y "$prereq")
@@ -55,7 +60,7 @@ build_library() {
 
     if should_compile "$target_file" "${object_files[@]}"; then
         rm -f "$target_file"
-        COMMANDS+=("ar rcs \"$target_file\" ${object_files[*]}")
+        COMMANDS+=("ar rcs \"$target_file\" $(printf '"%s" ' "${object_files[@]}")")
     fi
 }
 
@@ -65,8 +70,8 @@ flush_commands() {
       local_commands+=("$command || { echo \"Error: Command failed: $command\"; exit 1; }")
     done
 
-    printf "%s\n" "${local_commands[@]}" > commands.txt
-    xargs -S131072 -I {} -P 16 bash -c '{}' < commands.txt
+    printf "%s\0" "${local_commands[@]}" > commands.txt
+    xargs -0 -S131072 -I {} -P 16 bash -c '{}' < commands.txt
 
     COMMANDS=()
 }

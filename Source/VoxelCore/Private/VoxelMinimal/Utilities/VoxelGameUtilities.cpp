@@ -68,6 +68,11 @@ FViewport* FVoxelUtilities::GetViewport(const UWorld* World)
 bool FVoxelUtilities::IsPlayInEditor()
 {
 #if WITH_EDITOR
+	if (!GIsEditor)
+	{
+		return false;
+	}
+
 	return
 		GEditor->PlayWorld ||
 		GIsPlayInEditorWorld;
