@@ -50,6 +50,10 @@ public:
 	{
 		return *this == FVoxelObjectPtr(Other);
 	}
+	FORCEINLINE bool operator==(const FWeakObjectPtr& Other) const
+	{
+		return ReinterpretCastRef<uint64>(*this) == ReinterpretCastRef_Unaligned<uint64>(Other);
+	}
 
 	FORCEINLINE friend uint32 GetTypeHash(const FVoxelObjectPtr& ObjectPtr)
 	{
@@ -116,9 +120,15 @@ public:
 	{
 		return ReinterpretCastRef<uint64>(*this) == ReinterpretCastRef<uint64>(Other);
 	}
-	FORCEINLINE bool operator==(const TVoxelObjectPtr& Other) const
+	template<typename OtherType, typename = std::enable_if_t<std::derived_from<OtherType, ObjectType> || std::derived_from<ObjectType, OtherType>>>
+	FORCEINLINE bool operator==(const TVoxelObjectPtr<OtherType>& Other) const
 	{
 		return ReinterpretCastRef<uint64>(*this) == ReinterpretCastRef<uint64>(Other);
+	}
+	template<typename OtherType, typename = std::enable_if_t<std::derived_from<OtherType, ObjectType> || std::derived_from<ObjectType, OtherType>>>
+	FORCEINLINE bool operator==(const TWeakObjectPtr<OtherType>& Other) const
+	{
+		return ReinterpretCastRef<uint64>(*this) == ReinterpretCastRef_Unaligned<uint64>(Other);
 	}
 	FORCEINLINE bool operator==(const UObject* Other) const
 	{
