@@ -26,9 +26,11 @@ public:
 	TVoxelChunkedArray() = default;
 	FORCEINLINE TVoxelChunkedArray(TVoxelChunkedArray&& Other)
 		: ArrayNum(Other.ArrayNum)
-		, PrivateChunks(MoveTemp(Other.PrivateChunks))
+		, NumChunks(Other.NumChunks)
+		, ChunkArray(MoveTemp(Other.ChunkArray))
 	{
 		Other.ArrayNum = 0;
+		Other.NumChunks = 0;
 	}
 	TVoxelChunkedArray(const TVoxelChunkedArray&) = delete;
 
@@ -40,8 +42,12 @@ public:
 	FORCEINLINE TVoxelChunkedArray& operator=(TVoxelChunkedArray&& Other)
 	{
 		ArrayNum = Other.ArrayNum;
-		PrivateChunks = MoveTemp(Other.PrivateChunks);
+		NumChunks = Other.NumChunks;
+		ChunkArray = MoveTemp(Other.ChunkArray);
+
 		Other.ArrayNum = 0;
+		Other.NumChunks = 0;
+
 		return *this;
 	}
 	TVoxelChunkedArray& operator=(const TVoxelChunkedArray& Other)
@@ -66,18 +72,18 @@ public:
 
 		ArrayNum = NewNum;
 
-		const int32 NumChunks = FVoxelUtilities::DivideCeil_Positive(ArrayNum, NumPerChunk);
-		if (PrivateChunks.Num() > NumChunks)
+		const int32 NewNumChunks = FVoxelUtilities::DivideCeil_Positive(ArrayNum, NumPerChunk);
+		if (NumChunks > NewNumChunks)
 		{
-			PrivateChunks.SetNum(NumChunks);
+			NumChunks = NewNumChunks;
 			return;
 		}
 
 		VOXEL_FUNCTION_COUNTER_NUM(NewNum, 16384);
 
-		PrivateChunks.Reserve(NumChunks);
+		ChunkArray.Reserve(NewNumChunks);
 
-		while (PrivateChunks.Num() < NumChunks)
+		while (NumChunks < NewNumChunks)
 		{
 			AllocateNewChunk();
 		}
@@ -101,8 +107,8 @@ public:
 
 			ArrayNum = NewNum;
 
-			checkVoxelSlow(PrivateChunks.Num() >= NewNumChunks);
-			PrivateChunks.SetNum(NewNumChunks);
+			checkVoxelSlow(NumChunks >= NewNumChunks);
+			NumChunks = NewNumChunks;
 
 			return;
 		}
@@ -111,10 +117,10 @@ public:
 
 		// Allocate chunks
 		{
-			checkVoxelSlow(PrivateChunks.Num() <= NewNumChunks);
-			PrivateChunks.Reserve(NewNumChunks);
+			checkVoxelSlow(NumChunks <= NewNumChunks);
+			ChunkArray.Reserve(NewNumChunks);
 
-			while (PrivateChunks.Num() < NewNumChunks)
+			while (NumChunks < NewNumChunks)
 			{
 				AllocateNewChunk();
 			}
@@ -140,8 +146,14 @@ public:
 	}
 	void Reserve(const int32 Number)
 	{
-		const int32 NumChunks = FVoxelUtilities::DivideCeil_Positive(Number, NumPerChunk);
-		PrivateChunks.Reserve(NumChunks);
+		const int32 NewNumChunks = FVoxelUtilities::DivideCeil_Positive(Number, NumPerChunk);
+
+		ChunkArray.Reserve(NewNumChunks);
+
+		while (ChunkArray.Num() < NewNumChunks)
+		{
+			ChunkArray.Add(MakeUnique<FChunk>(NoInit));
+		}
 	}
 	void Reset()
 	{
@@ -153,26 +165,28 @@ public:
 			}
 		}
 
-		PrivateChunks.Reset();
 		ArrayNum = 0;
+		NumChunks = 0;
 	}
 	void Empty()
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num(), 4 * NumPerChunk);
 
 		Reset();
-		PrivateChunks.Empty();
+		ChunkArray.Empty();
 	}
 	void Shrink()
 	{
-		PrivateChunks.Shrink();
+		checkVoxelSlow(ChunkArray.Num() >= NumChunks);
+		ChunkArray.SetNum(NumChunks);
+		ChunkArray.Shrink();
 	}
 	void Memset(const uint8 Value)
 	{
-		for (int32 Index = 0; Index < PrivateChunks.Num(); Index++)
+		for (int32 Index = 0; Index < NumChunks; Index++)
 		{
 			int32 NumToSet = NumPerChunk;
-			if (Index == PrivateChunks.Num() - 1)
+			if (Index == NumChunks - 1)
 			{
 				NumToSet = Num() % NumPerChunk;
 
@@ -314,7 +328,7 @@ public:
 	}
 	FORCEINLINE int64 GetAllocatedSize() const
 	{
-		return PrivateChunks.GetAllocatedSize() + PrivateChunks.Num() * sizeof(FChunk);
+		return ChunkArray.GetAllocatedSize() + ChunkArray.Num() * sizeof(FChunk);
 	}
 	FORCEINLINE bool IsValidIndex(const int32 Index) const
 	{
@@ -575,7 +589,7 @@ public:
 
 		if (ArrayNum % NumPerChunk == 0)
 		{
-			PrivateChunks.Pop();
+			NumChunks--;
 		}
 
 		return Value;
@@ -667,11 +681,12 @@ public:
 		VOXEL_FUNCTION_COUNTER();
 		checkVoxelSlow(Num() > 0);
 
-		TUniquePtr<FChunk> Chunk = MoveTemp(PrivateChunks[0]);
+		TUniquePtr<FChunk> Chunk = MoveTemp(ChunkArray[0]);
 		const int32 NumRemoved = FMath::Min(NumPerChunk, Num());
 
 		ArrayNum -= NumRemoved;
-		PrivateChunks.RemoveAt(0);
+		NumChunks--;
+		ChunkArray.RemoveAt(0);
 
 		return FChunkView(MoveTemp(Chunk), NumRemoved);
 	}
@@ -738,8 +753,8 @@ public:
 
 		TIterator<Type> Iterator;
 		Iterator.Value = &GetChunkView(0)[0];
-		Iterator.ChunkIterator = PrivateChunks.GetData();
-		Iterator.ChunkIteratorEnd = PrivateChunks.GetData() + PrivateChunks.Num();
+		Iterator.ChunkIterator = ChunkArray.GetData();
+		Iterator.ChunkIteratorEnd = ChunkArray.GetData() + NumChunks;
 		return Iterator;
 	}
 	FORCEINLINE TIterator<const Type> begin() const
@@ -755,7 +770,7 @@ public:
 		}
 
 		const int32 ChunkIndex = FVoxelUtilities::GetChunkIndex<NumPerChunk>(ArrayNum);
-		if (ChunkIndex >= PrivateChunks.Num())
+		if (ChunkIndex >= NumChunks)
 		{
 			// ChunkIteratorEnd will handle termination
 			return nullptr;
@@ -766,7 +781,8 @@ public:
 
 private:
 	int32 ArrayNum = 0;
-	FChunkArray PrivateChunks;
+	int32 NumChunks = 0;
+	FChunkArray ChunkArray;
 
 	FORCEINLINE int32 AddUninitializedImpl()
 	{
@@ -787,26 +803,37 @@ private:
 		const int32 OldNumChunks = FVoxelUtilities::DivideCeil_Positive(OldNum, NumPerChunk);
 		const int32 NewNumChunks = FVoxelUtilities::DivideCeil_Positive(NewNum, NumPerChunk);
 
-		checkVoxelSlow(PrivateChunks.Num() == OldNumChunks);
+		checkVoxelSlow(NumChunks == OldNumChunks);
 		for (int32 ChunkIndex = OldNumChunks; ChunkIndex < NewNumChunks; ChunkIndex++)
 		{
 			AllocateNewChunk();
 		}
-		checkVoxelSlow(PrivateChunks.Num() == NewNumChunks);
+		checkVoxelSlow(NumChunks == NewNumChunks);
 
 		return OldNum;
 	}
 
 	FORCENOINLINE void AllocateNewChunk()
 	{
-		PrivateChunks.Add(MakeUnique<FChunk>(NoInit));
+		checkVoxelSlow(NumChunks <= ChunkArray.Num());
+
+		if (NumChunks == ChunkArray.Num())
+		{
+			ChunkArray.Add(MakeUnique<FChunk>(NoInit));
+		}
+
+		NumChunks++;
+
+		checkVoxelSlow(NumChunks <= ChunkArray.Num());
 	}
 	FORCEINLINE TVoxelArrayView<Type> GetChunkView(const int32 ChunkIndex)
 	{
-		return MakeVoxelArrayView(*PrivateChunks[ChunkIndex]).template ReinterpretAs<Type>();
+		checkVoxelSlow(0 <= ChunkIndex && ChunkIndex < NumChunks);
+		return MakeVoxelArrayView(*ChunkArray[ChunkIndex]).template ReinterpretAs<Type>();
 	}
 	FORCEINLINE TConstVoxelArrayView<Type> GetChunkView(const int32 ChunkIndex) const
 	{
-		return MakeVoxelArrayView(*PrivateChunks[ChunkIndex]).template ReinterpretAs<Type>();
+		checkVoxelSlow(0 <= ChunkIndex && ChunkIndex < NumChunks);
+		return MakeVoxelArrayView(*ChunkArray[ChunkIndex]).template ReinterpretAs<Type>();
 	}
 };
