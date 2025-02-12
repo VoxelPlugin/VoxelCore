@@ -13,16 +13,6 @@ public class VoxelCore : ModuleRules
 		bUseUnity = false;
 		PrivatePCHHeaderFile = "Public/VoxelMinimal.h";
 
-		if (Target.Configuration == UnrealTargetConfiguration.Debug ||
-		    Target.Configuration == UnrealTargetConfiguration.DebugGame)
-		{
-			PublicDefinitions.Add("VOXEL_DEBUG=1");
-		}
-		else
-		{
-			PublicDefinitions.Add("VOXEL_DEBUG=0");
-		}
-
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
