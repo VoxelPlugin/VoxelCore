@@ -7,17 +7,17 @@
 #include "Math/TransformCalculus2D.h"
 #include "VoxelBox2D.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct VOXELCORE_API FVoxelBox2D
 {
 	GENERATED_BODY()
 
 	// Included
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Voxel")
 	FVector2D Min = FVector2D(ForceInit);
 
 	// Included (has to be otherwise FVoxelBox2D(X).Contains(X) is false)
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Voxel")
 	FVector2D Max = FVector2D(ForceInit);
 
 	static const FVoxelBox2D Infinite;
