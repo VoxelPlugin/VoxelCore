@@ -55,10 +55,7 @@ If you have a custom PCH, you should add these includes to it.
 
 ## Asserts
 
-VoxelCore uses its own assertion macros (`checkVoxelSlow` etc).
-This allows disabling them in Development Editor builds, which is important for performance-heavy editor features to be fast.
-
-You can change this behavior [here](https://github.com/VoxelPlugin/VoxelCore/blob/master/Source/VoxelCore/VoxelCore.Build.cs#L19).
+VoxelCore uses its own assertion macros (`checkVoxelSlow` etc). By default, they follow `DO_CHECK`. You can manually disable them by defining `VOXEL_DEBUG` to 0 before including `VoxelMinimal.h`
 
 ## Performance details
 
