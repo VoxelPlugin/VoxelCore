@@ -170,7 +170,7 @@ public:
 			if (ScriptStruct &&
 				ScriptStruct->IsChildOf(StaticStructFast<FVoxelVirtualStruct>()))
 			{
-				checkVoxelSlow(ScriptStruct == Get<FVoxelVirtualStruct>().GetStruct());
+				checkVoxelSlow(ScriptStruct == static_cast<const FVoxelVirtualStruct*>(StructMemory)->Internal_GetStruct());
 			}
 		}
 #endif
