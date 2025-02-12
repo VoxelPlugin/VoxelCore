@@ -94,6 +94,10 @@ FString FVoxelPropertyValueBase::ExportToString() const
 			const FColor& Color = Get<FColor>();
 			return FString::Printf(TEXT("%d,%d,%d,%d"), Color.R, Color.G, Color.B, Color.A);
 		}
+		else if (Type.Is<FTransform>())
+		{
+			return Get<FTransform>().ToString();
+		}
 		else
 		{
 			return FVoxelUtilities::PropertyToText_Direct(
@@ -469,6 +473,21 @@ bool FVoxelPropertyValueBase::ImportFromString(const FString& Value)
 			CHECK(FColor, FColor::White);
 
 			return FDefaultValueHelper::ParseColor(Value, Get<FColor>());
+		}
+		else if (Type.Is<FTransform>())
+		{
+			CHECK(FTransform, FTransform::Identity);
+
+			if (Get<FTransform>().InitFromString(Value))
+			{
+				return true;
+			}
+
+			return FVoxelUtilities::PropertyFromText_Direct(
+				*FVoxelUtilities::MakeStructProperty(Struct.GetScriptStruct()),
+				Value,
+				Struct.GetStructMemory(),
+				nullptr);
 		}
 		else
 		{
