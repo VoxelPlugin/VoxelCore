@@ -1,12 +1,43 @@
 # Voxel Core
 
 Voxel Core is an open-source plugin with the Core module of [Voxel Plugin](https://voxelplugin.com/).
-It's essentially a layer on top Unreal to make it easier to write high-performance code & customize the editor.
-Unlike what the name might imply, there's barely any voxel-specific code included here - all of that lives in the other Voxel Plugin modules.
+It contains a bunch of high performance containers to replace the default Unreal ones, and a few helper macros & tools.
 
 This plugin is intented to be used in C++: if your project is blueprint-only, this will be of no use to you.
 
 If you have questions or suggestions about the code, feel free to ask in #cpp in the plugin's Discord: [discord.voxelplugin.com](https://discord.voxelplugin.com)
+
+## Performance
+
+### Map
+
+- `TVoxelMap::FindChecked`: 1.4x faster than TMap, 1.2x faster than `TRobinHoodHashMap`
+- `TVoxelMap::Remove`: 1.4x faster than TMap, 2.4x faster than `TRobinHoodHashMap`
+- `TVoxelMap::FindOrAdd`: 1.2x faster than TMap, 3.7x faster than `TRobinHoodHashMap`
+- `TVoxelMap::Reserve`: 17.4x faster than TMap, 4.5x faster than `TRobinHoodHashMap`
+
+`TVoxelMap` is also quite a bit smaller than `TMap` and `TRobinHoodHashMap`:
+- uint16 -> uint16 with 1M elements: `TVoxelMap` 9.6MB, `TMap` 13.6MB, `TRobinHoodHashMap` 19.8MB
+- uint32 -> uint32 with 1M elements: `TVoxelMap` 13.4MB, `TMap` 17.4MB, `TRobinHoodHashMap` 23.6MB
+
+Note that TVoxelSet performs similarly.
+
+### Bit array
+
+- `FVoxelBitArray::Add`: 1.9x faster than `TBitArray`
+- `FVoxelBitArray::CountSetBits`: 6.6x faster than `TBitArray`
+
+### Sparse array
+
+- `TVoxelSparseArray::Add`: up to 1.7x faster than `TSparseArray`
+- `TVoxelSparseArray::RemoveAt`: 1.5x faster than `TSparseArray`
+- `Iterating TVoxelSparseArray`: up to 7.2x faster than `TSparseArray`
+- `TVoxelSparseArray::Reserve`: 345x faster than `TSparseArray`
+
+### Misc
+
+- `TVoxelUniqueFunction`: 1.8x faster than `TUniqueFunction`
+- `TVoxelArray::RemoveAtSwap`: 2.9x faster than `TArray` (size [here](https://github.com/EpicGames/UnrealEngine/blob/bee4336c7af93976a152b932bdff9a23cd564ed2/Engine/Source/Runtime/Core/Public/Containers/Array.h#L2038C26-L2038C27) isn't compile-time)
 
 ## Compatibility
 
@@ -27,46 +58,51 @@ If you have a custom PCH, you should add these includes to it.
 VoxelCore uses its own assertion macros (`checkVoxelSlow` etc).
 This allows disabling them in Development Editor builds, which is important for performance-heavy editor features to be fast.
 
-You can change this behavior in `VoxelCore.Build.cs`.
+You can change this behavior [here](https://github.com/VoxelPlugin/VoxelCore/blob/master/Source/VoxelCore/VoxelCore.Build.cs#L19).
 
-## Overview
+## Performance details
 
-### Containers
+Here's the full output of [VoxelCoreBenchmark.cpp](https://github.com/VoxelPlugin/VoxelCore/blob/master/Source/VoxelCore/Private/VoxelCoreBenchmark.cpp), comparing voxel containers against engine ones in shipping with checks disabled.
+This capture was done on a 7945HX.
 
-A variety of high-performance containers are included:
-
-* `TVoxelAddOnlySet`
-* `TVoxelArray`
-* `TVoxelArrayView`
-* `TVoxelBitArray`
-* `TVoxelChunkedArray`
-* `TVoxelMap`
-* `TVoxelSparseArray`
-* `TVoxelChunkedSparseArray`
-* `TVoxelStaticArray`
-* `TVoxelStaticBitArray`
-
-Some of them, like TVoxelArray, are mainly there to disable range checking when `VOXEL_DEBUG` is 0.
-Others, like `TVoxelMap`, are full replacement of engine containers to be faster.
-
-Here's a few benchmarks in a shipping build with checks disabled (see `FVoxelCoreBenchmark::Run()`), comparing voxel containers against engine ones.
-
-```cpp
-Map::FindChecked               1.2x faster    Engine: 1.39ns    Voxel: 1.21ns    std:  5%  7%
-Map::Remove                    1.2x faster    Engine: 13.98ns   Voxel: 11.6ns    std:  4%  4%
-Map::Reserve(1M)              66.6x faster    Engine: 1.22ms    Voxel: 18.32us   std:  5% 14%
-Map::FindOrAdd                 2.2x faster    Engine: 1.99ns    Voxel: 0.89ns    std:  8%  5%
-Map::FindOrAdd<FIntVector>     5.9x faster    Engine: 8.82ns    Voxel: 1.5ns     std: 12%  4%
-Map::Add_CheckNew              4.5x faster    Engine: 9.5ns     Voxel: 2.12ns    std: 22%  2%
-SparseArray::Reserve(1M)       2.5x faster    Engine: 1.09ms    Voxel: 443.1us   std: 54%  5%
-SparseArray::Add               1.4x faster    Engine: 2.99ns    Voxel: 2.11ns    std:  8% 14%
-BitArray::Add                  2.1x faster    Engine: 3.02ns    Voxel: 1.45ns    std: 14% 17%
-BitArray::CountSetBits         9.1x faster    Engine: 56.56us   Voxel: 6.25us    std:  3% 16%
-ConstSetBitIterator            3.4x faster    Engine: 1.03ms    Voxel: 306.48us  std:  6%  5%
-Array::RemoveAtSwap            3.2x faster    Engine: 2.06ns    Voxel: 0.65ns    std: 15%  6%
-AActor::StaticClass            2.9x faster    Engine: 1.25ns    Voxel: 0.43ns    std:  3%  4%
+```
+Calling TUniqueFunction                            took 1.96ns    +- 0       and Calling TVoxelUniqueFunction                       took 1.09ns    +- 0       ====>  1.8x faster
+TMap::FindChecked                                  took 1.45ns    +- 0.2     and TVoxelMap::FindChecked                             took 1.29ns    +- 0.2     ====>  1.1x faster
+TMap::Remove                                       took 34.93ns   +- 3.1     and TVoxelMap::Remove                                  took 24.1ns    +- 2.3     ====>  1.4x faster
+  Note: TVoxelMap::Remove does a RemoveAtSwap and doesn't keep order. TMap::Remove keeps order as long as no new element is added afterwards
+TMap::FindOrAdd                                    took 0.95ns    +- 0.1     and TVoxelMap::FindOrAdd                               took 0.81ns    +- 0.1     ====>  1.2x faster
+TMap::Add                                          took 7.51ns    +- 0.1     and TVoxelMap::Add_CheckNew                            took 2.14ns    +- 0.1     ====>  3.5x faster
+  Note: TVoxelMap::Add_CheckNew can only be used when the element is not already in the map
+TMap::Reserve(1M)                                  took 1.16ms    +- 0       and TVoxelMap::Reserve(1M)                             took 66.8us    +- 5.3     ====> 17.4x faster
+  Note: TMap::Reserve builds a linked list on reserve, TVoxelMap::Reserve is a memset
+TMap<uint16, uint16> with 1M elements: 13.6MB TVoxelMap<uint16, uint16> with 1M elements: 9.6MB
+TMap<uint32, uint32> with 1M elements: 17.4MB TVoxelMap<uint32, uint32> with 1M elements: 13.4MB
+TRobinHoodHashMap::Find                            took 1.42ns    +- 0.1     and TVoxelMap::FindChecked                             took 1.14ns    +- 0.1     ====>  1.2x faster
+TRobinHoodHashMap::Remove + Add                    took 71.3ns    +- 6.3     and TVoxelMap::Remove + Add                            took 30.05ns   +- 1.5     ====>  2.4x faster
+  Note: TRobinHoodHashMap::Remove can shrink the table. We add back the element we removed to avoid that.
+TRobinHoodHashMap::FindOrAdd                       took 3.68ns    +- 0.1     and TVoxelMap::FindOrAdd                               took 0.99ns    +- 0.1     ====>  3.7x faster
+TRobinHoodHashMap::Reserve(1M)                     took 298.26us  +- 6.7     and TVoxelMap::Reserve(1M)                             took 66.9us    +- 7       ====>  4.5x faster
+TRobinHoodHashMap<uint16, uint16> with 1M elements: 19.8MB TVoxelMap<uint16, uint16> with 1M elements: 9.6MB
+TRobinHoodHashMap<uint32, uint32> with 1M elements: 23.6MB TVoxelMap<uint32, uint32> with 1M elements: 13.4MB
+TArray::RemoveAtSwap                               took 1.68ns    +- 0.1     and TVoxelArray::RemoveAtSwap                          took 0.58ns    +- 0       ====>  2.9x faster
+  Note: TArray::RemoveAtSwap of one element does a memcpy with a non-compile-time size
+TBitArray::Add                                     took 2.14ns    +- 0       and FVoxelBitArray::Add                                took 1.14ns    +- 0.1     ====>  1.9x faster
+TBitArray::CountSetBits(1M)                        took 37.2us    +- 2.7     and FVoxelBitArray::CountSetBits(1M)                   took 5.64us    +- 0.6     ====>  6.6x faster
+  Note: FVoxelBitArray::CountSetBits makes use of the popcount intrinsics
+TSparseArray::Add (empty array)                    took 2.77ns    +- 0.1     and TVoxelSparseArray::Add (empty array)               took 1.64ns    +- 0       ====>  1.7x faster
+TSparseArray::Add (full array, all removed)        took 2.76ns    +- 0.1     and TVoxelSparseArray::Add (full array, all removed)   took 2.75ns    +- 0       ====>  1.0x faster
+TSparseArray::RemoveAt                             took 1.6ns     +- 0       and TVoxelSparseArray::RemoveAt                        took 1.04ns    +- 0.1     ====>  1.5x faster
+Iterating TSparseArray of size 1M 0% empty         took 2.59ms    +- 0.1     and Iterating TVoxelSparseArray of size 1M 0% empty    took 359.0us   +- 8.1     ====>  7.2x faster
+Iterating TSparseArray of size 1M 25% empty        took 1.85ms    +- 0       and Iterating TVoxelSparseArray of size 1M 25% empty   took 1.16ms    +- 0       ====>  1.6x faster
+Iterating TSparseArray of size 1M 50% empty        took 1.35ms    +- 0.1     and Iterating TVoxelSparseArray of size 1M 50% empty   took 1.31ms    +- 0.1     ====>  1.0x faster
+Iterating TSparseArray of size 1M 75% empty        took 803.95us  +- 18.6    and Iterating TVoxelSparseArray of size 1M 75% empty   took 544.82us  +- 12.1    ====>  1.5x faster
+Iterating TSparseArray of size 1M 99% empty        took 292.23us  +- 15.4    and Iterating TVoxelSparseArray of size 1M 99% empty   took 181.23us  +- 6.8     ====>  1.6x faster
+TSparseArray::Reserve(1M)                          took 848.0us   +- 20.8    and TVoxelSparseArray::Reserve(1M)                     took 2.45us    +- 0.7     ====> 345.6x faster
+  Note: TSparseArray::Reserve creates a linked list, TVoxelSparseArray::Reserve is a memset
 ```
 
+
+# Feature overview
 
 ### Messages
 
