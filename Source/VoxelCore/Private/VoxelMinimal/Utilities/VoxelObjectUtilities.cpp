@@ -689,8 +689,9 @@ uint64 FVoxelUtilities::HashProperty(const FProperty& Property, const void* Data
 		UScriptStruct::ICppStructOps* CppStructOps = Struct->GetCppStructOps();
 		check(CppStructOps);
 
-		if (!ensureMsgf(CppStructOps->HasGetTypeHash(), TEXT("Missing hash for %s"), *Struct->GetName()))
+		if (!CppStructOps->HasGetTypeHash())
 		{
+			// TODO Serialize instead and compute hash from that?
 			return 0;
 		}
 
