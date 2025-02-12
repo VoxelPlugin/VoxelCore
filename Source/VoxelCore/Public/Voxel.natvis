@@ -212,8 +212,8 @@
     <Expand>
       <IndexListItems>
         <Size>ArrayNum</Size>
-        <ValueNode Condition="!PrivateChunks.AllocatorInstance.SecondaryData.Data">(($T1**)PrivateChunks.AllocatorInstance.InlineData)[$i / NumPerChunk][$i % NumPerChunk]</ValueNode>
-        <ValueNode Condition="PrivateChunks.AllocatorInstance.SecondaryData.Data">(($T1**)PrivateChunks.AllocatorInstance.SecondaryData.Data)[$i / NumPerChunk][$i % NumPerChunk]</ValueNode>
+        <ValueNode Condition="!ChunkArray.AllocatorInstance.SecondaryData.Data">(($T1**)ChunkArray.AllocatorInstance.InlineData)[$i / NumPerChunk][$i % NumPerChunk]</ValueNode>
+        <ValueNode Condition="ChunkArray.AllocatorInstance.SecondaryData.Data">(($T1**)ChunkArray.AllocatorInstance.SecondaryData.Data)[$i / NumPerChunk][$i % NumPerChunk]</ValueNode>
       </IndexListItems>
     </Expand>
   </Type>
