@@ -211,7 +211,8 @@ public:
 		Reserve(Num() + Number);
 	}
 
-	bool OrderIndependentEqual(const TVoxelMap& Other) const
+	template<typename OtherAllocator>
+	bool OrderIndependentEqual(const TVoxelMap<KeyType, ValueType, OtherAllocator>& Other) const
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
 
@@ -234,7 +235,8 @@ public:
 		}
 		return true;
 	}
-	bool OrderDependentEqual(const TVoxelMap& Other) const
+	template<typename OtherAllocator>
+	bool OrderDependentEqual(const TVoxelMap<KeyType, ValueType, OtherAllocator>& Other) const
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
 
@@ -258,7 +260,28 @@ public:
 		return true;
 	}
 
-	void Append(const TVoxelMap& Other)
+	template<typename OtherValueType, typename OtherAllocator>
+	bool HasSameKeys(const TVoxelMap<KeyType, OtherValueType, OtherAllocator>& Other) const
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
+
+		if (Num() != Other.Num())
+		{
+			return false;
+		}
+
+		for (const auto& It : Other)
+		{
+			if (!this->Contains(It.Key))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	template<typename OtherAllocator>
+	void Append(const TVoxelMap<KeyType, ValueType, OtherAllocator>& Other)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 1024);
 

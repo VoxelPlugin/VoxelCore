@@ -111,8 +111,6 @@ void FVoxelDependency::Invalidate(const FVoxelDependencyInvalidationParameters& 
 	{
 		VOXEL_FUNCTION_COUNTER();
 
-		OnInvalidated.Broadcast(Parameters);
-
 		FVoxelDependencyInvalidationScope LocalScope;
 		FVoxelDependencyInvalidationScope& RootScope = FVoxelDependencyInvalidationScope::RootScope();
 
