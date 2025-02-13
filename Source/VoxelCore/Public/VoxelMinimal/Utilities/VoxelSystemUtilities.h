@@ -3,12 +3,12 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
-#include "VoxelMinimal/Containers/VoxelStaticArray.h"
+#include "VoxelMinimal/Containers/VoxelArray.h"
 
 class IPlugin;
 struct FVoxelPluginVersion;
 
-using FVoxelStackFrames = TVoxelStaticArray_ForceInit<void*, 14>;
+using FVoxelStackFrames = TVoxelInlineArray<void*, 14>;
 
 FORCEINLINE uint32 GetTypeHash(const FVoxelStackFrames& StackFrames)
 {
@@ -56,6 +56,7 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	VOXELCORE_API FVoxelStackFrames GetStackFrames(int32 NumFramesToIgnore = 1);
+	VOXELCORE_API FVoxelStackFrames GetStackFrames(int32 NumFramesToIgnore = 2);
 	VOXELCORE_API TVoxelArray<FString> StackFramesToString(const FVoxelStackFrames& StackFrames);
+	VOXELCORE_API FString GetPrettyCallstack(int32 NumFramesToIgnore = 3);
 };

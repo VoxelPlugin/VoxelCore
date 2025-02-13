@@ -1,6 +1,7 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
+#include "UObject/CoreRedirects.h"
 #include "UObject/UObjectThreadContext.h"
 
 void FVoxelInstancedStruct::InitializeAs(UScriptStruct* NewScriptStruct, const void* NewStructMemory)
@@ -92,10 +93,10 @@ bool FVoxelInstancedStruct::Serialize(FArchive& Ar)
 
 	if (Ar.IsLoading())
 	{
-		FString StructName;
+		FString StructPath;
 		if (Version >= FVersion::StoreName)
 		{
-			Ar << StructName;
+			Ar << StructPath;
 		}
 
 		{
@@ -103,10 +104,17 @@ bool FVoxelInstancedStruct::Serialize(FArchive& Ar)
 			Ar << NewScriptStruct;
 
 			if (!NewScriptStruct &&
-				StructName != TEXTVIEW("<null>"))
+				StructPath != TEXTVIEW("<null>"))
 			{
 				VOXEL_SCOPE_COUNTER("FindFirstObject");
-				NewScriptStruct = FindFirstObject<UScriptStruct>(*StructName, EFindFirstObjectOptions::EnsureIfAmbiguous);
+
+				// Serializing structs directly doesn't seem to handle redirects properly
+				const FCoreRedirectObjectName RedirectedName = FCoreRedirects::GetRedirectedName(
+					ECoreRedirectFlags::Type_Struct,
+					FCoreRedirectObjectName(StructPath),
+					ECoreRedirectMatchFlags::AllowPartialMatch);
+
+				NewScriptStruct = FindFirstObject<UScriptStruct>(*RedirectedName.ToString(), EFindFirstObjectOptions::EnsureIfAmbiguous);
 			}
 
 			if (NewScriptStruct)
@@ -126,29 +134,10 @@ bool FVoxelInstancedStruct::Serialize(FArchive& Ar)
 
 		if (!GetScriptStruct() && SerializedSize > 0)
 		{
-			// Struct not found
-
-			TArray<FProperty*> Properties;
-			Ar.GetSerializedPropertyChain(Properties);
-
-			FString Name;
-			if (const FUObjectSerializeContext* SerializeContext = FUObjectThreadContext::Get().GetSerializeContext())
-			{
-				if (SerializeContext->SerializedObject)
-				{
-					Name += SerializeContext->SerializedObject->GetPathName();
-				}
-			}
-
-			for (int32 Index = 0; Index < Properties.Num(); Index++)
-			{
-				if (!Name.IsEmpty())
-				{
-					Name += ".";
-				}
-				Name += Properties.Last(Index)->GetNameCPP();
-			}
-			LOG_VOXEL(Warning, "Struct %s not found: %s", *StructName, *Name);
+			LOG_VOXEL(Warning, "Struct %s not found. Archive: %s Callstack: \n%s",
+				*StructPath,
+				*FVoxelUtilities::GetArchivePath(Ar),
+				*FVoxelUtilities::GetPrettyCallstack());
 
 			Ar.Seek(Ar.Tell() + SerializedSize);
 		}
@@ -176,17 +165,17 @@ bool FVoxelInstancedStruct::Serialize(FArchive& Ar)
 		Ar.IsObjectReferenceCollector() ||
 		Ar.IsCountingMemory())
 	{
-		FString StructName;
+		FString StructPath;
 		if (GetScriptStruct())
 		{
-			StructName = GetScriptStruct()->GetName();
+			StructPath = GetScriptStruct()->GetPathName();
 		}
 		else
 		{
-			StructName = "<null>";
+			StructPath = "<null>";
 		}
 
-		Ar << StructName;
+		Ar << StructPath;
 		Ar << PrivateScriptStruct;
 
 		const int64 SerializedSizePosition = Ar.Tell();

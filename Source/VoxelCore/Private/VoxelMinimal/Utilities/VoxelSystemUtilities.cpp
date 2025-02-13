@@ -506,22 +506,37 @@ void FVoxelUtilities::CleanupFileCache(const FString& Path, const int64 MaxSize)
 
 FVoxelStackFrames FVoxelUtilities::GetStackFrames(const int32 NumFramesToIgnore)
 {
-	TVoxelStaticArray<void*, 64> TmpStackFramesAllocation(NoInit);
-
-	TVoxelArrayView<void*> TmpStackFrames = MakeVoxelArrayView(TmpStackFramesAllocation).LeftOf(FVoxelStackFrames::Num() + NumFramesToIgnore);
-	FVoxelUtilities::Memzero(TmpStackFrames);
+	// MAX_CALLSTACK_DEPTH is 128
+	TVoxelStaticArray<void*, 128> StackFrames(NoInit);
 
 	FPlatformStackWalk::CaptureStackBackTrace(
-		ReinterpretCastPtr<uint64>(TmpStackFrames.GetData()),
-		TmpStackFrames.Num());
+		ReinterpretCastPtr<uint64>(StackFrames.GetData()),
+		StackFrames.Num());
 
-	FVoxelStackFrames StackFrames;
+	int32 Depth = 0;
+	while (
+		Depth < StackFrames.Num() &&
+		StackFrames[Depth])
+	{
+		Depth++;
+	}
 
-	FVoxelUtilities::Memcpy(
-		MakeVoxelArrayView(StackFrames),
-		MakeVoxelArrayView(TmpStackFrames).RightOf(NumFramesToIgnore));
+	if (Depth < NumFramesToIgnore)
+	{
+		UE_DEBUG_BREAK();
+		return {};
+	}
 
-	return StackFrames;
+	FVoxelStackFrames Result;
+	Result.Reserve(Depth - NumFramesToIgnore);
+
+	for (int32 Index = NumFramesToIgnore; Index < Depth; Index++)
+	{
+		Result.Add_EnsureNoGrow(StackFrames[Index]);
+	}
+
+	checkVoxelSlow(Result.Num() == Depth - NumFramesToIgnore);
+	return Result;
 }
 
 TVoxelArray<FString> FVoxelUtilities::StackFramesToString(const FVoxelStackFrames& StackFrames)
@@ -635,4 +650,12 @@ TVoxelArray<FString> FVoxelUtilities::StackFramesToString(const FVoxelStackFrame
 	}
 
 	return Result;
+}
+
+FString FVoxelUtilities::GetPrettyCallstack(const int32 NumFramesToIgnore)
+{
+	const FVoxelStackFrames StackFrames = GetStackFrames(NumFramesToIgnore);
+	const TVoxelArray<FString> Lines = StackFramesToString(StackFrames);
+
+	return FString::Join(Lines, TEXT("\n"));
 }

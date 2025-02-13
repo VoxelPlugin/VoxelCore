@@ -3,6 +3,7 @@
 #include "VoxelMinimal.h"
 #include "EdGraph/EdGraph.h"
 #include "UObject/MetaData.h"
+#include "UObject/UObjectThreadContext.h"
 #include "Misc/UObjectToken.h"
 #include "Serialization/BulkDataReader.h"
 #include "Serialization/BulkDataWriter.h"
@@ -419,6 +420,34 @@ void FVoxelUtilities::InvokeFunctionWithNoParameters(UObject* Object, UFunction*
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+
+FString FVoxelUtilities::GetArchivePath(const FArchive& Ar)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	TArray<FProperty*> Properties;
+	Ar.GetSerializedPropertyChain(Properties);
+
+	FString Name;
+	if (const FUObjectSerializeContext* SerializeContext = FUObjectThreadContext::Get().GetSerializeContext())
+	{
+		if (SerializeContext->SerializedObject)
+		{
+			Name += SerializeContext->SerializedObject->GetPathName();
+		}
+	}
+
+	for (int32 Index = 0; Index < Properties.Num(); Index++)
+	{
+		if (!Name.IsEmpty())
+		{
+			Name += ".";
+		}
+		Name += Properties.Last(Index)->GetNameCPP();
+	}
+
+	return Name;
+}
 
 bool FVoxelUtilities::ShouldSerializeBulkData(FArchive& Ar)
 {
