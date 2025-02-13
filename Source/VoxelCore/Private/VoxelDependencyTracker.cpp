@@ -22,7 +22,6 @@ int64 FVoxelDependencyTracker::GetAllocatedSize() const
 	return
 		sizeof(*this) +
 		DependencyRefs_RequiresLock.GetAllocatedSize() +
-		ObjectsToKeepAlive_RequiresLock.GetAllocatedSize() +
 		DependencyToTrackerRefs_RequiresLock.GetAllocatedSize();
 }
 
@@ -77,14 +76,6 @@ void FVoxelDependencyTracker::AddDependency(
 	DependencyRef.Index = Index;
 }
 
-void FVoxelDependencyTracker::AddObjectToKeepAlive(const FSharedVoidPtr& ObjectToKeepAlive)
-{
-	VOXEL_SCOPE_LOCK(CriticalSection);
-	checkVoxelSlow(!bIsFinalized_RequiresLock);
-
-	ObjectsToKeepAlive_RequiresLock.Add(MakeSharedVoidPtr(ObjectToKeepAlive));
-}
-
 bool FVoxelDependencyTracker::SetOnInvalidated(
 	TVoxelUniqueFunction<void()> NewOnInvalidated,
 	const bool bFireNow,
@@ -98,7 +89,6 @@ bool FVoxelDependencyTracker::SetOnInvalidated(
 		bIsFinalized_RequiresLock = true;
 	}
 
-	ObjectsToKeepAlive_RequiresLock.Shrink();
 	DependencyToTrackerRefs_RequiresLock.Shrink();
 	DependencyToTrackerRefs_RequiresLock.Empty();
 
@@ -143,7 +133,6 @@ FVoxelDependencyTracker::FVoxelDependencyTracker(const FName& Name)
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	ObjectsToKeepAlive_RequiresLock.Reserve(128);
 	DependencyRefs_RequiresLock.Reserve(128);
 }
 

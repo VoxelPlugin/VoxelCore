@@ -34,8 +34,6 @@ public:
 		const TSharedRef<FVoxelDependency>& Dependency,
 		const TOptional<FVoxelBox>& Bounds = {});
 
-	void AddObjectToKeepAlive(const FSharedVoidPtr& ObjectToKeepAlive);
-
 	// Returns false if already invalidated
 	bool SetOnInvalidated(
 		TVoxelUniqueFunction<void()> NewOnInvalidated,
@@ -50,7 +48,6 @@ private:
 	FVoxelCriticalSection_NoPadding CriticalSection;
 	bool bIsFinalized_RequiresLock = false;
 	TVoxelUniqueFunction<void()> OnInvalidated_RequiresLock;
-	TVoxelArray<FSharedVoidPtr> ObjectsToKeepAlive_RequiresLock;
 	// Temporary cache to avoid adding the same dependency multiple times
 	TVoxelMap<TWeakPtr<FVoxelDependency>, TVoxelInlineArray<FVoxelDependency::FTrackerRef, 2>> DependencyToTrackerRefs_RequiresLock;
 
