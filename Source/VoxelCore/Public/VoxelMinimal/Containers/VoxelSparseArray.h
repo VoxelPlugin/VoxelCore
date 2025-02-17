@@ -124,14 +124,14 @@ public:
 		return Index;
 	}
 
-	template<typename... ArgTypes, typename = std::enable_if_t<TIsConstructible<Type, ArgTypes...>::Value>>
+	template<typename... ArgTypes, typename = std::enable_if_t<std::is_constructible_v<Type, ArgTypes...>>>
 	FORCEINLINE int32 Emplace(ArgTypes&&... Args)
 	{
 		const int32 Index = this->AddUninitialized();
 		new (&(*this)[Index]) Type(Forward<ArgTypes>(Args)...);
 		return Index;
 	}
-	template<typename... ArgTypes, typename = std::enable_if_t<TIsConstructible<Type, ArgTypes...>::Value>>
+	template<typename... ArgTypes, typename = std::enable_if_t<std::is_constructible_v<Type, ArgTypes...>>>
 	FORCEINLINE Type& Emplace_GetRef(ArgTypes&&... Args)
 	{
 		const int32 Index = this->AddUninitialized();

@@ -1,137 +1,53 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelDependency.h"
-#include "VoxelDependencySink.h"
-#include "VoxelDependencyTracker.h"
+#include "VoxelDependencyManager.h"
 #include "VoxelAABBTree.h"
+#include "VoxelAABBTree2D.h"
 
-DEFINE_VOXEL_MEMORY_STAT(STAT_VoxelDependencies);
+DEFINE_UNIQUE_VOXEL_ID(FVoxelDependencyId);
+DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelDependencyBase);
 
-thread_local FVoxelDependencyInvalidationScope* GVoxelDependencyInvalidationScope = nullptr;
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
-FVoxelDependencyInvalidationScope::FVoxelDependencyInvalidationScope()
+FVoxelDependencyBase::FVoxelDependencyBase(const FString& Name)
+	: Name(Name)
+	, DependencyId(FVoxelDependencyId::New())
 {
-	if (!GVoxelDependencyInvalidationScope)
-	{
-		GVoxelDependencyInvalidationScope = this;
-	}
 }
 
-FVoxelDependencyInvalidationScope::~FVoxelDependencyInvalidationScope()
+bool FVoxelDependencyBase::ShouldSkipInvalidate()
 {
-	if (Invalidations.Num() > 0)
+	// Skipping invalidation when we have no trackers is critical,
+	// as moving a stamp can lead to continuous invalidations, even though the new state is not computed yet
+
+	if (!HasTrackers.Get())
 	{
-		Invalidate();
+		return true;
 	}
 
-	if (GVoxelDependencyInvalidationScope == this)
-	{
-		GVoxelDependencyInvalidationScope = nullptr;
-	}
+	HasTrackers.Set(false);
+	return false;
 }
 
-void FVoxelDependencyInvalidationScope::Invalidate()
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void FVoxelDependency::Invalidate()
 {
 	VOXEL_FUNCTION_COUNTER();
-	ensure(GVoxelDependencyInvalidationScope == this);
 
-	TVoxelSet<TWeakPtr<FVoxelDependencyTracker>> Trackers;
-
-	const auto FlushInvalidations = [&]
+	if (ShouldSkipInvalidate())
 	{
-		VOXEL_SCOPE_COUNTER("FlushInvalidations");
-
-		for (const FInvalidation& Invalidation : Invalidations)
-		{
-			Invalidation.Dependency->GetInvalidatedTrackers(Invalidation.Parameters, Trackers);
-		}
-		Invalidations.Reset();
-
-		Trackers.Append(InvalidatedTrackers);
-		InvalidatedTrackers.Reset();
-	};
-
-	FlushInvalidations();
-
-	while (Trackers.Num() > 0)
-	{
-		TVoxelArray<TVoxelUniqueFunction<void()>> OnInvalidatedArray;
-		OnInvalidatedArray.Reserve(Trackers.Num());
-
-		for (const TWeakPtr<FVoxelDependencyTracker>& WeakTracker : Trackers)
-		{
-			const TSharedPtr<FVoxelDependencyTracker> Tracker = WeakTracker.Pin();
-			if (!Tracker ||
-				Tracker->IsInvalidated())
-			{
-				// Skip lock
-				continue;
-			}
-
-			VOXEL_SCOPE_LOCK(Tracker->CriticalSection);
-
-			if (Tracker->IsInvalidated())
-			{
-				continue;
-			}
-
-			Tracker->bIsInvalidated.Set(true);
-			Tracker->Unregister_RequiresLock();
-
-			if (Tracker->OnInvalidated_RequiresLock)
-			{
-				OnInvalidatedArray.Add(MoveTemp(Tracker->OnInvalidated_RequiresLock));
-			}
-		}
-		Trackers.Reset();
-
-		// This might add new invalidation to Invalidations
-		VOXEL_SCOPE_COUNTER("OnInvalidated");
-		for (const TVoxelUniqueFunction<void()>& OnInvalidated : OnInvalidatedArray)
-		{
-			OnInvalidated();
-		}
-
-		FlushInvalidations();
+		return;
 	}
-}
 
-FVoxelDependencyInvalidationScope& FVoxelDependencyInvalidationScope::RootScope()
-{
-	return *GVoxelDependencyInvalidationScope;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-void FVoxelDependency::Invalidate(const FVoxelDependencyInvalidationParameters& Parameters)
-{
-	FVoxelDependencySink::AddAction(MakeStrongPtrLambda(this, [=, this]
+	GVoxelDependencyManager->InvalidateTrackers(Name, [&](const FVoxelDependencyTracker& Tracker)
 	{
-		VOXEL_FUNCTION_COUNTER();
-
-		FVoxelDependencyInvalidationScope LocalScope;
-		FVoxelDependencyInvalidationScope& RootScope = FVoxelDependencyInvalidationScope::RootScope();
-
-		RootScope.Invalidations.Add(FVoxelDependencyInvalidationScope::FInvalidation
-		{
-			AsShared(),
-			Parameters
-		});
-	}));
-}
-
-void FVoxelDependency::Invalidate(const FVoxelBox& Bounds)
-{
-	Invalidate(TVoxelArray<FVoxelBox>{ Bounds });
-}
-
-void FVoxelDependency::Invalidate(const TConstVoxelArrayView<FVoxelBox> Bounds)
-{
-	Invalidate(FVoxelDependencyInvalidationParameters
-	{
-		FVoxelAABBTree::Create(Bounds)
+		return Tracker.Dependencies_RequiresLock.Contains(DependencyId);
 	});
 }
 
@@ -139,35 +55,94 @@ void FVoxelDependency::Invalidate(const TConstVoxelArrayView<FVoxelBox> Bounds)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FVoxelDependency::FVoxelDependency(const FString& Name)
-	: Name(Name)
+void FVoxelDependency2D::Invalidate(const FVoxelBox2D& Bounds)
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	UpdateStats();
-}
-
-void FVoxelDependency::GetInvalidatedTrackers(
-	const FVoxelDependencyInvalidationParameters& Parameters,
-	TVoxelSet<TWeakPtr<FVoxelDependencyTracker>>& OutTrackers)
-{
-	VOXEL_FUNCTION_COUNTER();
-	VOXEL_SCOPE_LOCK(CriticalSection);
-
-	if (TrackerRefs_RequiresLock.Num() > 0)
+	if (ShouldSkipInvalidate())
 	{
-		LOG_VOXEL(Verbose, "Invalidating %s", *Name);
+		return;
 	}
 
-	TrackerRefs_RequiresLock.Foreach([&](const FTrackerRef& TrackerRef)
+	GVoxelDependencyManager->InvalidateTrackers(Name, [&](const FVoxelDependencyTracker& Tracker)
 	{
-		if (Parameters.Bounds &&
-			TrackerRef.bHasBounds &&
-			!Parameters.Bounds->Intersects(TrackerRef.Bounds))
+		const FVoxelBox2D* TrackerBounds = Tracker.Dependency2DToBounds_RequiresLock.Find(DependencyId);
+		if (!TrackerBounds)
 		{
-			return;
+			return false;
 		}
 
-		OutTrackers.Add(TrackerRef.WeakTracker);
+		return Bounds.Intersects(*TrackerBounds);
+	});
+}
+
+void FVoxelDependency2D::Invalidate(const TConstVoxelArrayView<FVoxelBox2D> BoundsArray)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	if (ShouldSkipInvalidate())
+	{
+		return;
+	}
+
+	const TSharedRef<FVoxelAABBTree2D> Tree = FVoxelAABBTree2D::Create(BoundsArray);
+
+	GVoxelDependencyManager->InvalidateTrackers(Name, [&](const FVoxelDependencyTracker& Tracker)
+	{
+		const FVoxelBox2D* TrackerBounds = Tracker.Dependency2DToBounds_RequiresLock.Find(DependencyId);
+		if (!TrackerBounds)
+		{
+			return false;
+		}
+
+		return Tree->Intersects(*TrackerBounds);
+	});
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void FVoxelDependency3D::Invalidate(const FVoxelBox& Bounds)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	if (ShouldSkipInvalidate())
+	{
+		return;
+	}
+
+	GVoxelDependencyManager->InvalidateTrackers(Name, [&](const FVoxelDependencyTracker& Tracker)
+	{
+		const FVoxelBox* TrackerBounds = Tracker.Dependency3DToBounds_RequiresLock.Find(DependencyId);
+		if (!TrackerBounds)
+		{
+			return false;
+		}
+
+		return Bounds.Intersects(*TrackerBounds);
+	});
+}
+
+void FVoxelDependency3D::Invalidate(const TConstVoxelArrayView<FVoxelBox> BoundsArray)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	if (ShouldSkipInvalidate())
+	{
+		return;
+	}
+
+	const TSharedRef<FVoxelAABBTree> Tree = FVoxelAABBTree::Create(BoundsArray);
+
+	GVoxelDependencyManager->InvalidateTrackers(Name, [&](const FVoxelDependencyTracker& Tracker)
+	{
+		const FVoxelBox* TrackerBounds = Tracker.Dependency3DToBounds_RequiresLock.Find(DependencyId);
+		if (!TrackerBounds)
+		{
+			return false;
+		}
+
+		return Tree->Intersects(*TrackerBounds);
 	});
 }

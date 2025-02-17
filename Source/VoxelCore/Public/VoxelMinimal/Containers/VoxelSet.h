@@ -168,7 +168,7 @@ public:
 	{
 		this->Append<Type>(Array);
 	}
-	template<typename OtherType, typename = std::enable_if_t<TIsConstructible<Type, OtherType>::Value>>
+	template<typename OtherType, typename = std::enable_if_t<std::is_constructible_v<Type, OtherType>>>
 	void Append(const TConstVoxelArrayView<OtherType> Array)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Array.Num(), 1024);
@@ -180,7 +180,7 @@ public:
 			this->Add(Value);
 		}
 	}
-	template<typename OtherType, typename = std::enable_if_t<TIsConstructible<Type, OtherType>::Value>>
+	template<typename OtherType, typename = std::enable_if_t<std::is_constructible_v<Type, OtherType>>>
 	void Append(const TVoxelSet<OtherType>& Set)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Set.Num(), 1024);

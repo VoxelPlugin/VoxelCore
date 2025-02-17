@@ -177,7 +177,8 @@ public:
 		return true;
 	}
 
-	bool Intersects(const FVoxelBox& Bounds) const
+public:
+	FORCEINLINE bool Intersects(const FVoxelBox& Bounds) const
 	{
 		return Intersects(Bounds, [](int32)
 		{
@@ -185,14 +186,27 @@ public:
 		});
 	}
 	template<typename LambdaType>
-	bool Intersects(
+	FORCEINLINE bool Intersects(
 		const FVoxelBox& Bounds,
 		LambdaType&& CustomCheck) const
 	{
-		if (Nodes.Num() == 0)
+		// Critical for performance
+		if (!RootBounds.Intersects(Bounds))
 		{
 			return false;
 		}
+
+		return this->IntersectsImpl(Bounds, MoveTemp(CustomCheck));
+	}
+
+private:
+	template<typename LambdaType>
+	bool IntersectsImpl(
+		const FVoxelBox& Bounds,
+		LambdaType&& CustomCheck) const
+	{
+		checkVoxelSlow(RootBounds.Intersects(Bounds));
+		checkVoxelSlow(Nodes.Num() > 0);
 
 		TVoxelInlineArray<int32, 64> QueuedNodes;
 		QueuedNodes.Add(0);
@@ -234,6 +248,7 @@ public:
 		return false;
 	}
 
+public:
 	template<typename ShouldVisitType, typename VisitType>
 	void Traverse(ShouldVisitType&& ShouldVisit, VisitType&& Visit) const
 	{
@@ -288,7 +303,7 @@ public:
 	}
 
 private:
-	FVoxelBox RootBounds;
+	FVoxelBox RootBounds = FVoxelBox::InvertedInfinite;
 	TVoxelArray<FNode> Nodes;
 	TVoxelArray<FLeaf> Leaves;
 };

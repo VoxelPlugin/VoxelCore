@@ -184,3 +184,24 @@ void FVoxelAABBTree2D::Shrink()
 	Nodes.Shrink();
 	Leaves.Shrink();
 }
+
+TSharedRef<FVoxelAABBTree2D> FVoxelAABBTree2D::Create(const TConstVoxelArrayView<FVoxelBox2D> Bounds)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	TVoxelArray<FElement> Elements;
+	FVoxelUtilities::SetNumFast(Elements, Bounds.Num());
+
+	for (int32 Index = 0; Index < Bounds.Num(); Index++)
+	{
+		Elements[Index] = FElement
+		{
+			Bounds[Index],
+			Index
+		};
+	}
+
+	const TSharedRef<FVoxelAABBTree2D> Tree = MakeShared<FVoxelAABBTree2D>();
+	Tree->Initialize(MoveTemp(Elements));
+	return Tree;
+}
