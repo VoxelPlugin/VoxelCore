@@ -75,6 +75,27 @@ public:
 	}
 };
 
+UCLASS(Abstract)
+class VOXELCOREEDITOR_API UVoxelTextureWithBackgroundRenderer : public UDefaultSizedThumbnailRenderer
+{
+	GENERATED_BODY()
+
+	//~ Begin UVoxelTextureThumbnailRenderer Interface
+	virtual bool CanVisualizeAsset(UObject* Object) override { return true; }
+	virtual void Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* Target, FCanvas* Canvas, bool bAdditionalViewFamily) final override;
+	virtual void BeginDestroy() override;
+	//~ End UVoxelTextureThumbnailRenderer Interface
+
+	virtual void GetTextureWithBackground(
+		UObject* Object,
+		UTexture2D*& OutTexture,
+		FSlateColor& OutTextureColor,
+		FSlateColor& OutColor) const {}
+
+private:
+	TSharedPtr<FWidgetRenderer> WidgetRenderer;
+};
+
 class VOXELCOREEDITOR_API FVoxelThumbnailScene : public FThumbnailPreviewScene
 {
 protected:

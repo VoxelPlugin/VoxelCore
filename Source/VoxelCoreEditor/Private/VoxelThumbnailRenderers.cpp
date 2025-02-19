@@ -3,8 +3,10 @@
 #include "VoxelThumbnailRenderers.h"
 #include "SceneView.h"
 #include "SceneInterface.h"
+#include "ClassIconFinder.h"
+#include "TextureResource.h"
 #include "ThumbnailHelpers.h"
-#include "Engine/Texture.h"
+#include "Engine/Texture2D.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/StaticMeshActor.h"
 #include "ThumbnailRendering/SceneThumbnailInfo.h"
@@ -94,6 +96,73 @@ void UVoxelTextureThumbnailRenderer::GetThumbnailSize(UObject* Object, const flo
 void UVoxelTextureThumbnailRenderer::Draw(UObject* Object, const int32 X, const int32 Y, const uint32 Width, const uint32 Height, FRenderTarget* Target, FCanvas* Canvas, const bool bAdditionalViewFamily)
 {
 	Super::Draw(GetTexture(Object), X, Y, Width, Height, Target, Canvas, bAdditionalViewFamily);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void UVoxelTextureWithBackgroundRenderer::Draw(UObject* Object, int32 X, int32 Y, const uint32 Width, const uint32 Height, FRenderTarget* Target, FCanvas* Canvas, bool bAdditionalViewFamily)
+{
+	if (!WidgetRenderer)
+	{
+		WidgetRenderer = MakeShared<FWidgetRenderer>(false);
+		check(WidgetRenderer);
+	}
+
+	UTexture2D* Texture = nullptr;
+	FSlateColor TextureColor = FLinearColor::White;
+	FSlateColor Color = FStyleColors::Panel;
+	GetTextureWithBackground(Object, Texture, TextureColor, Color);
+
+	const TSharedRef<SOverlay> Thumbnail =
+		SNew(SOverlay)
+		+ SOverlay::Slot()
+		[
+			SNew(SImage)
+			.Image(FAppStyle::GetBrush("Brushes.White"))
+			.ColorAndOpacity(Color)
+		];
+
+	if (Texture)
+	{
+		FSlateBrush IconBrush;
+		IconBrush.SetResourceObject(Texture);
+		IconBrush.ImageSize = FVector2D(Texture->GetSizeX(), Texture->GetSizeY());
+		IconBrush.Tiling = ESlateBrushTileType::NoTile;
+		IconBrush.DrawAs = ESlateBrushDrawType::Image;
+
+		Thumbnail->AddSlot()
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		[
+			SNew(SImage)
+			.Image(&IconBrush)
+			.DesiredSizeOverride(FVector2D(Width / 1.5f, Height / 1.5f))
+			.ColorAndOpacity(TextureColor)
+		];
+	}
+	else
+	{
+		Thumbnail->AddSlot()
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		[
+			SNew(SImage)
+			.Image(FClassIconFinder::FindThumbnailForClass(Object->GetClass()))
+			.DesiredSizeOverride(FVector2D(Width / 1.5f, Height / 1.5f))
+			.ColorAndOpacity(TextureColor)
+		];
+	}
+
+	WidgetRenderer->DrawWidget(Target, Thumbnail, FVector2D(Width, Height), 0.f);
+}
+
+void UVoxelTextureWithBackgroundRenderer::BeginDestroy()
+{
+	WidgetRenderer = nullptr;
+
+	Super::BeginDestroy();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
