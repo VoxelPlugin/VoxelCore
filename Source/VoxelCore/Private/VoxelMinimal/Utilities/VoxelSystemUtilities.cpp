@@ -446,9 +446,20 @@ void FVoxelUtilities::CleanupRedirects(const FString& RedirectsPath)
 		NewLines.Pop();
 	}
 
-	ensure(FFileHelper::SaveStringToFile(
-		FString::Join(NewLines, TEXT("\n")),
-		*RedirectsPath));
+	const FString NewFile = FString::Join(NewLines, TEXT("\n"));
+
+	FString ExistingFile;
+	FFileHelper::LoadFileToString(ExistingFile, *RedirectsPath);
+
+	// Normalize line endings
+	ExistingFile.ReplaceInline(TEXT("\r\n"), TEXT("\n"));
+
+	if (ExistingFile.Equals(NewFile))
+	{
+		return;
+	}
+
+	ensure(FFileHelper::SaveStringToFile(NewFile, *RedirectsPath));
 }
 #endif
 
