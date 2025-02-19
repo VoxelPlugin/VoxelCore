@@ -52,7 +52,7 @@ void FVoxelToolkit::SetTabManager(const TSharedRef<FTabManager>& TabManager)
 
 void FVoxelToolkit::AddReferencedObjects(FReferenceCollector& Collector)
 {
-	AddStructReferencedObjects(Collector);
+	FVoxelUtilities::AddStructReferencedObjects(Collector, *this);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

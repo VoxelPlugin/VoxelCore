@@ -691,7 +691,7 @@ FVoxelPropertyValueBase FVoxelPropertyValueBase::MakeStruct(const FConstVoxelStr
 	check(Struct.IsValid());
 
 	FVoxelPropertyValueBase Result;
-	Result.Type = FVoxelPropertyType::MakeStruct(Struct.GetStruct());
+	Result.Type = FVoxelPropertyType::MakeStruct(Struct.GetScriptStruct());
 	Result.Struct = Struct.MakeInstancedStruct();
 	return Result;
 }

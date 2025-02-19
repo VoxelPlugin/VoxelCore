@@ -119,7 +119,7 @@ void FVoxelStructDetailsWrapper::SyncFromSource() const
 		const FConstVoxelStructView StructView = GetStructView(*Object);
 		const FVoxelStructView StructOnScopeView(*StructOnScope);
 		if (!ensureVoxelSlow(StructView.IsValid()) ||
-			!ensureVoxelSlow(StructView.GetStruct() == StructOnScopeView.GetStruct()))
+			!ensureVoxelSlow(StructView.GetScriptStruct() == StructOnScopeView.GetScriptStruct()))
 		{
 			continue;
 		}

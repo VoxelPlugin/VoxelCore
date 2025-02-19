@@ -468,7 +468,7 @@ void FVoxelEditorToolkitImpl::AddReferencedObjects(FReferenceCollector& Collecto
 {
 	if (Toolkit)
 	{
-		Toolkit->AddStructReferencedObjects(Collector);
+		Toolkit->AddReferencedObjects(Collector);
 	}
 }
 

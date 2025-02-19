@@ -788,12 +788,7 @@ void FVoxelUtilities::AddStructReferencedObjects(FReferenceCollector& Collector,
 		return;
 	}
 
-	if (StructView.GetStruct()->StructFlags & STRUCT_AddStructReferencedObjects)
-	{
-		StructView.GetStruct()->GetCppStructOps()->AddStructReferencedObjects()(StructView.GetMemory(), Collector);
-	}
-
-	Collector.AddPropertyReferences(StructView.GetStruct(), StructView.GetMemory());
+	Collector.AddPropertyReferencesWithStructARO(StructView.GetScriptStruct(), StructView.GetStructMemory());
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -418,19 +418,19 @@
 
   <!-- FVoxelInstancedStruct visualizer -->
   <Type Name="FVoxelInstancedStruct">
-    <DisplayString Condition = "ScriptStruct == nullptr">Unset</DisplayString>
-    <DisplayString Condition = "ScriptStruct != nullptr">Type=F{ScriptStruct->NamePrivate,sb}</DisplayString>
+    <DisplayString Condition = "PrivateScriptStruct == nullptr">Unset</DisplayString>
+    <DisplayString Condition = "PrivateScriptStruct != nullptr">Type=F{PrivateScriptStruct->NamePrivate,sb}</DisplayString>
     <Expand>
-      <ExpandedItem Condition="ScriptStruct != nullptr">*(FVoxelVirtualStruct*)PrivateStructMemory.Object</ExpandedItem>
+      <ExpandedItem Condition="PrivateScriptStruct != nullptr">*(FVoxelVirtualStruct*)PrivateStructMemory.Object</ExpandedItem>
     </Expand>
   </Type>
 
   <!-- TVoxelInstancedStruct visualizer -->
   <Type Name="TVoxelInstancedStruct&lt;*&gt;">
-    <DisplayString Condition = "ScriptStruct == nullptr">Unset</DisplayString>
-    <DisplayString Condition = "ScriptStruct != nullptr">Type=F{ScriptStruct->NamePrivate}</DisplayString>
+    <DisplayString Condition = "PrivateScriptStruct == nullptr">Unset</DisplayString>
+    <DisplayString Condition = "PrivateScriptStruct != nullptr">Type=F{PrivateScriptStruct->NamePrivate}</DisplayString>
     <Expand>
-      <ExpandedItem Condition="ScriptStruct != nullptr">*($T1*)PrivateStructMemory.Object</ExpandedItem>
+      <ExpandedItem Condition="PrivateScriptStruct != nullptr">*($T1*)PrivateStructMemory.Object</ExpandedItem>
     </Expand>
   </Type>
 

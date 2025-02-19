@@ -100,7 +100,6 @@ public:
 
 	void CopyTo(FVoxelVirtualStruct& Other) const;
 	TSharedRef<FVoxelVirtualStruct> MakeSharedCopy() const;
-	virtual void AddStructReferencedObjects(FReferenceCollector& Collector);
 
 public:
 	TSharedRef<FJsonObject> SaveToJson(
@@ -184,19 +183,6 @@ private:
 	GENERATED_VIRTUAL_STRUCT_BODY_ALIASES()
 
 #define GENERATED_VIRTUAL_STRUCT_BODY() GENERATED_VIRTUAL_STRUCT_BODY_IMPL(PREPROCESSOR_NOTHING)
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-template<>
-struct TStructOpsTypeTraits<FVoxelVirtualStruct> : TStructOpsTypeTraitsBase2<FVoxelVirtualStruct>
-{
-	enum
-	{
-		WithAddStructReferencedObjects = true,
-	};
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

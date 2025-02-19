@@ -5,16 +5,12 @@
 #include "VoxelCoreMinimal.h"
 #include "Templates/Casts.h"
 #include "Templates/SubclassOf.h"
-#include "UObject/WeakInterfacePtr.h"
 #include "Serialization/BulkData.h"
+#include "VoxelMinimal/VoxelStructView.h"
 #include "VoxelMinimal/VoxelObjectHelpers.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 
 class FUObjectToken;
-
-template<typename>
-class TVoxelStructView;
-using FVoxelStructView = TVoxelStructView<void>;
 
 extern VOXELCORE_API bool GVoxelDoNotCreateSubobjects;
 #if WITH_EDITOR
@@ -150,6 +146,12 @@ namespace FVoxelUtilities
 	VOXELCORE_API uint64 HashProperty(const FProperty& Property, const void* DataPtr);
 	VOXELCORE_API void DestroyStruct_Safe(const UScriptStruct* Struct, void* StructMemory);
 	VOXELCORE_API void AddStructReferencedObjects(FReferenceCollector& Collector, const FVoxelStructView& StructView);
+
+	template<typename T>
+	void AddStructReferencedObjects(FReferenceCollector& Collector, T& Struct)
+	{
+		FVoxelUtilities::AddStructReferencedObjects(Collector, FVoxelStructView::Make(Struct));
+	}
 
 	template<typename T>
 	bool AreStructsIdentical(const T& A, const T& B)

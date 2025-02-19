@@ -214,7 +214,7 @@ void ForeachObjectReference(
 	VOXEL_FUNCTION_COUNTER();
 
 	FVoxelArchiveForeachObjectReference Archive(Lambda, SkipFlags);
-	Struct.GetStruct()->SerializeItem(Archive, Struct.GetMemory(), nullptr);
+	Struct.GetScriptStruct()->SerializeItem(Archive, Struct.GetStructMemory(), nullptr);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

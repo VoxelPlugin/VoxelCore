@@ -36,7 +36,7 @@ public:
 				{
 					return {};
 				}
-				return MakeVoxelStructView(*Struct);
+				return FConstVoxelStructView::Make(*Struct);
 			},
 			[=](UObject& Object, const FConstVoxelStructView NewStructView)
 			{

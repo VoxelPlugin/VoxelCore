@@ -80,14 +80,6 @@ bool FVoxelVirtualStruct::LoadFromJson(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void FVoxelVirtualStruct::AddStructReferencedObjects(FReferenceCollector& Collector)
-{
-	VOXEL_FUNCTION_COUNTER();
-
-	// This will end up adding references twice when called from the native GC, but that's fine
-	Collector.AddPropertyReferences(GetStruct(), this);
-}
-
 bool FVoxelVirtualStruct::Equals_UPropertyOnly(
 	const FVoxelVirtualStruct& Other,
 	const bool bIgnoreTransient) const

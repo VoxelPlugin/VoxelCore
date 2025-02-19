@@ -539,6 +539,18 @@ public:
 
 public:
 	template<typename PredicateType>
+	FORCENOINLINE void Sort(const PredicateType& Predicate)
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
+
+		Elements.Sort([&](const FElement& A, const FElement& B)
+		{
+			return Predicate(A, B);
+		});
+
+		Rehash();
+	}
+	template<typename PredicateType>
 	FORCENOINLINE void KeySort(const PredicateType& Predicate)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);

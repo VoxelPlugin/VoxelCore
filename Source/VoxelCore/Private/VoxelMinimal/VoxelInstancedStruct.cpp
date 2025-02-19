@@ -320,7 +320,7 @@ void FVoxelInstancedStruct::AddStructReferencedObjects(FReferenceCollector& Coll
 	Collector.AddReferencedObject(ScriptStructObject);
 	check(ScriptStructObject);
 
-	FVoxelUtilities::AddStructReferencedObjects(Collector, *this);
+	FVoxelUtilities::AddStructReferencedObjects(Collector, FVoxelStructView(*this));
 }
 
 void FVoxelInstancedStruct::GetPreloadDependencies(TArray<UObject*>& OutDependencies) const

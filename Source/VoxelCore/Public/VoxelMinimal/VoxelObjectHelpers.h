@@ -7,6 +7,7 @@
 #include "UObject/WeakInterfacePtr.h"
 #include "VoxelMinimal/VoxelSharedPtr.h"
 #include "VoxelMinimal/VoxelObjectPtr.h"
+#include "VoxelMinimal/VoxelStructView.h"
 #include "VoxelMinimal/VoxelDereferencingIterator.h"
 #include "VoxelMinimal/Containers/VoxelChunkedArray.h"
 
@@ -382,6 +383,11 @@ VOXELCORE_API FString GetStringMetaDataHierarchical(const UStruct* Struct, FName
 
 VOXELCORE_API void ForeachObjectReference(
 	UObject& Object,
+	TFunctionRef<void(UObject*& ObjectRef)> Lambda,
+	EPropertyFlags SkipFlags = CPF_Transient);
+
+VOXELCORE_API void ForeachObjectReference(
+	FVoxelStructView Struct,
 	TFunctionRef<void(UObject*& ObjectRef)> Lambda,
 	EPropertyFlags SkipFlags = CPF_Transient);
 
