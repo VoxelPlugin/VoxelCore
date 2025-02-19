@@ -95,6 +95,9 @@ void FVoxelSingletonSceneViewExtension::PreRenderViewFamily_RenderThread(FRDGBui
 	{
 		Singleton->PreRenderViewFamily_RenderThread(GraphBuilder, ViewFamily);
 	}
+
+	ensure(CurrentViews.Num() == 0);
+	CurrentViews.Reset();
 }
 
 void FVoxelSingletonSceneViewExtension::PreRenderView_RenderThread(FRDGBuilder& GraphBuilder, FSceneView& View)
@@ -102,8 +105,7 @@ void FVoxelSingletonSceneViewExtension::PreRenderView_RenderThread(FRDGBuilder& 
 	VOXEL_FUNCTION_COUNTER();
 	check(IsInRenderingThread());
 
-	ensure(!CurrentView);
-	CurrentView = &View;
+	CurrentViews.Add(&View);
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
@@ -127,14 +129,14 @@ void FVoxelSingletonSceneViewExtension::PreRenderBasePass_RenderThread(FRDGBuild
 	VOXEL_FUNCTION_COUNTER();
 	check(IsInRenderingThread());
 
-	if (!ensure(CurrentView))
-	{
-		return;
-	}
+	ensureVoxelSlow(CurrentViews.Num() > 0);
 
-	for (FVoxelRenderSingleton* Singleton : Singletons)
+	for (FSceneView* View : CurrentViews)
 	{
-		Singleton->PreRenderBasePass_RenderThread(GraphBuilder, *CurrentView, bDepthBufferIsPopulated);
+		for (FVoxelRenderSingleton* Singleton : Singletons)
+		{
+			Singleton->PreRenderBasePass_RenderThread(GraphBuilder, *View, bDepthBufferIsPopulated);
+		}
 	}
 }
 
@@ -198,8 +200,7 @@ void FVoxelSingletonSceneViewExtension::PostRenderView_RenderThread(FRDGBuilder&
 	VOXEL_FUNCTION_COUNTER();
 	check(IsInRenderingThread());
 
-	ensure(CurrentView == &View);
-	CurrentView = nullptr;
+	ensure(CurrentViews.Remove(&View) == 1);
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{

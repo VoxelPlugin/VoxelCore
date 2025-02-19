@@ -38,6 +38,7 @@ public:
 	//~ End FSceneViewExtensionBase Interface
 
 private:
-	FSceneView* CurrentView = nullptr;
 	TOptional<int32> CurrentFrameNumber;
+	// Multiple views in VR
+	TVoxelArray<FSceneView*> CurrentViews;
 };
