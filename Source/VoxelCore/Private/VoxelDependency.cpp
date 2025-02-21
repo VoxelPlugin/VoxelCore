@@ -18,34 +18,19 @@ FVoxelDependencyBase::FVoxelDependencyBase(const FString& Name)
 {
 }
 
-bool FVoxelDependencyBase::ShouldSkipInvalidate()
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+TSharedRef<FVoxelDependency> FVoxelDependency::Create(const FString& Name)
 {
-	// Skipping invalidation when we have no trackers is critical,
-	// as moving a stamp can lead to continuous invalidations, even though the new state is not computed yet
-
-	if (!HasTrackers.Get())
-	{
-		return true;
-	}
-
-	HasTrackers.Set(false);
-	return false;
+	return MakeShareable(new FVoxelDependency(Name));
 }
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
 void FVoxelDependency::Invalidate()
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	if (ShouldSkipInvalidate())
-	{
-		return;
-	}
-
-	GVoxelDependencyManager->InvalidateTrackers(Name, [&](const FVoxelDependencyTracker& Tracker)
+	GVoxelDependencyManager->InvalidateTrackers(this, [&](const FVoxelDependencyTracker& Tracker)
 	{
 		return Tracker.Dependencies_RequiresLock.Contains(DependencyId);
 	});
@@ -55,16 +40,16 @@ void FVoxelDependency::Invalidate()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+TSharedRef<FVoxelDependency2D> FVoxelDependency2D::Create(const FString& Name)
+{
+	return MakeShareable(new FVoxelDependency2D(Name));
+}
+
 void FVoxelDependency2D::Invalidate(const FVoxelBox2D& Bounds)
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	if (ShouldSkipInvalidate())
-	{
-		return;
-	}
-
-	GVoxelDependencyManager->InvalidateTrackers(Name, [&](const FVoxelDependencyTracker& Tracker)
+	GVoxelDependencyManager->InvalidateTrackers(this, [=, this](const FVoxelDependencyTracker& Tracker)
 	{
 		const FVoxelBox2D* TrackerBounds = Tracker.Dependency2DToBounds_RequiresLock.Find(DependencyId);
 		if (!TrackerBounds)
@@ -80,14 +65,9 @@ void FVoxelDependency2D::Invalidate(const TConstVoxelArrayView<FVoxelBox2D> Boun
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	if (ShouldSkipInvalidate())
-	{
-		return;
-	}
-
 	const TSharedRef<FVoxelAABBTree2D> Tree = FVoxelAABBTree2D::Create(BoundsArray);
 
-	GVoxelDependencyManager->InvalidateTrackers(Name, [&](const FVoxelDependencyTracker& Tracker)
+	GVoxelDependencyManager->InvalidateTrackers(this, [=, this](const FVoxelDependencyTracker& Tracker)
 	{
 		const FVoxelBox2D* TrackerBounds = Tracker.Dependency2DToBounds_RequiresLock.Find(DependencyId);
 		if (!TrackerBounds)
@@ -103,16 +83,16 @@ void FVoxelDependency2D::Invalidate(const TConstVoxelArrayView<FVoxelBox2D> Boun
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+TSharedRef<FVoxelDependency3D> FVoxelDependency3D::Create(const FString& Name)
+{
+	return MakeShareable(new FVoxelDependency3D(Name));
+}
+
 void FVoxelDependency3D::Invalidate(const FVoxelBox& Bounds)
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	if (ShouldSkipInvalidate())
-	{
-		return;
-	}
-
-	GVoxelDependencyManager->InvalidateTrackers(Name, [&](const FVoxelDependencyTracker& Tracker)
+	GVoxelDependencyManager->InvalidateTrackers(this, [=, this](const FVoxelDependencyTracker& Tracker)
 	{
 		const FVoxelBox* TrackerBounds = Tracker.Dependency3DToBounds_RequiresLock.Find(DependencyId);
 		if (!TrackerBounds)
@@ -128,14 +108,9 @@ void FVoxelDependency3D::Invalidate(const TConstVoxelArrayView<FVoxelBox> Bounds
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	if (ShouldSkipInvalidate())
-	{
-		return;
-	}
-
 	const TSharedRef<FVoxelAABBTree> Tree = FVoxelAABBTree::Create(BoundsArray);
 
-	GVoxelDependencyManager->InvalidateTrackers(Name, [&](const FVoxelDependencyTracker& Tracker)
+	GVoxelDependencyManager->InvalidateTrackers(this, [=, this](const FVoxelDependencyTracker& Tracker)
 	{
 		const FVoxelBox* TrackerBounds = Tracker.Dependency3DToBounds_RequiresLock.Find(DependencyId);
 		if (!TrackerBounds)

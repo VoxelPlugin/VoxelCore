@@ -25,6 +25,8 @@ public:
 	VOXEL_COUNT_INSTANCES();
 	VOXEL_ALLOCATED_SIZE_TRACKER(STAT_VoxelDependencyTrackerMemory);
 
+	bool bIsFinalized_Debug = false;
+
 public:
 	FORCEINLINE bool IsInvalidated() const
 	{

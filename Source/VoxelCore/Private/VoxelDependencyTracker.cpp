@@ -47,8 +47,6 @@ int64 FVoxelDependencyTracker::GetAllocatedSize() const
 
 void FVoxelDependencyTracker::AddDependency(const FVoxelDependency& Dependency)
 {
-	Dependency.HasTrackers.Set(true);
-
 	VOXEL_SCOPE_LOCK(CriticalSection);
 
 	Dependencies_RequiresLock.Add(Dependency.DependencyId);
@@ -58,8 +56,6 @@ void FVoxelDependencyTracker::AddDependency(
 	const FVoxelDependency2D& Dependency,
 	const FVoxelBox2D& Bounds)
 {
-	Dependency.HasTrackers.Set(true);
-
 	VOXEL_SCOPE_LOCK(CriticalSection);
 
 	if (FVoxelBox2D* ExistingBounds = Dependency2DToBounds_RequiresLock.Find(Dependency.DependencyId))
@@ -75,8 +71,6 @@ void FVoxelDependencyTracker::AddDependency(
 	const FVoxelDependency3D& Dependency,
 	const FVoxelBox& Bounds)
 {
-	Dependency.HasTrackers.Set(true);
-
 	VOXEL_SCOPE_LOCK(CriticalSection);
 
 	if (FVoxelBox* ExistingBounds = Dependency3DToBounds_RequiresLock.Find(Dependency.DependencyId))

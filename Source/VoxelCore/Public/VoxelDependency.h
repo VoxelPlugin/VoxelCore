@@ -6,47 +6,51 @@
 
 DECLARE_UNIQUE_VOXEL_ID(FVoxelDependencyId);
 
-class VOXELCORE_API FVoxelDependencyBase
+class VOXELCORE_API FVoxelDependencyBase : public TSharedFromThis<FVoxelDependencyBase>
 {
 public:
 	const FString Name;
 	const FVoxelDependencyId DependencyId;
 
-	explicit FVoxelDependencyBase(const FString& Name);
-	UE_NONCOPYABLE(FVoxelDependencyBase);
-
 	VOXEL_COUNT_INSTANCES();
 
+	UE_NONCOPYABLE(FVoxelDependencyBase);
+
 protected:
-	mutable TVoxelAtomic<bool> HasTrackers;
-
-	bool ShouldSkipInvalidate();
-
-	friend class FVoxelDependencyTracker;
+	explicit FVoxelDependencyBase(const FString& Name);
 };
 
 class VOXELCORE_API FVoxelDependency : public FVoxelDependencyBase
 {
 public:
-	using FVoxelDependencyBase::FVoxelDependencyBase;
+	static TSharedRef<FVoxelDependency> Create(const FString& Name);
 
 	void Invalidate();
+
+private:
+	using FVoxelDependencyBase::FVoxelDependencyBase;
 };
 
 class VOXELCORE_API FVoxelDependency2D : public FVoxelDependencyBase
 {
 public:
-	using FVoxelDependencyBase::FVoxelDependencyBase;
+	static TSharedRef<FVoxelDependency2D> Create(const FString& Name);
 
 	void Invalidate(const FVoxelBox2D& Bounds);
 	void Invalidate(TConstVoxelArrayView<FVoxelBox2D> BoundsArray);
+
+private:
+	using FVoxelDependencyBase::FVoxelDependencyBase;
 };
 
 class VOXELCORE_API FVoxelDependency3D : public FVoxelDependencyBase
 {
 public:
-	using FVoxelDependencyBase::FVoxelDependencyBase;
+	static TSharedRef<FVoxelDependency3D> Create(const FString& Name);
 
 	void Invalidate(const FVoxelBox& Bounds);
 	void Invalidate(TConstVoxelArrayView<FVoxelBox> BoundsArray);
+
+private:
+	using FVoxelDependencyBase::FVoxelDependencyBase;
 };
