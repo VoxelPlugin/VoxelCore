@@ -71,6 +71,8 @@ public:
 			}
 		}
 
+		TVoxelMap<FName, int32> TrackerNameToCount;
+
 		int32 NumTrackersInvalidated = 0;
 		TVoxelChunkedArray<TVoxelUniqueFunction<void()>> OnInvalidatedArray;
 
@@ -104,15 +106,39 @@ public:
 				{
 					OnInvalidatedArray.Add(MoveTemp(Tracker.OnInvalidated_RequiresLock));
 				}
+
+#if !NO_LOGGING
+				if (LogVoxel.GetVerbosity() >= ELogVerbosity::Verbose)
+				{
+					TrackerNameToCount.FindOrAdd(Tracker.PrivateName)++;
+				}
+#endif
 			});
 		}
 		const double EndTime = FPlatformTime::Seconds();
 
-		LOG_VOXEL(Verbose, "Invalidating took %-8s, %-4d trackers invalidated (out of %d trackers). Dependency: %s",
-			*FVoxelUtilities::SecondsToString(EndTime - StartTime),
-			NumTrackersInvalidated,
-			Trackers_RequiresLock.Num(),
-			*Dependency->Name);
+#if !NO_LOGGING
+		if (LogVoxel.GetVerbosity() >= ELogVerbosity::Verbose)
+		{
+			TrackerNameToCount.ValueSort([](const int32 A, const int32 B)
+			{
+				return A > B;
+			});
+
+			FString TrackerNames;
+			for (const auto& It : TrackerNameToCount)
+			{
+				TrackerNames += FString::Printf(TEXT(" %s x%d"), *It.Key.ToString(), It.Value);
+			}
+
+			LOG_VOXEL(Verbose, "Invalidating took %-8s, %-4d trackers invalidated (out of %d trackers). Dependency: %s Trackers: %s",
+				*FVoxelUtilities::SecondsToString(EndTime - StartTime),
+				NumTrackersInvalidated,
+				Trackers_RequiresLock.Num(),
+				*Dependency->Name,
+				*TrackerNames);
+		}
+#endif
 
 		for (const TVoxelUniqueFunction<void()>& OnInvalidated : OnInvalidatedArray)
 		{

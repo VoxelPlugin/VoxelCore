@@ -11,7 +11,7 @@ DEFINE_VOXEL_MEMORY_STAT(STAT_VoxelDependencyTrackerMemory);
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TSharedRef<FVoxelDependencyTracker> FVoxelDependencyTracker::Create()
+TSharedRef<FVoxelDependencyTracker> FVoxelDependencyTracker::Create(const FName Name)
 {
 	VOXEL_SCOPE_LOCK(GVoxelDependencyManager->CriticalSection);
 
@@ -20,6 +20,7 @@ TSharedRef<FVoxelDependencyTracker> FVoxelDependencyTracker::Create()
 
 	FVoxelDependencyTracker& Tracker = GVoxelDependencyManager->Trackers_RequiresLock[NewTrackerIndex];
 	Tracker.TrackerIndex = NewTrackerIndex;
+	Tracker.PrivateName = Name;
 
 	return MakeShareable_CustomDestructor(&Tracker, [&Tracker]
 	{

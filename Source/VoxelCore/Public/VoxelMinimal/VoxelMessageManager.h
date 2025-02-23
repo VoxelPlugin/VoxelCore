@@ -81,7 +81,7 @@ public:
 			return;
 		}
 
-		TVoxelArray<TSharedRef<FVoxelMessageToken>, TFixedAllocator<sizeof...(Args)>> Tokens;
+		TVoxelFixedArray<TSharedRef<FVoxelMessageToken>, sizeof...(Args)> Tokens;
 		VOXEL_FOLD_EXPRESSION(Tokens.Add(FVoxelMessageTokenFactory::CreateToken(Args)));
 		GVoxelMessageManager->InternalLogMessageFormat(Severity, Format, Tokens);
 	}

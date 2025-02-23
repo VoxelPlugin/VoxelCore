@@ -133,14 +133,14 @@ FString FVoxelBox2D::ToString() const
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TVoxelArray<FVoxelBox2D, TFixedAllocator<4>> FVoxelBox2D::Difference(const FVoxelBox2D& Other) const
+TVoxelFixedArray<FVoxelBox2D, 4> FVoxelBox2D::Difference(const FVoxelBox2D& Other) const
 {
     if (!Intersects(Other))
     {
         return { *this };
     }
 
-    TVoxelArray<FVoxelBox2D, TFixedAllocator<4>> OutBoxes;
+    TVoxelFixedArray<FVoxelBox2D, 4> OutBoxes;
 
     if (Min.X < Other.Min.X)
     {

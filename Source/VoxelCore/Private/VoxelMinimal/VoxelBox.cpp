@@ -199,14 +199,14 @@ FString FVoxelBox::ToString() const
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TVoxelArray<FVoxelBox, TFixedAllocator<6>> FVoxelBox::Difference(const FVoxelBox& Other) const
+TVoxelFixedArray<FVoxelBox, 6> FVoxelBox::Difference(const FVoxelBox& Other) const
 {
     if (!Intersects(Other))
     {
         return { *this };
     }
 
-    TVoxelArray<FVoxelBox, TFixedAllocator<6>> OutBoxes;
+    TVoxelFixedArray<FVoxelBox, 6> OutBoxes;
 
     if (Min.Z < Other.Min.Z)
     {

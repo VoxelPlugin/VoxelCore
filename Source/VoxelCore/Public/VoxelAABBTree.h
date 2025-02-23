@@ -91,7 +91,7 @@ public:
 		}
 
 		TVoxelInlineArray<int32, 64> QueuedNodes;
-		QueuedNodes.Add(0);
+		QueuedNodes.Add_EnsureNoGrow(0);
 
 		while (QueuedNodes.Num() > 0)
 		{
@@ -118,11 +118,11 @@ public:
 			{
 				if (Node.ChildBounds0.RayBoxIntersection(RayOrigin, RayDirection))
 				{
-					QueuedNodes.Add(Node.ChildIndex0);
+					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex0);
 				}
 				if (Node.ChildBounds1.RayBoxIntersection(RayOrigin, RayDirection))
 				{
-					QueuedNodes.Add(Node.ChildIndex1);
+					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex1);
 				}
 			}
 		}
@@ -138,7 +138,7 @@ public:
 		}
 
 		TVoxelInlineArray<int32, 64> QueuedNodes;
-		QueuedNodes.Add(0);
+		QueuedNodes.Add_EnsureNoGrow(0);
 
 		while (QueuedNodes.Num() > 0)
 		{
@@ -165,11 +165,11 @@ public:
 			{
 				if (Node.ChildBounds0.Extend(SweepHalfExtents).RayBoxIntersection(RayOrigin, RayDirection))
 				{
-					QueuedNodes.Add(Node.ChildIndex0);
+					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex0);
 				}
 				if (Node.ChildBounds1.Extend(SweepHalfExtents).RayBoxIntersection(RayOrigin, RayDirection))
 				{
-					QueuedNodes.Add(Node.ChildIndex1);
+					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex1);
 				}
 			}
 		}
@@ -209,7 +209,7 @@ private:
 		checkVoxelSlow(Nodes.Num() > 0);
 
 		TVoxelInlineArray<int32, 64> QueuedNodes;
-		QueuedNodes.Add(0);
+		QueuedNodes.Add_EnsureNoGrow(0);
 
 		while (QueuedNodes.Num() > 0)
 		{
@@ -236,11 +236,11 @@ private:
 			{
 				if (Node.ChildBounds0.Intersects(Bounds))
 				{
-					QueuedNodes.Add(Node.ChildIndex0);
+					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex0);
 				}
 				if (Node.ChildBounds1.Intersects(Bounds))
 				{
-					QueuedNodes.Add(Node.ChildIndex1);
+					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex1);
 				}
 			}
 		}
@@ -258,7 +258,7 @@ public:
 		}
 
 		TVoxelInlineArray<int32, 64> QueuedNodes;
-		QueuedNodes.Add(0);
+		QueuedNodes.Add_EnsureNoGrow(0);
 
 		while (QueuedNodes.Num() > 0)
 		{
@@ -282,11 +282,11 @@ public:
 			{
 				if (ShouldVisit(Node.ChildBounds0))
 				{
-					QueuedNodes.Add(Node.ChildIndex0);
+					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex0);
 				}
 				if (ShouldVisit(Node.ChildBounds1))
 				{
-					QueuedNodes.Add(Node.ChildIndex1);
+					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex1);
 				}
 			}
 		}

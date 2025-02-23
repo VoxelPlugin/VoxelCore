@@ -155,8 +155,8 @@ struct FEncodingInfo
 	FColor ColorMax{ ForceInit };
 	FIntVector4 ColorBits = FIntVector4(0);
 
-	TVoxelArray<FUVRange, TFixedAllocator<NANITE_MAX_UVS>> UVRanges;
-	TVoxelArray<FUintVector2, TFixedAllocator<NANITE_MAX_UVS>> UVMins;
+	TVoxelFixedArray<FUVRange, NANITE_MAX_UVS> UVRanges;
+	TVoxelFixedArray<FUintVector2, NANITE_MAX_UVS> UVMins;
 
 	FPageSections GpuSizes;
 };
@@ -171,7 +171,7 @@ public:
 	TVoxelArray<FVector3f> Positions;
 	TVoxelArray<FVoxelOctahedron> Normals;
 	TVoxelArray<FColor> Colors;
-	TVoxelArray<TVoxelArray<FVector2f>, TFixedAllocator<NANITE_MAX_UVS>> TextureCoordinates;
+	TVoxelFixedArray<TVoxelArray<FVector2f>, NANITE_MAX_UVS> TextureCoordinates;
 
 	FCluster();
 

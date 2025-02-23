@@ -269,3 +269,40 @@ FORCEINLINE FSharedVoidRef MakeSharedVoid()
 {
 	return MakeSharedVoidRef(MakeShared<int32>());
 }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// Stock MakeShared creates hard to fix errors
+#if VOXEL_DEV_WORKFLOW && !INTELLISENSE_PARSER
+
+// Hack to work with classes doing friend class SharedPointerInternals::TIntrusiveReferenceController
+namespace SharedPointerInternals
+{
+	struct FMakeSharedDummy;
+
+	template<>
+	class TIntrusiveReferenceController<FMakeSharedDummy, ESPMode::ThreadSafe>
+	{
+	public:
+		template<typename ObjectType, typename... ArgTypes>
+		static void Call(decltype(ObjectType(DeclVal<ArgTypes>()...))* = nullptr);
+	};
+
+	template<typename ObjectType, typename... ArgTypes>
+	concept CanMakeShared = requires
+	{
+		TIntrusiveReferenceController<FMakeSharedDummy, ESPMode::ThreadSafe>::Call<ObjectType, ArgTypes...>();
+	};
+}
+
+template<typename InObjectType, ESPMode InMode = ESPMode::ThreadSafe, typename... InArgTypes>
+requires SharedPointerInternals::CanMakeShared<InObjectType, InArgTypes&&...>
+[[nodiscard]] FORCEINLINE TSharedRef<InObjectType, InMode> MakeShared_Safe(InArgTypes&&... Args)
+{
+	return MakeShared<InObjectType, InMode>(Forward<InArgTypes>(Args)...);
+}
+
+#define MakeShared MakeShared_Safe
+#endif

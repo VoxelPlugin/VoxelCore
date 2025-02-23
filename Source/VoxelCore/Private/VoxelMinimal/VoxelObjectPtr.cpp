@@ -98,3 +98,26 @@ FString FVoxelObjectPtr::GetPathName() const
 
 	return Object->GetPathName();
 }
+
+FString FVoxelObjectPtr::GetReadableName() const
+{
+	checkVoxelSlow(IsInGameThread());
+
+	const UObject* Object = Resolve();
+	if (!Object)
+	{
+		return TEXT("<null>");
+	}
+
+	if (const AActor* Actor = Cast<AActor>(Object))
+	{
+		return Actor->GetActorNameOrLabel();
+	}
+
+	if (const UActorComponent* Component = Cast<UActorComponent>(Object))
+	{
+		return Component->GetReadableName();
+	}
+
+	return Object->GetName();
+}

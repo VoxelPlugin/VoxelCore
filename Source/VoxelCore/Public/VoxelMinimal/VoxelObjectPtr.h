@@ -34,6 +34,7 @@ public:
 	FName GetFName() const;
 	FString GetName() const;
 	FString GetPathName() const;
+	FString GetReadableName() const;
 
 public:
 	FORCEINLINE bool IsExplicitlyNull() const

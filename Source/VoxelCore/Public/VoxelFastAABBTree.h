@@ -162,7 +162,7 @@ public:
 		}
 
 		TVoxelInlineArray<int32, 64> QueuedNodes;
-		QueuedNodes.Add(0);
+		QueuedNodes.Add_EnsureNoGrow(0);
 
 		while (QueuedNodes.Num() > 0)
 		{
@@ -203,7 +203,7 @@ public:
 					Node.ChildBounds0_Min,
 					Node.ChildBounds0_Max))
 				{
-					QueuedNodes.Add(Node.ChildIndex0);
+					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex0);
 				}
 
 				if (Intersects(
@@ -212,7 +212,7 @@ public:
 					Node.ChildBounds1_Min,
 					Node.ChildBounds1_Max))
 				{
-					QueuedNodes.Add(Node.ChildIndex1);
+					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex1);
 				}
 			}
 		}
@@ -230,7 +230,7 @@ public:
 		}
 
 		TVoxelInlineArray<int32, 64> QueuedNodes;
-		QueuedNodes.Add(0);
+		QueuedNodes.Add_EnsureNoGrow(0);
 
 		while (QueuedNodes.Num() > 0)
 		{
@@ -263,11 +263,11 @@ public:
 			{
 				if (ShouldVisit(Node.ChildBounds0_Min, Node.ChildBounds0_Max))
 				{
-					QueuedNodes.Add(Node.ChildIndex0);
+					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex0);
 				}
 				if (ShouldVisit(Node.ChildBounds1_Min, Node.ChildBounds1_Max))
 				{
-					QueuedNodes.Add(Node.ChildIndex1);
+					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex1);
 				}
 			}
 		}

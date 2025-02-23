@@ -17,7 +17,7 @@ class VOXELCORE_API FVoxelDependencyTracker
 	struct FPrivate {};
 
 public:
-	static TSharedRef<FVoxelDependencyTracker> Create();
+	static TSharedRef<FVoxelDependencyTracker> Create(FName Name);
 
 	explicit FVoxelDependencyTracker(FPrivate) {}
 	UE_NONCOPYABLE(FVoxelDependencyTracker);
@@ -50,6 +50,7 @@ public:
 
 private:
 	int32 TrackerIndex = -1;
+	FName PrivateName;
 
 	FVoxelCriticalSection_NoPadding CriticalSection;
 

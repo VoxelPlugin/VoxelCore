@@ -49,6 +49,11 @@ void FVoxelDependency2D::Invalidate(const FVoxelBox2D& Bounds)
 {
 	VOXEL_FUNCTION_COUNTER();
 
+	if (!ensureVoxelSlow(Bounds.IsValidAndNotEmpty()))
+	{
+		return;
+	}
+
 	GVoxelDependencyManager->InvalidateTrackers(this, [=, this](const FVoxelDependencyTracker& Tracker)
 	{
 		const FVoxelBox2D* TrackerBounds = Tracker.Dependency2DToBounds_RequiresLock.Find(DependencyId);
@@ -64,6 +69,11 @@ void FVoxelDependency2D::Invalidate(const FVoxelBox2D& Bounds)
 void FVoxelDependency2D::Invalidate(const TConstVoxelArrayView<FVoxelBox2D> BoundsArray)
 {
 	VOXEL_FUNCTION_COUNTER();
+
+	if (BoundsArray.Num() == 0)
+	{
+		return;
+	}
 
 	const TSharedRef<FVoxelAABBTree2D> Tree = FVoxelAABBTree2D::Create(BoundsArray);
 
@@ -92,6 +102,11 @@ void FVoxelDependency3D::Invalidate(const FVoxelBox& Bounds)
 {
 	VOXEL_FUNCTION_COUNTER();
 
+	if (!ensureVoxelSlow(Bounds.IsValidAndNotEmpty()))
+	{
+		return;
+	}
+
 	GVoxelDependencyManager->InvalidateTrackers(this, [=, this](const FVoxelDependencyTracker& Tracker)
 	{
 		const FVoxelBox* TrackerBounds = Tracker.Dependency3DToBounds_RequiresLock.Find(DependencyId);
@@ -107,6 +122,11 @@ void FVoxelDependency3D::Invalidate(const FVoxelBox& Bounds)
 void FVoxelDependency3D::Invalidate(const TConstVoxelArrayView<FVoxelBox> BoundsArray)
 {
 	VOXEL_FUNCTION_COUNTER();
+
+	if (BoundsArray.Num() == 0)
+	{
+		return;
+	}
 
 	const TSharedRef<FVoxelAABBTree> Tree = FVoxelAABBTree::Create(BoundsArray);
 

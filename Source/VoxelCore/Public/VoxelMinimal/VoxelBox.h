@@ -239,7 +239,7 @@ struct VOXELCORE_API FVoxelBox
 	}
 
 	// union(return value, Other) = this
-	TVoxelArray<FVoxelBox, TFixedAllocator<6>> Difference(const FVoxelBox& Other) const;
+	TVoxelFixedArray<FVoxelBox, 6> Difference(const FVoxelBox& Other) const;
 
 	FORCEINLINE double SquaredDistanceToPoint(const FVector3d& Point) const
 	{
