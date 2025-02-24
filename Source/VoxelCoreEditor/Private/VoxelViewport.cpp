@@ -4,6 +4,7 @@
 #include "AdvancedPreviewScene.h"
 #include "SVoxelEditorViewport.h"
 #include "VoxelViewportInterface.h"
+#include "Components/StaticMeshComponent.h"
 
 class FVoxelViewportPreviewScene : public FAdvancedPreviewScene
 {
