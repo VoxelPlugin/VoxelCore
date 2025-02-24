@@ -6,23 +6,22 @@
 #include "SEditorViewport.h"
 #include "SCommonEditorViewportToolbarBase.h"
 
-class SSlider;
-class SRichTextBlock;
+class SVoxelEditorViewport;
 class FAdvancedPreviewScene;
-class SVoxelSimpleAssetEditorViewport;
-struct FVoxelSimpleAssetToolkit;
+class IVoxelViewportInterface;
 
-class FVoxelSimpleAssetEditorViewportClient : public FEditorViewportClient
+class FVoxelEditorViewportClient : public FEditorViewportClient
 {
 public:
-	FAdvancedPreviewScene& PreviewScene;
+	const TSharedRef<FAdvancedPreviewScene> PreviewScene;
+	const TWeakPtr<IVoxelViewportInterface> WeakInterface;
 
-	FVoxelSimpleAssetEditorViewportClient(
+	FVoxelEditorViewportClient(
 		FEditorModeTools* EditorModeTools,
-		FAdvancedPreviewScene* PreviewScene,
-		const TWeakPtr<SVoxelSimpleAssetEditorViewport>& Viewport);
+		const TSharedRef<SVoxelEditorViewport>& Viewport,
+		const TSharedRef<FAdvancedPreviewScene>& PreviewScene,
+		const TSharedRef<IVoxelViewportInterface>& Interface);
 
-	// TODO Shared voxel base
 	//~ Begin FEditorViewportClient Interface
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
@@ -31,53 +30,57 @@ public:
 	virtual bool InputAxis(FViewport* Viewport, FInputDeviceId DeviceID, FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad) override;
 	virtual UE::Widget::EWidgetMode GetWidgetMode() const override;
 	//~ End FEditorViewportClient Interface
-
-	void SetToolkit(const TWeakPtr<FVoxelSimpleAssetToolkit>& Toolkit);
-
-private:
-	TWeakPtr<FVoxelSimpleAssetToolkit> WeakToolkit;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
-class SVoxelSimpleAssetEditorViewportToolbar : public SCommonEditorViewportToolbarBase
+class SVoxelEditorViewportToolbar : public SCommonEditorViewportToolbarBase
 {
 public:
 	VOXEL_SLATE_ARGS()
 	{
-		SLATE_ARGUMENT(TWeakPtr<FVoxelSimpleAssetToolkit>, Toolkit)
 	};
 
-	void Construct(const FArguments& InArgs, TSharedPtr<class ICommonEditorViewportToolbarInfoProvider> InInfoProvider);
+	void Construct(
+		const FArguments& Args,
+		const TSharedRef<IVoxelViewportInterface>& Interface,
+		const TSharedPtr<ICommonEditorViewportToolbarInfoProvider>& InfoProvider);
+
+	//~ Begin SCommonEditorViewportToolbarBase Interface
+	virtual void ExtendLeftAlignedToolbarSlots(
+		TSharedPtr<SHorizontalBox> MainBoxPtr,
+		TSharedPtr<SViewportToolBar> ParentToolBarPtr) const override;
+	//~ End SCommonEditorViewportToolbarBase Interface
 
 private:
-	virtual void ExtendLeftAlignedToolbarSlots(TSharedPtr<SHorizontalBox> MainBoxPtr, TSharedPtr<SViewportToolBar> ParentToolBarPtr) const override;
-	virtual TSharedRef<SWidget> GenerateShowMenu() const override;
-
-private:
-	TSharedRef<SWidget> FillCameraSpeedMenu();
-
-private:
-	TWeakPtr<FVoxelSimpleAssetToolkit> WeakToolkit;
+	TWeakPtr<IVoxelViewportInterface> WeakInterface;
 
 	TSharedPtr<SSlider> CamSpeedSlider;
 	mutable TSharedPtr<SSpinBox<float>> CamSpeedScalarBox;
+
+	TSharedRef<SWidget> FillCameraSpeedMenu();
 };
 
-class SVoxelSimpleAssetEditorViewport
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+class SVoxelEditorViewport
 	: public SEditorViewport
 	, public ICommonEditorViewportToolbarInfoProvider
 {
 public:
 	VOXEL_SLATE_ARGS()
 	{
-		SLATE_ARGUMENT(TSharedPtr<FAdvancedPreviewScene>, PreviewScene)
-		SLATE_ARGUMENT(FRotator, InitialViewRotation)
-		SLATE_ARGUMENT(TOptional<float>, InitialViewDistance)
-		SLATE_ARGUMENT(TSharedPtr<FVoxelSimpleAssetToolkit>, Toolkit)
+		SLATE_ATTRIBUTE(FText, StatsText)
 	};
 
-	void Construct(const FArguments& Args);
-	void UpdateStatsText(const FString& NewText);
+	void Construct(
+		const FArguments& Args,
+		const TSharedRef<FAdvancedPreviewScene>& NewPreviewScene,
+		const TSharedRef<IVoxelViewportInterface>& Interface);
 
 protected:
 	//~ Begin SEditorViewport Interface
@@ -95,14 +98,9 @@ protected:
 	//~ End ICommonEditorViewportToolbarInfoProvider Interface
 
 private:
-	FRotator InitialViewRotation;
-	TOptional<float> InitialViewDistance;
+	TAttribute<FText> StatsText;
 	TSharedPtr<FAdvancedPreviewScene> PreviewScene;
-	TSharedPtr<SRichTextBlock> OverlayText;
-	TWeakPtr<FVoxelSimpleAssetToolkit> WeakToolkit;
-
-	bool bStatsVisible = false;
-	bool bShowFullTransformsToolbar = false;
+	TWeakPtr<IVoxelViewportInterface> WeakInterface;
 
 	FBox GetComponentBounds() const;
 };

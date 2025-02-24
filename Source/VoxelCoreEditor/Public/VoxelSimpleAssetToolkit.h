@@ -4,27 +4,23 @@
 
 #include "VoxelEditorMinimal.h"
 #include "VoxelToolkit.h"
-#include "AdvancedPreviewScene.h"
+#include "VoxelViewport.h"
+#include "VoxelViewportInterface.h"
 #include "VoxelSimpleAssetToolkit.generated.h"
 
-class SViewportToolBar;
-class SVoxelSimpleAssetEditorViewport;
-
 USTRUCT()
-struct VOXELCOREEDITOR_API FVoxelSimpleAssetToolkit : public FVoxelToolkit
+struct VOXELCOREEDITOR_API FVoxelSimpleAssetToolkit
+	: public FVoxelToolkit
+	, public IVoxelViewportInterface
 {
 	GENERATED_BODY()
 	GENERATED_VIRTUAL_STRUCT_BODY()
 
 public:
-	virtual ~FVoxelSimpleAssetToolkit() override;
-
 	//~ Begin FVoxelToolkit Interface
 	virtual void Initialize() override;
 	virtual TSharedPtr<FTabManager::FLayout> GetLayout() const override;
 	virtual void RegisterTabs(FRegisterTab RegisterTab) override;
-
-	virtual void Tick() override;
 
 	virtual void SaveDocuments() override;
 	virtual void LoadDocuments() override;
@@ -37,121 +33,42 @@ public:
 	{
 		return *PrivateDetailsView;
 	}
-	FAdvancedPreviewScene& GetPreviewScene() const
+	SVoxelViewport& GetViewport() const
 	{
-		return *PrivatePreviewScene;
+		return *PrivateViewport;
 	}
-	TSharedRef<SWidget> GetViewport() const;
 
 public:
 	virtual void SetupPreview() {}
 	virtual void UpdatePreview() {}
-	virtual void DrawPreview(const FSceneView* View, FPrimitiveDrawInterface* PDI) {}
-	virtual void DrawPreviewCanvas(FViewport& InViewport, FSceneView& View, FCanvas& Canvas) {}
+	virtual void Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI) override {}
+	virtual void DrawCanvas(FViewport& Viewport, FSceneView& View, FCanvas& Canvas) override;
 
-	virtual void PopulateToolBar(const TSharedPtr<SHorizontalBox>& ToolbarBox, const TSharedPtr<SViewportToolBar>& ParentToolBarPtr) {}
-	virtual TSharedRef<SWidget> PopulateToolBarShowMenu() { return SNullWidget::NullWidget; }
+	virtual void PopulateToolBar(
+		const TSharedRef<SHorizontalBox>& ToolbarBox,
+		const TSharedPtr<SViewportToolBar>& ParentToolBar) override
+	{
+	}
 
-	virtual bool ShowFloor() const { return true; }
 	virtual bool SaveCameraPosition() const { return false; }
-	virtual bool ShowFullTransformsToolbar() const { return false; }
-	virtual FRotator GetInitialViewRotation() const { return FRotator(-20.0f, 45.0f, 0.f); }
-	virtual TOptional<float> GetInitialViewDistance() const { return {}; }
 
-	void DrawThumbnail(FViewport& InViewport);
 	void SetDetailsViewScrollBar(const TSharedPtr<SScrollBar>& NewScrollBar);
-
-public:
-	template<typename T>
-	T* SpawnActor()
-	{
-		UWorld* World = GetWorld();
-		if (!ensure(World))
-		{
-			return nullptr;
-		}
-
-		FActorSpawnParameters Parameters;
-		Parameters.bNoFail = true;
-		Parameters.ObjectFlags = RF_Transient;
-		Parameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		Parameters.Name = MakeUniqueObjectName(World, T::StaticClass(), FName(T::StaticClass()->GetName() + "_PreviewScene"));
-		T* Actor = World->SpawnActor<T>(Parameters);
-		if (!ensure(Actor))
-		{
-			return nullptr;
-		}
-
-		PrivateActors.Add(Actor);
-		return Actor;
-	}
-	template<typename T>
-	T* CreateComponent()
-	{
-		USceneComponent* RootComponent = GetRootComponent();
-		if (!ensure(RootComponent))
-		{
-			return nullptr;
-		}
-
-		AActor* Actor = RootComponent->GetOwner();
-		if (!ensure(Actor))
-		{
-			return nullptr;
-		}
-
-		T* Component = NewObject<T>(Actor, NAME_None, RF_Transient);
-		if (!ensure(Component))
-		{
-			return nullptr;
-		}
-
-		Component->SetupAttachment(RootComponent);
-		Component->SetWorldTransform(FTransform::Identity);
-		Component->RegisterComponent();
-		return Component;
-	}
-
-	FORCEINLINE UWorld* GetWorld() const
-	{
-		return CachedWorld.Resolve();
-	}
-	FORCEINLINE USceneComponent* GetRootComponent() const
-	{
-		return PrivateRootComponent;
-	}
-
-private:
-	TVoxelObjectPtr<UWorld> CachedWorld;
-
-	UPROPERTY()
-	TArray<TObjectPtr<AActor>> PrivateActors;
-
-	UPROPERTY()
-	TObjectPtr<USceneComponent> PrivateRootComponent;
 
 protected:
 	static constexpr const TCHAR* DetailsTabId = TEXT("FVoxelSimpleAssetToolkit_Details");
 	static constexpr const TCHAR* ViewportTabId = TEXT("FVoxelSimpleAssetToolkit_Viewport");
 
 private:
-	bool bPreviewQueued = false;
-	FString QueuedStatsText;
-
+	TSharedPtr<SVoxelViewport> PrivateViewport;
+	TSharedPtr<IDetailsView> PrivateDetailsView;
+	TSharedPtr<SScrollBar> DetailsViewScrollBar;
 	bool bCaptureThumbnail = false;
 
-	TSharedPtr<IDetailsView> PrivateDetailsView;
-	TSharedPtr<FAdvancedPreviewScene> PrivatePreviewScene;
-	TSharedPtr<SVoxelSimpleAssetEditorViewport> Viewport;
-	TSharedPtr<SScrollBar> DetailsViewScrollBar;
-
 protected:
-	void UpdateStatsText(const FString& Message);
 	void BindToggleCommand(const TSharedPtr<FUICommandInfo>& UICommandInfo, bool& bValue);
-	void SetFloorScale(const FVector& Scale) const;
-	void SetSkyScale(float Scale) const;
 	void CaptureThumbnail();
 
 private:
+	void DrawThumbnail(FViewport& InViewport);
 	FObjectProperty* GetTextureProperty() const;
 };

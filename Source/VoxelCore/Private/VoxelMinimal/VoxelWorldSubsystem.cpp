@@ -8,7 +8,7 @@ class FVoxelWorldSubsystemManager : public FVoxelSingleton
 {
 public:
 	FVoxelCriticalSection CriticalSection;
-	TVoxelMap<TVoxelObjectPtr<UWorld>, TVoxelMap<FName, TSharedPtr<IVoxelWorldSubsystem>>> WorldToNameToSubsystem_RequiresLock;
+	TVoxelMap<TVoxelObjectPtr<const UWorld>, TVoxelMap<FName, TSharedPtr<IVoxelWorldSubsystem>>> WorldToNameToSubsystem_RequiresLock;
 
 	//~ Begin FVoxelSingleton Interface
 	virtual void Initialize() override

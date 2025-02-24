@@ -18,6 +18,7 @@ class VOXELCORE_API FVoxelDependencyTracker
 
 public:
 	static TSharedRef<FVoxelDependencyTracker> Create(FName Name);
+	static TSharedRef<FVoxelDependencyTracker> CreateDummy();
 
 	explicit FVoxelDependencyTracker(FPrivate) {}
 	UE_NONCOPYABLE(FVoxelDependencyTracker);

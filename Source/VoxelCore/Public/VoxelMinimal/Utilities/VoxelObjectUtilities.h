@@ -143,6 +143,18 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
+	VOXELCORE_API UObject* NewObject_Safe(UObject* Outer, const UClass* Class, FName Name);
+
+	template<typename Type>
+	Type* NewObject_Safe(UObject* Outer, const FName Name)
+	{
+		return CastChecked<Type>(FVoxelUtilities::NewObject_Safe(Outer, Type::StaticClass(), Name));
+	}
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
 	VOXELCORE_API uint64 HashProperty(const FProperty& Property, const void* DataPtr);
 	VOXELCORE_API void DestroyStruct_Safe(const UScriptStruct* Struct, void* StructMemory);
 	VOXELCORE_API void AddStructReferencedObjects(FReferenceCollector& Collector, const FVoxelStructView& StructView);

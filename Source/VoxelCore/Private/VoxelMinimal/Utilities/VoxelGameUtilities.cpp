@@ -363,7 +363,7 @@ bool FVoxelUtilities::ComputeInvokerChunks(
 class FVoxelActorSelectionTracker : public FVoxelSingleton
 {
 public:
-	TVoxelMap<TVoxelObjectPtr<AActor>, TMulticastDelegate<void(bool)>> ActorToDelegate;
+	TVoxelMap<TVoxelObjectPtr<const AActor>, TMulticastDelegate<void(bool)>> ActorToDelegate;
 
 	FVoxelCriticalSection CriticalSection;
 	TVoxelSet<TVoxelObjectPtr<const AActor>> SelectedActors_RequiresLock;

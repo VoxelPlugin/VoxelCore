@@ -1,43 +1,15 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelSimpleAssetToolkit.h"
-#include "Toolkits/SVoxelSimpleAssetEditorViewport.h"
 #include "ImageUtils.h"
 #include "Engine/Texture2D.h"
 #include "Components/StaticMeshComponent.h"
 
-class FVoxelToolkitPreviewScene : public FAdvancedPreviewScene
-{
-public:
-	FVoxelToolkitPreviewScene(const ConstructionValues& CVS, const float InFloorOffset = 0.0f)
-		: FAdvancedPreviewScene(CVS, InFloorOffset)
-	{
-	}
-
-	void SetSkyScale(const float Scale) const
-	{
-		SkyComponent->SetWorldScale3D(FVector(Scale));
-	}
-};
-
-FVoxelSimpleAssetToolkit::~FVoxelSimpleAssetToolkit()
-{
-	VOXEL_FUNCTION_COUNTER();
-
-	for (AActor* Actor : PrivateActors)
-	{
-		if (!ensure(Actor))
-		{
-			continue;
-		}
-
-		Actor->Destroy();
-	}
-}
-
 void FVoxelSimpleAssetToolkit::Initialize()
 {
 	Super::Initialize();
+
+	PrivateViewport = SNew(SVoxelViewport);
 
 	{
 		FDetailsViewArgs Args;
@@ -54,49 +26,11 @@ void FVoxelSimpleAssetToolkit::Initialize()
 		PrivateDetailsView->SetObject(GetAsset());
 	}
 
-	PrivatePreviewScene = MakeShared<FVoxelToolkitPreviewScene>(FPreviewScene::ConstructionValues());
-	PrivatePreviewScene->SetFloorVisibility(ShowFloor(), true);
-
-	CachedWorld = GetPreviewScene().GetWorld();
-	if (!ensure(CachedWorld.IsValid_Slow()))
-	{
-		return;
-	}
-
-	// Setup PrivateRootComponent
-	{
-		AActor* Actor = SpawnActor<AActor>();
-		if (!ensure(Actor))
-		{
-			return;
-		}
-
-		PrivateRootComponent = NewObject<USceneComponent>(Actor, NAME_None, RF_Transient);
-		if (!ensure(PrivateRootComponent))
-		{
-			return;
-		}
-		PrivateRootComponent->RegisterComponent();
-
-		GetPreviewScene().AddComponent(PrivateRootComponent, FTransform::Identity);
-		Actor->SetRootComponent(PrivateRootComponent);
-	}
-
 	SetupPreview();
 	UpdatePreview();
 
-	// Make sure to make the viewport after UpdatePreview so that the component bounds are correct
-	Viewport = SNew(SVoxelSimpleAssetEditorViewport)
-		.PreviewScene(PrivatePreviewScene)
-		.InitialViewRotation(GetInitialViewRotation())
-		.InitialViewDistance(GetInitialViewDistance())
-		.Toolkit(SharedThis(this));
-
-	if (!QueuedStatsText.IsEmpty())
-	{
-		Viewport->UpdateStatsText(QueuedStatsText);
-		QueuedStatsText = {};
-	}
+	// Make sure to initialize the viewport after UpdatePreview so that the component bounds are correct
+	PrivateViewport->Initialize(SharedThis(this));
 
 	if (const FObjectProperty* TextureProperty = GetTextureProperty())
 	{
@@ -140,18 +74,7 @@ void FVoxelSimpleAssetToolkit::RegisterTabs(const FRegisterTab RegisterTab)
 	Super::RegisterTabs(RegisterTab);
 
 	RegisterTab(DetailsTabId, INVTEXT("Details"), "LevelEditor.Tabs.Details", PrivateDetailsView);
-	RegisterTab(ViewportTabId, INVTEXT("Viewport"), "LevelEditor.Tabs.Viewports", Viewport);
-}
-
-void FVoxelSimpleAssetToolkit::Tick()
-{
-	Super::Tick();
-
-	if (bPreviewQueued)
-	{
-		UpdatePreview();
-		bPreviewQueued = false;
-	}
+	RegisterTab(ViewportTabId, INVTEXT("Viewport"), "LevelEditor.Tabs.Viewports", PrivateViewport);
 }
 
 void FVoxelSimpleAssetToolkit::SaveDocuments()
@@ -163,13 +86,7 @@ void FVoxelSimpleAssetToolkit::SaveDocuments()
 		return;
 	}
 
-	if (!ensure(Viewport))
-	{
-		return;
-	}
-
-	const TSharedPtr<FEditorViewportClient> ViewportClient = Viewport->GetViewportClient();
-	if (!ensure(ViewportClient))
+	if (!ensure(PrivateViewport))
 	{
 		return;
 	}
@@ -183,13 +100,13 @@ void FVoxelSimpleAssetToolkit::SaveDocuments()
 	GConfig->SetString(
 		TEXT("FVoxelSimpleAssetEditorToolkit_LastPosition"),
 		*Asset->GetPathName(),
-		*ViewportClient->GetViewLocation().ToString(),
+		*PrivateViewport->GetViewLocation().ToString(),
 		GEditorPerProjectIni);
 
 	GConfig->SetString(
 		TEXT("FVoxelSimpleAssetEditorToolkit_LastRotation"),
 		*Asset->GetPathName(),
-		*ViewportClient->GetViewRotation().ToString(),
+		*PrivateViewport->GetViewRotation().ToString(),
 		GEditorPerProjectIni);
 }
 
@@ -202,13 +119,7 @@ void FVoxelSimpleAssetToolkit::LoadDocuments()
 		return;
 	}
 
-	if (!ensure(Viewport))
-	{
-		return;
-	}
-
-	const TSharedPtr<FEditorViewportClient> ViewportClient = Viewport->GetViewportClient();
-	if (!ensure(ViewportClient))
+	if (!ensure(PrivateViewport))
 	{
 		return;
 	}
@@ -228,7 +139,7 @@ void FVoxelSimpleAssetToolkit::LoadDocuments()
 	{
 		FVector Location = FVector::ZeroVector;
 		Location.InitFromString(LocationString);
-		ViewportClient->SetViewLocation(Location);
+		PrivateViewport->SetViewLocation(Location);
 	}
 
 	FString RotationString;
@@ -240,7 +151,7 @@ void FVoxelSimpleAssetToolkit::LoadDocuments()
 	{
 		FRotator Rotation = FRotator::ZeroRotator;
 		Rotation.InitFromString(RotationString);
-		ViewportClient->SetViewRotation(Rotation);
+		PrivateViewport->SetViewRotation(Rotation);
 	}
 }
 
@@ -260,9 +171,47 @@ void FVoxelSimpleAssetToolkit::PostEditChange(const FPropertyChangedEvent& Prope
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TSharedRef<SWidget> FVoxelSimpleAssetToolkit::GetViewport() const
+void FVoxelSimpleAssetToolkit::DrawCanvas(FViewport& Viewport, FSceneView& View, FCanvas& Canvas)
 {
-	return Viewport.ToSharedRef();
+	if (bCaptureThumbnail)
+	{
+		DrawThumbnail(Viewport);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void FVoxelSimpleAssetToolkit::SetDetailsViewScrollBar(const TSharedPtr<SScrollBar>& NewScrollBar)
+{
+	DetailsViewScrollBar = NewScrollBar;
+}
+
+void FVoxelSimpleAssetToolkit::BindToggleCommand(const TSharedPtr<FUICommandInfo>& UICommandInfo, bool& bValue)
+{
+	GetCommands()->MapAction(
+		UICommandInfo,
+		MakeWeakPtrDelegate(this, [this, &bValue]
+		{
+			bValue = !bValue;
+			UpdatePreview();
+		}),
+		{},
+		MakeWeakPtrDelegate(this, [&bValue]
+		{
+			return bValue ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		}));
+}
+
+void FVoxelSimpleAssetToolkit::CaptureThumbnail()
+{
+	if (!GetTextureProperty())
+	{
+		return;
+	}
+
+	bCaptureThumbnail = true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -271,10 +220,9 @@ TSharedRef<SWidget> FVoxelSimpleAssetToolkit::GetViewport() const
 
 void FVoxelSimpleAssetToolkit::DrawThumbnail(FViewport& InViewport)
 {
-	if (!bCaptureThumbnail)
-	{
-		return;
-	}
+	VOXEL_FUNCTION_COUNTER();
+
+	ensure(bCaptureThumbnail);
 	bCaptureThumbnail = false;
 
 	UObject* Asset = GetAsset();
@@ -327,62 +275,6 @@ void FVoxelSimpleAssetToolkit::DrawThumbnail(FViewport& InViewport)
 	FPropertyChangedEvent PropertyChangedEvent(nullptr);
 	FCoreUObjectDelegates::OnObjectPropertyChanged.Broadcast(Asset, PropertyChangedEvent);
 }
-
-void FVoxelSimpleAssetToolkit::SetDetailsViewScrollBar(const TSharedPtr<SScrollBar>& NewScrollBar)
-{
-	DetailsViewScrollBar = NewScrollBar;
-}
-
-void FVoxelSimpleAssetToolkit::UpdateStatsText(const FString& Message)
-{
-	if (!Viewport)
-	{
-		QueuedStatsText = Message;
-		return;
-	}
-
-	Viewport->UpdateStatsText(Message);
-}
-
-void FVoxelSimpleAssetToolkit::BindToggleCommand(const TSharedPtr<FUICommandInfo>& UICommandInfo, bool& bValue)
-{
-	GetCommands()->MapAction(
-		UICommandInfo,
-		MakeWeakPtrDelegate(this, [this, &bValue]
-		{
-			bValue = !bValue;
-			UpdatePreview();
-		}),
-		{},
-		MakeWeakPtrDelegate(this, [&bValue]
-		{
-			return bValue ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-		}));
-}
-
-void FVoxelSimpleAssetToolkit::SetFloorScale(const FVector& Scale) const
-{
-	ConstCast(GetPreviewScene().GetFloorMeshComponent())->SetWorldScale3D(Scale);
-}
-
-void FVoxelSimpleAssetToolkit::SetSkyScale(const float Scale) const
-{
-	StaticCastSharedPtr<FVoxelToolkitPreviewScene>(PrivatePreviewScene)->SetSkyScale(Scale);
-}
-
-void FVoxelSimpleAssetToolkit::CaptureThumbnail()
-{
-	if (!GetTextureProperty())
-	{
-		return;
-	}
-
-	bCaptureThumbnail = true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
 
 FObjectProperty* FVoxelSimpleAssetToolkit::GetTextureProperty() const
 {

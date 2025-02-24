@@ -1,87 +1,96 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
-#include "Toolkits/SVoxelSimpleAssetEditorViewport.h"
-#include "EditorModeManager.h"
+#include "SVoxelEditorViewport.h"
+#include "VoxelViewportInterface.h"
+#include "AdvancedPreviewScene.h"
 #include "AssetEditorModeManager.h"
-#include "VoxelSimpleAssetToolkit.h"
 #include "PreviewProfileController.h"
 #include "SEditorViewportToolBarMenu.h"
 
-FVoxelSimpleAssetEditorViewportClient::FVoxelSimpleAssetEditorViewportClient(
+FVoxelEditorViewportClient::FVoxelEditorViewportClient(
 	FEditorModeTools* EditorModeTools,
-	FAdvancedPreviewScene* PreviewScene,
-	const TWeakPtr<SVoxelSimpleAssetEditorViewport>& Viewport)
-	: FEditorViewportClient(EditorModeTools, PreviewScene, Viewport)
-	, PreviewScene(*PreviewScene)
+	const TSharedRef<SVoxelEditorViewport>& Viewport,
+	const TSharedRef<FAdvancedPreviewScene>& PreviewScene,
+	const TSharedRef<IVoxelViewportInterface>& Interface)
+	: FEditorViewportClient(EditorModeTools, &PreviewScene.Get(), Viewport)
+	, PreviewScene(PreviewScene)
+	, WeakInterface(Interface)
 {
-	StaticCastSharedPtr<FAssetEditorModeManager>(ModeTools)->SetPreviewScene(PreviewScene);
+	static_cast<FAssetEditorModeManager&>(*ModeTools).SetPreviewScene(&PreviewScene.Get());
 }
 
-void FVoxelSimpleAssetEditorViewportClient::Tick(const float DeltaSeconds)
+void FVoxelEditorViewportClient::Tick(const float DeltaSeconds)
 {
 	FEditorViewportClient::Tick(DeltaSeconds);
 
 	// Tick the preview scene world.
 	if (!GIntraFrameDebuggingGameThread)
 	{
-		PreviewScene.GetWorld()->Tick(LEVELTICK_All, DeltaSeconds);
+		PreviewScene->GetWorld()->Tick(LEVELTICK_All, DeltaSeconds);
 	}
 }
 
-void FVoxelSimpleAssetEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI)
+void FVoxelEditorViewportClient::Draw(
+	const FSceneView* View,
+	FPrimitiveDrawInterface* PDI)
 {
-	if (const TSharedPtr<FVoxelSimpleAssetToolkit> Toolkit = WeakToolkit.Pin())
+	if (const TSharedPtr<IVoxelViewportInterface> Interface = WeakInterface.Pin())
 	{
-		Toolkit->DrawPreview(View, PDI);
+		Interface->Draw(View, PDI);
 	}
 
 	FEditorViewportClient::Draw(View, PDI);
 }
 
-void FVoxelSimpleAssetEditorViewportClient::DrawCanvas(FViewport& InViewport, FSceneView& View, FCanvas& Canvas)
+void FVoxelEditorViewportClient::DrawCanvas(
+	FViewport& InViewport,
+	FSceneView& View,
+	FCanvas& Canvas)
 {
-	if (const TSharedPtr<FVoxelSimpleAssetToolkit> Toolkit = WeakToolkit.Pin())
+	if (const TSharedPtr<IVoxelViewportInterface> Interface = WeakInterface.Pin())
 	{
-		Toolkit->DrawPreviewCanvas(InViewport, View, Canvas);
-		Toolkit->DrawThumbnail(InViewport);
+		Interface->DrawCanvas(InViewport, View, Canvas);
 	}
 
 	FEditorViewportClient::DrawCanvas(InViewport, View, Canvas);
 }
 
-bool FVoxelSimpleAssetEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs)
+bool FVoxelEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs)
 {
 	bool bHandled = FEditorViewportClient::InputKey(EventArgs);
 
 	// Handle viewport screenshot.
 	bHandled |= InputTakeScreenshot(EventArgs.Viewport, EventArgs.Key, EventArgs.Event);
 
-	bHandled |= PreviewScene.HandleInputKey(EventArgs);
+	bHandled |= PreviewScene->HandleInputKey(EventArgs);
 
 	return bHandled;
 }
 
-bool FVoxelSimpleAssetEditorViewportClient::InputAxis(FViewport* InViewport, const FInputDeviceId DeviceID, const FKey Key, const float Delta, const float DeltaTime, const int32 NumSamples, const bool bGamepad)
+bool FVoxelEditorViewportClient::InputAxis(
+	FViewport* InViewport,
+	const FInputDeviceId DeviceID,
+	const FKey Key,
+	const float Delta,
+	const float DeltaTime,
+	const int32 NumSamples,
+	const bool bGamepad)
 {
-	bool bResult = true;
-
-	if (!bDisableInput)
+	if (bDisableInput)
 	{
-		bResult = PreviewScene.HandleViewportInput(InViewport, DeviceID, Key, Delta, DeltaTime, NumSamples, bGamepad);
-		if (bResult)
-		{
-			Invalidate();
-		}
-		else
-		{
-			bResult = FEditorViewportClient::InputAxis(InViewport, DeviceID, Key, Delta, DeltaTime, NumSamples, bGamepad);
-		}
+		return true;
 	}
 
-	return bResult;
+	if (PreviewScene->HandleViewportInput(InViewport, DeviceID, Key, Delta, DeltaTime, NumSamples, bGamepad))
+	{
+		Invalidate();
+		return true;
+	}
+
+	return FEditorViewportClient::InputAxis(InViewport, DeviceID, Key, Delta, DeltaTime, NumSamples, bGamepad);
 }
 
-UE::Widget::EWidgetMode FVoxelSimpleAssetEditorViewportClient::GetWidgetMode() const
+UE::Widget::EWidgetMode FVoxelEditorViewportClient::GetWidgetMode() const
 {
 	return UE::Widget::WM_Max;
 }
@@ -90,38 +99,36 @@ UE::Widget::EWidgetMode FVoxelSimpleAssetEditorViewportClient::GetWidgetMode() c
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void FVoxelSimpleAssetEditorViewportClient::SetToolkit(const TWeakPtr<FVoxelSimpleAssetToolkit>& Toolkit)
+void SVoxelEditorViewportToolbar::Construct(
+	const FArguments& Args,
+	const TSharedRef<IVoxelViewportInterface>& Interface,
+	const TSharedPtr<ICommonEditorViewportToolbarInfoProvider>& InfoProvider)
 {
-	WeakToolkit = Toolkit;
+	WeakInterface = Interface;
+
+	SCommonEditorViewportToolbarBase::Construct(
+		SCommonEditorViewportToolbarBase::FArguments()
+		.PreviewProfileController(MakeShared<FPreviewProfileController>()), InfoProvider);
 }
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-void SVoxelSimpleAssetEditorViewportToolbar::Construct(const FArguments& InArgs, TSharedPtr<ICommonEditorViewportToolbarInfoProvider> InInfoProvider)
-{
-	WeakToolkit = InArgs._Toolkit;
-
-	SCommonEditorViewportToolbarBase::Construct(SCommonEditorViewportToolbarBase::FArguments().PreviewProfileController(MakeShared<FPreviewProfileController>()), InInfoProvider);
-}
-
-void SVoxelSimpleAssetEditorViewportToolbar::ExtendLeftAlignedToolbarSlots(const TSharedPtr<SHorizontalBox> MainBoxPtr, const TSharedPtr<SViewportToolBar> ParentToolBarPtr) const
+void SVoxelEditorViewportToolbar::ExtendLeftAlignedToolbarSlots(
+	const TSharedPtr<SHorizontalBox> MainBoxPtr,
+	const TSharedPtr<SViewportToolBar> ParentToolBarPtr) const
 {
 	if (!MainBoxPtr)
 	{
 		return;
 	}
 
-	const TSharedPtr<FVoxelSimpleAssetToolkit> Toolkit = WeakToolkit.Pin();
-	if (!Toolkit)
+	const TSharedPtr<IVoxelViewportInterface> Interface = WeakInterface.Pin();
+	if (!Interface)
 	{
 		return;
 	}
 
-	Toolkit->PopulateToolBar(MainBoxPtr, ParentToolBarPtr);
+	Interface->PopulateToolBar(MainBoxPtr.ToSharedRef(), ParentToolBarPtr);
 
-	if (!Toolkit->ShowFullTransformsToolbar())
+	if (!Interface->ShowTransformToolbar())
 	{
 		FSlimHorizontalToolBarBuilder ToolbarBuilder(GetInfoProvider().GetViewportWidget()->GetCommandList(), FMultiBoxCustomization::None);
 
@@ -147,7 +154,7 @@ void SVoxelSimpleAssetEditorViewportToolbar::ExtendLeftAlignedToolbarSlots(const
 
 					return FText::AsNumber(Viewport->GetViewportClient()->GetCameraSpeed());
 				})
-				.OnGetMenuContent(ConstCast(this), &SVoxelSimpleAssetEditorViewportToolbar::FillCameraSpeedMenu);
+				.OnGetMenuContent(ConstCast(this), &SVoxelEditorViewportToolbar::FillCameraSpeedMenu);
 
 			ToolbarBuilder.AddWidget(
 				CameraToolbarMenu,
@@ -159,7 +166,7 @@ void SVoxelSimpleAssetEditorViewportToolbar::ExtendLeftAlignedToolbarSlots(const
 					InMenuBuilder.AddWrapperSubMenu(
 						INVTEXT("Camera Speed Settings"),
 						INVTEXT("Adjust the camera navigation speed"),
-						FOnGetContent::CreateSP(ConstCast(this), &SVoxelSimpleAssetEditorViewportToolbar::FillCameraSpeedMenu),
+						FOnGetContent::CreateSP(ConstCast(this), &SVoxelEditorViewportToolbar::FillCameraSpeedMenu),
 						FSlateIcon(FAppStyle::GetAppStyleSetName(), "EditorViewport.CamSpeedSetting")
 					);
 				}
@@ -176,18 +183,7 @@ void SVoxelSimpleAssetEditorViewportToolbar::ExtendLeftAlignedToolbarSlots(const
 	}
 }
 
-TSharedRef<SWidget> SVoxelSimpleAssetEditorViewportToolbar::GenerateShowMenu() const
-{
-	const TSharedPtr<FVoxelSimpleAssetToolkit> Toolkit = WeakToolkit.Pin();
-	if (!Toolkit)
-	{
-		return SNullWidget::NullWidget;
-	}
-
-	return Toolkit->PopulateToolBarShowMenu();
-}
-
-TSharedRef<SWidget> SVoxelSimpleAssetEditorViewportToolbar::FillCameraSpeedMenu()
+TSharedRef<SWidget> SVoxelEditorViewportToolbar::FillCameraSpeedMenu()
 {
 	TSharedRef<SWidget> ReturnWidget = SNew(SBorder)
 	.BorderImage(FAppStyle::GetBrush(("Menu.Background")))
@@ -312,64 +308,72 @@ TSharedRef<SWidget> SVoxelSimpleAssetEditorViewportToolbar::FillCameraSpeedMenu(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void SVoxelSimpleAssetEditorViewport::Construct(const FArguments& Args)
+void SVoxelEditorViewport::Construct(
+	const FArguments& Args,
+	const TSharedRef<FAdvancedPreviewScene>& NewPreviewScene,
+	const TSharedRef<IVoxelViewportInterface>& Interface)
 {
-	PreviewScene = Args._PreviewScene;
-	InitialViewRotation = Args._InitialViewRotation;
-	InitialViewDistance = Args._InitialViewDistance;
-	WeakToolkit = Args._Toolkit;
-	bShowFullTransformsToolbar = Args._Toolkit->ShowFullTransformsToolbar();
+	StatsText = Args._StatsText;
+	PreviewScene = NewPreviewScene;
+	WeakInterface = Interface;
 
 	SEditorViewport::Construct(SEditorViewport::FArguments());
 }
 
-void SVoxelSimpleAssetEditorViewport::UpdateStatsText(const FString& NewText)
+void SVoxelEditorViewport::OnFocusViewportToSelection()
 {
-	bStatsVisible = true;
-	OverlayText->SetText(FText::FromString(NewText));
+	GetViewportClient()->FocusViewportOnBox(GetComponentBounds());
 }
 
-void SVoxelSimpleAssetEditorViewport::OnFocusViewportToSelection()
+TSharedRef<FEditorViewportClient> SVoxelEditorViewport::MakeEditorViewportClient()
 {
-	if (PreviewScene.IsValid())
+	VOXEL_FUNCTION_COUNTER();
+
+	const TSharedPtr<IVoxelViewportInterface> Interface = WeakInterface.Pin();
+	if (!ensure(Interface))
 	{
-		GetViewportClient()->FocusViewportOnBox(GetComponentBounds());
+		return MakeShared<FEditorViewportClient>(nullptr);
 	}
-}
 
-TSharedRef<FEditorViewportClient> SVoxelSimpleAssetEditorViewport::MakeEditorViewportClient()
-{
+	TOptional<float> InitialViewDistance = Interface->GetInitialViewDistance();
 	if (InitialViewDistance.IsSet() &&
 		!ensure(FMath::IsFinite(InitialViewDistance.GetValue())))
 	{
-		InitialViewDistance = {};
+		InitialViewDistance.Reset();
 	}
 
 	const FBox Bounds = GetComponentBounds();
 
-	FEditorModeTools* EditorModeTools = nullptr;
-	if (const TSharedPtr<FVoxelSimpleAssetToolkit> Toolkit = WeakToolkit.Pin())
-	{
-		EditorModeTools = Toolkit->GetEditorModeTools().Get();
-	}
+	FEditorModeTools* EditorModeTools = Interface->GetEditorModeTools();
 
-	const TSharedRef<FVoxelSimpleAssetEditorViewportClient> ViewportClient = MakeShared<FVoxelSimpleAssetEditorViewportClient>(EditorModeTools, PreviewScene.Get(), SharedThis(this));
+	const TSharedRef<FVoxelEditorViewportClient> ViewportClient = MakeShared<FVoxelEditorViewportClient>(
+		EditorModeTools,
+		SharedThis(this),
+		PreviewScene.ToSharedRef(),
+		Interface.ToSharedRef());
+
 	ViewportClient->SetRealtime(true);
-	ViewportClient->SetViewRotation(InitialViewRotation);
-	ViewportClient->SetViewLocationForOrbiting(Bounds.GetCenter(), InitialViewDistance.Get(Bounds.GetExtent().GetMax() * 2));
-	ViewportClient->SetToolkit(WeakToolkit);
+	ViewportClient->SetViewRotation(Interface->GetInitialViewRotation());
+
+	ViewportClient->SetViewLocationForOrbiting(
+		Bounds.GetCenter(),
+		InitialViewDistance.Get(Bounds.GetExtent().GetMax() * 2));
 
 	return ViewportClient;
 }
 
-TSharedPtr<SWidget> SVoxelSimpleAssetEditorViewport::MakeViewportToolbar()
+TSharedPtr<SWidget> SVoxelEditorViewport::MakeViewportToolbar()
 {
-	return
-		SNew(SVoxelSimpleAssetEditorViewportToolbar, SharedThis(this))
-		.Toolkit(WeakToolkit);
+	const TSharedPtr<IVoxelViewportInterface> Interface = WeakInterface.Pin();
+	if (!ensure(Interface))
+	{
+		return nullptr;
+	}
+
+	return SNew(SVoxelEditorViewportToolbar, Interface.ToSharedRef(), SharedThis(this));
 }
 
-void SVoxelSimpleAssetEditorViewport::PopulateViewportOverlays(const TSharedRef<SOverlay> Overlay)
+void SVoxelEditorViewport::PopulateViewportOverlays(const TSharedRef<SOverlay> Overlay)
 {
 	SEditorViewport::PopulateViewportOverlays(Overlay);
 
@@ -381,41 +385,45 @@ void SVoxelSimpleAssetEditorViewport::PopulateViewportOverlays(const TSharedRef<
 		SNew(SBorder)
 		.Visibility_Lambda([this]
 		{
-			return bStatsVisible ? EVisibility::Visible : EVisibility::Collapsed;
+			return StatsText.Get().IsEmpty() ? EVisibility::Collapsed : EVisibility::Visible;
 		})
 		.BorderImage(FAppStyle::Get().GetBrush("FloatingBorder"))
 		.Padding(4.f)
 		[
-			SAssignNew(OverlayText, SRichTextBlock)
+			SNew(SRichTextBlock)
+			.Text(StatsText)
 		]
 	];
 }
 
-EVisibility SVoxelSimpleAssetEditorViewport::GetTransformToolbarVisibility() const
+EVisibility SVoxelEditorViewport::GetTransformToolbarVisibility() const
 {
-	if (bShowFullTransformsToolbar)
+	const TSharedPtr<IVoxelViewportInterface> Interface = WeakInterface.Pin();
+
+	if (Interface &&
+		!Interface->ShowTransformToolbar())
 	{
-		return SEditorViewport::GetTransformToolbarVisibility();
+		return EVisibility::Collapsed;
 	}
 
-	return EVisibility::Collapsed;
+	return SEditorViewport::GetTransformToolbarVisibility();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TSharedRef<SEditorViewport> SVoxelSimpleAssetEditorViewport::GetViewportWidget()
+TSharedRef<SEditorViewport> SVoxelEditorViewport::GetViewportWidget()
 {
 	return SharedThis(this);
 }
 
-TSharedPtr<FExtender> SVoxelSimpleAssetEditorViewport::GetExtenders() const
+TSharedPtr<FExtender> SVoxelEditorViewport::GetExtenders() const
 {
 	return MakeShared<FExtender>();
 }
 
-void SVoxelSimpleAssetEditorViewport::OnFloatingButtonClicked()
+void SVoxelEditorViewport::OnFloatingButtonClicked()
 {
 }
 
@@ -423,7 +431,7 @@ void SVoxelSimpleAssetEditorViewport::OnFloatingButtonClicked()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FBox SVoxelSimpleAssetEditorViewport::GetComponentBounds() const
+FBox SVoxelEditorViewport::GetComponentBounds() const
 {
 	VOXEL_FUNCTION_COUNTER();
 

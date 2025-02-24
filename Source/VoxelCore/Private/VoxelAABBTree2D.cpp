@@ -148,7 +148,7 @@ void FVoxelAABBTree2D::Initialize(TVoxelArray<FElement>&& InElements)
 		if (ChildToProcess0->Elements.Num() == 0 ||
 			ChildToProcess1->Elements.Num() == 0)
 		{
-			ensure(false);
+			ensureVoxelSlow(false);
 			Node.bLeaf = true;
 			Node.LeafIndex = Leaves.Add(FLeaf{ MoveTemp(NodeToProcess->Elements) });
 			continue;
