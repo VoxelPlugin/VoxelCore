@@ -1,6 +1,7 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
+#include "Math/UnitConversion.h"
 #include "Serialization/JsonSerializer.h"
 #include "Policies/CondensedJsonPrintPolicy.h"
 
@@ -149,15 +150,12 @@ FText FVoxelUtilities::BytesToText(double Value)
 
 FText FVoxelUtilities::NumberToText(double Value)
 {
+	const float Sign = FMath::Sign(Value);
+	Value = FMath::Abs(Value);
 	const TCHAR* Unit = TEXT("");
-
-	FNumberFormattingOptions Options;
-	Options.MaximumFractionalDigits = 1;
 
 	if (Value > 1000)
 	{
-		Options.MinimumFractionalDigits = 1;
-
 		Unit = TEXT("K");
 		Value /= 1000;
 
@@ -180,7 +178,75 @@ FText FVoxelUtilities::NumberToText(double Value)
 		}
 	}
 
-	return FText::Format(INVTEXT("{0}{1}"), FText::AsNumber(Value, &Options), FText::FromString(Unit));
+	int32 NumFractionalDigits = 0;
+	if (Value < 1.f)
+	{
+		NumFractionalDigits = 2;
+	}
+	else if (Value < 10.f)
+	{
+		NumFractionalDigits = 1;
+	}
+
+	FNumberFormattingOptions Options;
+	Options.MinimumFractionalDigits = NumFractionalDigits;
+	Options.MaximumFractionalDigits = NumFractionalDigits;
+
+	return FText::Format(INVTEXT("{0}{1}"), FText::AsNumber(Value * Sign, &Options), FText::FromString(Unit));
+}
+
+FString FVoxelUtilities::DistanceToString(double DistanceInCentimeters, EUnit& OutUnit, int32& OutNumFractionalDigits)
+{
+	const float Sign = FMath::Sign(DistanceInCentimeters);
+	DistanceInCentimeters = FMath::Abs(DistanceInCentimeters);
+
+	FString MeasurementType;
+	if (DistanceInCentimeters < 1.f)
+	{
+		DistanceInCentimeters *= 10.f;
+		MeasurementType = "mm";
+		OutUnit = EUnit::Millimeters;
+	}
+	else if (DistanceInCentimeters < 100.f)
+	{
+		MeasurementType = "cm";
+		OutUnit = EUnit::Centimeters;
+	}
+	// 100m should be shown as 0.1km
+	else if (DistanceInCentimeters < 10000.f)
+	{
+		DistanceInCentimeters = DistanceInCentimeters / 100.f;
+		MeasurementType = "m";
+		OutUnit = EUnit::Meters;
+	}
+	else
+	{
+		DistanceInCentimeters = DistanceInCentimeters / 100000.f;
+		MeasurementType = "km";
+		OutUnit = EUnit::Kilometers;
+	}
+
+	if (DistanceInCentimeters < 1.f)
+	{
+		OutNumFractionalDigits = 2;
+	}
+	else if (DistanceInCentimeters < 10.f)
+	{
+		OutNumFractionalDigits = 1;
+	}
+
+	FNumberFormattingOptions Options;
+	Options.MinimumFractionalDigits = OutNumFractionalDigits;
+	Options.MaximumFractionalDigits = OutNumFractionalDigits;
+
+	return FText::AsNumber(DistanceInCentimeters * Sign, &Options).ToString() + " " + MeasurementType;
+}
+
+FString FVoxelUtilities::DistanceToString(const double DistanceInCentimeters)
+{
+	EUnit Unit;
+	int32 NumFractionalDigits;
+	return DistanceToString(DistanceInCentimeters, Unit, NumFractionalDigits);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

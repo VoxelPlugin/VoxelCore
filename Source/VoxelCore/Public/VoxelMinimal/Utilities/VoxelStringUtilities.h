@@ -7,6 +7,7 @@
 #include "VoxelMinimal/Utilities/VoxelMathUtilities.h"
 
 class FJsonValue;
+enum class EUnit : uint8;
 
 namespace FVoxelUtilities
 {
@@ -20,6 +21,8 @@ namespace FVoxelUtilities
 	VOXELCORE_API FText SecondsToText(double Value, int32 NumExtraDigits = 0);
 	VOXELCORE_API FText BytesToText(double Value);
 	VOXELCORE_API FText NumberToText(double Value);
+	VOXELCORE_API FString DistanceToString(double DistanceInCentimeters, EUnit& OutUnit, int32& OutNumFractionalDigits);
+	VOXELCORE_API FString DistanceToString(double DistanceInCentimeters);
 
 	VOXELCORE_API FString SecondsToString(double Value, int32 NumExtraDigits = 0);
 	VOXELCORE_API FString BytesToString(double Value);
