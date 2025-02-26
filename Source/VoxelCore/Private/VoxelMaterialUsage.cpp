@@ -1,6 +1,7 @@
 ﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMaterialUsage.h"
+#include "MaterialShared.h"
 #include "Materials/Material.h"
 
 #if WITH_EDITOR

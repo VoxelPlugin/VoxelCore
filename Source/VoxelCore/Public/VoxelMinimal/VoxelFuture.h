@@ -364,7 +364,11 @@ public:
 
 public:
 	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
-	requires LambdaHasSignature_V<LambdaType, ReturnType(const TSharedRef<T>&)>
+	requires
+	(
+		LambdaHasSignature_V<LambdaType, ReturnType(TSharedRef<T>)> ||
+		LambdaHasSignature_V<LambdaType, ReturnType(const TSharedRef<T>&)>
+	)
 	FORCEINLINE TVoxelFutureType<ReturnType> Then(
 		const EVoxelFutureThread Thread,
 		LambdaType Continuation) const
@@ -415,6 +419,7 @@ public:
 	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>> \
 	requires \
 	( \
+		LambdaHasSignature_V<LambdaType, ReturnType(TSharedRef<T>)> || \
 		LambdaHasSignature_V<LambdaType, ReturnType(const TSharedRef<T>&)> || \
 		LambdaHasSignature_V<LambdaType, ReturnType(const T&)> || \
 		LambdaHasSignature_V<LambdaType, ReturnType(T&)> || \
@@ -433,7 +438,11 @@ public:
 #undef Define
 
 	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
-	requires LambdaHasSignature_V<LambdaType, ReturnType(const TSharedRef<T>&)>
+	requires
+	(
+		LambdaHasSignature_V<LambdaType, ReturnType(TSharedRef<T>)> ||
+		LambdaHasSignature_V<LambdaType, ReturnType(const TSharedRef<T>&)>
+	)
 	FORCEINLINE TVoxelFutureType<ReturnType> Then_GameThread(LambdaType Continuation) const
 	{
 		if (IsComplete() &&

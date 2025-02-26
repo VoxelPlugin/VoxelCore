@@ -190,11 +190,14 @@ bool FVoxelUtilities::IsDevWorkflow()
 {
 	if (VOXEL_DEV_WORKFLOW)
 	{
-		return true;
+		static const bool bValue = !FParse::Param(FCommandLine::Get(), TEXT("NoVoxelDevWorkflow"));
+		return bValue;
 	}
-
-	static const bool bValue = FParse::Param(FCommandLine::Get(), TEXT("VoxelDevWorkflow"));
-	return bValue;
+	else
+	{
+		static const bool bValue = FParse::Param(FCommandLine::Get(), TEXT("VoxelDevWorkflow"));
+		return bValue;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
