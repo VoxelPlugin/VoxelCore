@@ -148,7 +148,21 @@ void FVoxelAABBTree2D::Initialize(TVoxelArray<FElement>&& InElements)
 		if (ChildToProcess0->Elements.Num() == 0 ||
 			ChildToProcess1->Elements.Num() == 0)
 		{
-			ensureVoxelSlow(false);
+#if VOXEL_DEBUG
+			TVoxelSet<FVoxelBox2D> Elements0;
+			TVoxelSet<FVoxelBox2D> Elements1;
+			for (const FElement& Element : ChildToProcess0->Elements)
+			{
+				Elements0.Add(Element.Bounds);
+			}
+			for (const FElement& Element : ChildToProcess1->Elements)
+			{
+				Elements1.Add(Element.Bounds);
+			}
+			ensure(
+				Elements0.Num() != ChildToProcess0->Elements.Num() ||
+				Elements1.Num() != ChildToProcess1->Elements.Num());
+#endif
 			Node.bLeaf = true;
 			Node.LeafIndex = Leaves.Add(FLeaf{ MoveTemp(NodeToProcess->Elements) });
 			continue;
