@@ -3,6 +3,8 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/VoxelAtomic.h"
+#include "VoxelMinimal/Utilities/VoxelMathUtilities.h"
 #include "VoxelMinimal/Containers/VoxelBitArrayHelpers.h"
 
 class FVoxelBitReference

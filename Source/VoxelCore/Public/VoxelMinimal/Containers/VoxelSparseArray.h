@@ -5,6 +5,7 @@
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelBitArray.h"
+#include "VoxelMinimal/Utilities/VoxelMathUtilities.h"
 
 template<typename Type>
 class TVoxelSparseArray

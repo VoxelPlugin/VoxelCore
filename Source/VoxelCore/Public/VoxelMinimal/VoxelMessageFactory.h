@@ -5,6 +5,7 @@
 #include "VoxelCoreMinimal.h"
 #include "UObject/Interface.h"
 #include "UObject/WeakInterfacePtr.h"
+#include "VoxelMinimal/VoxelObjectPtr.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 
 class UEdGraph;

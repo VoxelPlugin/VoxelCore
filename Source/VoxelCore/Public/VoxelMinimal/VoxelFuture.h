@@ -3,6 +3,8 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/VoxelAtomic.h"
+#include "VoxelMinimal/VoxelSharedPtr.h"
 #include "VoxelMinimal/VoxelUniqueFunction.h"
 
 class FVoxelFuture;

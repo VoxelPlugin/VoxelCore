@@ -3,6 +3,9 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/VoxelObjectPtr.h"
+#include "VoxelMinimal/Containers/VoxelSet.h"
+#include "VoxelMinimal/Containers/VoxelArray.h"
 
 class FViewport;
 

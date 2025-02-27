@@ -4,6 +4,8 @@
 
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
+#include "VoxelMinimal/Containers/VoxelArrayView.h"
+#include "VoxelMinimal/Utilities/VoxelHashUtilities.h"
 
 class IPlugin;
 struct FVoxelPluginVersion;

@@ -3,6 +3,8 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/VoxelAtomic.h"
+#include "VoxelMinimal/VoxelObjectPtr.h"
 
 // Keeps material references alive
 // This is needed because material objects are re-instantiated in-place when recompiled

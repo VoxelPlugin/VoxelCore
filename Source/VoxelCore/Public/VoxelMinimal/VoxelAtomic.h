@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/Utilities/VoxelArrayUtilities.h"
 #include <atomic>
 
 enum class EVoxelAtomicType

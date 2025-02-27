@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/VoxelObjectPtr.h"
 
 template<typename T>
 struct TVoxelWeakPropertyPtr

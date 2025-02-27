@@ -3,7 +3,11 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/VoxelIntBox.h"
 #include "VoxelMinimal/VoxelIterate.h"
+#include "VoxelMinimal/Containers/VoxelArray.h"
+#include "VoxelMinimal/Utilities/VoxelMathUtilities.h"
+#include "VoxelMinimal/Utilities/VoxelArrayUtilities.h"
 
 struct VOXELCORE_API FVoxelBitArrayHelpers
 {

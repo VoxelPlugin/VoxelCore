@@ -3,6 +3,8 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/VoxelSharedPtr.h"
+#include "VoxelMinimal/Containers/VoxelArrayView.h"
 
 class FStructOnScope;
 class FVoxelStructView;

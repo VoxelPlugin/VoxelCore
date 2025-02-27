@@ -3,10 +3,12 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 #include "VoxelMinimal/Utilities/VoxelMathUtilities.h"
 
 class FJsonValue;
+class FJsonObject;
 enum class EUnit : uint8;
 
 namespace FVoxelUtilities
