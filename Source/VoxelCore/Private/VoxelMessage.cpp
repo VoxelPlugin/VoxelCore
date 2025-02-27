@@ -65,13 +65,15 @@ uint64 FVoxelMessage::GetHash() const
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	TVoxelArray<uint32> Data;
-	Data.Add(uint32(Severity));
-	Data.Add(Tokens.Num());
+	TVoxelInlineArray<uint32, 32> Data;
+	Data.Reserve(2 + Tokens.Num());
+
+	Data.Add_EnsureNoGrow(uint32(Severity));
+	Data.Add_EnsureNoGrow(Tokens.Num());
 
 	for (const TSharedRef<FVoxelMessageToken>& Token : Tokens)
 	{
-		Data.Add(Token->GetHash());
+		Data.Add_EnsureNoGrow(Token->GetHash());
 	}
 
 	return FVoxelUtilities::MurmurHashView(Data);

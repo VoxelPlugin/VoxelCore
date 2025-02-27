@@ -5,6 +5,7 @@
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelSingleton.h"
 #include "VoxelMinimal/VoxelMessageFactory.h"
+#include "VoxelMinimal/Containers/VoxelMap.h"
 
 class FVoxelMessageManager;
 
@@ -58,9 +59,18 @@ public:
 	TVoxelArray<FGatherCallstack> GatherCallstacks;
 
 public:
-	void LogMessage(const TSharedRef<FVoxelMessage>& Message) const;
+	void LogMessage(const TSharedRef<FVoxelMessage>& Message);
 
 private:
+	FVoxelCriticalSection CriticalSection;
+
+	struct FMessageTime
+	{
+		double Time = 0;
+		uint64 FrameCounter = 0;
+	};
+	TVoxelMap<uint64, FMessageTime> HashToMessageTime_RequiresLock;
+
 	void LogMessage_GameThread(const TSharedRef<FVoxelMessage>& Message) const;
 
 public:
@@ -90,7 +100,7 @@ private:
 	void InternalLogMessageFormat(
 		EVoxelMessageSeverity Severity,
 		const TCHAR* Format,
-		TConstVoxelArrayView<TSharedRef<FVoxelMessageToken>> Tokens) const;
+		TConstVoxelArrayView<TSharedRef<FVoxelMessageToken>> Tokens);
 };
 
 #define INTERNAL_CHECK_ARG(Name) static_assert(std::is_same_v<decltype(FVoxelMessageTokenFactory::CreateToken(Name	)), TSharedRef<FVoxelMessageToken>>, "Invalid arg passed to VOXEL_MESSAGE: " #Name);

@@ -64,13 +64,38 @@ FVoxelScopedMessageConsumer::~FVoxelScopedMessageConsumer()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void FVoxelMessageManager::LogMessage(const TSharedRef<FVoxelMessage>& Message) const
+void FVoxelMessageManager::LogMessage(const TSharedRef<FVoxelMessage>& Message)
 {
 	VOXEL_FUNCTION_COUNTER();
 
 	for (const FGatherCallstack& GatherCallstack : GatherCallstacks)
 	{
 		GatherCallstack(Message);
+	}
+
+	{
+		VOXEL_SCOPE_COUNTER("Check recent messages");
+		VOXEL_SCOPE_LOCK(CriticalSection);
+
+		const uint64 Hash = Message->GetHash();
+		const double Time = FPlatformTime::Seconds();
+		const uint64 FrameCounter = GFrameCounter;
+
+		if (const FMessageTime* MessageTime = HashToMessageTime_RequiresLock.Find(Hash))
+		{
+			// Also check FrameCounter in case the game thread is lagging, to avoid always adding the same message
+			if (Time < MessageTime->Time + 0.5 ||
+				FrameCounter < MessageTime->FrameCounter + 10)
+			{
+				return;
+			}
+		}
+
+		HashToMessageTime_RequiresLock.FindOrAdd(Hash) = FMessageTime
+		{
+			Time,
+			FrameCounter
+		};
 	}
 
 	const TSharedPtr<IVoxelMessageConsumer> MessageConsumer = FVoxelMessagesThreadSingleton::Get().GetTop().Pin();
@@ -93,44 +118,11 @@ void FVoxelMessageManager::LogMessage(const TSharedRef<FVoxelMessage>& Message) 
 void FVoxelMessageManager::LogMessage_GameThread(const TSharedRef<FVoxelMessage>& Message) const
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(IsInGameThread());
 
 	if (NO_LOGGING)
 	{
 		return;
-	}
-
-	{
-		VOXEL_SCOPE_COUNTER("Check recent messages");
-
-		struct FRecentMessage
-		{
-			uint64 Hash = 0;
-			double Time = 0;
-		};
-		static TVoxelArray<FRecentMessage> RecentMessages;
-
-		const uint64 Hash = Message->GetHash();
-		const double Time = FPlatformTime::Seconds();
-
-		RecentMessages.RemoveAllSwap([&](const FRecentMessage& RecentMessage)
-		{
-			return RecentMessage.Time + 0.5 < Time;
-		}, UE_505_SWITCH(false, EAllowShrinking::No));
-
-		if (RecentMessages.FindByPredicate([&](const FRecentMessage& RecentMessage)
-			{
-				return RecentMessage.Hash == Hash;
-			}))
-		{
-			// A message with the same hash was displayed recently, don't log this one again
-			return;
-		}
-
-		RecentMessages.Add(FRecentMessage
-		{
-			Hash,
-			Time
-		});
 	}
 
 	if (!GIsEditor)
@@ -216,7 +208,7 @@ void FVoxelMessageManager::LogMessageFormat(const EVoxelMessageSeverity Severity
 void FVoxelMessageManager::InternalLogMessageFormat(
 	const EVoxelMessageSeverity Severity,
 	const TCHAR* Format,
-	const TConstVoxelArrayView<TSharedRef<FVoxelMessageToken>> Tokens) const
+	const TConstVoxelArrayView<TSharedRef<FVoxelMessageToken>> Tokens)
 {
 	VOXEL_FUNCTION_COUNTER();
 
