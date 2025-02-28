@@ -5,6 +5,7 @@
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelSingleton.h"
 #include "VoxelMinimal/VoxelMessageFactory.h"
+#include "VoxelMinimal/VoxelCriticalSection.h"
 #include "VoxelMinimal/Containers/VoxelMap.h"
 
 class FVoxelMessageManager;

@@ -222,8 +222,17 @@ public:
 	}
 
 public:
-	template<typename T>
-	static void ForeachData(const TSharedPtr<IPropertyHandle>& PropertyHandle, TFunctionRef<void(T&)> Lambda)
+	template<typename T, typename LambdaType>
+	requires
+	(
+		LambdaHasSignature_V<LambdaType, void(T*)> ||
+		LambdaHasSignature_V<LambdaType, void(const T*)> ||
+		LambdaHasSignature_V<LambdaType, void(T&)> ||
+		LambdaHasSignature_V<LambdaType, void(const T&)> ||
+		LambdaHasSignature_V<LambdaType, void(T&, UObject* Outer)> ||
+		LambdaHasSignature_V<LambdaType, void(const T&, UObject* Outer)>
+	)
+	static void ForeachData(const TSharedPtr<IPropertyHandle>& PropertyHandle, LambdaType Lambda)
 	{
 		VOXEL_FUNCTION_COUNTER();
 
@@ -241,40 +250,40 @@ public:
 			return;
 		}
 
+		TArray<UObject*> Objects;
+		PropertyHandle->GetOuterObjects(Objects);
+
 		PropertyHandle->EnumerateRawData([&](void* RawData, const int32 DataIndex, const int32 NumDatas)
 		{
-			if (!RawData)
+			if constexpr (
+				LambdaHasSignature_V<LambdaType, void(T*)> ||
+				LambdaHasSignature_V<LambdaType, void(const T*)>)
 			{
-				// Will happen when removing array entries
-				return true;
+				Lambda(static_cast<T*>(RawData));
+			}
+			else if constexpr (
+				LambdaHasSignature_V<LambdaType, void(T&)> ||
+				LambdaHasSignature_V<LambdaType, void(const T&)>)
+			{
+				if (RawData)
+				{
+					Lambda(*static_cast<T*>(RawData));
+				}
+			}
+			else if constexpr (
+				LambdaHasSignature_V<LambdaType, void(T&, UObject*)> ||
+				LambdaHasSignature_V<LambdaType, void(const T&, UObject*)>)
+			{
+				if (RawData)
+				{
+					Lambda(*static_cast<T*>(RawData), ensure(Objects.IsValidIndex(DataIndex)) ? Objects[DataIndex] : nullptr);
+				}
+			}
+			else
+			{
+				checkStatic(std::is_same_v<LambdaType, void>);
 			}
 
-			Lambda(*static_cast<T*>(RawData));
-			return true;
-		});
-	}
-	template<typename T>
-	static void ForeachDataPtr(const TSharedPtr<IPropertyHandle>& PropertyHandle, TFunctionRef<void(T*)> Lambda)
-	{
-		VOXEL_FUNCTION_COUNTER();
-
-		TrackHandle(PropertyHandle);
-
-		if (!ensure(PropertyHandle))
-		{
-			return;
-		}
-
-		FProperty* Property = PropertyHandle->GetProperty();
-		if (Property &&
-			!ensure(FVoxelUtilities::MatchesProperty<T>(*Property, false)))
-		{
-			return;
-		}
-
-		PropertyHandle->EnumerateRawData([&](void* RawData, const int32 DataIndex, const int32 NumDatas)
-		{
-			Lambda(static_cast<T*>(RawData));
 			return true;
 		});
 	}

@@ -66,9 +66,10 @@ void FVoxelInstancedStructDataProvider::GetInstances(TArray<TSharedPtr<FStructOn
 
 	// The returned instances need to be compatible with base structure.
 	// This function returns empty instances in case they are not compatible, with the idea that we have as many instances as we have outer objects.
-	FVoxelEditorUtilities::ForeachDataPtr<FVoxelInstancedStruct>(StructProperty, [&](FVoxelInstancedStruct* InstancedStruct)
+	FVoxelEditorUtilities::ForeachData<FVoxelInstancedStruct>(StructProperty, [&](FVoxelInstancedStruct* InstancedStruct)
 	{
 		if (!BaseStructure ||
+			!InstancedStruct ||
 			!InstancedStruct->IsA(BaseStructure))
 		{
 			OutInstances.Add(nullptr);
