@@ -269,7 +269,11 @@ void ParallelFor(
 ///////////////////////////////////////////////////////////////////////////////
 
 template<typename KeyType, typename ValueType, typename Allocator, typename LambdaType>
-requires LambdaHasSignature_V<LambdaType, void(typename TVoxelMap<KeyType, ValueType, Allocator>::FElement&)>
+requires
+(
+	LambdaHasSignature_V<LambdaType, void(typename TVoxelMap<KeyType, ValueType, Allocator>::FElement&)> ||
+	LambdaHasSignature_V<LambdaType, void(const typename TVoxelMap<KeyType, ValueType, Allocator>::FElement&)>
+)
 void ParallelFor(
 	TVoxelMap<KeyType, ValueType, Allocator>& Map,
 	LambdaType Lambda)
@@ -280,7 +284,7 @@ void ParallelFor(
 }
 
 template<typename KeyType, typename ValueType, typename Allocator, typename LambdaType>
-requires LambdaHasSignature_V<LambdaType, void(typename TVoxelMap<KeyType, ValueType, Allocator>::FElement&)>
+requires LambdaHasSignature_V<LambdaType, void(const typename TVoxelMap<KeyType, ValueType, Allocator>::FElement&)>
 void ParallelFor(
 	const TVoxelMap<KeyType, ValueType, Allocator>& Map,
 	LambdaType Lambda)
@@ -304,7 +308,11 @@ void ParallelFor_Keys(
 }
 
 template<typename KeyType, typename ValueType, typename Allocator, typename LambdaType>
-requires LambdaHasSignature_V<LambdaType, void(ValueType&)>
+requires
+(
+	LambdaHasSignature_V<LambdaType, void(ValueType&)> ||
+	LambdaHasSignature_V<LambdaType, void(const ValueType&)>
+)
 void ParallelFor_Values(
 	TVoxelMap<KeyType, ValueType, Allocator>& Map,
 	LambdaType Lambda)
