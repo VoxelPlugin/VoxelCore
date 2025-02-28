@@ -4,6 +4,7 @@
 
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
+#include "VoxelMinimal/Containers/VoxelArrayView.h"
 #include "VoxelMinimal/Utilities/VoxelHashUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelArrayUtilities.h"
 
@@ -253,9 +254,10 @@ public:
 		}
 		return Result;
 	}
-	bool Includes(const TVoxelSet& Other) const
+
+	bool Contains(const TVoxelSet& Other) const
 	{
-		VOXEL_FUNCTION_COUNTER_NUM(Other, 1024);
+		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 1024);
 
 		if (Other.Num() > Num())
 		{
@@ -271,6 +273,35 @@ public:
 		}
 		return true;
 	}
+	bool Contains(const TConstVoxelArrayView<Type> Other) const
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 1024);
+
+		for (const Type& Value : Other)
+		{
+			if (!this->Contains(Value))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+	template<typename OtherType, typename AllocatorType>
+	requires std::is_constructible_v<Type, OtherType>
+	bool Contains(const TArray<OtherType, AllocatorType>& Other) const
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 1024);
+
+		for (const OtherType& Value : Other)
+		{
+			if (!this->Contains(Type(Value)))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
 	TVoxelSet<Type> Reverse() const
 	{
 		TVoxelSet<Type> Result;

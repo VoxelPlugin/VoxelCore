@@ -58,4 +58,56 @@ UMaterialExpression& FVoxelUtilities::CreateMaterialExpression(
 	check(false);
 	return *GetMutableDefault<UMaterialExpression>();
 }
+
+TVoxelArray<UMaterialExpression*> FVoxelUtilities::GetMaterialExpressions(const UMaterial& Material)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	// See FMaterialEditorUtilities::InitExpressions, GetExpressionCollection() cannot be trusted
+
+	TArray<UObject*> Objects;
+	GetObjectsWithOuter(&Material, Objects, false);
+
+	TVoxelArray<UMaterialExpression*> Expressions;
+	for (int32 Index = 0; Index < Objects.Num(); ++Index)
+	{
+		UMaterialExpression* Expression = Cast<UMaterialExpression>(Objects[Index]);
+		if (!IsValid(Expression))
+		{
+			continue;
+		}
+
+		Expressions.Add(Expression);
+	}
+
+	ensure(TVoxelSet<UMaterialExpression*>(Expressions).Contains(Material.GetExpressionCollection().Expressions));
+
+	return Expressions;
+}
+
+TVoxelArray<UMaterialExpression*> FVoxelUtilities::GetMaterialExpressions(const UMaterialFunction& MaterialFunction)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	// See FMaterialEditorUtilities::InitExpressions, GetExpressionCollection() cannot be trusted
+
+	TArray<UObject*> Objects;
+	GetObjectsWithOuter(&MaterialFunction, Objects, false);
+
+	TVoxelArray<UMaterialExpression*> Expressions;
+	for (int32 Index = 0; Index < Objects.Num(); ++Index)
+	{
+		UMaterialExpression* Expression = Cast<UMaterialExpression>(Objects[Index]);
+		if (!IsValid(Expression))
+		{
+			continue;
+		}
+
+		Expressions.Add(Expression);
+	}
+
+	ensure(TVoxelSet<UMaterialExpression*>(Expressions).Contains(MaterialFunction.GetExpressionCollection().Expressions));
+
+	return Expressions;
+}
 #endif

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/Containers/VoxelArray.h"
 
 class FMaterialCompiler;
 class UMaterialFunction;
@@ -25,5 +26,8 @@ namespace FVoxelUtilities
 	{
 		return *CastChecked<T>(&FVoxelUtilities::CreateMaterialExpression(Outer, T::StaticClass()));
 	}
+
+	VOXELCORE_API TVoxelArray<UMaterialExpression*> GetMaterialExpressions(const UMaterial& Material);
+	VOXELCORE_API TVoxelArray<UMaterialExpression*> GetMaterialExpressions(const UMaterialFunction& MaterialFunction);
 #endif
 };
