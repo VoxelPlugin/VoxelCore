@@ -124,6 +124,10 @@ public:
 	{
 		return sizeof(T);
 	}
+	FORCEINLINE static constexpr int64 GetAllocatedSize()
+	{
+		return sizeof(TVoxelStaticArray);
+	}
 
 	FORCEINLINE bool IsValidIndex(const int32 Index) const
 	{

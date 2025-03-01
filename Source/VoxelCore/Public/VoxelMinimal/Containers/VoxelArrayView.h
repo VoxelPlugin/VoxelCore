@@ -134,6 +134,15 @@ public:
 		return TVoxelArrayView<ToType, ReturnSizeType>(reinterpret_cast<ToType*>(GetData()), NumBytes / sizeof(T));
 	}
 
+	void Serialize(FArchive& Ar)
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Num(), 128);
+		checkStatic(!std::is_const_v<ElementType>);
+		checkStatic(std::is_trivially_destructible_v<ElementType>);
+
+		Ar.Serialize(GetData(), Num() * sizeof(ElementType));
+	}
+
 private:
 	using Super::Left;
 	using Super::LeftChop;

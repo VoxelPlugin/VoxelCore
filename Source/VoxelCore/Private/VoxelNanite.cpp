@@ -16,7 +16,7 @@ FORCEINLINE int32 ShortestWrap(int32 Value, const int32 NumBits)
 {
 	if (NumBits == 0)
 	{
-		checkVoxelSlow(Value == 0);
+		ensureVoxelSlow(Value == 0);
 		return 0;
 	}
 
