@@ -5,6 +5,7 @@
 #include "VoxelCoreMinimal.h"
 #include "Algo/IsSorted.h"
 #include "Compression/OodleDataCompression.h"
+#include "VoxelMinimal/VoxelOctahedron.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 
@@ -525,6 +526,9 @@ namespace FVoxelUtilities
 	// Will return { MAX_dbl, -MAX_dbl } if no values are valid
 	// Will skip NaNs and infinite values
 	VOXELCORE_API FDoubleInterval GetMinMaxSafe(TConstVoxelArrayView<double> Data);
+
+	// Will re-normalize Vectors
+	VOXELCORE_API TVoxelArray<FVoxelOctahedron> MakeOctahedrons(TConstVoxelArrayView<FVector3f> Vectors);
 
 	// Will replace -0 by +0
 	VOXELCORE_API void FixupSignBit(TVoxelArrayView<float> Data);

@@ -11,7 +11,7 @@ VOXEL_RUN_ON_STARTUP_EDITOR()
 	for (TObjectIterator<UField> ClassIt; ClassIt; ++ClassIt)
 	{
 		UField* Field = *ClassIt;
-		if (Field->GetOuter()->GetName() == "/Script/VoxelLandscape")
+		if (Field->GetOuter()->GetName() == "/Script/VoxelPCG")
 		{
 			const FString Prefix =
 				Cast<UScriptStruct>(Field)
@@ -24,7 +24,7 @@ VOXEL_RUN_ON_STARTUP_EDITOR()
 
 			if (!Prefix.IsEmpty())
 			{
-				String += FString::Printf(TEXT("+%s=(OldName=\"/Script/VoxelLandscape.%s\",NewName=\"/Script/Voxel.%s\")\n"), *Prefix, *Field->GetName(), *Field->GetName());
+				String += FString::Printf(TEXT("+%s=(OldName=\"/Script/VoxelGraph.%s\",NewName=\"/Script/VoxelPCG.%s\")\n"), *Prefix, *Field->GetName(), *Field->GetName());
 			}
 		}
 	}

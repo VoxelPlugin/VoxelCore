@@ -343,6 +343,26 @@ FDoubleInterval FVoxelUtilities::GetMinMaxSafe(const TConstVoxelArrayView<double
 	return Result;
 }
 
+TVoxelArray<FVoxelOctahedron> FVoxelUtilities::MakeOctahedrons(const TConstVoxelArrayView<FVector3f> Vectors)
+{
+	VOXEL_FUNCTION_COUNTER_NUM(Vectors.Num(), 1024);
+
+	if (Vectors.Num() == 0)
+	{
+		return {};
+	}
+
+	TVoxelArray<FVoxelOctahedron> Result;
+	SetNumFast(Result, Vectors.Num());
+
+	ispc::ArrayUtilities_MakeOctahedrons(
+		ReinterpretCastPtr<ispc::float3>(Vectors.GetData()),
+		Result.GetData(),
+		Result.Num());
+
+	return Result;
+}
+
 void FVoxelUtilities::FixupSignBit(const TVoxelArrayView<float> Data)
 {
 	VOXEL_FUNCTION_COUNTER_NUM(Data.Num(), 1024);
