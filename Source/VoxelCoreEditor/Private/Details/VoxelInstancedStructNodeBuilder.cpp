@@ -96,7 +96,6 @@ void FVoxelInstancedStructNodeBuilder::GenerateChildContent(IDetailChildrenBuild
 	const FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	const UStruct* BaseStruct = StructProvider->GetBaseStructure();
 
-#if VOXEL_ENGINE_VERSION >= 505
 	if (BaseStruct &&
 		PropertyModule.IsCustomizedStruct(BaseStruct, FCustomPropertyTypeLayoutMap()))
 	{
@@ -124,7 +123,6 @@ void FVoxelInstancedStructNodeBuilder::GenerateChildContent(IDetailChildrenBuild
 		}
 	}
 	else
-#endif
 	{
 		const TArray<TSharedPtr<IPropertyHandle>> ChildProperties = StructProperty->AddChildStructure(StructProvider);
 

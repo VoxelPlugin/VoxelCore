@@ -124,7 +124,7 @@ namespace FVoxelUtilities
 		VOXEL_FUNCTION_COUNTER_NUM(Num, 4096);
 
 		Array.Reserve(Num);
-		Array.SetNumUninitialized(Num, UE_505_SWITCH(false, EAllowShrinking::No));
+		Array.SetNumUninitialized(Num, EAllowShrinking::No);
 	}
 	template<typename ArrayType, typename = std::enable_if_t<std::is_trivially_destructible_v<VOXEL_GET_TYPE(*::GetData(DeclVal<ArrayType>()))>>>
 	FORCEINLINE void SetNumFast(ArrayType& Array, const FIntVector& Size)

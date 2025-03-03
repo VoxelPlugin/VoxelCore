@@ -39,12 +39,12 @@
 #define check(...)
 #endif
 
-#if VOXEL_ENGINE_VERSION >= 505
-#define UE_505_SWITCH(Before, AfterOrEqual) AfterOrEqual
-#define UE_505_ONLY(...) __VA_ARGS__
+#if VOXEL_ENGINE_VERSION >= 506
+#define UE_506_SWITCH(Before, AfterOrEqual) AfterOrEqual
+#define UE_506_ONLY(...) __VA_ARGS__
 #else
-#define UE_505_SWITCH(Before, AfterOrEqual) Before
-#define UE_505_ONLY(...)
+#define UE_506_SWITCH(Before, AfterOrEqual) Before
+#define UE_506_ONLY(...)
 #endif
 
 #include "/Engine/Private/OctahedralCommon.ush"

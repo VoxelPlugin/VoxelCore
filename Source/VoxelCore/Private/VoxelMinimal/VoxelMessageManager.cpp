@@ -57,7 +57,7 @@ FVoxelScopedMessageConsumer::FVoxelScopedMessageConsumer(TFunction<void(const TS
 
 FVoxelScopedMessageConsumer::~FVoxelScopedMessageConsumer()
 {
-	FVoxelMessagesThreadSingleton::Get().MessageConsumers.Pop(UE_505_SWITCH(false, EAllowShrinking::No));
+	FVoxelMessagesThreadSingleton::Get().MessageConsumers.Pop(EAllowShrinking::No);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

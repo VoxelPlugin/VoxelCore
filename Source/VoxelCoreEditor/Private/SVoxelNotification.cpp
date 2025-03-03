@@ -314,7 +314,7 @@ void SVoxelNotification::CreateMessage(const TSharedRef<SVerticalBox>& VBox, TSh
 			const int32 LineNumber = FCString::Atoi(*FileAndLineRegexMatcher.GetCaptureGroup(2));
 
 			// Remove the hyperlink from the message, since we're splitting it into its own string.
-			MessageString.RightChopInline(FileAndLineRegexMatcher.GetMatchEnding(), UE_505_SWITCH(false, EAllowShrinking::No));
+			MessageString.RightChopInline(FileAndLineRegexMatcher.GetMatchEnding(), EAllowShrinking::No);
 
 			SourceLink =
 				SNew(SHyperlink)

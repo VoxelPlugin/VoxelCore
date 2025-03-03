@@ -5,10 +5,9 @@
 #include "SceneView.h"
 #include "ContentBrowserModule.h"
 #include "EditorViewportClient.h"
+#include "DetailGroup.h"
+#include "DetailPropertyRow.h"
 #include "DetailCategoryBuilderImpl.h"
-#define private public
-#include "Editor/PropertyEditor/Private/DetailPropertyRow.h"
-#undef private
 
 DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelDetailCustomization);
 DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelPropertyTypeCustomizationBase);
@@ -183,6 +182,13 @@ void FVoxelEditorUtilities::HideAndMoveToCategory(
 	}
 }
 
+DEFINE_PRIVATE_ACCESS(FDetailGroup, ParentCategory);
+
+IDetailCategoryBuilder* FVoxelEditorUtilities::GetParentCategory(IDetailGroup& Group)
+{
+	return PrivateAccess::ParentCategory(static_cast<FDetailGroup&>(Group)).Pin().Get();
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -199,9 +205,11 @@ FSimpleDelegate FVoxelEditorUtilities::MakeRefreshDelegate(IDetailCustomization*
 	}
 }
 
+DEFINE_PRIVATE_ACCESS(FDetailPropertyRow, ParentCategory);
+
 FSimpleDelegate FVoxelEditorUtilities::MakeRefreshDelegate(IDetailCustomization* DetailCustomization, const IPropertyTypeCustomizationUtils& CustomizationUtils)
 {
-	const IDetailsViewPrivate* DetailView = static_cast<const FDetailPropertyRow&>(CustomizationUtils).ParentCategory.Pin()->GetDetailsView();
+	const IDetailsViewPrivate* DetailView = PrivateAccess::ParentCategory(static_cast<const FDetailPropertyRow&>(CustomizationUtils)).Pin()->GetDetailsView();
 	return MakeRefreshDelegate(DetailCustomization, CustomizationUtils.GetPropertyUtilities(), DetailView);
 }
 
@@ -238,7 +246,7 @@ FSimpleDelegate FVoxelEditorUtilities::MakeRefreshDelegate(IPropertyTypeCustomiz
 
 FSimpleDelegate FVoxelEditorUtilities::MakeRefreshDelegate(IPropertyTypeCustomization* DetailCustomization, const IPropertyTypeCustomizationUtils& CustomizationUtils)
 {
-	const IDetailsViewPrivate* DetailView = static_cast<const FDetailPropertyRow&>(CustomizationUtils).ParentCategory.Pin()->GetDetailsView();
+	const IDetailsViewPrivate* DetailView = PrivateAccess::ParentCategory(static_cast<const FDetailPropertyRow&>(CustomizationUtils)).Pin()->GetDetailsView();
 	return MakeRefreshDelegate(DetailCustomization, CustomizationUtils.GetPropertyUtilities(), DetailView);
 }
 

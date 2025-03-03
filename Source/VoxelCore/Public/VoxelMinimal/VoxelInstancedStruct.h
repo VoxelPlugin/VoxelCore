@@ -89,6 +89,7 @@ public:
 
 public:
 	void Reset();
+	TSharedRef<FStructOnScope> MakeStructOnScope();
 	bool NetSerialize(FArchive& Ar, UPackageMap& Map);
 
 	//~ Begin TStructOpsTypeTraits Interface
@@ -362,6 +363,7 @@ public:
 	using FVoxelInstancedStruct::IsValid;
 	using FVoxelInstancedStruct::AddStructReferencedObjects;
 	using FVoxelInstancedStruct::Reset;
+	using FVoxelInstancedStruct::MakeStructOnScope;
 
 	template<typename OtherType = T>
 	requires std::derived_from<OtherType, T>

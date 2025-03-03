@@ -28,6 +28,24 @@ void FVoxelInstancedStruct::Reset()
 	*this = FVoxelInstancedStruct();
 }
 
+struct FVoxelInstancedStructStructOnScope : public FStructOnScope
+{
+	FSharedVoidPtr Data;
+
+	using FStructOnScope::FStructOnScope;
+};
+
+TSharedRef<FStructOnScope> FVoxelInstancedStruct::MakeStructOnScope()
+{
+	const TSharedRef<FVoxelInstancedStructStructOnScope> Result = MakeShared<FVoxelInstancedStructStructOnScope>(
+		GetScriptStruct(),
+		static_cast<uint8*>(GetStructMemory()));
+
+	Result->Data = PrivateStructMemory;
+
+	return Result;
+}
+
 bool FVoxelInstancedStruct::NetSerialize(FArchive& Ar, UPackageMap& Map)
 {
 	if (Ar.IsSaving())

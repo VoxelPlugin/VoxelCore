@@ -725,7 +725,7 @@ BENCHMARK
 		{
 			for (int32 Run = 0; Run < Num; Run++)
 			{
-				Array.RemoveAtSwap(0, 1, UE_505_SWITCH(false, EAllowShrinking::No));
+				Array.RemoveAtSwap(0, 1, EAllowShrinking::No);
 			}
 		},
 		"TVoxelArray::RemoveAtSwap",

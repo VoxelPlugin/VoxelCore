@@ -54,23 +54,7 @@ void FVoxelUtilities::SetNumWorkerThreads(const int32 NumWorkerThreads)
 		FPlatformAffinity::GetTaskBPThreadPriority());
 }
 
-#if VOXEL_ENGINE_VERSION <= 504
-struct FSchedulerTlsFriend : LowLevelTasks::FSchedulerTls
-{
-	using FSchedulerTls::FQueueRegistry;
-};
-
-DEFINE_PRIVATE_ACCESS(LowLevelTasks::FScheduler, QueueRegistry);
-DEFINE_PRIVATE_ACCESS(FSchedulerTlsFriend::FQueueRegistry, NumActiveWorkers);
-
-int32 FVoxelUtilities::GetNumBackgroundWorkerThreads()
-{
-	const FSchedulerTlsFriend::FQueueRegistry& Registry = PrivateAccess::QueueRegistry(LowLevelTasks::FScheduler::Get());
-	return PrivateAccess::NumActiveWorkers(Registry)[1];
-}
-#else
 DEFINE_PRIVATE_ACCESS(LowLevelTasks::FScheduler, WaitingQueue);
-
 DEFINE_PRIVATE_ACCESS(LowLevelTasks::Private::FWaitingQueue, ThreadCount);
 
 int32 FVoxelUtilities::GetNumBackgroundWorkerThreads()
@@ -78,7 +62,6 @@ int32 FVoxelUtilities::GetNumBackgroundWorkerThreads()
 	const LowLevelTasks::Private::FWaitingQueue& BackgroundQueue = PrivateAccess::WaitingQueue(LowLevelTasks::FScheduler::Get())[1];
 	return PrivateAccess::ThreadCount(BackgroundQueue);
 }
-#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

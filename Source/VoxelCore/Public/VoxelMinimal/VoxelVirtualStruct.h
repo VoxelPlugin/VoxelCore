@@ -133,13 +133,8 @@ private:
 	mutable TVoxelDuplicateTransient<UScriptStruct*> PrivateStruct;
 };
 
-#if VOXEL_ENGINE_VERSION >= 505
 #define VOXEL_ENABLE_SHARED_FROM_THIS(Name) \
 	SharedPointerInternals::EnableSharedFromThis(&Name, &Name.Get());
-#else
-#define VOXEL_ENABLE_SHARED_FROM_THIS(Name) \
-	SharedPointerInternals::EnableSharedFromThis(&Name, &Name.Get(), &Name.Get());
-#endif
 
 #define GENERATED_VIRTUAL_STRUCT_BODY_ALIASES() \
 	FORCEINLINE auto MakeSharedCopy() const -> decltype(auto) \

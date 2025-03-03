@@ -13,7 +13,6 @@ struct FVoxelDelegateUtilities
 	, public TDelegateBase<FNotThreadSafeDelegateMode>
 	, public TDelegateBase<FNotThreadSafeNotCheckedDelegateMode>
 {
-#if VOXEL_ENGINE_VERSION >= 505
 	template<typename Mode, typename DelegateInstanceType>
 	static void CreateDelegateInstance(TDelegateBase<Mode>& Base, DelegateInstanceType& DelegateInstance)
 	{
@@ -24,24 +23,6 @@ struct FVoxelDelegateUtilities
 	{
 		new (TWriteLockedDelegateAllocation{Base}) DelegateInstanceType(Forward<DelegateInstanceParams>(Params)...);
 	}
-#else
-	template<typename Mode>
-	struct THack : TDelegateBase<Mode>
-	{
-		using TDelegateBase<Mode>::CreateDelegateInstance;
-	};
-
-	template<typename Mode, typename DelegateInstanceType>
-	static void CreateDelegateInstance(TDelegateBase<Mode>& Base, DelegateInstanceType& DelegateInstance)
-	{
-		static_cast<THack<Mode>&>(Base).template CreateDelegateInstance<DelegateInstanceType>(DelegateInstance);
-	}
-	template<typename DelegateInstanceType, typename Mode, typename... DelegateInstanceParams>
-	static void CreateDelegateInstance(TDelegateBase<Mode>& Base, DelegateInstanceParams&&... Params)
-	{
-		static_cast<THack<Mode>&>(Base).template CreateDelegateInstance<DelegateInstanceType>(Forward<DelegateInstanceParams>(Params)...);
-	}
-#endif
 };
 
 ///////////////////////////////////////////////////////////////////////////////

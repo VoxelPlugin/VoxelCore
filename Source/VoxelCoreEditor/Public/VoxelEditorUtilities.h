@@ -75,6 +75,8 @@ public:
 		bool bCreateGroup = true,
 		ECategoryPriority::Type Priority = ECategoryPriority::Uncommon);
 
+	static IDetailCategoryBuilder* GetParentCategory(IDetailGroup& Group);
+
 public:
 	static FSimpleDelegate MakeRefreshDelegate(IDetailCustomization* DetailCustomization, const FVoxelDetailInterface& DetailInterface);
 	static FSimpleDelegate MakeRefreshDelegate(IDetailCustomization* DetailCustomization, const IPropertyTypeCustomizationUtils& CustomizationUtils);
@@ -627,7 +629,8 @@ private:
 	}
 
 #define DEFINE_VOXEL_STRUCT_LAYOUT_RECURSIVE(Struct, Customization) \
-	VOXEL_RUN_ON_STARTUP_EDITOR() \
+	/* Run first so non-recursive can override */ \
+	VOXEL_RUN_ON_STARTUP(Editor, 999) \
 	{ \
 		RegisterVoxelStructLayout<Struct, Customization, true>(); \
 	}

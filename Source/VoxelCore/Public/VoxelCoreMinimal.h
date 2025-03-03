@@ -47,16 +47,16 @@ VOXELCORE_API DECLARE_LOG_CATEGORY_EXTERN(LogVoxel, Log, All);
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#if VOXEL_ENGINE_VERSION >= 505
-#define UE_505_SWITCH(Before, AfterOrEqual) AfterOrEqual
-#define UE_505_ONLY(...) __VA_ARGS__
+#if VOXEL_ENGINE_VERSION >= 506
+#define UE_506_SWITCH(Before, AfterOrEqual) AfterOrEqual
+#define UE_506_ONLY(...) __VA_ARGS__
 #else
-#define UE_505_SWITCH(Before, AfterOrEqual) Before
-#define UE_505_ONLY(...)
+#define UE_506_SWITCH(Before, AfterOrEqual) Before
+#define UE_506_ONLY(...)
 #endif
 
-#define MIN_VOXEL_ENGINE_VERSION 504
-#define MAX_VOXEL_ENGINE_VERSION 505
+#define MIN_VOXEL_ENGINE_VERSION 505
+#define MAX_VOXEL_ENGINE_VERSION 506
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -105,15 +105,6 @@ FORCEINLINE void Swap(T* RESTRICT& A, T* RESTRICT& B)
 	A = B;
 	B = Temp;
 }
-
-#if VOXEL_ENGINE_VERSION <= 504
-FORCEINLINE bool operator==(const FInt32Interval& A, const FInt32Interval& B)
-{
-	return
-		A.Min == B.Min &&
-		A.Max == B.Max;
-}
-#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

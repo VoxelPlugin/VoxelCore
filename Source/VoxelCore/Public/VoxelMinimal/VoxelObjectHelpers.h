@@ -432,7 +432,14 @@ FProperty& FindFPropertyChecked_Impl(const FName Name)
 	return *Property;
 }
 
-#define FindFPropertyChecked(Class, Name) FindFPropertyChecked_Impl<Class>(GET_MEMBER_NAME_CHECKED(Class, Name))
+#define FindFPropertyChecked_ByName(Class, Name) \
+	([]() -> FProperty& \
+	{ \
+		static FProperty& Property = FindFPropertyChecked_Impl<Class>(Name); \
+		return Property; \
+	}())
+
+#define FindFPropertyChecked(Class, Name) FindFPropertyChecked_ByName(Class, GET_MEMBER_NAME_CHECKED(Class, Name))
 
 #define FindUFunctionChecked(Class, Name) \
 	[] \
@@ -455,11 +462,7 @@ TSharedRef<T> MakeSharedStruct(const UScriptStruct* Struct, const T* StructToCop
 	checkVoxelSlow(Struct->IsChildOf(StaticStructFast<T>()));
 
 	const TSharedRef<T> SharedRef = ReinterpretCastRef<TSharedRef<T>>(MakeSharedStruct(Struct, static_cast<const void*>(StructToCopyFrom)));
-#if VOXEL_ENGINE_VERSION >= 505
 	SharedPointerInternals::EnableSharedFromThis(&SharedRef, &SharedRef.Get());
-#else
-	SharedPointerInternals::EnableSharedFromThis(&SharedRef, &SharedRef.Get(), &SharedRef.Get());
-#endif
 	return SharedRef;
 }
 

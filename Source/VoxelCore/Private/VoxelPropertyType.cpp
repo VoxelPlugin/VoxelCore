@@ -3,6 +3,7 @@
 #include "VoxelPropertyType.h"
 #include "VoxelPropertyValue.h"
 #include "EdGraph/EdGraphPin.h"
+#include "UObject/CoreRedirects.h"
 #if WITH_EDITOR
 #include "Styling/AppStyle.h"
 #include "Styling/SlateIconFinder.h"
@@ -189,7 +190,14 @@ FVoxelPropertyType FVoxelPropertyType::MakeFromK2(const FEdGraphPinType& PinType
 
 bool FVoxelPropertyType::TryParse(const FString& TypeString, FVoxelPropertyType& OutType)
 {
-	UScriptStruct* Struct = FindObject<UScriptStruct>(nullptr, *TypeString);
+	VOXEL_SCOPE_COUNTER("FindObject");
+
+	// Serializing structs directly doesn't seem to handle redirects properly
+	const FCoreRedirectObjectName RedirectedName = FCoreRedirects::GetRedirectedName(
+		ECoreRedirectFlags::Type_Struct,
+		FCoreRedirectObjectName(TypeString));
+
+	UScriptStruct* Struct = FindObject<UScriptStruct>(nullptr, *RedirectedName.ToString());
 	if (!ensure(Struct))
 	{
 		return false;
