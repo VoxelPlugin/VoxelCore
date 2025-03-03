@@ -3,6 +3,8 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/Containers/VoxelArray.h"
+#include "VoxelMinimal/Containers/VoxelArrayView.h"
 
 namespace FVoxelUtilities
 {
@@ -50,4 +52,11 @@ namespace FVoxelUtilities
 		const float H = FMath::Exp(-DistanceA / Smoothness) + FMath::Exp(-DistanceB / Smoothness);
 		return -FMath::Loge(H) * Smoothness;
 	}
+
+	VOXELCORE_API void JumpFlood(
+		const FIntVector& Size,
+		TVoxelArrayView<float> Distances,
+		TVoxelArray<float>& OutClosestX,
+		TVoxelArray<float>& OutClosestY,
+		TVoxelArray<float>& OutClosestZ);
 }
