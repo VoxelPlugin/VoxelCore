@@ -3,22 +3,41 @@
 #include "VoxelMinimal.h"
 #include "VoxelDistanceFieldUtilitiesImpl.ispc.generated.h"
 
-void FVoxelUtilities::JumpFlood(
+void JumpFloodImpl(
 	const FIntVector& Size,
 	const TVoxelArrayView<float> Distances,
-	TVoxelArray<float>& OutClosestX,
-	TVoxelArray<float>& OutClosestY,
-	TVoxelArray<float>& OutClosestZ)
+	TVoxelArray<float>* OutClosestX,
+	TVoxelArray<float>* OutClosestY,
+	TVoxelArray<float>* OutClosestZ)
 {
 	VOXEL_FUNCTION_COUNTER();
 	VOXEL_SCOPE_COUNTER_FORMAT("JumpFlood %dx%dx%d Num=%d", Size.X, Size.Y, Size.Z, Size.X * Size.Y * Size.Z);
 
+	const int64 SizeXYZ = Size.X * Size.Y * Size.Z;
+	if (!ensureVoxelSlow(SizeXYZ < 1024 * 1024 * 1024))
+	{
+		return;
+	}
+
 	TVoxelArray<float> ClosestX;
 	TVoxelArray<float> ClosestY;
 	TVoxelArray<float> ClosestZ;
-	SetNumFast(ClosestX, Size.X * Size.Y * Size.Z);
-	SetNumFast(ClosestY, Size.X * Size.Y * Size.Z);
-	SetNumFast(ClosestZ, Size.X * Size.Y * Size.Z);
+
+	TVoxelArray<float> ClosestXTemp;
+	TVoxelArray<float> ClosestYTemp;
+	TVoxelArray<float> ClosestZTemp;
+
+	{
+		VOXEL_SCOPE_COUNTER("SetNumFast");
+
+		FVoxelUtilities::SetNumFast(ClosestX, SizeXYZ);
+		FVoxelUtilities::SetNumFast(ClosestY, SizeXYZ);
+		FVoxelUtilities::SetNumFast(ClosestZ, SizeXYZ);
+
+		FVoxelUtilities::SetNumFast(ClosestXTemp, SizeXYZ);
+		FVoxelUtilities::SetNumFast(ClosestYTemp, SizeXYZ);
+		FVoxelUtilities::SetNumFast(ClosestZTemp, SizeXYZ);
+	}
 
 	{
 		VOXEL_SCOPE_COUNTER("Initialize");
@@ -32,12 +51,7 @@ void FVoxelUtilities::JumpFlood(
 				VOXEL_SCOPE_COUNTER_FORMAT("FVoxelUtilities::JumpFlood Initialize Num=%d", Size.X * Size.Y);
 
 				ispc::VoxelDistanceFieldUtilities_JumpFlood_Initialize(
-					0,
-					0,
 					Z,
-					Size.X,
-					Size.Y,
-					Z + 1,
 					Size.X,
 					Size.Y,
 					Size.Z,
@@ -50,27 +64,20 @@ void FVoxelUtilities::JumpFlood(
 	}
 
 	{
-		TVoxelArray<float> ClosestXTemp;
-		TVoxelArray<float> ClosestYTemp;
-		TVoxelArray<float> ClosestZTemp;
 		{
 			VOXEL_SCOPE_COUNTER("Initialize ClosestTemp");
 
-			SetNumFast(ClosestXTemp, Size.X * Size.Y * Size.Z);
-			SetNumFast(ClosestYTemp, Size.X * Size.Y * Size.Z);
-			SetNumFast(ClosestZTemp, Size.X * Size.Y * Size.Z);
-
 			ParallelFor(ClosestXTemp, [&](const TVoxelArrayView<float> View)
 			{
-				SetAll(View, NaNf());
+				FVoxelUtilities::SetAll(View, FVoxelUtilities::NaNf());
 			});
 			ParallelFor(ClosestYTemp, [&](const TVoxelArrayView<float> View)
 			{
-				SetAll(View, NaNf());
+				FVoxelUtilities::SetAll(View, FVoxelUtilities::NaNf());
 			});
 			ParallelFor(ClosestZTemp, [&](const TVoxelArrayView<float> View)
 			{
-				SetAll(View, NaNf());
+				FVoxelUtilities::SetAll(View, FVoxelUtilities::NaNf());
 			});
 		}
 
@@ -99,12 +106,7 @@ void FVoxelUtilities::JumpFlood(
 					VOXEL_SCOPE_COUNTER_FORMAT("FVoxelUtilities::JumpFlood JumpFlood Num=%d", Size.X * Size.Y);
 
 					ispc::VoxelDistanceFieldUtilities_JumpFlood_JumpFlood(
-						0,
-						0,
 						Z,
-						Size.X,
-						Size.Y,
-						Z + 1,
 						Size.X,
 						Size.Y,
 						Size.Z,
@@ -118,18 +120,6 @@ void FVoxelUtilities::JumpFlood(
 				});
 			}
 		}
-
-		Voxel::AsyncTask([
-			ClosestXTemp = MakeSharedCopy(MoveTemp(ClosestXTemp)),
-			ClosestYTemp = MakeSharedCopy(MoveTemp(ClosestYTemp)),
-			ClosestZTemp = MakeSharedCopy(MoveTemp(ClosestZTemp))]
-		{
-			VOXEL_SCOPE_COUNTER("Free ClosestTemp");
-
-			ClosestXTemp->Reset();
-			ClosestYTemp->Reset();
-			ClosestZTemp->Reset();
-		});
 	}
 
 	{
@@ -144,12 +134,7 @@ void FVoxelUtilities::JumpFlood(
 				VOXEL_SCOPE_COUNTER_FORMAT("FVoxelUtilities::JumpFlood ComputeDistances Num=%d", Size.X * Size.Y);
 
 				ispc::VoxelDistanceFieldUtilities_JumpFlood_ComputeDistances(
-					0,
-					0,
 					Z,
-					Size.X,
-					Size.Y,
-					Z + 1,
 					Size.X,
 					Size.Y,
 					Size.Z,
@@ -161,19 +146,66 @@ void FVoxelUtilities::JumpFlood(
 		}
 	}
 
+	if (OutClosestX)
+	{
+		*OutClosestX = MoveTemp(ClosestX);
+	}
+	if (OutClosestY)
+	{
+		*OutClosestY = MoveTemp(ClosestY);
+	}
+	if (OutClosestZ)
+	{
+		*OutClosestZ = MoveTemp(ClosestZ);
+	}
+
 	Voxel::AsyncTask([
 		ClosestX = MakeSharedCopy(MoveTemp(ClosestX)),
 		ClosestY = MakeSharedCopy(MoveTemp(ClosestY)),
-		ClosestZ = MakeSharedCopy(MoveTemp(ClosestZ))]
+		ClosestZ = MakeSharedCopy(MoveTemp(ClosestZ)),
+		ClosestXTemp = MakeSharedCopy(MoveTemp(ClosestXTemp)),
+		ClosestYTemp = MakeSharedCopy(MoveTemp(ClosestYTemp)),
+		ClosestZTemp = MakeSharedCopy(MoveTemp(ClosestZTemp))]
 	{
 		VOXEL_SCOPE_COUNTER("Free Closest");
 
 		ClosestX->Reset();
 		ClosestY->Reset();
 		ClosestZ->Reset();
-	});
 
-	OutClosestX = MoveTemp(ClosestX);
-	OutClosestY = MoveTemp(ClosestY);
-	OutClosestZ = MoveTemp(ClosestZ);
+		ClosestXTemp->Reset();
+		ClosestYTemp->Reset();
+		ClosestZTemp->Reset();
+	});
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void FVoxelUtilities::JumpFlood(
+	const FIntVector& Size,
+	const TVoxelArrayView<float> Distances,
+	TVoxelArray<float>& OutClosestX,
+	TVoxelArray<float>& OutClosestY,
+	TVoxelArray<float>& OutClosestZ)
+{
+	JumpFloodImpl(
+		Size,
+		Distances,
+		&OutClosestX,
+		&OutClosestY,
+		&OutClosestZ);
+}
+
+void FVoxelUtilities::JumpFlood(
+	const FIntVector& Size,
+	const TVoxelArrayView<float> Distances)
+{
+	JumpFloodImpl(
+		Size,
+		Distances,
+		nullptr,
+		nullptr,
+		nullptr);
 }
