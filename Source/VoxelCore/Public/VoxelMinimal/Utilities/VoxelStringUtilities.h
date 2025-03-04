@@ -22,13 +22,13 @@ namespace FVoxelUtilities
 
 	VOXELCORE_API FText SecondsToText(double Value, int32 NumExtraDigits = 0);
 	VOXELCORE_API FText BytesToText(double Value);
-	VOXELCORE_API FText NumberToText(double Value);
-	VOXELCORE_API FString DistanceToString(double DistanceInCentimeters, EUnit& OutUnit, int32& OutNumFractionalDigits);
-	VOXELCORE_API FString DistanceToString(double DistanceInCentimeters);
+	VOXELCORE_API FText NumberToText(double Value, int32 NumSignificantNumbers = 4);
+	VOXELCORE_API FString DistanceToString(double DistanceInCentimeters, int32 NumSignificantNumbers, EUnit& OutUnit, int32& OutNumFractionalDigits);
+	VOXELCORE_API FString DistanceToString(double DistanceInCentimeters, int32 NumSignificantNumbers = 4);
 
 	VOXELCORE_API FString SecondsToString(double Value, int32 NumExtraDigits = 0);
 	VOXELCORE_API FString BytesToString(double Value);
-	VOXELCORE_API FString NumberToString(double Value);
+	VOXELCORE_API FString NumberToString(double Value, int32 NumSignificantNumbers = 4);
 
 	VOXELCORE_API bool IsInt(FStringView Text);
 	VOXELCORE_API bool IsFloat(FStringView Text);

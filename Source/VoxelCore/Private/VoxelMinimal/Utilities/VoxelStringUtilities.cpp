@@ -4,6 +4,7 @@
 #include "Math/UnitConversion.h"
 #include "Serialization/JsonSerializer.h"
 #include "Policies/CondensedJsonPrintPolicy.h"
+#include "Widgets/Input/NumericTypeInterface.h"
 
 FString FVoxelUtilities::JsonToString(
 	const TSharedRef<FJsonObject>& JsonObject,
@@ -148,7 +149,7 @@ FText FVoxelUtilities::BytesToText(double Value)
 	return FText::Format(INVTEXT("{0}{1}B"), FText::AsNumber(Value, &Options), FText::FromString(Unit));
 }
 
-FText FVoxelUtilities::NumberToText(double Value)
+FText FVoxelUtilities::NumberToText(double Value, const int32 NumSignificantNumbers)
 {
 	const float Sign = FMath::Sign(Value);
 	Value = FMath::Abs(Value);
@@ -178,14 +179,11 @@ FText FVoxelUtilities::NumberToText(double Value)
 		}
 	}
 
-	int32 NumFractionalDigits = 0;
-	if (Value < 1.f)
+	int32 NumFractionalDigits = NumSignificantNumbers;
+	if (Value >= 1.f)
 	{
-		NumFractionalDigits = 2;
-	}
-	else if (Value < 10.f)
-	{
-		NumFractionalDigits = 1;
+		const int32 NumDigits = GetNumberOfDigits(FMath::TruncToInt32(Value));
+		NumFractionalDigits = FMath::Max(NumSignificantNumbers - NumDigits, 0);
 	}
 
 	FNumberFormattingOptions Options;
@@ -195,58 +193,54 @@ FText FVoxelUtilities::NumberToText(double Value)
 	return FText::Format(INVTEXT("{0}{1}"), FText::AsNumber(Value * Sign, &Options), FText::FromString(Unit));
 }
 
-FString FVoxelUtilities::DistanceToString(double DistanceInCentimeters, EUnit& OutUnit, int32& OutNumFractionalDigits)
+FString FVoxelUtilities::DistanceToString(double DistanceInCentimeters, const int32 NumSignificantNumbers, EUnit& OutUnit, int32& OutNumFractionalDigits)
 {
 	const float Sign = FMath::Sign(DistanceInCentimeters);
 	DistanceInCentimeters = FMath::Abs(DistanceInCentimeters);
 
-	FString MeasurementType;
 	if (DistanceInCentimeters < 1.f)
 	{
 		DistanceInCentimeters *= 10.f;
-		MeasurementType = "mm";
 		OutUnit = EUnit::Millimeters;
 	}
 	else if (DistanceInCentimeters < 100.f)
 	{
-		MeasurementType = "cm";
 		OutUnit = EUnit::Centimeters;
 	}
 	// 100m should be shown as 0.1km
 	else if (DistanceInCentimeters < 10000.f)
 	{
 		DistanceInCentimeters = DistanceInCentimeters / 100.f;
-		MeasurementType = "m";
 		OutUnit = EUnit::Meters;
 	}
 	else
 	{
 		DistanceInCentimeters = DistanceInCentimeters / 100000.f;
-		MeasurementType = "km";
 		OutUnit = EUnit::Kilometers;
 	}
 
 	if (DistanceInCentimeters < 1.f)
 	{
-		OutNumFractionalDigits = 2;
+		OutNumFractionalDigits = NumSignificantNumbers;
 	}
-	else if (DistanceInCentimeters < 10.f)
+	else
 	{
-		OutNumFractionalDigits = 1;
+		const int32 NumDigits = GetNumberOfDigits(FMath::TruncToInt32(DistanceInCentimeters));
+		OutNumFractionalDigits = FMath::Max(NumSignificantNumbers - NumDigits, 0);
 	}
 
 	FNumberFormattingOptions Options;
 	Options.MinimumFractionalDigits = OutNumFractionalDigits;
 	Options.MaximumFractionalDigits = OutNumFractionalDigits;
 
-	return FText::AsNumber(DistanceInCentimeters * Sign, &Options).ToString() + " " + MeasurementType;
+	return FText::AsNumber(DistanceInCentimeters * Sign, &Options).ToString() + FUnitConversion::GetUnitDisplayString(OutUnit);
 }
 
-FString FVoxelUtilities::DistanceToString(const double DistanceInCentimeters)
+FString FVoxelUtilities::DistanceToString(const double DistanceInCentimeters, const int32 NumSignificantNumbers)
 {
 	EUnit Unit;
 	int32 NumFractionalDigits;
-	return DistanceToString(DistanceInCentimeters, Unit, NumFractionalDigits);
+	return DistanceToString(DistanceInCentimeters, NumSignificantNumbers, Unit, NumFractionalDigits);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -263,9 +257,9 @@ FString FVoxelUtilities::BytesToString(const double Value)
 	return BytesToText(Value).ToString();
 }
 
-FString FVoxelUtilities::NumberToString(const double Value)
+FString FVoxelUtilities::NumberToString(const double Value, const int32 NumSignificantNumbers)
 {
-	return NumberToText(Value).ToString();
+	return NumberToText(Value, NumSignificantNumbers).ToString();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
