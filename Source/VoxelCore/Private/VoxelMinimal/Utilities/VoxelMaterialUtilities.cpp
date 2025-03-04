@@ -82,6 +82,21 @@ TVoxelArray<UMaterialExpression*> FVoxelUtilities::GetMaterialExpressions(const 
 
 	ensure(TVoxelSet<UMaterialExpression*>(Expressions).Contains(Material.GetExpressionCollection().Expressions));
 
+	// Deterministic order
+	Expressions.Sort([](const UMaterialExpression& A, const UMaterialExpression& B)
+	{
+		if (A.MaterialExpressionEditorX != B.MaterialExpressionEditorX)
+		{
+			return A.MaterialExpressionEditorX < B.MaterialExpressionEditorX;
+		}
+		if (A.MaterialExpressionEditorY != B.MaterialExpressionEditorY)
+		{
+			return A.MaterialExpressionEditorY < B.MaterialExpressionEditorY;
+		}
+
+		return A.GetName() < B.GetName();
+	});
+
 	return Expressions;
 }
 
@@ -107,6 +122,21 @@ TVoxelArray<UMaterialExpression*> FVoxelUtilities::GetMaterialExpressions(const 
 	}
 
 	ensure(TVoxelSet<UMaterialExpression*>(Expressions).Contains(MaterialFunction.GetExpressionCollection().Expressions));
+
+	// Deterministic order
+	Expressions.Sort([](const UMaterialExpression& A, const UMaterialExpression& B)
+	{
+		if (A.MaterialExpressionEditorX != B.MaterialExpressionEditorX)
+		{
+			return A.MaterialExpressionEditorX < B.MaterialExpressionEditorX;
+		}
+		if (A.MaterialExpressionEditorY != B.MaterialExpressionEditorY)
+		{
+			return A.MaterialExpressionEditorY < B.MaterialExpressionEditorY;
+		}
+
+		return A.GetName() < B.GetName();
+	});
 
 	return Expressions;
 }

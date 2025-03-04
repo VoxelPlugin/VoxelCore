@@ -126,4 +126,9 @@ DEFINE(double)
 	return CreateTextToken(FText::AsNumber(Value, &FNumberFormattingOptions::DefaultNoGrouping()).ToString());
 }
 
+DEFINE(bool)
+{
+	return CreateTextToken(Value ? TEXT("true") : TEXT("false"));
+}
+
 #undef DEFINE
