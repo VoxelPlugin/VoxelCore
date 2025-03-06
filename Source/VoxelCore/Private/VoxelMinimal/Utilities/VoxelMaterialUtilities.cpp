@@ -1,11 +1,74 @@
 ﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
+#include "VoxelHLSLMaterialTranslator.h"
 #if WITH_EDITOR
 #include "MaterialEditingLibrary.h"
 #include "Materials/MaterialFunction.h"
-#include "Materials/HLSLMaterialTranslator.h"
 #endif
+
+#if WITH_EDITOR
+struct FVoxelMaterialTranslatorNoCodeReuseScope::FImpl
+{
+	FVoxelHLSLMaterialTranslator& Translator;
+
+	TArray<FShaderCodeChunk>* CurrentScopeChunks;
+	TArray<FShaderCodeChunk> LocalChunks;
+	TArray<FMaterialCustomExpressionEntry> LocalCustomExpressions;
+
+	explicit FImpl(FVoxelHLSLMaterialTranslator& Translator)
+		: Translator(Translator)
+	{
+		CurrentScopeChunks = Translator.CurrentScopeChunks;
+		Translator.CurrentScopeChunks = &LocalChunks;
+
+		// Clear the vtable cache, code can't be reused across inputs
+		Translator.VTStackHash = {};
+
+		// Forbid custom expression reuse
+		LocalCustomExpressions = Translator.CustomExpressions;
+
+		for (FMaterialCustomExpressionEntry& Entry : Translator.CustomExpressions)
+		{
+			Entry.Expression = nullptr;
+		}
+	}
+	~FImpl()
+	{
+		Translator.CurrentScopeChunks = CurrentScopeChunks;
+		Translator.CurrentScopeChunks->Append(LocalChunks);
+
+		check(LocalCustomExpressions.Num() <= Translator.CustomExpressions.Num());
+		for (int32 Index = 0; Index < LocalCustomExpressions.Num(); Index++)
+		{
+			const FMaterialCustomExpressionEntry& Source = LocalCustomExpressions[Index];
+			FMaterialCustomExpressionEntry& Target = Translator.CustomExpressions[Index];
+
+			ensure(Source.ScopeID == Target.ScopeID);
+			ensure(Source.Expression && !Target.Expression);
+			ensure(Source.Implementation == Target.Implementation);
+			ensure(Source.InputHash == Target.InputHash);
+			ensure(Source.OutputCodeIndex == Target.OutputCodeIndex);
+
+			Target.Expression = Source.Expression;
+		}
+
+		// Clear cache as we are in a local scope
+		FMaterialFunctionCompileState* CurrentFunctionState = Translator.FunctionStacks[Translator.ShaderFrequency].Last();
+		CurrentFunctionState->ExpressionCodeMap.Reset();
+		CurrentFunctionState->ClearSharedFunctionStates();
+	}
+};
+
+FVoxelMaterialTranslatorNoCodeReuseScope::FVoxelMaterialTranslatorNoCodeReuseScope(FHLSLMaterialTranslator& Translator)
+	: Impl(MakePimpl<FImpl>(static_cast<FVoxelHLSLMaterialTranslator&>(Translator)))
+{
+}
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 #if WITH_EDITOR
 int32 FVoxelUtilities::ZeroDerivative(
@@ -17,14 +80,7 @@ int32 FVoxelUtilities::ZeroDerivative(
 		return -1;
 	}
 
-	struct FHack : FHLSLMaterialTranslator
-	{
-		void Fix(const int32 Index) const
-		{
-			(*CurrentScopeChunks)[Index].DerivativeStatus = EDerivativeStatus::Zero;
-		}
-	};
-	static_cast<FHack&>(Compiler).Fix(Index);
+	(*static_cast<FVoxelHLSLMaterialTranslator&>(Compiler).CurrentScopeChunks)[Index].DerivativeStatus = EDerivativeStatus::Zero;
 
 	return Index;
 }

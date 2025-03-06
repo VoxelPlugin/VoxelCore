@@ -8,6 +8,19 @@
 class FMaterialCompiler;
 class UMaterialFunction;
 class UMaterialExpression;
+class FHLSLMaterialTranslator;
+
+#if WITH_EDITOR
+struct VOXELCORE_API FVoxelMaterialTranslatorNoCodeReuseScope
+{
+public:
+	explicit FVoxelMaterialTranslatorNoCodeReuseScope(FHLSLMaterialTranslator& Translator);
+
+private:
+	struct FImpl;
+	TPimplPtr<FImpl> Impl;
+};
+#endif
 
 namespace FVoxelUtilities
 {

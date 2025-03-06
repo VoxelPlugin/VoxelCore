@@ -102,7 +102,7 @@ public:
 				{
 					if (const TSharedPtr<SNotificationItem> Item = WeakGlobalNotification.Pin())
 					{
-						Item->SetFadeOutDuration(0);
+						Item->SetExpireDuration(0);
 						Item->SetFadeOutDuration(0);
 						Item->ExpireAndFadeout();
 					}
