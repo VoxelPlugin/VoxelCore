@@ -73,6 +73,10 @@ void FVoxelMessageManager::LogMessage(const TSharedRef<FVoxelMessage>& Message)
 		GatherCallstack(Message);
 	}
 
+	const TSharedPtr<IVoxelMessageConsumer> MessageConsumer = FVoxelMessagesThreadSingleton::Get().GetTop().Pin();
+
+	// Only check recent messages if we don't have a message consumer, otherwise graph errors will get silenced
+	if (!MessageConsumer)
 	{
 		VOXEL_SCOPE_COUNTER("Check recent messages");
 		VOXEL_SCOPE_LOCK(CriticalSection);
@@ -97,8 +101,6 @@ void FVoxelMessageManager::LogMessage(const TSharedRef<FVoxelMessage>& Message)
 			FrameCounter
 		};
 	}
-
-	const TSharedPtr<IVoxelMessageConsumer> MessageConsumer = FVoxelMessagesThreadSingleton::Get().GetTop().Pin();
 
 	Voxel::GameTask([=]
 	{
