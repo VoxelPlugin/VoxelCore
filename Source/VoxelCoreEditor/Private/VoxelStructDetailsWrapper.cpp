@@ -87,16 +87,9 @@ void FVoxelStructDetailsWrapper::AddChildrenTo(const FVoxelDetailInterface& Deta
 		return;
 	}
 
-	Row->Visibility(EVisibility::Collapsed);
-
 	for (const TSharedRef<IPropertyHandle>& ChildHandle : FVoxelEditorUtilities::GetChildHandles(Row->GetPropertyHandle(), true, true))
 	{
 		SetupChildHandle(ChildHandle);
-	}
-
-	for (const TSharedRef<IPropertyHandle>& ChildHandle : FVoxelEditorUtilities::GetChildHandles(Row->GetPropertyHandle(), false, false))
-	{
-		(void)DetailInterface.AddProperty(ChildHandle);
 	}
 }
 

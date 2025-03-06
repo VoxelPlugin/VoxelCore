@@ -11,6 +11,7 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 
 #if WITH_EDITOR
+#include "LevelEditor.h"
 #include "AssetToolsModule.h"
 #include "Editor/EditorEngine.h"
 #include "Editor/UnrealEdEngine.h"
@@ -354,6 +355,11 @@ void FVoxelUtilities::FocusObject(const UObject* Object)
 		GEditor->SelectActor(ConstCast(Actor), true, false, true);
 		GEditor->NoteSelectionChange();
 		GEditor->MoveViewportCamerasToActor(*ConstCast(Actor), false);
+
+		if (const TSharedPtr<FTabManager> LevelEditorTabManager = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor").GetLevelEditorTabManager())
+		{
+			FGlobalTabmanager::Get()->DrawAttentionToTabManager(LevelEditorTabManager.ToSharedRef());
+		}
 		return;
 	}
 
@@ -368,6 +374,10 @@ void FVoxelUtilities::FocusObject(const UObject* Object)
 			GEditor->MoveViewportCamerasToComponent(SceneComponent, false);
 		}
 
+		if (const TSharedPtr<FTabManager> LevelEditorTabManager = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor").GetLevelEditorTabManager())
+		{
+			FGlobalTabmanager::Get()->DrawAttentionToTabManager(LevelEditorTabManager.ToSharedRef());
+		}
 		return;
 	}
 
