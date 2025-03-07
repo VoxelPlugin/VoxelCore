@@ -33,6 +33,8 @@ struct VOXELCORE_API FVoxelMessageToken_Object : public FVoxelMessageToken
 public:
 	FVoxelObjectPtr WeakObject;
 
+	UObject* GetObject() const;
+
 	//~ Begin FVoxelMessageToken Interface
 	virtual uint32 GetHash() const override;
 	virtual FString ToString() const override;

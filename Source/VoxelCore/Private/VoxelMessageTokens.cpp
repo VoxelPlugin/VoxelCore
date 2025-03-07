@@ -2,6 +2,8 @@
 
 #include "VoxelMessageTokens.h"
 #include "Misc/UObjectToken.h"
+#include "Engine/Blueprint.h"
+#include "Engine/BlueprintGeneratedClass.h"
 #include "Logging/TokenizedMessage.h"
 
 uint32 FVoxelMessageToken_Text::GetHash() const
@@ -35,6 +37,31 @@ bool FVoxelMessageToken_Text::TryMerge(const FVoxelMessageToken& Other)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+UObject* FVoxelMessageToken_Object::GetObject() const
+{
+	UObject* Object = WeakObject.Resolve();
+	if (!Object)
+	{
+		return nullptr;
+	}
+
+	// If Object is a blueprint-generated class, select the blueprint instead
+#if WITH_EDITOR
+	if (const UClass* Class = Cast<UClass>(Object))
+	{
+		if (const UBlueprintGeneratedClass* BlueprintClass = Cast<UBlueprintGeneratedClass>(Class))
+		{
+			if (UBlueprint* Blueprint = Cast<UBlueprint>(BlueprintClass->ClassGeneratedBy))
+			{
+				return Blueprint;
+			}
+		}
+	}
+#endif
+
+	return Object;
+}
+
 uint32 FVoxelMessageToken_Object::GetHash() const
 {
 	return GetTypeHash(WeakObject);
@@ -44,7 +71,7 @@ FString FVoxelMessageToken_Object::ToString() const
 {
 	ensure(IsInGameThread());
 
-	const UObject* Object = WeakObject.Resolve();
+	const UObject* Object = GetObject();
 	if (!Object)
 	{
 		return "<null>";
@@ -98,7 +125,7 @@ TSharedRef<IMessageToken> FVoxelMessageToken_Object::GetMessageToken() const
 	ensure(IsInGameThread());
 
 #if WITH_EDITOR
-	const UObject* Object = WeakObject.Resolve();
+	const UObject* Object = GetObject();
 
 	return FActionToken::Create(
 		FText::FromString(ToString()),
@@ -115,7 +142,7 @@ TSharedRef<IMessageToken> FVoxelMessageToken_Object::GetMessageToken() const
 void FVoxelMessageToken_Object::GetObjects(TSet<const UObject*>& OutObjects) const
 {
 	ensure(IsInGameThread());
-	OutObjects.Add(WeakObject.Resolve());
+	OutObjects.Add(GetObject());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
