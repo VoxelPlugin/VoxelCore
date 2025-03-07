@@ -10,10 +10,7 @@
 #include "VoxelMinimal/Utilities/VoxelArrayUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelLambdaUtilities.h"
 
-// Matches FVoxelBufferStorage's chunk size for float/int32
-constexpr int32 GVoxelDefaultAllocationSize = 1 << 14;
-
-template<typename Type, int32 MaxBytesPerChunk = GVoxelDefaultAllocationSize>
+template<typename Type, int32 MaxBytesPerChunk = 1 << 14>
 class TVoxelChunkedArray
 {
 public:
