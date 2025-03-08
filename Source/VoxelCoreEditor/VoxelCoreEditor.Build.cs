@@ -51,6 +51,7 @@ public class VoxelCoreEditor : ModuleRules
 				"SettingsEditor",
 				"ApplicationCore",
 				"SharedSettingsWidgets",
+    				"UMG",
 			});
 	}
 }
