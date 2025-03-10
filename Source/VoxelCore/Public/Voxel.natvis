@@ -404,14 +404,25 @@
     <DisplayString>{(Components.Sign*-2+1) * 1.0f + Components.Mantissa/1024.0f}</DisplayString>
   </Type>
 
+  <!-- FVoxelObjectPtr visualizer -->
+  <Type Name="FVoxelObjectPtr">
+    <SmartPointer Usage="Minimal">(UObject*)GObjectArrayForDebugVisualizers->Objects[ObjectIndex / 65536][ObjectIndex % 65536].Object</SmartPointer>
+    <DisplayString Condition="ObjectSerialNumber &lt; 1">nullptr</DisplayString>
+    <DisplayString Condition="GObjectArrayForDebugVisualizers->Objects[ObjectIndex / 65536][ObjectIndex % 65536].SerialNumber != ObjectSerialNumber">STALE</DisplayString>
+    <DisplayString>{(UObject*)GObjectArrayForDebugVisualizers->Objects[ObjectIndex / 65536][ObjectIndex % 65536].Object}</DisplayString>
+    <Expand>
+      <ExpandedItem>(UObject*)GObjectArrayForDebugVisualizers->Objects[ObjectIndex / 65536][ObjectIndex % 65536].Object</ExpandedItem>
+    </Expand>
+  </Type>
+
   <!-- TVoxelObjectPtr visualizer -->
   <Type Name="TVoxelObjectPtr&lt;*&gt;">
-    <SmartPointer Usage="Minimal">($T1*)GObjectArrayForDebugVisualizers->Objects[ObjectKey.ObjectIndex / 65536][ObjectKey.ObjectIndex % 65536].Object</SmartPointer>
-    <DisplayString Condition="ObjectKey.ObjectSerialNumber &lt; 1">nullptr</DisplayString>
-    <DisplayString Condition="GObjectArrayForDebugVisualizers->Objects[ObjectKey.ObjectIndex / 65536][ObjectKey.ObjectIndex % 65536].SerialNumber != ObjectKey.ObjectSerialNumber">STALE</DisplayString>
-    <DisplayString>{($T1*)GObjectArrayForDebugVisualizers->Objects[ObjectKey.ObjectIndex / 65536][ObjectKey.ObjectIndex % 65536].Object}</DisplayString>
+    <SmartPointer Usage="Minimal">($T1*)GObjectArrayForDebugVisualizers->Objects[ObjectIndex / 65536][ObjectIndex % 65536].Object</SmartPointer>
+    <DisplayString Condition="ObjectSerialNumber &lt; 1">nullptr</DisplayString>
+    <DisplayString Condition="GObjectArrayForDebugVisualizers->Objects[ObjectIndex / 65536][ObjectIndex % 65536].SerialNumber != ObjectSerialNumber">STALE</DisplayString>
+    <DisplayString>{($T1*)GObjectArrayForDebugVisualizers->Objects[ObjectIndex / 65536][ObjectIndex % 65536].Object}</DisplayString>
     <Expand>
-      <ExpandedItem>($T1*)GObjectArrayForDebugVisualizers->Objects[ObjectKey.ObjectIndex / 65536][ObjectKey.ObjectIndex % 65536].Object</ExpandedItem>
+      <ExpandedItem>($T1*)GObjectArrayForDebugVisualizers->Objects[ObjectIndex / 65536][ObjectIndex % 65536].Object</ExpandedItem>
     </Expand>
   </Type>
 
