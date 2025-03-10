@@ -61,6 +61,20 @@ public:
 		return FVoxelUtilities::MurmurHash64(ReinterpretCastRef<uint64>(ObjectPtr));
 	}
 
+public:
+	template<typename T>
+	FORCEINLINE bool CanBeCastedTo_Unsafe() const
+	{
+		const UObject* Object = Resolve();
+		return !Object || Object->IsA<T>();
+	}
+	template<typename T>
+	FORCEINLINE bool CanBeCastedTo() const
+	{
+		checkVoxelSlow(IsInGameThread());
+		return CanBeCastedTo_Unsafe<T>();
+	}
+
 private:
 	int32 ObjectIndex = 0;
 	int32 ObjectSerialNumber = 0;
@@ -105,6 +119,7 @@ public:
 	{
 	}
 
+public:
 	FORCEINLINE ObjectType* Resolve() const
 	{
 		// Don't require including the type
@@ -117,6 +132,46 @@ public:
 		return Object;
 	}
 
+public:
+	template<typename ChildType>
+	requires
+	(
+		std::derived_from<ChildType, ObjectType> &&
+		(!std::is_const_v<ObjectType> || std::is_const_v<ChildType>)
+	)
+	FORCEINLINE TVoxelObjectPtr<ChildType> CastTo_Unsafe() const
+	{
+		if (!CanBeCastedTo_Unsafe<ChildType>())
+		{
+			return {};
+		}
+
+		return ReinterpretCastRef<TVoxelObjectPtr<ChildType>>(*this);
+	}
+	template<typename ChildType>
+	requires
+	(
+		std::derived_from<ChildType, ObjectType> &&
+		(!std::is_const_v<ObjectType> || std::is_const_v<ChildType>)
+	)
+	FORCEINLINE TVoxelObjectPtr<ChildType> CastTo() const
+	{
+		checkVoxelSlow(IsInGameThread());
+		return CastTo_Unsafe<ChildType>();
+	}
+	template<typename ChildType>
+	requires
+	(
+		std::derived_from<ChildType, ObjectType> &&
+		(!std::is_const_v<ObjectType> || std::is_const_v<ChildType>)
+	)
+	FORCEINLINE TVoxelObjectPtr<ChildType> CastToChecked() const
+	{
+		checkVoxelSlow(CanBeCastedTo_Unsafe<ChildType>());
+		return ReinterpretCastRef<TVoxelObjectPtr<ChildType>>(*this);
+	}
+
+public:
 	FORCEINLINE operator TVoxelObjectPtr<const ObjectType>() const
 	{
 		return ReinterpretCastRef<TVoxelObjectPtr<const ObjectType>>(*this);
@@ -132,6 +187,7 @@ public:
 		return ReinterpretCastRef<TVoxelObjectPtr<ParentType>>(*this);
 	}
 
+public:
 	FORCEINLINE bool operator==(const FVoxelObjectPtr& Other) const
 	{
 		return ReinterpretCastRef<uint64>(*this) == ReinterpretCastRef<uint64>(Other);
@@ -164,6 +220,11 @@ FORCEINLINE TVoxelObjectPtr<T> MakeVoxelObjectPtr(T* Object)
 }
 template<typename T>
 FORCEINLINE TVoxelObjectPtr<T> MakeVoxelObjectPtr(T& Object)
+{
+	return TVoxelObjectPtr<T>(Object);
+}
+template<typename T>
+FORCEINLINE TVoxelObjectPtr<T> MakeVoxelObjectPtr(const TObjectPtr<T>& Object)
 {
 	return TVoxelObjectPtr<T>(Object);
 }

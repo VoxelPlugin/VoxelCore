@@ -6,7 +6,7 @@
 #include "Templates/MakeUnsigned.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 
-template<typename InElementType, typename InAllocator = FDefaultAllocator>
+template<typename InElementType, typename InAllocator>
 class TVoxelArray : public TArray<InElementType, InAllocator>
 {
 public:

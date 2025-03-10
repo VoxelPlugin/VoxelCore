@@ -20,29 +20,68 @@ namespace FVoxelUtilities
 		return Color;
 	}
 
-	FORCEINLINE float SmoothMin(
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+
+	FORCEINLINE float GetSmoothMinAlpha(
+		const float DistanceA,
+		const float DistanceB,
+		const float Smoothness)
+	{
+		return FMath::Clamp(0.5f - 0.5f * (DistanceB - DistanceA) / Smoothness, 0.0f, 1.0f);
+	}
+	FORCEINLINE float GetSmoothMaxAlpha(
+		const float DistanceA,
+		const float DistanceB,
+		const float Smoothness)
+	{
+		return FMath::Clamp(0.5f + 0.5f * (DistanceB - DistanceA) / Smoothness, 0.0f, 1.0f);
+	}
+
+	FORCEINLINE float SmoothMinFromAlpha(
 		const float DistanceA,
 		const float DistanceB,
 		const float Smoothness,
-		float* OutAlpha = nullptr)
+		const float Alpha)
 	{
-		const float H = FMath::Clamp(0.5f + 0.5f * (DistanceB - DistanceA) / Smoothness, 0.0f, 1.0f);
+		return FMath::Lerp(DistanceA, DistanceB, Alpha) - Smoothness * Alpha * (1.0f - Alpha);
+	}
+	FORCEINLINE float SmoothMaxFromAlpha(
+		const float DistanceA,
+		const float DistanceB,
+		const float Smoothness,
+		const float Alpha)
+	{
+		return FMath::Lerp(DistanceA, DistanceB, Alpha) + Smoothness * Alpha * (1.0f - Alpha);
+	}
 
-		if (OutAlpha)
-		{
-			*OutAlpha = 1.f - H;
-		}
-
-		return FMath::Lerp(DistanceB, DistanceA, H) - Smoothness * H * (1.0f - H);
+	FORCEINLINE float SmoothMin(
+		const float DistanceA,
+		const float DistanceB,
+		const float Smoothness)
+	{
+		return SmoothMinFromAlpha(
+			DistanceA,
+			DistanceB,
+			Smoothness,
+			GetSmoothMinAlpha(DistanceA, DistanceB, Smoothness));
 	}
 	FORCEINLINE float SmoothMax(
 		const float DistanceA,
 		const float DistanceB,
-		const float Smoothness,
-		float* OutAlpha = nullptr)
+		const float Smoothness)
 	{
-		return -SmoothMin(-DistanceA, -DistanceB, Smoothness, OutAlpha);
+		return SmoothMaxFromAlpha(
+			DistanceA,
+			DistanceB,
+			Smoothness,
+			GetSmoothMaxAlpha(DistanceA, DistanceB, Smoothness));
 	}
+
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
 
 	// See https://www.iquilezles.org/www/articles/smin/smin.htm
 	// Unlike SmoothMin this is order-independent
@@ -52,6 +91,10 @@ namespace FVoxelUtilities
 		const float H = FMath::Exp(-DistanceA / Smoothness) + FMath::Exp(-DistanceB / Smoothness);
 		return -FMath::Loge(H) * Smoothness;
 	}
+
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
 
 	VOXELCORE_API void JumpFlood(
 		const FIntVector& Size,

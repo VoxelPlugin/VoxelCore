@@ -611,6 +611,28 @@ FORCEINLINE generic float DistanceSquared(const generic float3 A, const generic 
 	return dot(C, C);
 }
 
+FORCEINLINE bool Contains(
+	const generic float3 Position,
+	const uniform float3 BoundsMin,
+	const uniform float3 BoundsMax)
+{
+	return
+		BoundsMin.x <= Position.x && Position.x <= BoundsMax.x &&
+		BoundsMin.y <= Position.y && Position.y <= BoundsMax.y &&
+		BoundsMin.z <= Position.z && Position.z <= BoundsMax.z;
+}
+
+FORCEINLINE bool Contains(
+	const generic double3 Position,
+	const uniform double3 BoundsMin,
+	const uniform double3 BoundsMax)
+{
+	return
+		BoundsMin.x <= Position.x && Position.x <= BoundsMax.x &&
+		BoundsMin.y <= Position.y && Position.y <= BoundsMax.y &&
+		BoundsMin.z <= Position.z && Position.z <= BoundsMax.z;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -668,39 +690,59 @@ FORCEINLINE generic float SmoothHelper(generic float Value, generic float Smooth
 #endif
 }
 
-FORCEINLINE float SmoothMin(
+FORCEINLINE generic float GetSmoothMinAlpha(
 	const generic float DistanceA,
 	const generic float DistanceB,
 	const generic float Smoothness)
 {
-	const generic float H = clamp(0.5f + 0.5f * SmoothHelper(DistanceB - DistanceA, Smoothness), 0.f, 1.f);
-	return lerp(DistanceB, DistanceA, H) - Smoothness * H * (1.f - H);
+	return clamp(0.5f - 0.5f * SmoothHelper(DistanceB - DistanceA, Smoothness), 0.0f, 1.0f);
 }
-FORCEINLINE float SmoothMax(
+FORCEINLINE generic float GetSmoothMaxAlpha(
 	const generic float DistanceA,
 	const generic float DistanceB,
 	const generic float Smoothness)
 {
-	return -SmoothMin(-DistanceA, -DistanceB, Smoothness);
+	return clamp(0.5f + 0.5f * SmoothHelper(DistanceB - DistanceA, Smoothness), 0.0f, 1.0f);
+}
+
+FORCEINLINE generic float SmoothMinFromAlpha(
+	const generic float DistanceA,
+	const generic float DistanceB,
+	const generic float Smoothness,
+	const generic float Alpha)
+{
+	return lerp(DistanceA, DistanceB, Alpha) - Smoothness * Alpha * (1.0f - Alpha);
+}
+FORCEINLINE generic float SmoothMaxFromAlpha(
+	const generic float DistanceA,
+	const generic float DistanceB,
+	const generic float Smoothness,
+	const generic float Alpha)
+{
+	return lerp(DistanceA, DistanceB, Alpha) + Smoothness * Alpha * (1.0f - Alpha);
 }
 
 FORCEINLINE generic float SmoothMin(
 	const generic float DistanceA,
 	const generic float DistanceB,
-	const generic float Smoothness,
-	generic float& OutAlpha)
+	const generic float Smoothness)
 {
-	const generic float H = clamp(0.5f + 0.5f * SmoothHelper(DistanceB - DistanceA, Smoothness), 0.f, 1.f);
-	OutAlpha = 1.f - H;
-	return lerp(DistanceB, DistanceA, H) - Smoothness * H * (1.f - H);
+	return SmoothMinFromAlpha(
+		DistanceA,
+		DistanceB,
+		Smoothness,
+		GetSmoothMinAlpha(DistanceA, DistanceB, Smoothness));
 }
 FORCEINLINE generic float SmoothMax(
 	const generic float DistanceA,
 	const generic float DistanceB,
-	const generic float Smoothness,
-	generic float& OutAlpha)
+	const generic float Smoothness)
 {
-	return -SmoothMin(-DistanceA, -DistanceB, Smoothness, OutAlpha);
+	return SmoothMaxFromAlpha(
+		DistanceA,
+		DistanceB,
+		Smoothness,
+		GetSmoothMaxAlpha(DistanceA, DistanceB, Smoothness));
 }
 
 FORCEINLINE generic float SafeSmoothMin(

@@ -7,6 +7,58 @@
 template<typename ElementType, typename SizeType = int32>
 class TVoxelArrayView;
 
+template<typename InElementType, typename InAllocator = FDefaultAllocator>
+class TVoxelArray;
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template<typename FromType, typename ToType>
+struct TVoxelArrayView_IsCompatible : std::false_type
+{
+};
+
+template<typename FromType, typename ToType>
+requires
+(
+	!std::is_const_v<FromType>
+)
+struct TVoxelArrayView_IsCompatible<FromType, const ToType> : TVoxelArrayView_IsCompatible<FromType, ToType>
+{
+};
+
+template<typename T>
+struct TVoxelArrayView_IsCompatible<T, T> : std::true_type
+{
+};
+
+template<typename FromType, typename ToType>
+requires
+(
+	!std::is_same_v<FromType, std::remove_const_t<ToType>> &&
+	sizeof(FromType) == sizeof(ToType) &&
+	bool(TPointerIsConvertibleFromTo<FromType, ToType>::Value)
+)
+struct TVoxelArrayView_IsCompatible<FromType, ToType> : std::true_type
+{
+};
+
+template<typename FromType, typename ToType>
+requires
+(
+	!std::is_same_v<FromType, ToType> &&
+	!std::is_same_v<FromType, std::remove_const_t<ToType>> &&
+	bool(TPointerIsConvertibleFromTo<FromType, ToType>::Value)
+)
+struct TVoxelArrayView_IsCompatible<FromType*, ToType*> : std::true_type
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 // Switched range check to use checkVoxel
 template<typename InElementType, typename InSizeType>
 class TVoxelArrayView : public TArrayView<InElementType, InSizeType>
@@ -21,27 +73,17 @@ public:
 	using Super::Num;
 
 	template<typename T>
-	static constexpr bool IsCompatibleElementType_V =
-		(TPointerIsConvertibleFromTo<T, ElementType>::Value && sizeof(T) == sizeof(ElementType)) ||
-		(
-			(!std::is_const_v<T> || std::is_const_v<ElementType>) &&
-			std::is_pointer_v<T> &&
-			std::is_pointer_v<ElementType> &&
-			TPointerIsConvertibleFromTo<
-				std::remove_pointer_t<std::remove_cv_t<T>>,
-				std::remove_pointer_t<std::remove_cv_t<ElementType>>>::Value
-		);
+	static constexpr bool IsCompatibleElementType_V = TVoxelArrayView_IsCompatible<T, ElementType>::value;
 
 	TVoxelArrayView() = default;
 
-	template<
-		typename OtherRangeType,
-		typename = std::enable_if_t<
-			!std::is_same_v<OtherRangeType, TVoxelArrayView> &&
-			TIsContiguousContainer<std::remove_cv_t<std::remove_reference_t<OtherRangeType>>>::Value &&
-			IsCompatibleElementType_V<std::remove_pointer_t<decltype(::GetData(DeclVal<OtherRangeType>()))>>
-		>
-	>
+	template<typename OtherRangeType>
+	requires
+	(
+		!std::is_same_v<OtherRangeType, TVoxelArrayView> &&
+		bool(TIsContiguousContainer<std::remove_cv_t<std::remove_reference_t<OtherRangeType>>>::Value) &&
+		IsCompatibleElementType_V<std::remove_pointer_t<decltype(::GetData(DeclVal<OtherRangeType>()))>>
+	)
 	FORCEINLINE TVoxelArrayView(OtherRangeType&& Other)
 	{
 		struct FDummy
@@ -57,7 +99,8 @@ public:
 		reinterpret_cast<FDummy&>(*this).ArrayNum = SizeType(OtherNum);
 	}
 
-	template<typename OtherElementType, typename OtherSizeType, typename = std::enable_if_t<IsCompatibleElementType_V<OtherElementType>>>
+	template<typename OtherElementType, typename OtherSizeType>
+	requires IsCompatibleElementType_V<OtherElementType>
 	FORCEINLINE TVoxelArrayView(OtherElementType* InData, const OtherSizeType InCount)
 	{
 		checkVoxelSlow(0 <= int64(InCount) && int64(InCount) <= int64(TNumericLimits<SizeType>::Max()));
@@ -72,7 +115,12 @@ public:
 		reinterpret_cast<FDummy&>(*this).ArrayNum = InCount;
 	}
 
-	template<typename OtherElementType, typename = std::enable_if_t<IsCompatibleElementType_V<OtherElementType> && std::is_const_v<ElementType>>>
+	template<typename OtherElementType>
+	requires
+	(
+		std::is_const_v<ElementType> &&
+		IsCompatibleElementType_V<OtherElementType>
+	)
 	FORCEINLINE TVoxelArrayView(const std::initializer_list<OtherElementType> Elements)
 		: TVoxelArrayView(Elements.begin(), Elements.size())
 	{
@@ -132,6 +180,12 @@ public:
 		const int64 NumBytes = Num() * sizeof(ElementType);
 		checkVoxelSlow(NumBytes % sizeof(ToType) == 0);
 		return TVoxelArrayView<ToType, ReturnSizeType>(reinterpret_cast<ToType*>(GetData()), NumBytes / sizeof(T));
+	}
+
+	TVoxelArray<std::remove_const_t<InElementType>> Array() const
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Num(), 128);
+		return TVoxelArray<std::remove_const_t<InElementType>>(GetData(), Num());
 	}
 
 	void Serialize(FArchive& Ar)

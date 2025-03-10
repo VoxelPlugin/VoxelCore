@@ -5,7 +5,7 @@
 #include "VoxelCoreMinimal.h"
 #include <bit>
 
-FORCEINLINE uint64 operator ""_u64(const uint64 Value)
+FORCEINLINE constexpr uint64 operator ""_u64(const uint64 Value)
 {
 	return Value;
 }
@@ -381,6 +381,9 @@ namespace FVoxelUtilities
 	{
 		return FloatBits(0xFFFFFFFFFFFFFFFF_u64);
 	}
+
+	constexpr uint32 NaNf_uint = 0xFFFFFFFF;
+	constexpr uint64 NaNd_uint = 0xFFFFFFFFFFFFFFFF_u64;
 
 	FORCEINLINE float FloatInf()
 	{

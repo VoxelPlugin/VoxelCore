@@ -65,6 +65,7 @@
 #include "VoxelMinimal/VoxelObjectHelpers.h"
 #include "VoxelMinimal/VoxelObjectPtr.h"
 #include "VoxelMinimal/VoxelOctahedron.h"
+#include "VoxelMinimal/VoxelOptional.h"
 #include "VoxelMinimal/VoxelRange.h"
 #include "VoxelMinimal/VoxelResourceArrayRef.h"
 #include "VoxelMinimal/VoxelSerializationGuard.h"

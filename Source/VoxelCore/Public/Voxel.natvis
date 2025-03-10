@@ -222,11 +222,10 @@
   <Type Name="TVoxelBufferStorage&lt;*&gt;">
     <DisplayString>Num={ArrayNum}</DisplayString>
     <Expand>
-      <IndexListItems>
+      <ArrayItems>
         <Size>ArrayNum</Size>
-        <ValueNode Condition="!Chunks.AllocatorInstance.SecondaryData.Data">(($T1**)Chunks.AllocatorInstance.InlineData)[$i / FVoxelBufferDefinitions::NumPerChunk][$i % FVoxelBufferDefinitions::NumPerChunk]</ValueNode>
-        <ValueNode Condition="Chunks.AllocatorInstance.SecondaryData.Data">(($T1**)Chunks.AllocatorInstance.SecondaryData.Data)[$i / FVoxelBufferDefinitions::NumPerChunk][$i % FVoxelBufferDefinitions::NumPerChunk]</ValueNode>
-      </IndexListItems>
+        <ValuePointer>($T1*)Data</ValuePointer>
+      </ArrayItems>
     </Expand>
   </Type>
 
