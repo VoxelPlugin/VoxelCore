@@ -34,43 +34,51 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 
 	template<typename ArrayType>
+	using ElementType = std::remove_reference_t<decltype(*GetData(DeclVal<ArrayType>()))>;
+
+	template<typename ArrayType>
+	const bool IsMutableArray = !std::is_const_v<ElementType<ArrayType>>;
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	template<typename ArrayType>
+	requires IsMutableArray<ArrayType>
 	FORCEINLINE void Memzero(ArrayType&& Array)
 	{
-		FMemory::Memzero(GetData(Array), GetNum(Array) * sizeof(decltype(*GetData(Array))));
+		FMemory::Memzero(GetData(Array), GetNum(Array) * sizeof(ElementType<ArrayType>));
 	}
 	template<typename ArrayType>
+	requires IsMutableArray<ArrayType>
 	FORCEINLINE void Memset(ArrayType&& Array, const uint8 Value)
 	{
-		FMemory::Memset(GetData(Array), Value, GetNum(Array) * sizeof(decltype(*GetData(Array))));
+		FMemory::Memset(GetData(Array), Value, GetNum(Array) * sizeof(ElementType<ArrayType>));
 	}
 
 	template<typename DstArrayType, typename SrcArrayType>
 	requires
 	(
-		!std::is_const_v<std::remove_reference_t<decltype(*GetData(DeclVal<DstArrayType>()))>> &&
-		std::is_same_v<
-			VOXEL_GET_TYPE(*GetData(DeclVal<DstArrayType>())),
-			VOXEL_GET_TYPE(*GetData(DeclVal<SrcArrayType>()))>
+		IsMutableArray<DstArrayType> &&
+		std::is_same_v<ElementType<DstArrayType>, std::remove_const_t<ElementType<SrcArrayType>>>
 	)
 	FORCEINLINE void Memcpy(DstArrayType&& Dest, SrcArrayType&& Src)
 	{
 		checkVoxelSlow(GetNum(Dest) == GetNum(Src));
-		FMemory::Memcpy(GetData(Dest), GetData(Src), GetNum(Dest) * sizeof(decltype(*GetData(Dest))));
+		FMemory::Memcpy(GetData(Dest), GetData(Src), GetNum(Dest) * sizeof(ElementType<DstArrayType>));
 	}
 
 	template<typename ArrayTypeA, typename ArrayTypeB>
 	requires
 	(
-		std::is_same_v<
-			VOXEL_GET_TYPE(*GetData(DeclVal<ArrayTypeA>())),
-			VOXEL_GET_TYPE(*GetData(DeclVal<ArrayTypeB>()))> &&
-		std::is_trivially_destructible_v<VOXEL_GET_TYPE(*GetData(DeclVal<ArrayTypeA>()))>
+		std::is_same_v<std::remove_const_t<ElementType<ArrayTypeA>>, std::remove_const_t<ElementType<ArrayTypeB>>> &&
+		std::is_trivially_destructible_v<ElementType<ArrayTypeA>>
 	)
 	FORCEINLINE bool Equal(ArrayTypeA&& A, ArrayTypeB&& B)
 	{
 		return
 			GetNum(A) == GetNum(B) &&
-			FVoxelUtilities::MemoryEqual(GetData(A), GetData(B), GetNum(A) * sizeof(decltype(*GetData(A))));
+			FVoxelUtilities::MemoryEqual(GetData(A), GetData(B), GetNum(A) * sizeof(ElementType<ArrayTypeA>));
 	}
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -78,22 +86,26 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 
 	template<typename ArrayType>
+	requires IsMutableArray<ArrayType>
 	void LargeMemzero(ArrayType&& Array)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(GetNum(Array), 4096);
 		FVoxelUtilities::Memzero(Array);
 	}
 	template<typename ArrayType>
+	requires IsMutableArray<ArrayType>
 	void LargeMemset(ArrayType&& Array, const uint8 Value)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(GetNum(Array), 4096);
 		FVoxelUtilities::Memset(Array, Value);
 	}
 
-	template<
-		typename DstArrayType,
-		typename SrcArrayType,
-		typename = std::enable_if_t<std::is_void_v<decltype(FVoxelUtilities::Memcpy(DeclVal<DstArrayType>(), DeclVal<SrcArrayType>()))>>>
+	template<typename DstArrayType, typename SrcArrayType>
+	requires
+	(
+		IsMutableArray<DstArrayType> &&
+		std::is_same_v<ElementType<DstArrayType>, std::remove_const_t<ElementType<SrcArrayType>>>
+	)
 	FORCEINLINE void LargeMemcpy(DstArrayType&& Dest, SrcArrayType&& Src)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(GetNum(Dest), 4096);
@@ -112,13 +124,9 @@ namespace FVoxelUtilities
 		Array.Reserve(Num);
 		Array.SetNum(Num);
 	}
-	template<typename ArrayType>
-	FORCEINLINE void SetNum(ArrayType& Array, const FIntVector& Size)
-	{
-		FVoxelUtilities::SetNum(Array, int64(Size.X) * int64(Size.Y) * int64(Size.Z));
-	}
 
-	template<typename ArrayType, typename NumType, typename = std::enable_if_t<std::is_trivially_destructible_v<VOXEL_GET_TYPE(*::GetData(DeclVal<ArrayType>()))>>>
+	template<typename ArrayType, typename NumType>
+	requires std::is_trivially_destructible_v<ElementType<ArrayType>>
 	FORCENOINLINE void SetNumFast(ArrayType& Array, NumType Num)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num, 4096);
@@ -126,13 +134,9 @@ namespace FVoxelUtilities
 		Array.Reserve(Num);
 		Array.SetNumUninitialized(Num, EAllowShrinking::No);
 	}
-	template<typename ArrayType, typename = std::enable_if_t<std::is_trivially_destructible_v<VOXEL_GET_TYPE(*::GetData(DeclVal<ArrayType>()))>>>
-	FORCEINLINE void SetNumFast(ArrayType& Array, const FIntVector& Size)
-	{
-		FVoxelUtilities::SetNumFast(Array, int64(Size.X) * int64(Size.Y) * int64(Size.Z));
-	}
 
 	template<typename ArrayType, typename NumType>
+	requires std::is_trivially_destructible_v<ElementType<ArrayType>>
 	FORCENOINLINE void SetNumZeroed(ArrayType& Array, NumType Num)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num, 1024);
@@ -140,29 +144,23 @@ namespace FVoxelUtilities
 		Array.Reserve(Num);
 		Array.SetNumZeroed(Num);
 	}
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
 	template<typename ArrayType>
-	FORCEINLINE void SetNumZeroed(ArrayType& Array, const FIntVector& Size)
-	{
-		FVoxelUtilities::SetNumZeroed(Array, int64(Size.X) * int64(Size.Y) * int64(Size.Z));
-	}
-
-	//////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////
-
-	template<
-		typename ArrayType,
-		typename = std::enable_if_t<
-			std::is_trivially_destructible_v<VOXEL_GET_TYPE(*GetData(DeclVal<ArrayType>()))> &&
-			!std::is_const_v<std::remove_reference_t<decltype(*GetData(DeclVal<ArrayType>()))>>>>
-	FORCENOINLINE void SetAll(ArrayType&& Array, const VOXEL_GET_TYPE(*GetData(DeclVal<ArrayType>())) Value)
+	requires
+	(
+		IsMutableArray<ArrayType> &&
+		std::is_trivially_destructible_v<ElementType<ArrayType>>
+	)
+	FORCENOINLINE void SetAll(ArrayType&& Array, const ElementType<ArrayType> Value)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(GetNum(Array), 1024);
 
-		using T = VOXEL_GET_TYPE(*GetData(DeclVal<ArrayType>()));
-
-		T* RESTRICT Start = GetData(Array);
-		const T* RESTRICT End = Start + GetNum(Array);
+		ElementType<ArrayType>* RESTRICT Start = GetData(Array);
+		const ElementType<ArrayType>* RESTRICT End = Start + GetNum(Array);
 		while (Start != End)
 		{
 			*Start = Value;
@@ -171,6 +169,7 @@ namespace FVoxelUtilities
 	}
 
 	template<typename ArrayType>
+	requires std::is_trivially_destructible_v<ElementType<ArrayType>>
 	void ForceBulkSerializeArray(FArchive& Ar, ArrayType& Array)
 	{
 		if (Ar.IsLoading())
@@ -190,11 +189,13 @@ namespace FVoxelUtilities
 	}
 
 	template<typename ArrayType, typename IndicesArrayType>
+	requires
+	(
+		IsMutableArray<ArrayType> &&
+		std::is_trivially_destructible_v<ElementType<ArrayType>>
+	)
 	void RemoveAt(ArrayType& Array, const IndicesArrayType& SortedIndicesToRemove)
 	{
-		using T = VOXEL_GET_TYPE(*GetData(DeclVal<ArrayType>()));
-		checkStatic(std::is_trivially_destructible_v<T>);
-
 		if (SortedIndicesToRemove.Num() == 0)
 		{
 			return;
@@ -232,7 +233,7 @@ namespace FVoxelUtilities
 			FMemory::Memmove(
 				&Array[IndexToRemove - Index],
 				&Array[IndexToRemove + 1],
-				Count * sizeof(T));
+				Count * sizeof(ElementType<ArrayType>));
 		}
 
 		{
@@ -249,7 +250,7 @@ namespace FVoxelUtilities
 				FMemory::Memmove(
 					&Array[IndexToRemove - Index],
 					&Array[IndexToRemove + 1],
-					Count * sizeof(T));
+					Count * sizeof(ElementType<ArrayType>));
 			}
 		}
 

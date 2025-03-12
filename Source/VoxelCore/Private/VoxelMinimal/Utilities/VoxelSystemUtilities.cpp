@@ -192,6 +192,12 @@ void FVoxelUtilities::CleanupRedirects(const FString& RedirectsPath)
 {
 	VOXEL_FUNCTION_COUNTER();
 
+	if (!ensure(GIsEditor))
+	{
+		// Editor objects won't be loaded, so all editor redirects would be removed
+		return;
+	}
+
 	TVoxelArray<FString> Lines;
 	if (!ensure(FFileHelper::LoadFileToStringArray(Lines, *RedirectsPath)))
 	{

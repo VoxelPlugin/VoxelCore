@@ -371,19 +371,6 @@ namespace Voxel::Internal
 	TypeName(const TypeName&) = delete; \
 	TypeName& operator=(const TypeName&) = delete;
 
-#define UE_NONCOPYABLE_STRUCT(TypeName) \
-	TypeName(TypeName&&) = default; \
-	TypeName& operator=(TypeName&&) = default; \
-	TypeName(const TypeName&) \
-	{ \
-		ensureVoxelSlow(false); \
-	} \
-	TypeName& operator=(const TypeName&) \
-	{ \
-		ensureVoxelSlow(false); \
-		return *this; \
-	}
-
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

@@ -60,3 +60,16 @@ FTransform2d FVoxelUtilities::MakeTransform2(const FMatrix& Transform)
 {
 	return MakeTransform2(MakeTransformSafe(Transform));
 }
+
+FTransform2f FVoxelUtilities::MakeTransform2f(const FTransform2d& Transform)
+{
+	float A;
+	float B;
+	float C;
+	float D;
+	Transform.GetMatrix().GetMatrix(A, B, C, D);
+
+	return FTransform2f(
+		FMatrix2x2f(A, B, C, D),
+		FVector2f(Transform.GetTranslation()));
+}

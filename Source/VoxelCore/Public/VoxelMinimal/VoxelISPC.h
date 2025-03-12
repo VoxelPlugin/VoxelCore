@@ -17,7 +17,9 @@
 #define __ISPC_STRUCT_int3__
 #define __ISPC_STRUCT_int4__
 
+#define __ISPC_STRUCT_float2x2__
 #define __ISPC_STRUCT_double2x2__
+#define __ISPC_STRUCT_FTransform2f__
 #define __ISPC_STRUCT_FTransform2d__
 #define __ISPC_STRUCT_float4x4__
 #define __ISPC_STRUCT_double4x4__
@@ -82,11 +84,20 @@ namespace ispc
 		int32 W;
 	};
 
+	struct float2x2
+	{
+		float M[2][2];
+	};
 	struct double2x2
 	{
 		double M[2][2];
 	};
 
+	struct FTransform2f
+	{
+		float2x2 Matrix;
+		float2 Translation;
+	};
 	struct FTransform2d
 	{
 		double2x2 Matrix;
@@ -151,11 +162,19 @@ FORCEINLINE ispc::int4 GetISPCValue(const FIntVector4& Vector)
 	return ReinterpretCastRef<ispc::int4>(Vector);
 }
 
+FORCEINLINE ispc::float2x2 GetISPCValue(const FMatrix2x2f& Matrix)
+{
+	return ReinterpretCastRef<ispc::float2x2>(Matrix);
+}
 FORCEINLINE ispc::double2x2 GetISPCValue(const FMatrix2x2d& Matrix)
 {
 	return ReinterpretCastRef<ispc::double2x2>(Matrix);
 }
 
+FORCEINLINE ispc::FTransform2f GetISPCValue(const FTransform2f& Transform)
+{
+	return ReinterpretCastRef<ispc::FTransform2f>(Transform);
+}
 FORCEINLINE ispc::FTransform2d GetISPCValue(const FTransform2d& Transform)
 {
 	return ReinterpretCastRef<ispc::FTransform2d>(Transform);

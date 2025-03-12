@@ -20,23 +20,44 @@ namespace FVoxelUtilities
 	template<typename T>
 	static constexpr bool IsForceInitializable_V = std::is_constructible_v<T, TConvertibleOnlyTo<EForceInit>>;
 
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
 	template<typename T>
 	static constexpr bool CanMakeSafe =
 		!TIsTSharedRef_V<T> &&
-		!std::derived_from<T, UObject>;
+		!std::derived_from<T, UObject> &&
+		(std::is_constructible_v<T> || IsForceInitializable_V<T>);
 
-	template<typename T, typename = std::enable_if_t<CanMakeSafe<T>>>
-	std::enable_if_t<!IsForceInitializable_V<T>, T> MakeSafe()
+	template<typename T>
+	requires
+	(
+		CanMakeSafe<T> &&
+		!IsForceInitializable_V<T>
+	)
+	T MakeSafe()
 	{
 		return T{};
 	}
-	template<typename T, typename = std::enable_if_t<CanMakeSafe<T>>>
-	std::enable_if_t<IsForceInitializable_V<T>, T> MakeSafe()
+
+	template<typename T>
+	requires
+	(
+		CanMakeSafe<T> &&
+		IsForceInitializable_V<T>
+	)
+	T MakeSafe()
 	{
 		return T(ForceInit);
 	}
 
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
 	template<typename T>
+	requires std::is_trivially_destructible_v<T>
 	T MakeZeroed()
 	{
 		T Value;

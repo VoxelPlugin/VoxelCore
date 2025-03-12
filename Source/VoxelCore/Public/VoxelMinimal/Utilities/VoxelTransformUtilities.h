@@ -17,6 +17,8 @@ namespace FVoxelUtilities
 
 	VOXELCORE_API FTransform2d MakeTransform2(const FTransform& Transform);
 	VOXELCORE_API FTransform2d MakeTransform2(const FMatrix& Transform);
+
+	VOXELCORE_API FTransform2f MakeTransform2f(const FTransform2d& Transform);
 }
 
 template<typename T>

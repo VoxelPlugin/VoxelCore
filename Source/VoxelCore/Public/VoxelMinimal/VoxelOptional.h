@@ -10,12 +10,16 @@ struct TVoxelOptional
 public:
 	TVoxelOptional() = default;
 
-	FORCEINLINE TVoxelOptional(const Type& Value)
+	template<typename OtherType>
+	requires std::is_convertible_v<const OtherType&, Type>
+	FORCEINLINE TVoxelOptional(const OtherType& Value)
 	{
 		new(Storage.GetTypedPtr()) Type(Value);
 		bIsSet = true;
 	}
-	FORCEINLINE TVoxelOptional(Type&& Value)
+	template<typename OtherType>
+	requires std::is_convertible_v<OtherType&&, Type>
+	FORCEINLINE TVoxelOptional(OtherType&& Value)
 	{
 		new(Storage.GetTypedPtr()) Type(MoveTemp(Value));
 		bIsSet = true;
@@ -26,7 +30,9 @@ public:
 		Reset();
 	}
 
-	FORCEINLINE TVoxelOptional(const TVoxelOptional& Other)
+	template<typename OtherType>
+	requires std::is_convertible_v<const OtherType&, Type>
+	FORCEINLINE TVoxelOptional(const TVoxelOptional<OtherType>& Other)
 	{
 		if (Other.bIsSet)
 		{
@@ -34,35 +40,45 @@ public:
 			bIsSet = true;
 		}
 	}
-	FORCEINLINE TVoxelOptional(TVoxelOptional&& Other)
+	template<typename OtherType>
+	requires std::is_convertible_v<OtherType&&, Type>
+	FORCEINLINE TVoxelOptional(TVoxelOptional<OtherType>&& Other)
 	{
 		if (Other.bIsSet)
 		{
-			FMemory::Memcpy(Storage, Other.Storage);
+			new(Storage.GetTypedPtr()) Type(MoveTemp(Other.GetValue()));
 			bIsSet = true;
-			Other.bIsSet = false;
+			Other.Reset();
 		}
 	}
 
-	FORCEINLINE TVoxelOptional& operator=(const TVoxelOptional& Other)
+	template<typename OtherType>
+	requires std::is_convertible_v<const OtherType&, Type>
+	FORCEINLINE TVoxelOptional& operator=(const TVoxelOptional<OtherType>& Other)
 	{
 		Reset();
 		new(this) TVoxelOptional(Other);
 		return *this;
 	}
-	FORCEINLINE TVoxelOptional& operator=(TVoxelOptional&& Other)
+	template<typename OtherType>
+	requires std::is_convertible_v<OtherType&&, Type>
+	FORCEINLINE TVoxelOptional& operator=(TVoxelOptional<OtherType>&& Other)
 	{
 		Reset();
 		new(this) TVoxelOptional(MoveTemp(Other));
 		return *this;
 	}
 
-	FORCEINLINE TVoxelOptional& operator=(const Type& Value)
+	template<typename OtherType>
+	requires std::is_convertible_v<const OtherType&, Type>
+	FORCEINLINE TVoxelOptional& operator=(const OtherType& Value)
 	{
 		this->Emplace(Value);
 		return *this;
 	}
-	FORCEINLINE TVoxelOptional& operator=(Type&& Value)
+	template<typename OtherType>
+	requires std::is_convertible_v<OtherType&&, Type>
+	FORCEINLINE TVoxelOptional& operator=(OtherType&& Value)
 	{
 		this->Emplace(MoveTemp(Value));
 		return *this;
@@ -77,7 +93,8 @@ public:
 		}
 	}
 
-	template <typename... ArgsType>
+	template<typename... ArgsType>
+	requires std::is_constructible_v<Type, ArgsType&&...>
 	FORCEINLINE Type& Emplace(ArgsType&&... Args)
 	{
 		if (bIsSet)

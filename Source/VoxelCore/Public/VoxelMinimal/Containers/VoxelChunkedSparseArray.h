@@ -55,7 +55,7 @@ public:
 			return false;
 		}
 
-		return IsAllocated_Unsafe(Index);;
+		return IsAllocated_Unsafe(Index);
 	}
 	FORCEINLINE bool IsAllocated_Unsafe(const int32 Index) const
 	{

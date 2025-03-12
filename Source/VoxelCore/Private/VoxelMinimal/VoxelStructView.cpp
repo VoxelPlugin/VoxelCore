@@ -56,6 +56,9 @@ void FConstVoxelStructView::CopyTo(const FVoxelStructView Other) const
 	}
 	else
 	{
+		// Check that we have something to copy
+		checkVoxelSlow(GetScriptStruct()->ChildProperties);
+
 		GetScriptStruct()->CopyScriptStruct(Other.GetStructMemory(), GetStructMemory());
 	}
 }

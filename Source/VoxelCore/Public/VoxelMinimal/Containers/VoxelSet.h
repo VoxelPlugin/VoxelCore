@@ -166,6 +166,10 @@ public:
 
 		Rehash();
 	}
+	void Sort()
+	{
+		this->Sort(TLess<Type>());
+	}
 	void Append(const TConstVoxelArrayView<Type> Array)
 	{
 		this->Append<Type>(Array);

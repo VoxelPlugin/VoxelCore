@@ -57,7 +57,12 @@ public:
 	requires std::derived_from<T, FVoxelVirtualStruct>
 	FORCEINLINE bool IsA() const
 	{
-		return this->IsA(T::StaticStruct());
+		if constexpr (std::is_final_v<T>)
+		{
+			return GetStruct() == StaticStructFast<T>();
+		}
+
+		return this->IsA(StaticStructFast<T>());
 	}
 
 	template<typename T>
@@ -136,7 +141,45 @@ private:
 #define VOXEL_ENABLE_SHARED_FROM_THIS(Name) \
 	SharedPointerInternals::EnableSharedFromThis(&Name, &Name.Get());
 
-#define GENERATED_VIRTUAL_STRUCT_BODY_ALIASES() \
+#define GENERATED_VIRTUAL_STRUCT_BODY_NO_COPY_IMPL(Parent) \
+	virtual UScriptStruct* PREPROCESSOR_JOIN(Internal_GetStruct, Parent)() const override { return StaticStruct(); } \
+	virtual void Internal_UpdateWeakReferenceInternal(const TSharedPtr<FVoxelVirtualStruct>& SharedPtr) \
+	{ \
+		FVoxelVirtualStruct::Internal_UpdateWeakReferenceInternal(SharedPtr, this); \
+	} \
+	template<typename T, typename = std::enable_if_t<!TIsReferenceType<T>::Value>> \
+	FORCEINLINE static auto MakeSharedCopy(T&& Data) -> decltype(auto) \
+	{ \
+		return ::MakeSharedCopy(MoveTemp(Data)); \
+	} \
+	template<typename T> \
+	FORCEINLINE static auto MakeSharedCopy(const T& Data) -> decltype(auto) \
+	{ \
+		return ::MakeSharedCopy(Data); \
+	}
+
+#define GENERATED_VIRTUAL_STRUCT_BODY_IMPL(Parent) \
+	GENERATED_VIRTUAL_STRUCT_BODY_NO_COPY_IMPL(Parent) \
+	FORCEINLINE auto MakeSharedCopy() const -> decltype(auto) \
+	{ \
+		const TSharedRef<VOXEL_THIS_TYPE> SharedRef = StaticCastSharedRef<VOXEL_THIS_TYPE>(Super::MakeSharedCopy()); \
+		VOXEL_ENABLE_SHARED_FROM_THIS(SharedRef); \
+		return SharedRef; \
+	}
+
+#define DECLARE_VIRTUAL_STRUCT_PARENT(Parent, Macro) \
+	virtual FString Internal_GetMacroName() const override \
+	{ \
+		return #Macro; \
+	} \
+	virtual UScriptStruct* Internal_GetStruct() const final override \
+	{ \
+		return Internal_GetStruct ## Parent(); \
+	} \
+	virtual UScriptStruct* Internal_GetStruct ## Parent() const \
+	{ \
+		return StaticStruct(); \
+	} \
 	FORCEINLINE auto MakeSharedCopy() const -> decltype(auto) \
 	{ \
 		const TSharedRef<VOXEL_THIS_TYPE> SharedRef = StaticCastSharedRef<VOXEL_THIS_TYPE>(Super::MakeSharedCopy()); \
@@ -154,30 +197,8 @@ private:
 		return ::MakeSharedCopy(Data); \
 	}
 
-#define GENERATED_VIRTUAL_STRUCT_BODY_IMPL(Parent) \
-	virtual UScriptStruct* PREPROCESSOR_JOIN(Internal_GetStruct, Parent)() const override { return StaticStruct(); } \
-	virtual void Internal_UpdateWeakReferenceInternal(const TSharedPtr<FVoxelVirtualStruct>& SharedPtr) \
-	{ \
-		FVoxelVirtualStruct::Internal_UpdateWeakReferenceInternal(SharedPtr, this); \
-	} \
-	GENERATED_VIRTUAL_STRUCT_BODY_ALIASES()
-
-#define DECLARE_VIRTUAL_STRUCT_PARENT(Parent, Macro) \
-	virtual FString Internal_GetMacroName() const override \
-	{ \
-		return #Macro; \
-	} \
-	virtual UScriptStruct* Internal_GetStruct() const final override \
-	{ \
-		return Internal_GetStruct ## Parent(); \
-	} \
-	virtual UScriptStruct* Internal_GetStruct ## Parent() const \
-	{ \
-		return StaticStruct(); \
-	} \
-	GENERATED_VIRTUAL_STRUCT_BODY_ALIASES()
-
 #define GENERATED_VIRTUAL_STRUCT_BODY() GENERATED_VIRTUAL_STRUCT_BODY_IMPL(PREPROCESSOR_NOTHING)
+#define GENERATED_VIRTUAL_STRUCT_BODY_NO_COPY() GENERATED_VIRTUAL_STRUCT_BODY_NO_COPY_IMPL(PREPROCESSOR_NOTHING)
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

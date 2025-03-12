@@ -19,25 +19,35 @@ struct TVoxelMapElementBase
 private:
 	struct FElementKeyValue
 	{
-		const KeyType Key = {};
-		ValueType Value = FVoxelUtilities::MakeSafe<ValueType>();
+		const KeyType Key;
+		ValueType Value;
 		int32 NextElementIndex VOXEL_DEBUG_ONLY(= -16);
 
 		FElementKeyValue() = default;
-		FORCEINLINE explicit FElementKeyValue(const KeyType& Key)
+
+		template<typename InValueType>
+		FORCEINLINE FElementKeyValue(
+			const KeyType& Key,
+			InValueType&& Value)
 			: Key(Key)
+			, Value(Forward<InValueType>(Value))
 		{
 		}
 	};
 	struct FElementValueKey
 	{
-		ValueType Value = FVoxelUtilities::MakeSafe<ValueType>();
-		const KeyType Key = {};
+		ValueType Value;
+		const KeyType Key;
 		int32 NextElementIndex VOXEL_DEBUG_ONLY(= -16);
 
 		FElementValueKey() = default;
-		FORCEINLINE explicit FElementValueKey(const KeyType& Key)
-			: Key(Key)
+
+		template<typename InValueType>
+		FORCEINLINE FElementValueKey(
+			const KeyType& Key,
+			InValueType&& Value)
+			: Value(Forward<InValueType>(Value))
+			, Key(Key)
 		{
 		}
 	};
@@ -458,7 +468,13 @@ public:
 	}
 
 public:
-	FORCEINLINE ValueType& FindOrAdd(const KeyType& Key)
+	template<typename InKeyType>
+	requires
+	(
+		std::is_convertible_v<const InKeyType&, KeyType> &&
+		FVoxelUtilities::CanMakeSafe<ValueType>
+	)
+	FORCEINLINE ValueType& FindOrAdd(const InKeyType& Key)
 	{
 		const uint32 Hash = this->HashValue(Key);
 
@@ -467,75 +483,63 @@ public:
 			return *Value;
 		}
 
-		return this->AddHashed_CheckNew(Hash, Key);
+		return this->AddHashed_CheckNew(Hash, Key, FVoxelUtilities::MakeSafe<ValueType>());
 	}
 
 public:
 	// Will crash if Key is already in the map
 	// 2x faster than FindOrAdd
-	FORCEINLINE ValueType& Add_CheckNew(const KeyType& Key)
+	template<typename InKeyType>
+	requires
+	(
+		std::is_convertible_v<const InKeyType&, KeyType> &&
+		FVoxelUtilities::CanMakeSafe<ValueType>
+	)
+	FORCEINLINE ValueType& Add_CheckNew(const InKeyType& Key)
 	{
-		return this->AddHashed_CheckNew(this->HashValue(Key), Key);
+		return this->Add_CheckNew(Key, FVoxelUtilities::MakeSafe<ValueType>());
 	}
-	FORCEINLINE ValueType& Add_CheckNew(const KeyType& Key, const ValueType& Value)
+	template<typename InValueType>
+	requires std::is_constructible_v<ValueType, InValueType&&>
+	FORCEINLINE ValueType& Add_CheckNew(const KeyType& Key, InValueType&& Value)
 	{
-		ValueType& ValueRef = this->Add_CheckNew(Key);
-		ValueRef = Value;
-		return ValueRef;
-	}
-	FORCEINLINE ValueType& Add_CheckNew(const KeyType& Key, ValueType&& Value)
-	{
-		ValueType& ValueRef = this->Add_CheckNew(Key);
-		ValueRef = MoveTemp(Value);
-		return ValueRef;
-	}
-
-public:
-	FORCEINLINE ValueType& AddHashed_EnsureNew(const uint32 Hash, const KeyType& Key)
-	{
-		checkVoxelSlow(this->HashValue(Key) == Hash);
-
-		if (ValueType* Value = this->FindHashed(Hash, Key))
-		{
-			ensure(false);
-			return *Value;
-		}
-
-		return this->AddHashed_CheckNew(Hash, Key);
-	}
-	FORCEINLINE ValueType& Add_EnsureNew(const KeyType& Key)
-	{
-		return this->AddHashed_EnsureNew(this->HashValue(Key), Key);
-	}
-	FORCEINLINE ValueType& Add_EnsureNew(const KeyType& Key, const ValueType& Value)
-	{
-		ValueType& ValueRef = this->Add_EnsureNew(Key);
-		ValueRef = Value;
-		return ValueRef;
-	}
-	FORCEINLINE ValueType& Add_EnsureNew(const KeyType& Key, ValueType&& Value)
-	{
-		ValueType& ValueRef = this->Add_EnsureNew(Key);
-		ValueRef = MoveTemp(Value);
-		return ValueRef;
+		return this->AddHashed_CheckNew(this->HashValue(Key), Key, Forward<InValueType>(Value));
 	}
 
 public:
+	template<typename InKeyType>
+	requires
+	(
+		std::is_convertible_v<const InKeyType&, KeyType> &&
+		FVoxelUtilities::CanMakeSafe<ValueType>
+	)
+	FORCEINLINE ValueType& Add_EnsureNew(const InKeyType& Key)
+	{
+		return this->Add_EnsureNew(Key, FVoxelUtilities::MakeSafe<ValueType>());
+	}
+	template<typename InValueType>
+	requires std::is_constructible_v<ValueType, InValueType&&>
+	FORCEINLINE ValueType& Add_EnsureNew(const KeyType& Key, InValueType&& Value)
+	{
+		return this->AddHashed_EnsureNew(HashValue(Key), Key, Forward<InValueType>(Value));
+	}
+
+public:
+	template<typename InKeyType>
+	requires
+	(
+		std::is_convertible_v<const InKeyType&, KeyType> &&
+		FVoxelUtilities::CanMakeSafe<ValueType>
+	)
 	FORCEINLINE ValueType& Add_CheckNew_CheckNoRehash(const KeyType& Key)
 	{
-		return this->AddHashed_CheckNew_CheckNoRehash(HashValue(Key), Key);
+		return this->Add_CheckNew_CheckNoRehash(Key, FVoxelUtilities::MakeSafe<ValueType>());
 	}
-	FORCEINLINE ValueType& Add_CheckNew_CheckNoRehash(const KeyType& Key, const ValueType& Value)
+	template<typename InValueType>
+	requires std::is_constructible_v<ValueType, InValueType&&>
+	FORCEINLINE ValueType& Add_CheckNew_CheckNoRehash(const KeyType& Key, InValueType&& Value)
 	{
-		ValueType& ValueRef = this->Add_CheckNew_CheckNoRehash(Key);
-		ValueRef = Value;
-		return ValueRef;
-	}
-	FORCEINLINE ValueType& Add_CheckNew_CheckNoRehash(const KeyType& Key, ValueType&& Value)
-	{
-		ValueType& ValueRef = this->Add_CheckNew_CheckNoRehash(Key);
-		ValueRef = MoveTemp(Value);
-		return ValueRef;
+		return this->AddHashed_CheckNew_CheckNoRehash(HashValue(Key), Key, Forward<InValueType>(Value));
 	}
 
 public:
@@ -621,13 +625,29 @@ public:
 	}
 
 public:
-	FORCEINLINE ValueType& AddHashed_CheckNew(const uint32 Hash, const KeyType& Key)
+	template<typename InValueType>
+	requires std::is_constructible_v<ValueType, InValueType&&>
+	FORCEINLINE ValueType& AddHashed_EnsureNew(const uint32 Hash, const KeyType& Key, InValueType&& Value)
+	{
+		checkVoxelSlow(this->HashValue(Key) == Hash);
+
+		if (ValueType* ExistingValue = this->FindHashed(Hash, Key))
+		{
+			ensure(false);
+			return *ExistingValue;
+		}
+
+		return this->AddHashed_CheckNew(Hash, Key, Forward<InValueType>(Value));
+	}
+	template<typename InValueType>
+	requires std::is_constructible_v<ValueType, InValueType&&>
+	FORCEINLINE ValueType& AddHashed_CheckNew(const uint32 Hash, const KeyType& Key, InValueType&& Value)
 	{
 		checkVoxelSlow(!this->Contains(Key));
 		checkVoxelSlow(this->HashValue(Key) == Hash);
 		CheckInvariants();
 
-		const int32 NewElementIndex = Elements.Emplace(Key);
+		const int32 NewElementIndex = Elements.Emplace(Key, Forward<InValueType>(Value));
 		FElement& Element = Elements[NewElementIndex];
 
 		if (HashTable.Num() < GetHashSize(Elements.Num()))
@@ -643,13 +663,15 @@ public:
 
 		return Element.Value;
 	}
-	FORCEINLINE ValueType& AddHashed_CheckNew_CheckNoRehash(const uint32 Hash, const KeyType& Key)
+	template<typename InValueType>
+	requires std::is_constructible_v<ValueType, InValueType&&>
+	FORCEINLINE ValueType& AddHashed_CheckNew_CheckNoRehash(const uint32 Hash, const KeyType& Key, InValueType&& Value)
 	{
 		checkVoxelSlow(!this->Contains(Key));
 		checkVoxelSlow(this->HashValue(Key) == Hash);
 		CheckInvariants();
 
-		const int32 NewElementIndex = Elements.Emplace_CheckNoGrow(Key);
+		const int32 NewElementIndex = Elements.Emplace_CheckNoGrow(Key, Forward<InValueType>(Value));
 		FElement& Element = Elements[NewElementIndex];
 
 		checkVoxelSlow(GetHashSize(Elements.Num()) <= HashTable.Num());

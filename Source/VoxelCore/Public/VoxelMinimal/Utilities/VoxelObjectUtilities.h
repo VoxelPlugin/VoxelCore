@@ -231,7 +231,7 @@ namespace FVoxelUtilities
 		std::is_same_v<T, int32>     , FIntProperty       , std::conditional_t<
 		std::is_same_v<T, int64>     , FInt64Property     , std::conditional_t<
 		std::is_same_v<T, FName>     , FNameProperty      , std::conditional_t<
-		TIsEnum<T>::Value            , FEnumProperty      , std::conditional_t<
+		std::is_enum_v<T>            , FEnumProperty      , std::conditional_t<
 		std::derived_from<T, UObject>, FObjectProperty    , std::conditional_t<
 		TIsTObjectPtr<T>::Value      , FObjectProperty    , std::conditional_t<
 		TIsSoftObjectPtr<T>::Value   , FSoftObjectProperty, std::conditional_t<

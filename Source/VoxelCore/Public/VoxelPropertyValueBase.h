@@ -132,7 +132,7 @@ public:
 		{
 			return Byte;
 		}
-		else if constexpr (TIsEnum<T>::Value)
+		else if constexpr (std::is_enum_v<T>)
 		{
 			return ReinterpretCastRef<T>(Byte);
 		}

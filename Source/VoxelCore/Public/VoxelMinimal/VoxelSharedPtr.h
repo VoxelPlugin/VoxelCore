@@ -167,23 +167,6 @@ FORCEINLINE bool IsSharedFromThisUnique(const TSharedFromThis<T>& SharedFromThis
 	return ReferenceCount == 1;
 }
 
-// Useful when creating shared ptrs that are supposed to never expire, typically for default shared values
-template<typename T>
-FORCEINLINE void ClearSharedPtrReferencer(TSharedPtr<T>& Ptr)
-{
-	struct FSharedPtr
-	{
-		void* Object;
-		void* Referencer;
-	};
-	ReinterpretCastRef<FSharedPtr>(Ptr).Referencer = nullptr;
-}
-template<typename T>
-FORCEINLINE void ClearSharedRefReferencer(TSharedRef<T>& Ptr)
-{
-	ClearSharedPtrReferencer(ReinterpretCastRef<TSharedPtr<T>>(Ptr));
-}
-
 template<typename T, typename LambdaType>
 FORCEINLINE TSharedRef<T> MakeShareable_CustomDestructor(T* Object, LambdaType&& Destructor)
 {

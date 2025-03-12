@@ -122,7 +122,7 @@ public:
 		{
 			return MakeImpl(EVoxelPropertyInternalType::Byte);
 		}
-		else if constexpr (TIsEnum<T>::Value)
+		else if constexpr (std::is_enum_v<T>)
 		{
 			return FVoxelPropertyType::MakeImpl(EVoxelPropertyInternalType::Byte, StaticEnumFast<T>());
 		}
@@ -219,7 +219,7 @@ public:
 		{
 			return InternalType == EVoxelPropertyInternalType::Byte;
 		}
-		else if constexpr (TIsEnum<T>::Value)
+		else if constexpr (std::is_enum_v<T>)
 		{
 			checkVoxelSlow(StaticEnumFast<T>()->GetMaxEnumValue() <= MAX_uint8);
 			return

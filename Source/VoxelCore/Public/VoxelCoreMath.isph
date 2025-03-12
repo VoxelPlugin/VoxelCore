@@ -637,6 +637,13 @@ FORCEINLINE bool Contains(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+FORCEINLINE generic float2 TransformPosition(const generic float2x2 Matrix, const generic float2 Position)
+{
+	return MakeFloat2(
+		Position.x * Matrix.M[0][0] + Position.y * Matrix.M[1][0],
+		Position.x * Matrix.M[0][1] + Position.y * Matrix.M[1][1]);
+}
+
 FORCEINLINE generic double2 TransformPosition(const generic double2x2 Matrix, const generic double2 Position)
 {
 	return MakeDouble2(
@@ -647,6 +654,11 @@ FORCEINLINE generic double2 TransformPosition(const generic double2x2 Matrix, co
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+
+FORCEINLINE generic float2 TransformPosition(const generic FTransform2f Transform, const generic float2 Position)
+{
+	return TransformPosition(Transform.Matrix, Position) + Transform.Translation;
+}
 
 FORCEINLINE generic double2 TransformPosition(const generic FTransform2d Transform, const generic double2 Position)
 {
@@ -913,6 +925,20 @@ FORCEINLINE generic FVoxelOctahedron MakeOctahedron(const generic float2 Octahed
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+
+FORCEINLINE generic bool IsIdentity(const generic float2x2 Matrix)
+{
+	return
+		Matrix.M[0][0] == 1.f && Matrix.M[0][1] == 0.f &&
+		Matrix.M[1][0] == 0.f && Matrix.M[1][1] == 1.f;
+}
+
+FORCEINLINE generic bool IsIdentity(const generic double2x2 Matrix)
+{
+	return
+		Matrix.M[0][0] == 1.d && Matrix.M[0][1] == 0.d &&
+		Matrix.M[1][0] == 0.d && Matrix.M[1][1] == 1.d;
+}
 
 FORCEINLINE generic bool IsIdentity(const generic float4 Rotation)
 {

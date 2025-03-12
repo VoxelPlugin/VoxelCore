@@ -268,6 +268,12 @@ FSharedVoidRef MakeSharedStruct(const UScriptStruct* Struct, const void* StructT
 
 	if (StructToCopyFrom)
 	{
+		// Check that we have a copy operator or properties to copy
+		checkVoxelSlow(
+			EnumHasAllFlags(Struct->StructFlags, STRUCT_CopyNative) ||
+			EnumHasAllFlags(Struct->StructFlags, STRUCT_IsPlainOldData) ||
+			Struct->ChildProperties);
+
 		Struct->CopyScriptStruct(Memory, StructToCopyFrom);
 	}
 
