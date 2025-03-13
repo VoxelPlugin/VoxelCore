@@ -106,22 +106,43 @@ void UVoxelTextureWithBackgroundRenderer::Draw(UObject* Object, int32 X, int32 Y
 {
 	if (!WidgetRenderer)
 	{
-		WidgetRenderer = MakeShared<FWidgetRenderer>(false);
+		WidgetRenderer = MakeShared<FWidgetRenderer>(true);
 		check(WidgetRenderer);
 	}
 
 	UTexture2D* Texture = nullptr;
+	UTexture2D* BackgroundTexture = nullptr;
 	FSlateColor TextureColor = FLinearColor::White;
 	FSlateColor Color = FStyleColors::Panel;
-	GetTextureWithBackground(Object, Texture, TextureColor, Color);
+	GetTextureWithBackground(Object, BackgroundTexture, Texture, TextureColor, Color);
+
+	TSharedPtr<SImage> BackgroundImage;
+	if (BackgroundTexture)
+	{
+		FSlateBrush IconBrush;
+		IconBrush.SetResourceObject(BackgroundTexture);
+		IconBrush.ImageSize = FVector2D(Texture->GetSizeX(), Texture->GetSizeY());
+		IconBrush.Tiling = ESlateBrushTileType::NoTile;
+		IconBrush.DrawAs = ESlateBrushDrawType::Image;
+
+		BackgroundImage =
+			SNew(SImage)
+			.Image(&IconBrush)
+			.ColorAndOpacity(Color);
+	}
+	else
+	{
+		BackgroundImage =
+			SNew(SImage)
+			.Image(FAppStyle::GetBrush("Brushes.White"))
+			.ColorAndOpacity(Color);
+	}
 
 	const TSharedRef<SOverlay> Thumbnail =
 		SNew(SOverlay)
 		+ SOverlay::Slot()
 		[
-			SNew(SImage)
-			.Image(FAppStyle::GetBrush("Brushes.White"))
-			.ColorAndOpacity(Color)
+			BackgroundImage.ToSharedRef()
 		];
 
 	if (Texture)

@@ -88,6 +88,7 @@ class VOXELCOREEDITOR_API UVoxelTextureWithBackgroundRenderer : public UDefaultS
 
 	virtual void GetTextureWithBackground(
 		UObject* Object,
+		UTexture2D*& OutBackgroundTexture,
 		UTexture2D*& OutTexture,
 		FSlateColor& OutTextureColor,
 		FSlateColor& OutColor) const {}
@@ -116,4 +117,15 @@ protected:
 	VOXEL_RUN_ON_STARTUP_EDITOR() \
 	{ \
 		UThumbnailManager::Get().RegisterCustomRenderer(Class::StaticClass(), RendererClass::StaticClass()); \
+	}
+
+#define DEFINE_VOXEL_THUMBNAIL_RENDERER_RECURSIVE(RendererClass, Class) \
+	VOXEL_RUN_ON_STARTUP_EDITOR() \
+	{ \
+		UThumbnailManager& ThumbnailManager = UThumbnailManager::Get(); \
+		for (UClass* ChildClass : GetDerivedClasses<Class>()) \
+		{ \
+			ThumbnailManager.RegisterCustomRenderer(ChildClass, RendererClass::StaticClass()); \
+		} \
+		ThumbnailManager.RegisterCustomRenderer(Class::StaticClass(), RendererClass::StaticClass()); \
 	}

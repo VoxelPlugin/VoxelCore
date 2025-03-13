@@ -18,4 +18,10 @@ VOXEL_RUN_ON_STARTUP_GAME()
 		Map.Add_EnsureNew(1, MoveTemp(Shared));
 		check(!Shared);
 	}
+
+	{
+		TVoxelSet<int32> Set;
+		TVoxelSet<int32> Set2 = Set;
+		TVoxelSet<float> Set3 = TVoxelSet<float>(Set);
+	}
 }
