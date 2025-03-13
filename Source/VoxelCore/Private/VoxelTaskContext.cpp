@@ -1,6 +1,16 @@
 ﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelTaskContext.h"
+#include "Async/Async.h"
+
+VOXEL_CONSOLE_VARIABLE(
+	VOXELCORE_API, bool, GVoxelOneThread, false,
+	"voxel.OneThread",
+	"If true, will run all voxel tasks on the game thread. Useful when debugging.");
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 FVoxelTaskContext* GVoxelGlobalTaskContext = nullptr;
 
@@ -363,24 +373,35 @@ void FVoxelTaskContext::LaunchTask(TVoxelUniqueFunction<void()> Task)
 {
 	NumLaunchedTasks.Increment();
 
+	auto Lambda = [this, Task = MoveTemp(Task)]
+	{
+		if (!ShouldCancelTasks.Get())
+		{
+			FVoxelTaskScope Scope(*this);
+			Task();
+		}
+
+		if (NumLaunchedTasks.Decrement_ReturnNew() < MaxLaunchedTasks)
+		{
+			LaunchTasks();
+		}
+
+		// Decrement allows us to be deleted, make sure to do it last
+		NumPendingTasks.Decrement();
+	};
+
+	if (GVoxelOneThread)
+	{
+		AsyncTask(
+			ENamedThreads::GameThread,
+			MoveTemp(Lambda));
+
+		return;
+	}
+
 	UE::Tasks::Launch(
 		TEXT("Voxel Task"),
-		[this, Task = MoveTemp(Task)]
-		{
-			if (!ShouldCancelTasks.Get())
-			{
-				FVoxelTaskScope Scope(*this);
-				Task();
-			}
-
-			if (NumLaunchedTasks.Decrement_ReturnNew() < MaxLaunchedTasks)
-			{
-				LaunchTasks();
-			}
-
-			// Decrement allows us to be deleted, make sure to do it last
-			NumPendingTasks.Decrement();
-		},
+		MoveTemp(Lambda),
 		LowLevelTasks::ETaskPriority::BackgroundLow);
 }
 
