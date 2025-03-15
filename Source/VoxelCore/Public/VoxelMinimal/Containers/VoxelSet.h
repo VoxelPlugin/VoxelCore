@@ -89,13 +89,13 @@ public:
 		this->Append(Array);
 	}
 
-	template<typename OtherType>
+	template<typename OtherType, typename OtherAllocator>
 	requires
 	(
 		!std::is_same_v<Type, OtherType> &&
 		std::is_constructible_v<Type, OtherType>
 	)
-	explicit TVoxelSet(const TVoxelSet<OtherType>& Other)
+	explicit TVoxelSet(const TVoxelSet<OtherType, OtherAllocator>& Other)
 	{
 		this->Append(Other);
 	}
@@ -198,9 +198,9 @@ public:
 			this->Add(Value);
 		}
 	}
-	template<typename OtherType>
+	template<typename OtherType, typename OtherAllocator>
 	requires std::is_constructible_v<Type, OtherType>
-	void Append(const TVoxelSet<OtherType>& Set)
+	void Append(const TVoxelSet<OtherType, OtherAllocator>& Set)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Set.Num(), 1024);
 
@@ -208,7 +208,7 @@ public:
 
 		for (const OtherType& Value : Set)
 		{
-			this->Add(Value);
+			this->Add(Type(Value));
 		}
 	}
 	TVoxelSet Intersect(const TVoxelSet& Other) const

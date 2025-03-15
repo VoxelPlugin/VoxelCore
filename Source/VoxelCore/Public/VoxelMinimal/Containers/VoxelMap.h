@@ -133,6 +133,18 @@ public:
 		return *this;
 	}
 
+	template<typename OtherKeyType, typename OtherValueType, typename OtherAllocator>
+	requires
+	(
+		!std::is_same_v<TVoxelMap, TVoxelMap<OtherKeyType, OtherValueType, OtherAllocator>> &&
+		std::is_constructible_v<KeyType, OtherKeyType> &&
+		std::is_constructible_v<ValueType, OtherValueType>
+	)
+	explicit TVoxelMap(const TVoxelMap<OtherKeyType, OtherValueType, OtherAllocator>& Other)
+	{
+		this->Append(Other);
+	}
+
 public:
 	TVoxelMap(std::initializer_list<TPairInitializer<const KeyType&, const ValueType&>> Initializer)
 	{
@@ -291,16 +303,48 @@ public:
 		return true;
 	}
 
-	template<typename OtherAllocator>
-	void Append(const TVoxelMap<KeyType, ValueType, OtherAllocator>& Other)
+	template<typename OtherKeyType, typename OtherValueType, typename OtherAllocator>
+	requires
+	(
+		std::is_constructible_v<KeyType, OtherKeyType> &&
+		std::is_constructible_v<ValueType, OtherValueType>
+	)
+	void Append(const TVoxelMap<OtherKeyType, OtherValueType, OtherAllocator>& Other)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 1024);
 
+		if (std::is_same_v<KeyType, OtherKeyType> &&
+			Num() == 0)
+		{
+			// We can reuse the hash table
+
+			HashTable = Other.HashTable;
+
+			Elements.Reserve(Other.Elements.Num());
+
+			for (const typename TVoxelMap<OtherKeyType, OtherValueType, OtherAllocator>::FElement& Element : Other.Elements)
+			{
+				Elements.Emplace_CheckNoGrow(KeyType(Element.Key), ValueType(Element.Value));
+			}
+
+			return;
+		}
+
 		this->ReserveGrow(Other.Num());
 
-		for (const FElement& Element : Other.Elements)
+		for (const auto& It : Other)
 		{
-			this->FindOrAdd(Element.Key) = Element.Value;
+			const KeyType Key = KeyType(It.Key);
+			const uint32 Hash = this->HashValue(Key);
+
+			if (ValueType* Value = this->FindHashed(Hash, Key))
+			{
+				*Value = ValueType(It.Value);
+			}
+			else
+			{
+				this->AddHashed_CheckNew_CheckNoRehash(Hash, Key, It.Value);
+			}
 		}
 	}
 	TVoxelArray<KeyType> KeyArray() const
@@ -934,6 +978,9 @@ private:
 			ElementIndex = Index;
 		}
 	}
+
+	template<typename, typename, typename>
+	friend class TVoxelMap;
 };
 
 template<typename KeyType, typename ValueType, int32 NumInlineElements>
