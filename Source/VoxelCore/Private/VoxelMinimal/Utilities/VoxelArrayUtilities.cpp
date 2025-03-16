@@ -399,7 +399,7 @@ bool FVoxelUtilities::IsCompressedData(const TConstVoxelArrayView64<uint8> Compr
 	}
 
 	const TConstVoxelArrayView<uint8> HeaderBytes = MakeVoxelArrayView(CompressedData).LeftOf(sizeof(FVoxelOodleHeader));
-	const FVoxelOodleHeader Header = FromByteVoxelArrayView<FVoxelOodleHeader>(HeaderBytes);
+	const FVoxelOodleHeader Header = CastBytes<FVoxelOodleHeader>(HeaderBytes);
 
 	if (Header.Tag != FVoxelOodleHeader().Tag)
 	{
@@ -464,7 +464,7 @@ TVoxelArray64<uint8> FVoxelUtilities::Compress(
 	CompressedData.SetNum(sizeof(FVoxelOodleHeader) + CompressedSize);
 
 	const TVoxelArrayView<uint8> HeaderBytes = MakeVoxelArrayView(CompressedData).LeftOf(sizeof(FVoxelOodleHeader));
-	FVoxelOodleHeader& Header = FromByteVoxelArrayView<FVoxelOodleHeader>(HeaderBytes);
+	FVoxelOodleHeader& Header = CastBytes<FVoxelOodleHeader>(HeaderBytes);
 	Header.Tag = FVoxelOodleHeader().Tag;
 	Header.UncompressedSize = Data.Num();
 	Header.CompressedSize = CompressedSize;
@@ -493,7 +493,7 @@ bool FVoxelUtilities::Decompress(
 	}
 
 	const TConstVoxelArrayView<uint8> HeaderBytes = MakeVoxelArrayView(CompressedData).LeftOf(sizeof(FVoxelOodleHeader));
-	const FVoxelOodleHeader Header = FromByteVoxelArrayView<FVoxelOodleHeader>(HeaderBytes);
+	const FVoxelOodleHeader Header = CastBytes<FVoxelOodleHeader>(HeaderBytes);
 
 	if (!ensureVoxelSlow(Header.Tag == FVoxelOodleHeader().Tag) ||
 		!ensureVoxelSlow(sizeof(FVoxelOodleHeader) + Header.CompressedSize == CompressedData.Num()))

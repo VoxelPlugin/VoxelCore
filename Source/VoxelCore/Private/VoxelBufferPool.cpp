@@ -67,13 +67,13 @@ FVoxelBufferRef::~FVoxelBufferRef()
 FVoxelBufferPoolBase::FVoxelBufferPoolBase(
 	const int32 BytesPerElement,
 	const EPixelFormat PixelFormat,
-	const TCHAR* BufferName)
+	const FString& BufferName)
 	: BytesPerElement(BytesPerElement)
 	, PixelFormat(PixelFormat)
 	, BufferName(BufferName)
-	, AllocatedMemory_Name(FString(BufferName) + " Allocated Memory")
-	, UsedMemory_Name(FString(BufferName) + " Used Memory")
-	, PaddingMemory_Name(FString(BufferName) + " Padding Memory")
+	, AllocatedMemory_Name(BufferName + " Allocated Memory")
+	, UsedMemory_Name(BufferName + " Used Memory")
+	, PaddingMemory_Name(BufferName + " Padding Memory")
 {
 	ensure(BytesPerElement % GPixelFormats[PixelFormat].BlockBytes == 0);
 
@@ -83,8 +83,6 @@ FVoxelBufferPoolBase::FVoxelBufferPoolBase(
 	{
 		PoolIndexToPool_RequiresLock.Add(FAllocationPool(PoolIndex));
 	}
-
-	Voxel_AddAmountToDynamicMemoryStat(BufferName, AllocatedMemory.Get());
 }
 
 FVoxelBufferPoolBase::~FVoxelBufferPoolBase()
@@ -189,6 +187,18 @@ TVoxelFuture<FVoxelBufferRef> FVoxelBufferPoolBase::Upload_AnyThread(
 	CheckUploadQueue_AnyThread();
 
 	return Promise;
+}
+
+TVoxelFuture<FVoxelBufferRef> FVoxelBufferPoolBase::Upload_AnyThread(
+	TVoxelArray<uint8> Data,
+	const TSharedPtr<FVoxelBufferRef>& ExistingBufferRef)
+{
+	const TSharedRef<TVoxelArray<uint8>> SharedData = MakeSharedCopy(MoveTemp(Data));
+
+	return this->Upload_AnyThread(
+		MakeSharedVoidRef(SharedData),
+		MakeByteVoxelArrayView(*SharedData),
+		ExistingBufferRef);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -440,7 +450,7 @@ void FVoxelBufferPool::ProcessCopies_RenderThread(
 
 		const FBufferRHIRef OldBufferRHI = BufferRHI_RenderThread;
 
-		FRHIResourceCreateInfo CreateInfo(BufferName);
+		FRHIResourceCreateInfo CreateInfo(*BufferName);
 
 		BufferRHI_RenderThread = RHICmdList.CreateBuffer(
 			AllocatedNum * BytesPerElement,
@@ -489,16 +499,54 @@ void FVoxelBufferPool::ProcessCopies_RenderThread(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+struct FVoxelTextureBufferPoolStatics
+{
+	FVoxelCriticalSection CriticalSection;
+	TVoxelSet<FVoxelTextureBufferPool*> Pools;
+};
+FVoxelTextureBufferPoolStatics GVoxelTextureBufferPoolStatics;
+
+class FVoxelTextureBufferPoolSingleton : public FVoxelSingleton
+{
+public:
+	//~ Begin FVoxelSingleton Interface
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
+	{
+		VOXEL_FUNCTION_COUNTER();
+		VOXEL_SCOPE_LOCK(GVoxelTextureBufferPoolStatics.CriticalSection);
+
+		for (FVoxelTextureBufferPool* Pool : GVoxelTextureBufferPoolStatics.Pools)
+		{
+			Pool->AddReferencedObjects(Collector);
+		}
+	}
+	//~ End FVoxelSingleton Interface
+};
+FVoxelTextureBufferPoolSingleton* GVoxelTextureBufferPoolSingleton = new FVoxelTextureBufferPoolSingleton();
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 FVoxelTextureBufferPool::FVoxelTextureBufferPool(
 	const int32 BytesPerElement,
 	const EPixelFormat PixelFormat,
-	const TCHAR* BufferName,
+	const FString& BufferName,
 	const int32 MaxTextureSize)
 	: FVoxelBufferPoolBase(BytesPerElement, PixelFormat, BufferName)
 	, MaxTextureSize(MaxTextureSize)
 {
 	check(FMath::IsPowerOfTwo(MaxTextureSize));
 	check(FMath::Square(MaxTextureSize) * BytesPerElement <= MAX_uint32);
+
+	VOXEL_SCOPE_LOCK(GVoxelTextureBufferPoolStatics.CriticalSection);
+	GVoxelTextureBufferPoolStatics.Pools.Add_CheckNew(this);
+}
+
+FVoxelTextureBufferPool::~FVoxelTextureBufferPool()
+{
+	VOXEL_SCOPE_LOCK(GVoxelTextureBufferPoolStatics.CriticalSection);
+	GVoxelTextureBufferPoolStatics.Pools.RemoveChecked(this);
 }
 
 void FVoxelTextureBufferPool::AddReferencedObjects(FReferenceCollector& Collector)

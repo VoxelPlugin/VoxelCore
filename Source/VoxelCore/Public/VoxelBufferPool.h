@@ -50,13 +50,13 @@ class VOXELCORE_API FVoxelBufferPoolBase : public TSharedFromThis<FVoxelBufferPo
 public:
 	const int32 BytesPerElement;
 	const EPixelFormat PixelFormat;
-	const TCHAR* const BufferName;
+	const FString BufferName;
 	FTSSimpleMulticastDelegate OnOutOfMemory;
 
 	FVoxelBufferPoolBase(
 		int32 BytesPerElement,
 		EPixelFormat PixelFormat,
-		const TCHAR* BufferName);
+		const FString& BufferName);
 	virtual ~FVoxelBufferPoolBase();
 
 public:
@@ -94,6 +94,10 @@ public:
 	TVoxelFuture<FVoxelBufferRef> Upload_AnyThread(
 		const FSharedVoidPtr& Owner,
 		TConstVoxelArrayView64<uint8> Data,
+		const TSharedPtr<FVoxelBufferRef>& ExistingBufferRef = nullptr);
+
+	TVoxelFuture<FVoxelBufferRef> Upload_AnyThread(
+		TVoxelArray<uint8> Data,
 		const TSharedPtr<FVoxelBufferRef>& ExistingBufferRef = nullptr);
 
 	template<typename T>
@@ -263,11 +267,10 @@ public:
 	FVoxelTextureBufferPool(
 		int32 BytesPerElement,
 		EPixelFormat PixelFormat,
-		const TCHAR* BufferName,
+		const FString& BufferName,
 		int32 MaxTextureSize);
-	virtual ~FVoxelTextureBufferPool() override = default;
 
-	void AddReferencedObjects(FReferenceCollector& Collector);
+	virtual ~FVoxelTextureBufferPool() override;
 
 public:
 	FORCEINLINE UTexture2D* GetTexture_GameThread() const
@@ -290,4 +293,8 @@ protected:
 private:
 	TObjectPtr<UTexture2D> Texture_GameThread;
 	FTextureRHIRef TextureRHI_RenderThread;
+
+	void AddReferencedObjects(FReferenceCollector& Collector);
+
+	friend class FVoxelTextureBufferPoolSingleton;
 };

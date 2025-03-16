@@ -72,6 +72,12 @@ public:
 	}
 	virtual void PreUnloadCallback() override
 	{
+		if (!ensureVoxelSlow(GVoxelGlobalTaskContext))
+		{
+			// Will happen if the game exits before initialization is complete
+			return;
+		}
+
 		GVoxelGlobalTaskContext->FlushTasks();
 
 #if !WITH_EDITOR && (PLATFORM_MAC || PLATFORM_IOS)
@@ -79,8 +85,6 @@ public:
 		return;
 #endif
 
-		// Run cleanup twice in case first cleanup added voxel nodes back to the pool
-		GOnVoxelModuleUnloaded_DoCleanup.Broadcast();
 		GOnVoxelModuleUnloaded_DoCleanup.Broadcast();
 
 		GVoxelGlobalTaskContext->FlushTasks();

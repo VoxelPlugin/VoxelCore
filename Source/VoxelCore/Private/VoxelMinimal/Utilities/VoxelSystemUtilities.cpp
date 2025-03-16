@@ -555,6 +555,17 @@ FVoxelStackFrames FVoxelUtilities::GetStackFrames(const int32 NumFramesToIgnore)
 
 TVoxelArray<FString> FVoxelUtilities::StackFramesToString(const FVoxelStackFrames& StackFrames)
 {
+	// Make sure we don't actually ensure, StackFramesToString is called within ensures in tests
+#define ensureSafe(...) (INLINE_LAMBDA \
+	{ \
+		const bool bValue = (__VA_ARGS__); \
+		if (VOXEL_DEBUG && !bValue) \
+		{ \
+			UE_DEBUG_BREAK(); \
+		} \
+		return bValue; \
+	})
+
 	static const int32 InitializeStackWalking = INLINE_LAMBDA
 	{
 		VOXEL_SCOPE_COUNTER("FPlatformStackWalk::InitStackWalking");
@@ -600,7 +611,7 @@ TVoxelArray<FString> FVoxelUtilities::StackFramesToString(const FVoxelStackFrame
 			}
 
 			FString String(HumanReadableString);
-			if (!ensureVoxelSlow(String.RemoveFromStart(FString::Printf(TEXT("0x%p "), Address))))
+			if (!ensureSafe(String.RemoveFromStart(FString::Printf(TEXT("0x%p "), Address))))
 			{
 				return false;
 			}
@@ -611,7 +622,7 @@ TVoxelArray<FString> FVoxelUtilities::StackFramesToString(const FVoxelStackFrame
 				{
 					Index = String.Find(".exe!");
 				}
-				if (!ensureVoxelSlow(Index != -1))
+				if (!ensureSafe(Index != -1))
 				{
 					return false;
 				}
@@ -624,7 +635,7 @@ TVoxelArray<FString> FVoxelUtilities::StackFramesToString(const FVoxelStackFrame
 			FString Function;
 			{
 				const int32 Index = String.Find(" [");
-				if (!ensureVoxelSlow(Index != -1))
+				if (!ensureSafe(Index != -1))
 				{
 					return false;
 				}
@@ -633,8 +644,8 @@ TVoxelArray<FString> FVoxelUtilities::StackFramesToString(const FVoxelStackFrame
 				String = String.RightChop(Index);
 			}
 
-			if (!ensureVoxelSlow(String.RemoveFromStart(" [")) ||
-				!ensureVoxelSlow(String.RemoveFromEnd("]")))
+			if (!ensureSafe(String.RemoveFromStart(" [")) ||
+				!ensureSafe(String.RemoveFromEnd("]")))
 			{
 				return false;
 			}
@@ -642,7 +653,7 @@ TVoxelArray<FString> FVoxelUtilities::StackFramesToString(const FVoxelStackFrame
 			int32 Line;
 			{
 				int32 Index;
-				if (!ensureVoxelSlow(String.FindLastChar(TEXT(':'), Index)))
+				if (!ensureSafe(String.FindLastChar(TEXT(':'), Index)))
 				{
 					return false;
 				}
@@ -662,6 +673,8 @@ TVoxelArray<FString> FVoxelUtilities::StackFramesToString(const FVoxelStackFrame
 			Result.Add(FString::Printf(TEXT("%p: %S"), Address, HumanReadableString));
 		}
 	}
+
+#undef ensureSafe
 
 	return Result;
 }

@@ -14,7 +14,7 @@ THIRD_PARTY_INCLUDES_END
 
 UTexture2D* FVoxelTextureUtilities::GetDefaultTexture2D()
 {
-	// Loaded by UMaterialExpressionSampleVoxelTextureParameter
+	// Loaded by UVoxelTextureUtilitiesHelper
 	UTexture2D* Texture = FindObject<UTexture2D>(nullptr, TEXT("/Engine/EngineResources/DefaultTexture.DefaultTexture"));
 	ensure(Texture);
 	return Texture;
@@ -22,7 +22,7 @@ UTexture2D* FVoxelTextureUtilities::GetDefaultTexture2D()
 
 UTexture2DArray* FVoxelTextureUtilities::GetDefaultTexture2DArray()
 {
-	// Loaded by UMaterialExpressionSampleVoxelTextureParameter
+	// Loaded by UVoxelTextureUtilitiesHelper
 	UTexture2DArray* Texture = FindObject<UTexture2DArray>(nullptr, TEXT("/Voxel/Default/DefaultTextureArray.DefaultTextureArray"));
 	ensure(Texture);
 	return Texture;

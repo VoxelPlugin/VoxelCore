@@ -7,8 +7,11 @@
 
 class FMaterialCompiler;
 class UMaterialFunction;
+class UMaterialInstance;
 class UMaterialExpression;
+class UMaterialInstanceConstant;
 class FHLSLMaterialTranslator;
+class FMaterialInstanceParameterUpdateContext;
 
 #if WITH_EDITOR
 struct VOXELCORE_API FVoxelMaterialTranslatorNoCodeReuseScope
@@ -42,5 +45,29 @@ namespace FVoxelUtilities
 
 	VOXELCORE_API TVoxelArray<UMaterialExpression*> GetMaterialExpressions(const UMaterial& Material);
 	VOXELCORE_API TVoxelArray<UMaterialExpression*> GetMaterialExpressions(const UMaterialFunction& MaterialFunction);
+
+	VOXELCORE_API void ClearMaterialExpressions(UMaterial& Material);
+
+	VOXELCORE_API bool CopyParameterValues(
+		FMaterialInstanceParameterUpdateContext& UpdateContext,
+		UMaterialInstance& Target,
+		const UMaterialInterface& Source,
+		const FString& ParameterNamePrefix);
+
+	// Merge texture parameters with the same value to reduce the number of SRVs
+	VOXELCORE_API void MergeIdenticalTextureParameters(
+		UMaterial& Material,
+		const UMaterialInstance& MaterialInstance);
+
+	VOXELCORE_API bool AreMaterialsIdentical(
+		const UMaterial& OldMaterial,
+		const UMaterial& NewMaterial,
+		FString& OutDiff);
+
+	// Parent materials are assumed to be identical
+	VOXELCORE_API bool AreInstancesIdentical(
+		const UMaterialInstanceConstant& OldInstance,
+		const UMaterialInstanceConstant& NewInstance,
+		FString& OutDiff);
 #endif
 };

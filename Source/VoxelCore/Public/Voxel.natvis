@@ -11,10 +11,10 @@
   <!-- TVoxelFuture visualizer -->
   <Type Name="TVoxelFuture&lt;*&gt;">
     <DisplayString Condition="!PromiseState.Object">null</DisplayString>
-    <DisplayString Condition="PromiseState.Object &amp;&amp; PromiseState.Object->bIsComplete.Storage.Atomic._Storage._Value">[Done] {*($T1*)PromiseState.Object->Value_RequiresLock.Object}</DisplayString>
+    <DisplayString Condition="PromiseState.Object &amp;&amp; PromiseState.Object->bIsComplete.Storage.Atomic._Storage._Value">[Done] {*($T1*)PromiseState.Object->Value.Object}</DisplayString>
     <DisplayString Condition="PromiseState.Object &amp;&amp; !PromiseState.Object->bIsComplete.Storage.Atomic._Storage._Value">[Pending]</DisplayString>
     <Expand>
-      <Item Name="Value" Condition="PromiseState.Object &amp;&amp; PromiseState.Object->bIsComplete.Storage.Atomic._Storage._Value">*($T1*)PromiseState.Object->Value_RequiresLock.Object</Item>
+      <ExpandedItem Condition="PromiseState.Object &amp;&amp; PromiseState.Object->bIsComplete.Storage.Atomic._Storage._Value">*($T1*)PromiseState.Object->Value.Object</ExpandedItem>
     </Expand>
   </Type>
 
@@ -317,23 +317,12 @@
     </Expand>
   </Type>
 
-  <!-- FVoxelTransformRef visualizer -->
-  <Type Name="FVoxelTransformRef">
-    <DisplayString Condition="!Impl.Object">Identity</DisplayString>
-    <DisplayString Condition="Impl.Object">{((UnrealEditor-VoxelCore-Win64-DebugGame.dll!FVoxelTransformRefImpl*)Impl.Object)->Name,sb}</DisplayString>
+  <!-- FVoxelMetadataRef visualizer -->
+  <Type Name="FVoxelMetadataRef">
+    <DisplayString Condition="Index == -1">null</DisplayString>
+    <DisplayString Condition="Index != -1">{GVoxelMetadataSingleton->Metadatas[Index].WeakMetadata->NamePrivate,sb} Index={Index}</DisplayString>
     <Expand>
-      <ExpandedItem Condition="Impl.Object">((UnrealEditor-VoxelCore-Win64-DebugGame.dll!FVoxelTransformRefImpl*)Impl.Object)->Transform.M</ExpandedItem>
-    </Expand>
-  </Type>
-
-  <!-- FVoxelFutureValue visualizer -->
-  <Type Name="FVoxelFutureValue">
-    <DisplayString Condition="!State.Object">null</DisplayString>
-    <DisplayString Condition="State.Object &amp;&amp; State.Object->Value.Type.InternalType == 0">Pending Type={State.Object->Type}</DisplayString>
-    <DisplayString Condition="State.Object &amp;&amp; State.Object->Value.Type.InternalType != 0">{State.Object->Value}</DisplayString>
-    <Expand>
-      <ExpandedItem Condition="State.Object &amp;&amp; State.Object->Value.Type.InternalType != 0 &amp;&amp; !State.Object->Value.Type.bIsBuffer &amp;&amp; State.Object->Value.Type.InternalType != 11">State.Object->Value</ExpandedItem>
-      <ExpandedItem Condition="State.Object &amp;&amp; (State.Object->Value.Type.bIsBuffer || State.Object->Value.Type.InternalType == 11)">*(FVoxelVirtualStruct*)State.Object->Value.SharedStruct.Object</ExpandedItem>
+      <ExpandedItem Condition="Index != -1">*GVoxelMetadataSingleton->Metadatas[Index].WeakMetadata</ExpandedItem>
     </Expand>
   </Type>
 

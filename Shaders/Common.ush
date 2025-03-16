@@ -381,3 +381,13 @@ float GetFraction(const uint Seed)
 {
 	return asfloat(0x3F800000U | (Seed >> 9)) - 1.0f;
 }
+
+uint2 GetTextureIndex_Log2(
+	const uint Index,
+	const uint TextureSizeLog2)
+{
+	const uint X = Index & ((1u << TextureSizeLog2) - 1);
+	const uint Y = Index >> TextureSizeLog2;
+
+	return uint2(X, Y);
+}

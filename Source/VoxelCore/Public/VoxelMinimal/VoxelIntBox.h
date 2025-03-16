@@ -559,6 +559,7 @@ FORCEINLINE FArchive& operator<<(FArchive& Ar, FVoxelIntBox& Box)
 // Voxel Int Box with a IsValid flag
 struct FVoxelOptionalIntBox
 {
+public:
 	FVoxelOptionalIntBox() = default;
 	FVoxelOptionalIntBox(const FVoxelIntBox& Box)
 		: Box(Box)
@@ -566,6 +567,7 @@ struct FVoxelOptionalIntBox
 	{
 	}
 
+public:
 	FORCEINLINE const FVoxelIntBox& GetBox() const
 	{
 		check(IsValid());
@@ -579,6 +581,20 @@ struct FVoxelOptionalIntBox
 	FORCEINLINE void Reset()
 	{
 		bValid = false;
+	}
+
+public:
+	FORCEINLINE operator bool() const
+	{
+		return IsValid();
+	}
+	FORCEINLINE const FVoxelIntBox* operator->() const
+	{
+		return &Box;
+	}
+	FORCEINLINE const FVoxelIntBox& operator*() const
+	{
+		return Box;
 	}
 
 	FORCEINLINE FVoxelOptionalIntBox& operator=(const FVoxelIntBox& Other)
@@ -601,6 +617,7 @@ struct FVoxelOptionalIntBox
 		return Box == Other.Box;
 	}
 
+public:
 	FORCEINLINE FVoxelOptionalIntBox& operator+=(const FVoxelIntBox& Other)
 	{
 		if (bValid)

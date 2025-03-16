@@ -149,6 +149,25 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
+	template<typename T, typename ArrayType>
+	requires std::is_same_v<ElementType<ArrayType>, uint8>
+	FORCEINLINE T& CastBytes(ArrayType&& Array)
+	{
+		checkVoxelSlow(GetNum(Array) == sizeof(T));
+		return *reinterpret_cast<T*>(GetData(Array));
+	}
+	template<typename T, typename ArrayType>
+	requires std::is_same_v<ElementType<ArrayType>, const uint8>
+	FORCEINLINE const T& CastBytes(ArrayType&& Array)
+	{
+		checkVoxelSlow(GetNum(Array) == sizeof(T));
+		return *reinterpret_cast<const T*>(GetData(Array));
+	}
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
 	template<typename ArrayType>
 	requires
 	(
