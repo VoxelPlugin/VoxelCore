@@ -247,7 +247,7 @@ public:
 
 		FProperty* Property = PropertyHandle->GetProperty();
 		if (Property &&
-			!ensure(FVoxelUtilities::MatchesProperty<T>(*Property, false)))
+			!ensure(FVoxelUtilities::MatchesProperty<T>(*Property, true)))
 		{
 			return;
 		}
