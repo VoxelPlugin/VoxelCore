@@ -128,7 +128,7 @@ public:
 	FORCEINLINE ObjectType* Resolve_Ensured() const
 	{
 		ObjectType* Object = Resolve();
-		ensure(Object);
+		ensure(Object || IsExplicitlyNull());
 		return Object;
 	}
 

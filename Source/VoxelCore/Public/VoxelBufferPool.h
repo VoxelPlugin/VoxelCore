@@ -283,6 +283,17 @@ public:
 		checkVoxelSlow(IsInParallelRenderingThread());
 		return TextureRHI_RenderThread;
 	}
+	FORCEINLINE int32 GetTextureSizeLog2_RenderThread() const
+	{
+		checkVoxelSlow(IsInParallelRenderingThread());
+
+		if (!TextureRHI_RenderThread)
+		{
+			return 0;
+		}
+
+		return FVoxelUtilities::ExactLog2(TextureRHI_RenderThread->GetSizeX());
+	}
 
 protected:
 	//~ Begin FVoxelBufferPoolBase Interface
