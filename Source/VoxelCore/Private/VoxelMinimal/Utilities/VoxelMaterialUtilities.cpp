@@ -11,6 +11,8 @@
 #endif
 
 #if WITH_EDITOR
+DEFINE_PRIVATE_ACCESS(FMaterialFunctionCompileState, SharedFunctionStates);
+
 struct FVoxelMaterialTranslatorNoCodeReuseScope::FImpl
 {
 	FVoxelHLSLMaterialTranslator& Translator;
@@ -18,6 +20,7 @@ struct FVoxelMaterialTranslatorNoCodeReuseScope::FImpl
 	TArray<FShaderCodeChunk>* CurrentScopeChunks;
 	TArray<FShaderCodeChunk> LocalChunks;
 	TArray<FMaterialCustomExpressionEntry> LocalCustomExpressions;
+	TVoxelSet<FMaterialFunctionCompileState*> PreviousSharedFunctionStates;
 
 	explicit FImpl(FVoxelHLSLMaterialTranslator& Translator)
 		: Translator(Translator)
@@ -34,6 +37,12 @@ struct FVoxelMaterialTranslatorNoCodeReuseScope::FImpl
 		for (FMaterialCustomExpressionEntry& Entry : Translator.CustomExpressions)
 		{
 			Entry.Expression = nullptr;
+		}
+
+		FMaterialFunctionCompileState* CurrentFunctionState = Translator.FunctionStacks[Translator.ShaderFrequency].Last();
+		for (auto& It : PrivateAccess::SharedFunctionStates(*CurrentFunctionState))
+		{
+			PreviousSharedFunctionStates.Add(It.Value);
 		}
 	}
 	~FImpl()
@@ -59,7 +68,21 @@ struct FVoxelMaterialTranslatorNoCodeReuseScope::FImpl
 		// Clear cache as we are in a local scope
 		FMaterialFunctionCompileState* CurrentFunctionState = Translator.FunctionStacks[Translator.ShaderFrequency].Last();
 		CurrentFunctionState->ExpressionCodeMap.Reset();
-		CurrentFunctionState->ClearSharedFunctionStates();
+
+		for (auto It = PrivateAccess::SharedFunctionStates(*CurrentFunctionState).CreateIterator(); It; ++It)
+		{
+			FMaterialFunctionCompileState* State = It.Value();
+			if (PreviousSharedFunctionStates.Contains(State))
+			{
+				// Don't delete shared function states that are older than us
+				continue;
+			}
+
+			State->ClearSharedFunctionStates();
+			delete State;
+
+			It.RemoveCurrent();
+		}
 	}
 };
 
