@@ -389,7 +389,7 @@ void FVoxelUtilities::CleanupRedirects(const FString& RedirectsPath)
 		else if (Type == "FunctionRedirects")
 		{
 			ApplyRedirect(ECoreRedirectFlags::Type_Function);
-			bIsValid = LoadObject<UFunction>(nullptr, *NewName) != nullptr;
+			bIsValid = FindFirstObject<UFunction>(*NewName, EFindFirstObjectOptions::EnsureIfAmbiguous) != nullptr;
 		}
 		else if (Type == "PackageRedirects")
 		{

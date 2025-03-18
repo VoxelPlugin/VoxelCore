@@ -218,20 +218,14 @@
     </Expand>
   </Type>
 
-  <!-- TVoxelBufferStorage visualizer -->
-  <Type Name="TVoxelBufferStorage&lt;*&gt;">
-    <DisplayString>Num={ArrayNum}</DisplayString>
-    <Expand>
-      <ArrayItems>
-        <Size>ArrayNum</Size>
-        <ValuePointer>($T1*)Data</ValuePointer>
-      </ArrayItems>
-    </Expand>
+  <!-- FVoxelBufferStruct visualizer -->
+  <Type Name="FVoxelBufferStruct">
+    <DisplayString>Num={PrivateNum}</DisplayString>
   </Type>
 
   <!-- FVoxelTerminalBuffer visualizer -->
   <Type Name="FVoxelTerminalBuffer">
-    <DisplayString>Num={PrivateNum}</DisplayString>
+    <DisplayString>Num={ArrayNum}</DisplayString>
   </Type>
 
   <!-- FVoxelBoolBuffer visualizer -->
@@ -244,57 +238,67 @@
 
   <!-- FVoxelFloatBuffer visualizer -->
   <Type Name="FVoxelFloatBuffer">
-    <DisplayString>{*(FVoxelFloatBufferStorage*)PrivateStorage.Object}</DisplayString>
+    <DisplayString>Num={ArrayNum}</DisplayString>
     <Expand>
-      <ExpandedItem>*(FVoxelFloatBufferStorage*)PrivateStorage.Object</ExpandedItem>
+      <ArrayItems>
+        <Size>ArrayNum</Size>
+        <ValuePointer>(float*)Allocation.Data</ValuePointer>
+      </ArrayItems>
     </Expand>
   </Type>
 
   <!-- FVoxelDoubleBuffer visualizer -->
   <Type Name="FVoxelDoubleBuffer">
-    <DisplayString>{*(FVoxelDoubleBufferStorage*)PrivateStorage.Object}</DisplayString>
+    <DisplayString>Num={ArrayNum}</DisplayString>
     <Expand>
-      <ExpandedItem>*(FVoxelDoubleBufferStorage*)PrivateStorage.Object</ExpandedItem>
+      <ArrayItems>
+        <Size>ArrayNum</Size>
+        <ValuePointer>(double*)Allocation.Data</ValuePointer>
+      </ArrayItems>
     </Expand>
   </Type>
 
   <!-- FVoxelByteBuffer visualizer -->
   <Type Name="FVoxelByteBuffer">
-    <DisplayString>{*(FVoxelByteBufferStorage*)PrivateStorage.Object}</DisplayString>
+    <DisplayString>Num={ArrayNum}</DisplayString>
     <Expand>
-      <ExpandedItem>*(FVoxelByteBufferStorage*)PrivateStorage.Object</ExpandedItem>
-    </Expand>
-  </Type>
-
-  <!-- FVoxelMaterialBlendingBuffer visualizer -->
-  <Type Name="FVoxelMaterialBlendingBuffer">
-    <DisplayString>{*(FVoxelMaterialBlendingBufferStorage*)PrivateStorage.Object}</DisplayString>
-    <Expand>
-      <ExpandedItem>*(FVoxelMaterialBlendingBufferStorage*)PrivateStorage.Object</ExpandedItem>
+      <ArrayItems>
+        <Size>ArrayNum</Size>
+        <ValuePointer>(uint8*)Allocation.Data</ValuePointer>
+      </ArrayItems>
     </Expand>
   </Type>
 
   <!-- FVoxelInt32Buffer visualizer -->
   <Type Name="FVoxelInt32Buffer">
-    <DisplayString>{*(FVoxelInt32BufferStorage*)PrivateStorage.Object}</DisplayString>
+    <DisplayString>Num={ArrayNum}</DisplayString>
     <Expand>
-      <ExpandedItem>*(FVoxelInt32BufferStorage*)PrivateStorage.Object</ExpandedItem>
+      <ArrayItems>
+        <Size>ArrayNum</Size>
+        <ValuePointer>(int32*)Allocation.Data</ValuePointer>
+      </ArrayItems>
     </Expand>
   </Type>
 
   <!-- FVoxelInt64Buffer visualizer -->
   <Type Name="FVoxelInt64Buffer">
-    <DisplayString>{*(FVoxelInt64BufferStorage*)PrivateStorage.Object}</DisplayString>
+    <DisplayString>Num={ArrayNum}</DisplayString>
     <Expand>
-      <ExpandedItem>*(FVoxelInt64BufferStorage*)PrivateStorage.Object</ExpandedItem>
+      <ArrayItems>
+        <Size>ArrayNum</Size>
+        <ValuePointer>(int64*)Allocation.Data</ValuePointer>
+      </ArrayItems>
     </Expand>
   </Type>
 
   <!-- FVoxelStaticMeshBuffer visualizer -->
   <Type Name="FVoxelStaticMeshBuffer">
-    <DisplayString>{*(FVoxelStaticMeshBufferStorage*)PrivateStorage.Object}</DisplayString>
+    <DisplayString>Num={ArrayNum}</DisplayString>
     <Expand>
-      <ExpandedItem>*(FVoxelStaticMeshBufferStorage*)PrivateStorage.Object</ExpandedItem>
+      <ArrayItems>
+        <Size>ArrayNum</Size>
+        <ValuePointer>(FVoxelStaticMesh*)Allocation.Data</ValuePointer>
+      </ArrayItems>
     </Expand>
   </Type>
 
