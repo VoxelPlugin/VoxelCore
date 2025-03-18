@@ -13,20 +13,21 @@ class VOXELCORE_API FVoxelMaterialGenerator
 public:
 	FVoxelMaterialGenerator(
 		const TVoxelObjectPtr<const UObject> ErrorOwner,
-		const UMaterial& OldMaterial,
 		UMaterial& NewMaterial,
 		const FString& ParameterNamePrefix,
-		const bool bSkipCustomOutputs)
+		const bool bSkipCustomOutputs,
+		const TFunction<bool(const UMaterialExpression&)> ShouldDuplicateFunction_AdditionalHook)
 		: ErrorOwner(ErrorOwner)
-		, OldMaterial(OldMaterial)
 		, NewMaterial(NewMaterial)
 		, ParameterNamePrefix(ParameterNamePrefix)
 		, bSkipCustomOutputs(bSkipCustomOutputs)
+		, ShouldDuplicateFunction_AdditionalHook(ShouldDuplicateFunction_AdditionalHook)
 	{
 	}
 
 public:
-	TVoxelOptional<FMaterialAttributesInput> CopyExpressions();
+	UMaterialFunction* DuplicateFunctionIfNeeded(const UMaterialFunction& OldFunction);
+	TVoxelOptional<FMaterialAttributesInput> CopyExpressions(const UMaterial& OldMaterial);
 
 public:
 	FVoxelOptionalIntBox2D GetBounds() const;
@@ -34,10 +35,10 @@ public:
 
 private:
 	const TVoxelObjectPtr<const UObject> ErrorOwner;
-	const UMaterial& OldMaterial;
 	UMaterial& NewMaterial;
 	const FString ParameterNamePrefix;
 	const bool bSkipCustomOutputs;
+	const TFunction<bool(const UMaterialExpression&)> ShouldDuplicateFunction_AdditionalHook;
 
 	TVoxelMap<FGuid, FGuid> OldToNewParameterGuid;
 	TVoxelMap<FGuid, FGuid> OldToNewNamedRerouteGuid;

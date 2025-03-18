@@ -140,7 +140,13 @@ UMaterialExpression& FVoxelUtilities::CreateMaterialExpression(
 	check(false);
 	return *GetMutableDefault<UMaterialExpression>();
 }
+#endif
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#if WITH_EDITOR
 TVoxelArray<UMaterialExpression*> FVoxelUtilities::GetMaterialExpressions(const UMaterial& Material)
 {
 	VOXEL_FUNCTION_COUNTER();
@@ -223,6 +229,98 @@ TVoxelArray<UMaterialExpression*> FVoxelUtilities::GetMaterialExpressions(const 
 	return Expressions;
 }
 
+TVoxelArray<UMaterialExpression*> FVoxelUtilities::GetMaterialExpressions_Recursive(
+	const UMaterial& Material,
+	TVoxelSet<const UObject*>* Visited)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	TVoxelSet<const UObject*> VisitedAllocation;
+	if (!Visited)
+	{
+		Visited = &VisitedAllocation;
+	}
+
+	if (Visited->Contains(&Material))
+	{
+		return {};
+	}
+	Visited->Add_EnsureNew(&Material);
+
+	TVoxelArray<UMaterialExpression*> Result;
+	Result.Reserve(1024);
+
+	for (UMaterialExpression* Expression : GetMaterialExpressions(Material))
+	{
+		Result.Add(Expression);
+
+		const UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Expression);
+		if (!FunctionCall)
+		{
+			continue;
+		}
+
+		const UMaterialFunction* Function = Cast<UMaterialFunction>(FunctionCall->MaterialFunction);
+		if (!Function)
+		{
+			continue;
+		}
+
+		Result.Append(GetMaterialExpressions_Recursive(*Function, Visited));
+	}
+
+	return Result;
+}
+
+TVoxelArray<UMaterialExpression*> FVoxelUtilities::GetMaterialExpressions_Recursive(
+	const UMaterialFunction& MaterialFunction,
+	TVoxelSet<const UObject*>* Visited)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	TVoxelSet<const UObject*> VisitedAllocation;
+	if (!Visited)
+	{
+		Visited = &VisitedAllocation;
+	}
+
+	if (Visited->Contains(&MaterialFunction))
+	{
+		return {};
+	}
+	Visited->Add_EnsureNew(&MaterialFunction);
+
+	TVoxelArray<UMaterialExpression*> Result;
+	Result.Reserve(1024);
+
+	for (UMaterialExpression* Expression : GetMaterialExpressions(MaterialFunction))
+	{
+		Result.Add(Expression);
+
+		const UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Expression);
+		if (!FunctionCall)
+		{
+			continue;
+		}
+
+		const UMaterialFunction* Function = Cast<UMaterialFunction>(FunctionCall->MaterialFunction);
+		if (!Function)
+		{
+			continue;
+		}
+
+		Result.Append(GetMaterialExpressions_Recursive(*Function, Visited));
+	}
+
+	return Result;
+}
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#if WITH_EDITOR
 void FVoxelUtilities::ClearMaterialExpressions(UMaterial& Material)
 {
 	VOXEL_FUNCTION_COUNTER();

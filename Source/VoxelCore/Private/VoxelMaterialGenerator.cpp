@@ -17,7 +17,37 @@
 #endif
 
 #if WITH_EDITOR
-TVoxelOptional<FMaterialAttributesInput> FVoxelMaterialGenerator::CopyExpressions()
+UMaterialFunction* FVoxelMaterialGenerator::DuplicateFunctionIfNeeded(const UMaterialFunction& OldFunction)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	if (!ShouldDuplicateFunction(OldFunction))
+	{
+		return ConstCast(&OldFunction);
+	}
+
+	if (UMaterialFunction* NewFunction = OldToNewFunction.FindRef(&OldFunction))
+	{
+		return NewFunction;
+	}
+
+	UMaterialFunction* NewFunction = NewObject<UMaterialFunction>(&NewMaterial);
+	NewFunction->UserExposedCaption =
+		"GENERATED: " +
+		(OldFunction.UserExposedCaption.IsEmpty() ? OldFunction.GetName() : OldFunction.UserExposedCaption);
+
+	OldToNewFunction.Add_EnsureNew(&OldFunction, NewFunction);
+
+	if (!ensureVoxelSlow(CopyFunctionExpressions(OldFunction, *NewFunction)))
+	{
+		return nullptr;
+	}
+
+	NewFunction->UpdateDependentFunctionCandidates();
+	return NewFunction;
+}
+
+TVoxelOptional<FMaterialAttributesInput> FVoxelMaterialGenerator::CopyExpressions(const UMaterial& OldMaterial)
 {
 	VOXEL_FUNCTION_COUNTER();
 
@@ -225,20 +255,26 @@ bool FVoxelMaterialGenerator::ShouldDuplicateFunction(const UMaterialFunction& F
 
 	const bool bValue = INLINE_LAMBDA
 	{
-		for (UMaterialExpression* FunctionExpression : Function.GetExpressions())
+		for (UMaterialExpression* Expression : Function.GetExpressions())
 		{
-			if (!FunctionExpression)
+			if (!Expression)
 			{
 				continue;
 			}
 
 			if (!ParameterNamePrefix.IsEmpty() &&
-				FunctionExpression->HasAParameterName())
+				Expression->HasAParameterName())
 			{
 				return true;
 			}
 
-			if (const UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(FunctionExpression))
+			if (ShouldDuplicateFunction_AdditionalHook &&
+				ShouldDuplicateFunction_AdditionalHook(*Expression))
+			{
+				return true;
+			}
+
+			if (const UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Expression))
 			{
 				if (!FunctionCall->MaterialFunction)
 				{
@@ -333,33 +369,13 @@ bool FVoxelMaterialGenerator::PostCopyExpression(UMaterialExpression& Expression
 		return true;
 	}
 
-	if (!ShouldDuplicateFunction(*OldFunction))
-	{
-		return true;
-	}
-
-	if (UMaterialFunction* NewFunction = OldToNewFunction.FindRef(OldFunction))
-	{
-		FunctionCall->MaterialFunction = NewFunction;
-		return true;
-	}
-
-	UMaterialFunction* NewFunction = NewObject<UMaterialFunction>(&NewMaterial);
-	NewFunction->UserExposedCaption =
-		"GENERATED: " +
-		(OldFunction->UserExposedCaption.IsEmpty() ? OldFunction->GetName() : OldFunction->UserExposedCaption);
-
-	OldToNewFunction.Add_EnsureNew(OldFunction, NewFunction);
-
-	if (!ensureVoxelSlow(CopyFunctionExpressions(*OldFunction, *NewFunction)))
+	UMaterialFunction* NewFunction = DuplicateFunctionIfNeeded(*OldFunction);
+	if (!ensureVoxelSlow(NewFunction))
 	{
 		return false;
 	}
 
-	NewFunction->UpdateDependentFunctionCandidates();
-
 	FunctionCall->MaterialFunction = NewFunction;
-
 	return true;
 }
 #endif

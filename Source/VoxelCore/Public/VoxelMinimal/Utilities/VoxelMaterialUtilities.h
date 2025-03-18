@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/Containers/VoxelSet.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 
 class FMaterialCompiler;
@@ -45,6 +46,14 @@ namespace FVoxelUtilities
 
 	VOXELCORE_API TVoxelArray<UMaterialExpression*> GetMaterialExpressions(const UMaterial& Material);
 	VOXELCORE_API TVoxelArray<UMaterialExpression*> GetMaterialExpressions(const UMaterialFunction& MaterialFunction);
+
+	VOXELCORE_API TVoxelArray<UMaterialExpression*> GetMaterialExpressions_Recursive(
+		const UMaterial& Material,
+		TVoxelSet<const UObject*>* Visited = nullptr);
+
+	VOXELCORE_API TVoxelArray<UMaterialExpression*> GetMaterialExpressions_Recursive(
+		const UMaterialFunction& MaterialFunction,
+		TVoxelSet<const UObject*>* Visited = nullptr);
 
 	VOXELCORE_API void ClearMaterialExpressions(UMaterial& Material);
 
