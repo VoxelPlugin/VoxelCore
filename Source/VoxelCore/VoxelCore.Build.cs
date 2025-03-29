@@ -65,7 +65,8 @@ public class VoxelCore : ModuleRules
 			new string[]
 			{
 				Path.Combine(EngineDirectory, "Source/Runtime/Engine/Private"),
-				Path.Combine(EngineDirectory, "Source/Runtime/Renderer/Private")
+				Path.Combine(EngineDirectory, "Source/Runtime/Renderer/Private"),
+				Path.Combine(EngineDirectory, "Source/Runtime/Renderer/Internal")
 			}
 		);
 	}
