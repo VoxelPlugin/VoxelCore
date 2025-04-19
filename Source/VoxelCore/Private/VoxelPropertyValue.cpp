@@ -10,7 +10,7 @@ FVoxelPropertyTerminalValue::FVoxelPropertyTerminalValue(const FVoxelPropertyTyp
 	Fixup();
 }
 
-FVoxelPropertyValue FVoxelPropertyTerminalValue::AsValue() const
+FVoxelPropertyValue FVoxelPropertyTerminalValue::ToValue() const
 {
 	return FVoxelPropertyValue(FVoxelPropertyValueBase(*this));
 }
@@ -193,7 +193,7 @@ bool FVoxelPropertyValue::ImportFromUnrelated(FVoxelPropertyValue Other)
 	return ImportFromString(Other.ExportToString());
 }
 
-FVoxelPropertyTerminalValue FVoxelPropertyValue::AsTerminalValue() const
+FVoxelPropertyTerminalValue FVoxelPropertyValue::ToTerminalValue() const
 {
 	if (!ensure(!IsArray()))
 	{

@@ -5,6 +5,7 @@
 #include "VoxelCoreMinimal.h"
 #include "Algo/IsSorted.h"
 #include "Compression/OodleDataCompression.h"
+#include "VoxelMinimal/VoxelOptional.h"
 #include "VoxelMinimal/VoxelOctahedron.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
@@ -34,7 +35,7 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 
 	template<typename ArrayType>
-	using ElementType = std::remove_reference_t<decltype(*GetData(DeclVal<ArrayType>()))>;
+	using ElementType = std::remove_reference_t<decltype(*GetData(std::declval<ArrayType>()))>;
 
 	template<typename ArrayType>
 	const bool IsMutableArray = !std::is_const_v<ElementType<ArrayType>>;
@@ -136,7 +137,11 @@ namespace FVoxelUtilities
 	}
 
 	template<typename ArrayType, typename NumType>
-	requires std::is_trivially_destructible_v<ElementType<ArrayType>>
+	requires
+	(
+		std::is_trivially_destructible_v<ElementType<ArrayType>> ||
+		bool(TIsZeroConstructType<ElementType<ArrayType>>::Value)
+	)
 	FORCENOINLINE void SetNumZeroed(ArrayType& Array, NumType Num)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num, 1024);
@@ -525,6 +530,7 @@ namespace FVoxelUtilities
 	VOXELCORE_API FInt32Interval GetMinMax(TConstVoxelArrayView<uint8> Data);
 	VOXELCORE_API FInt32Interval GetMinMax(TConstVoxelArrayView<uint16> Data);
 	VOXELCORE_API FInt32Interval GetMinMax(TConstVoxelArrayView<int32> Data);
+	VOXELCORE_API TInterval<int64> GetMinMax(TConstVoxelArrayView<int64> Data);
 	// Will return { 0, 0 } if no values are valid
 	// Won't check for NaNs
 	VOXELCORE_API FFloatInterval GetMinMax(TConstVoxelArrayView<float> Data);
@@ -553,7 +559,9 @@ namespace FVoxelUtilities
 	// Will replace -0 by +0
 	VOXELCORE_API void FixupSignBit(TVoxelArrayView<float> Data);
 
-	VOXELCORE_API int64 CountSetBits(TConstVoxelArrayView<uint32> Data);
+	VOXELCORE_API int32 CountSetBits(
+		TConstVoxelArrayView<uint32> Words,
+		TVoxelOptional<int32> NumBits = {});
 
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////

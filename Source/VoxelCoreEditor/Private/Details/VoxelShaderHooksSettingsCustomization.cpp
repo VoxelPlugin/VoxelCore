@@ -10,7 +10,7 @@
 #include "Framework/Text/RichTextLayoutMarshaller.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
 
-VOXEL_INITIALIZE_STYLE(VoxelDiffStyle)
+VOXEL_INITIALIZE_STYLE(VoxelShaderHooksStyle)
 {
 	const FTextBlockStyle DefaultText = FTextBlockStyle()
 		.SetFont(DEFAULT_FONT("Mono", 8))
@@ -18,7 +18,7 @@ VOXEL_INITIALIZE_STYLE(VoxelDiffStyle)
 		.SetShadowOffset(FVector2f::ZeroVector)
 		.SetShadowColorAndOpacity(FLinearColor::Black)
 		.SetHighlightColor(FLinearColor(0.02f, 0.3f, 0.0f))
-		.SetHighlightShape(BOX_BRUSH("Common/TextBlockHighlightShape", FMargin(3.f / 8.f))
+		.SetHighlightShape(CORE_BOX_BRUSH("Common/TextBlockHighlightShape", FMargin(3.f / 8.f))
 	);
 
 	Set("DiffText_Normal", DefaultText);

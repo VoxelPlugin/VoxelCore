@@ -88,7 +88,7 @@ void FVoxelAABBTree::Initialize(TVoxelArray<FElement>&& InElements)
 			PooledNodesToProcess.Add(MoveTemp(NodeToProcess));
 		};
 
-		Nodes.Reserve(Nodes.Num() + 2);
+		Nodes.ReserveGrow(2);
 
 		// Check Node will not be invalidated
 		const int32 CurrentNodesMax = Nodes.Max();
@@ -200,6 +200,13 @@ void FVoxelAABBTree::Shrink()
 	Leaves.Shrink();
 }
 
+TSharedRef<FVoxelAABBTree> FVoxelAABBTree::Create(TVoxelArray<FElement>&& Elements)
+{
+	const TSharedRef<FVoxelAABBTree> Tree = MakeShared<FVoxelAABBTree>();
+	Tree->Initialize(MoveTemp(Elements));
+	return Tree;
+}
+
 TSharedRef<FVoxelAABBTree> FVoxelAABBTree::Create(const TConstVoxelArrayView<FVoxelBox> Bounds)
 {
 	VOXEL_FUNCTION_COUNTER();
@@ -216,9 +223,7 @@ TSharedRef<FVoxelAABBTree> FVoxelAABBTree::Create(const TConstVoxelArrayView<FVo
 		};
 	}
 
-	const TSharedRef<FVoxelAABBTree> Tree = MakeShared<FVoxelAABBTree>();
-	Tree->Initialize(MoveTemp(Elements));
-	return Tree;
+	return Create(MoveTemp(Elements));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

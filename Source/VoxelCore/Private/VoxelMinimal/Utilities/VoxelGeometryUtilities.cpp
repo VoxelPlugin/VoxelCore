@@ -240,9 +240,9 @@ TVoxelArray<FVector2D> FVoxelUtilities::TriangulatePolygon(const TConstVoxelArra
 					continue;
 				}
 
-				OutTriangles.Add_CheckNoGrow(VertexA);
-				OutTriangles.Add_CheckNoGrow(VertexB);
-				OutTriangles.Add_CheckNoGrow(VertexC);
+				OutTriangles.Add_EnsureNoGrow(VertexA);
+				OutTriangles.Add_EnsureNoGrow(VertexB);
+				OutTriangles.Add_EnsureNoGrow(VertexC);
 
 				Vertices.RemoveAt(IndexB);
 
@@ -284,7 +284,7 @@ TVoxelArray<TVoxelArray<FVector2D>> FVoxelUtilities::GenerateConvexPolygonsFromT
 
 		for (int32 Index = 0; Index < Triangles.Num() / 3; Index++)
 		{
-			TrianglesToAdd.Add_CheckNoGrow(Index);
+			TrianglesToAdd.Add_EnsureNoGrow(Index);
 		}
 	}
 

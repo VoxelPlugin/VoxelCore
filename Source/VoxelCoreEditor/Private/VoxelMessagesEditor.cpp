@@ -2,7 +2,6 @@
 
 #include "VoxelEditorMinimal.h"
 #include "VoxelMessage.h"
-#include "VoxelCoreCommands.h"
 #include "SVoxelNotification.h"
 #include "MessageLogModule.h"
 #include "IMessageLogListing.h"
@@ -26,7 +25,7 @@ public:
 		InitOptions.bAllowClear = true;
 		MessageLogModule.RegisterLogListing("Voxel", INVTEXT("Voxel"), InitOptions);
 
-		GVoxelOnRefreshAll.AddLambda([]
+		Voxel::OnRefreshAll.AddLambda([]
 		{
 			FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog").GetLogListing("Voxel")->ClearMessages();
 		});

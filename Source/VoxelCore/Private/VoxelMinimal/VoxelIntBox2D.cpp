@@ -48,7 +48,7 @@ FVoxelIntBox2D FVoxelIntBox2D::FromPositions(
 {
 	const int32 Num = PositionX.Num();
 	check(Num == PositionY.Num());
-	VOXEL_FUNCTION_COUNTER_NUM(Num, 0);
+	VOXEL_FUNCTION_COUNTER_NUM(Num);
 
 	if (Num == 0)
 	{

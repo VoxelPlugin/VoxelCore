@@ -7,114 +7,11 @@
 #include "VoxelMinimal/Utilities/VoxelTypeUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelArrayUtilities.h"
 
-template<typename T, int32 Size, int32 Alignment = alignof(T), bool bForceInitToZero = false>
-class alignas(Alignment) TVoxelStaticArray
+template<typename T, int32 Size, int32 Alignment>
+class alignas(Alignment) TVoxelStaticArrayBase
 {
 public:
-	using ElementType = T;
-
-	checkStatic(!bForceInitToZero || std::is_trivially_destructible_v<T>);
-	static constexpr bool bCanNoInit = std::is_trivially_destructible_v<T> && !bForceInitToZero;
-
-	// Default constructor, only valid for complex types
-	// For trivially destructible types you need to choose whether to init them (ForceInit) or not (NoInit)
-	INTELLISENSE_ONLY(template<typename = std::enable_if_t<!bCanNoInit>>)
-	TVoxelStaticArray()
-	{
-		checkStatic(!bCanNoInit);
-
-		for (T& Element : *this)
-		{
-			new (&Element) T{};
-		}
-	}
-	FORCEINLINE explicit TVoxelStaticArray(EForceInit)
-	{
-		for (T& Element : *this)
-		{
-			new (&Element) T{ FVoxelUtilities::MakeSafe<T>() };
-		}
-	}
-	INTELLISENSE_ONLY(template<typename = std::enable_if_t<bCanNoInit>>)
-	FORCEINLINE explicit TVoxelStaticArray(ENoInit)
-	{
-		checkStatic(bCanNoInit);
-
-#if VOXEL_DEBUG
-		for (uint8& Byte : Data)
-		{
-			Byte = 0xDE;
-		}
-#endif
-	}
-
-	FORCEINLINE explicit TVoxelStaticArray(T Value)
-	{
-		for (T& Element : *this)
-		{
-			new (&Element) T(Value);
-		}
-	}
-	template<typename... TArgs, typename = std::enable_if_t<sizeof...(TArgs) == Size && Size != 1>>
-	FORCEINLINE TVoxelStaticArray(TArgs... Args)
-	{
-		static_assert(sizeof...(Args) == Size, "");
-		SetFromVariadicArgs(Args...);
-	}
-	FORCEINLINE TVoxelStaticArray(const TVoxelStaticArray& Other)
-	{
-		for (int32 Index = 0; Index < Size; Index++)
-		{
-			new (GetData() + Index) T(Other[Index]);
-		}
-	}
-	FORCEINLINE TVoxelStaticArray(TVoxelStaticArray&& Other)
-	{
-		for (int32 Index = 0; Index < Size; Index++)
-		{
-			new (GetData() + Index) T(MoveTemp(Other[Index]));
-		}
-	}
-	FORCEINLINE ~TVoxelStaticArray()
-	{
-		if (!std::is_trivially_destructible_v<T>)
-		{
-			for (auto& Element : *this)
-			{
-				Element.~T();
-			}
-		}
-	}
-
-	FORCEINLINE TVoxelStaticArray& operator=(const TVoxelStaticArray& Other)
-	{
-		for (int32 Index = 0; Index < Size; Index++)
-		{
-			GetData()[Index] = Other[Index];
-		}
-
-		return *this;
-	}
-	FORCEINLINE TVoxelStaticArray& operator=(TVoxelStaticArray&& Other)
-	{
-		for (int32 Index = 0; Index < Size; Index++)
-		{
-			GetData()[Index] = MoveTemp(Other[Index]);
-		}
-
-		return *this;
-	}
-
-	FORCEINLINE TVoxelStaticArray& operator=(const T Value)
-	{
-		// Always safe even with non-pod
-		for (int32 Index = 0; Index < Size; Index++)
-		{
-			GetData()[Index] = Value;
-		}
-
-		return *this;
-	}
+	TVoxelStaticArrayBase() = default;
 
 	FORCEINLINE static constexpr int32 Num()
 	{
@@ -126,21 +23,12 @@ public:
 	}
 	FORCEINLINE static constexpr int64 GetAllocatedSize()
 	{
-		return sizeof(TVoxelStaticArray);
+		return sizeof(TVoxelStaticArrayBase);
 	}
 
 	FORCEINLINE bool IsValidIndex(const int32 Index) const
 	{
 		return 0 <= Index && Index < Num();
-	}
-
-	FORCEINLINE void Memzero()
-	{
-		FMemory::Memzero(GetData(), Size * sizeof(T));
-	}
-	FORCEINLINE void Memset(const uint8 Value)
-	{
-		FMemory::Memset(GetData(), Value, Size * sizeof(T));
 	}
 
 	FORCEINLINE T* GetData()
@@ -150,23 +38,6 @@ public:
 	FORCEINLINE const T* GetData() const
 	{
 		return reinterpret_cast<const T*>(Data);
-	}
-
-	template<typename TFrom, typename Allocator>
-	void CopyFromArray(const TArray<TFrom, Allocator>& Array, const bool bInitializeEnd = true)
-	{
-		check(Size >= Array.Num());
-		for (int32 Index = 0; Index < Array.Num(); Index++)
-		{
-			(*this)[Index] = Array[Index];
-		}
-		if (bInitializeEnd)
-		{
-			for (int32 Index = Array.Num(); Index < Size; Index++)
-			{
-				(*this)[Index] = T{};
-			}
-		}
 	}
 
 	FORCEINLINE T& operator[](int32 Index)
@@ -180,48 +51,43 @@ public:
 		return GetData()[Index];
 	}
 
-	operator TArray<T>() const
-	{
-		return TArray<T>(GetData(), Num());
-	}
-
-	operator TVoxelArrayView<T>()
+	FORCEINLINE TVoxelArrayView<T> View()
 	{
 		return TVoxelArrayView<T>(GetData(), Num());
 	}
-	operator TVoxelArrayView<const T>() const
+	FORCEINLINE TConstVoxelArrayView<T> View() const
 	{
-		return TVoxelArrayView<const T>(GetData(), Num());
+		return TConstVoxelArrayView<T>(GetData(), Num());
 	}
 
-	FORCEINLINE T* begin() { return GetData(); }
-	FORCEINLINE T* end()   { return GetData() + Size; }
-
-	FORCEINLINE const T* begin() const { return GetData(); }
-	FORCEINLINE const T* end()   const { return GetData() + Size; }
-
-	template<int32 Index = 0, typename... TArgs>
-	FORCEINLINE void SetFromVariadicArgs(T Arg, TArgs... Args)
+	FORCEINLINE operator TVoxelArrayView<T>()
 	{
-		static_assert(0 <= Index && Index < Size, "");
-		static_assert(sizeof...(Args) == Size - 1 - Index, "");
-		(*this)[Index] = Arg;
-		SetFromVariadicArgs<Index + 1>(Args...);
+		return View();
 	}
-	template<int32 Index = 0>
-	FORCEINLINE void SetFromVariadicArgs(T Arg)
+	FORCEINLINE operator TVoxelArrayView<const T>() const
 	{
-		static_assert(Index == Size - 1, "");
-		(*this)[Index] = Arg;
+		return View();
 	}
 
-	friend FArchive& operator<<(FArchive& Ar, TVoxelStaticArray& Array)
+	FORCEINLINE T* begin()
 	{
-		static_assert(std::is_trivially_destructible_v<T>, "Need to fix serializer");
-		Ar.Serialize(Array.GetData(), Array.Num() * Array.GetTypeSize());
-		return Ar;
+		return GetData();
 	}
-	bool operator==(const TVoxelStaticArray& Other) const
+	FORCEINLINE T* end()
+	{
+		return GetData() + Size;
+	}
+
+	FORCEINLINE const T* begin() const
+	{
+		return GetData();
+	}
+	FORCEINLINE const T* end()   const
+	{
+		return GetData() + Size;
+	}
+
+	FORCEINLINE bool operator==(const TVoxelStaticArrayBase& Other) const
 	{
 		return CompareItems(GetData(), Other.GetData(), Num());
 	}
@@ -230,20 +96,174 @@ private:
 	uint8 Data[Size * sizeof(T)];
 };
 
-template<typename T, int32 Size, int32 Alignment = alignof(T)>
-using TVoxelStaticArray_ForceInit = TVoxelStaticArray<T, Size, Alignment, true>;
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
-template<typename T, int32 Size, int32 Alignment, bool bForceInitToZero>
-struct TIsContiguousContainer<TVoxelStaticArray<T, Size, Alignment, bForceInitToZero>>
+template<typename T, int32 Size, int32 Alignment = alignof(T)>
+class alignas(Alignment) TVoxelStaticArray;
+
+template<typename T, int32 Size, int32 Alignment>
+requires
+(
+	std::is_trivially_destructible_v<T>
+)
+class alignas(Alignment) TVoxelStaticArray<T, Size, Alignment> : public TVoxelStaticArrayBase<T, Size, Alignment>
+{
+public:
+	using ElementType = T;
+
+	FORCEINLINE explicit TVoxelStaticArray(EForceInit)
+	{
+		for (int32 Index = 0; Index < Size; Index++)
+		{
+			new (this->GetData() + Index) T{ FVoxelUtilities::MakeSafe<T>() };
+		}
+	}
+	FORCEINLINE explicit TVoxelStaticArray(ENoInit)
+	{
+#if VOXEL_DEBUG
+		FVoxelUtilities::Memset(*this, 0xDE);
+#endif
+	}
+
+	FORCEINLINE explicit TVoxelStaticArray(T Value)
+	{
+		for (int32 Index = 0; Index < Size; Index++)
+		{
+			new (this->GetData() + Index) T(Value);
+		}
+	}
+	template<typename... ArgTypes>
+	requires
+	(
+		sizeof...(ArgTypes) == Size &&
+		Size != 1 &&
+		(std::is_constructible_v<T, ArgTypes&&> && ...)
+	)
+	FORCEINLINE TVoxelStaticArray(ArgTypes&&... Args)
+	{
+		int32 Index = 0;
+		VOXEL_FOLD_EXPRESSION(new (this->GetData() + (Index++)) T(Forward<ArgTypes>(Args)));
+		checkVoxelSlow(Index == Size);
+	}
+
+	FORCEINLINE TVoxelStaticArray(const TVoxelStaticArray& Other)
+	{
+		FMemory::Memcpy(this->GetData(), Other.GetData(), Size * sizeof(T));
+	}
+
+	FORCEINLINE TVoxelStaticArray& operator=(const TVoxelStaticArray& Other)
+	{
+		FMemory::Memcpy(this->GetData(), Other.GetData(), Size * sizeof(T));
+		return *this;
+	}
+
+	FORCEINLINE void Memzero()
+	{
+		FMemory::Memzero(this->GetData(), Size * sizeof(T));
+	}
+	FORCEINLINE void Memset(const uint8 Value)
+	{
+		FMemory::Memset(this->GetData(), Value, Size * sizeof(T));
+	}
+
+	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, TVoxelStaticArray& Array)
+	{
+		Ar.Serialize(Array.GetData(), Size * sizeof(T));
+		return Ar;
+	}
+};
+
+template<typename T, int32 Size, int32 Alignment>
+requires
+(
+	!std::is_trivially_destructible_v<T>
+)
+class alignas(Alignment) TVoxelStaticArray<T, Size, Alignment> : public TVoxelStaticArrayBase<T, Size, Alignment>
+{
+public:
+	using ElementType = T;
+
+	FORCEINLINE TVoxelStaticArray()
+	{
+		for (int32 Index = 0; Index < Size; Index++)
+		{
+			new (this->GetData() + Index) T{};
+		}
+	}
+	FORCEINLINE explicit TVoxelStaticArray(T Value)
+	{
+		for (int32 Index = 0; Index < Size; Index++)
+		{
+			new (this->GetData() + Index) T(Value);
+		}
+	}
+	template<typename... ArgTypes>
+	requires
+	(
+		sizeof...(ArgTypes) == Size &&
+		Size != 1 &&
+		(std::is_constructible_v<T, ArgTypes&&> && ...)
+	)
+	FORCEINLINE TVoxelStaticArray(ArgTypes&&... Args)
+	{
+		int32 Index = 0;
+		VOXEL_FOLD_EXPRESSION(new (this->GetData() + (Index++)) T(Forward<ArgTypes>(Args)));
+		checkVoxelSlow(Index == Size);
+	}
+	FORCEINLINE TVoxelStaticArray(const TVoxelStaticArray& Other)
+	{
+		for (int32 Index = 0; Index < Size; Index++)
+		{
+			new (this->GetData() + Index) T(Other[Index]);
+		}
+	}
+	FORCEINLINE TVoxelStaticArray(TVoxelStaticArray&& Other)
+	{
+		for (int32 Index = 0; Index < Size; Index++)
+		{
+			new (this->GetData() + Index) T(MoveTemp(Other[Index]));
+		}
+	}
+	FORCEINLINE ~TVoxelStaticArray()
+	{
+		for (T& Element : *this)
+		{
+			Element.~T();
+		}
+	}
+
+	FORCEINLINE TVoxelStaticArray& operator=(const TVoxelStaticArray& Other)
+	{
+		for (int32 Index = 0; Index < Size; Index++)
+		{
+			(*this)[Index] = Other[Index];
+		}
+
+		return *this;
+	}
+	FORCEINLINE TVoxelStaticArray& operator=(TVoxelStaticArray&& Other)
+	{
+		for (int32 Index = 0; Index < Size; Index++)
+		{
+			(*this)[Index] = MoveTemp(Other[Index]);
+		}
+
+		return *this;
+	}
+};
+
+checkStatic(std::is_trivially_destructible_v<TVoxelStaticArray<int32, 1>>);
+
+template<typename T, int32 Size, int32 Alignment>
+struct TIsContiguousContainer<TVoxelStaticArray<T, Size, Alignment>>
 {
 	static constexpr bool Value = true;
 };
 
-template<typename T, int32 Size, int32 Alignment, bool bForceInitToZero>
-struct TCanBulkSerialize<TVoxelStaticArray<T, Size, Alignment, bForceInitToZero>>
+template<typename T, int32 Size, int32 Alignment>
+struct TCanBulkSerialize<TVoxelStaticArray<T, Size, Alignment>>
 {
 	static constexpr bool Value = TVoxelCanBulkSerialize<T>::Value;
 };
-
-template<typename T, int32 Size, int32 Alignment, bool bForceInitToZero>
-constexpr bool std::is_trivially_destructible_v_voxel<TVoxelStaticArray<T, Size, Alignment, bForceInitToZero>> = std::is_trivially_destructible_v<T>;

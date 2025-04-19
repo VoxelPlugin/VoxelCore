@@ -68,9 +68,19 @@ void FVoxelMessageManager::LogMessage(const TSharedRef<FVoxelMessage>& Message)
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	for (const FGatherCallstack& GatherCallstack : GatherCallstacks)
 	{
-		GatherCallstack(Message);
+		const int32 NumTokens = Message->Tokens.Num();
+
+		for (const FGatherCallstack& GatherCallstack : GatherCallstacks)
+		{
+			GatherCallstack(Message);
+		}
+
+		if (Message->Tokens.Num() != NumTokens)
+		{
+			// Insert space before callstacks
+			Message->Tokens.Insert(FVoxelMessageTokenFactory::CreateTextToken(" "), NumTokens);
+		}
 	}
 
 	const TSharedPtr<IVoxelMessageConsumer> MessageConsumer = FVoxelMessagesThreadSingleton::Get().GetTop().Pin();

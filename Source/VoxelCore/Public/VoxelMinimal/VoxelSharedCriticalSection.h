@@ -29,7 +29,7 @@ public:
 	}
 
 public:
-	FORCEINLINE bool TryReadLock()
+	FORCEINLINE bool TryReadLock() const
 	{
 		FState OldState = AtomicState.Get(std::memory_order_relaxed);
 
@@ -51,7 +51,7 @@ public:
 
 		return true;
 	}
-	FORCEINLINE void ReadLock()
+	FORCEINLINE void ReadLock() const
 	{
 		FState OldState = AtomicState.Get(std::memory_order_relaxed);
 
@@ -73,7 +73,7 @@ public:
 		checkVoxelSlow(AtomicState.Get().NumReaders > 0);
 		checkVoxelSlow(AtomicState.Get().NumWriters == 0);
 	}
-	FORCEINLINE void ReadUnlock()
+	FORCEINLINE void ReadUnlock() const
 	{
 		AtomicState.Apply([&](FState State)
 		{
@@ -170,7 +170,7 @@ public:
 	}
 
 private:
-	TVoxelAtomic<FVoxelSharedCriticalSectionState, Padding> AtomicState;
+	mutable TVoxelAtomic<FVoxelSharedCriticalSectionState, Padding> AtomicState;
 };
 
 using FVoxelSharedCriticalSection = TVoxelSharedCriticalSectionImpl<EVoxelAtomicPadding::Enabled>;

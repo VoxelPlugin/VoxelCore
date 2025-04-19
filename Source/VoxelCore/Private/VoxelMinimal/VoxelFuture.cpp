@@ -25,6 +25,10 @@ TSharedRef<IVoxelPromiseState> IVoxelPromiseState::New(const FSharedVoidRef& Val
 	return MakeShared<FVoxelPromiseState>(Value);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 void IVoxelPromiseState::Set()
 {
 	static_cast<FVoxelPromiseState*>(this)->Set();
@@ -35,8 +39,40 @@ void IVoxelPromiseState::Set(const FSharedVoidRef& NewValue)
 	static_cast<FVoxelPromiseState*>(this)->Set(NewValue);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#if VOXEL_DEBUG
+void IVoxelPromiseState::CheckCanAddContinuation(const FVoxelFuture& Future)
+{
+	check(!Future.IsComplete());
+
+	const FVoxelTaskContextWeakRef ThisContext = static_cast<FVoxelPromiseState&>(*this).ContextWeakRef;
+	const FVoxelTaskContextWeakRef OtherContext = static_cast<FVoxelPromiseState&>(*Future.PromiseState).ContextWeakRef;
+
+	if (ThisContext == OtherContext)
+	{
+		return;
+	}
+
+	const TUniquePtr<FVoxelTaskContextStrongRef> ThisContextPtr = ThisContext.Pin();
+	const TUniquePtr<FVoxelTaskContextStrongRef> OtherContextPtr = OtherContext.Pin();
+
+	if (!ThisContextPtr)
+	{
+		return;
+	}
+
+	// If we can cancel tasks we cannot have a future in a different context depend on us, as we will never complete if cancelled
+	// That other future, being in a different context, won't be cancelled and will be stuck
+	check(!ThisContextPtr->Context.bCanCancelTasks);
+}
+#endif
+
 void IVoxelPromiseState::AddContinuation(const FVoxelFuture& Future)
 {
+	CheckCanAddContinuation(Future);
 	static_cast<FVoxelPromiseState&>(*this).AddContinuation(MakeUnique<FVoxelPromiseState::FContinuation>(Future));
 }
 
@@ -82,6 +118,7 @@ FVoxelFuture::FVoxelFuture(const TConstVoxelArrayView<FVoxelFuture> Futures)
 			continue;
 		}
 
+		Future.PromiseState->CheckCanAddContinuation(*this);
 		Future.PromiseState->AddContinuation(EVoxelFutureThread::AnyThread, [Counter, PromiseState = PromiseState]
 		{
 			if (Counter->Decrement_ReturnNew() == 0)

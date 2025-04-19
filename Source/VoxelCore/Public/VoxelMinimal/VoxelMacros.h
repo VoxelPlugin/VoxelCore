@@ -90,15 +90,27 @@ extern VOXELCORE_API bool GVoxelProfilerInfiniteLoop;
 #define FORCEINLINE inline
 #endif
 
+class VOXELCORE_API FVoxelGCScopeGuard
+{
+public:
+	FVoxelGCScopeGuard();
+	~FVoxelGCScopeGuard();
+
+private:
+	struct FImpl;
+
+	TPimplPtr<FImpl> Impl;
+};
+
 VOXELCORE_API bool Voxel_CanAccessUObject();
 
-#if DO_CHECK
+#if VOXEL_DEBUG
 #define checkUObjectAccess() ensure(Voxel_CanAccessUObject())
 #else
 #define checkUObjectAccess()
 #endif
 
-#define checkStatic(...) static_assert(__VA_ARGS__, "Static assert failed")
+#define checkStatic(...) static_assert(__VA_ARGS__, "Static assert failed: " #__VA_ARGS__)
 #define checkfStatic(Expr, Error) static_assert(Expr, Error)
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -260,21 +272,11 @@ public: \
 		(void)Temp; \
 	}
 
-#define VOXEL_FOLD_EXPRESSION_COND(Condition, ...) \
-	{ \
-		int32 Temp[] = { 0, ((Condition ? ((__VA_ARGS__), 0) : 0), 0)... }; \
-		(void)Temp; \
-	}
-
 #if !IS_MONOLITHIC
 #define VOXEL_ISPC_ASSERT() \
 	extern "C" void VoxelISPC_Assert(const int32 Line) \
 	{ \
 		ensureAlwaysMsgf(false, TEXT("ISPC LINE: %d"), Line); \
-	} \
-	extern "C" void VoxelISPC_UnsupportedTargetWidth(const int32 Width) \
-	{ \
-		LOG_VOXEL(Fatal, "Unsupported ISPC target width: %d", Width); \
 	}
 #else
 #define VOXEL_ISPC_ASSERT()
@@ -298,8 +300,7 @@ enum class EVoxelRunOnStartupPhase
 {
 	Game,
 	Editor,
-	EditorCommandlet,
-	FirstTick
+	EditorCommandlet
 };
 struct VOXELCORE_API FVoxelRunOnStartupPhaseHelper
 {
@@ -788,7 +789,8 @@ FORCEINLINE auto ConstCast(T&& Value) -> decltype(auto)
 ///////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-FORCEINLINE std::enable_if_t<!TIsReferenceType<T>::Value, T> MakeCopy(T&& Data)
+requires (!std::is_reference_v<T>)
+FORCEINLINE T MakeCopy(T&& Data)
 {
 	return MoveTemp(Data);
 }
@@ -1257,24 +1259,3 @@ private:
 };
 
 #define VOXEL_ATOMIC_PADDING FVoxelAtomicPadding VOXEL_APPEND_LINE(_Padding)
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-namespace std
-{
-	template<typename T>
-	constexpr bool is_trivially_destructible_v_voxel = std::is_trivially_destructible_v<T>;
-
-	template<typename T>
-	using is_trivially_destructible_voxel = std::bool_constant<std::is_trivially_destructible_v_voxel<T>>;
-}
-
-#if INTELLISENSE_PARSER
-#define is_trivially_destructible_voxel is_trivially_destructible
-#define is_trivially_destructible_v_voxel is_trivially_destructible_v
-#else
-#define is_trivially_destructible is_trivially_destructible_voxel
-#define is_trivially_destructible_v is_trivially_destructible_v_voxel
-#endif

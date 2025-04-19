@@ -3,6 +3,8 @@
 #include "VoxelMinimal.h"
 #include "VoxelZipReader.h"
 #include "VoxelPluginVersion.h"
+
+#include "Misc/Fork.h"
 #include "HAL/PlatformStackWalk.h"
 #include "UObject/CoreRedirects.h"
 #include "Interfaces/IPluginManager.h"
@@ -518,8 +520,12 @@ void FVoxelUtilities::CleanupFileCache(const FString& Path, const int64 MaxSize)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FVoxelStackFrames FVoxelUtilities::GetStackFrames(const int32 NumFramesToIgnore)
+FVoxelStackFrames FVoxelUtilities::GetStackFramesImpl(
+	const bool bEnableStats,
+	const int32 NumFramesToIgnore)
 {
+	VOXEL_FUNCTION_COUNTER_COND(bEnableStats);
+
 	// MAX_CALLSTACK_DEPTH is 128
 	TVoxelStaticArray<void*, 128> StackFrames(NoInit);
 
@@ -553,8 +559,13 @@ FVoxelStackFrames FVoxelUtilities::GetStackFrames(const int32 NumFramesToIgnore)
 	return Result;
 }
 
-TVoxelArray<FString> FVoxelUtilities::StackFramesToString(const FVoxelStackFrames& StackFrames)
+TVoxelArray<FString> FVoxelUtilities::StackFramesToStringImpl(
+	const bool bEnableStats,
+	const FVoxelStackFrames& StackFrames,
+	const bool bIncludeFilenames)
 {
+	VOXEL_FUNCTION_COUNTER_COND(bEnableStats);
+
 	// Make sure we don't actually ensure, StackFramesToString is called within ensures in tests
 #define ensureSafe(...) (INLINE_LAMBDA \
 	{ \
@@ -587,14 +598,18 @@ TVoxelArray<FString> FVoxelUtilities::StackFramesToString(const FVoxelStackFrame
 		ANSICHAR HumanReadableString[8192];
 		HumanReadableString[0] = '\0';
 
-		if (!FPlatformStackWalk::ProgramCounterToHumanReadableString(
-			StackIndex,
-			uint64(Address),
-			HumanReadableString,
-			8192))
 		{
-			Result.Add(FString::Printf(TEXT("%p: [failed to resolve]"), Address));
-			continue;
+			VOXEL_SCOPE_COUNTER_COND(bEnableStats, "ProgramCounterToHumanReadableString");
+
+			if (!FPlatformStackWalk::ProgramCounterToHumanReadableString(
+				StackIndex,
+				uint64(Address),
+				HumanReadableString,
+				8192))
+			{
+				Result.Add(FString::Printf(TEXT("%p: [failed to resolve]"), Address));
+				continue;
+			}
 		}
 
 		if (FString(HumanReadableString).Contains("__scrt_common_main_seh()"))
@@ -650,7 +665,52 @@ TVoxelArray<FString> FVoxelUtilities::StackFramesToString(const FVoxelStackFrame
 				return false;
 			}
 
-			int32 Line;
+			{
+				FString FinalFunction;
+				FinalFunction.Reserve(Function.Len());
+
+				int32 TemplateCount = 0;
+				for (const TCHAR Char : Function)
+				{
+					if (Char == TEXT('<'))
+					{
+						TemplateCount++;
+						continue;
+					}
+					if (Char == TEXT('>'))
+					{
+						TemplateCount--;
+						ensureSafe(TemplateCount >= 0);
+						continue;
+					}
+
+					if (TemplateCount == 0)
+					{
+						FinalFunction += Char;
+					}
+				}
+
+				Function = MoveTemp(FinalFunction);
+			}
+
+			Function.RemoveFromStart("`");
+			Function.ReplaceInline(TEXT("'::`2'::::operator()()"), TEXT("::lambda()"));
+
+			if (Function == "UE::Core::Private::Function::TFunctionRefCaller::Call()" ||
+				Function == "UE::Core::Private::Function::TFunctionRefBase::operator()()")
+			{
+				// Skip
+				return true;
+			}
+
+			if (!bIncludeFilenames)
+			{
+				Result.Add(Function);
+				return true;
+			}
+
+			int32 Line = 0;
+			if (!String.IsEmpty())
 			{
 				int32 Index;
 				if (!ensureSafe(String.FindLastChar(TEXT(':'), Index)))
@@ -679,10 +739,20 @@ TVoxelArray<FString> FVoxelUtilities::StackFramesToString(const FVoxelStackFrame
 	return Result;
 }
 
-FString FVoxelUtilities::GetPrettyCallstack(const int32 NumFramesToIgnore)
+FString FVoxelUtilities::GetPrettyCallstackImpl(
+	const bool bEnableStats,
+	const int32 NumFramesToIgnore)
 {
-	const FVoxelStackFrames StackFrames = GetStackFrames(NumFramesToIgnore);
-	const TVoxelArray<FString> Lines = StackFramesToString(StackFrames);
+	VOXEL_FUNCTION_COUNTER_COND(bEnableStats);
+
+	const FVoxelStackFrames StackFrames = GetStackFramesImpl(
+		bEnableStats,
+		NumFramesToIgnore);
+
+	const TVoxelArray<FString> Lines = StackFramesToStringImpl(
+		bEnableStats,
+		StackFrames,
+		true);
 
 	return FString::Join(Lines, TEXT("\n"));
 }

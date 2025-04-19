@@ -4,17 +4,16 @@
 
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
-#include "VoxelMinimal/Containers/VoxelArrayView.h"
 #include "VoxelMinimal/Utilities/VoxelHashUtilities.h"
 
 class IPlugin;
 struct FVoxelPluginVersion;
 
-using FVoxelStackFrames = TVoxelInlineArray<void*, 14>;
+using FVoxelStackFrames = TVoxelArray<void*>;
 
 FORCEINLINE uint32 GetTypeHash(const FVoxelStackFrames& StackFrames)
 {
-	return FVoxelUtilities::MurmurHashBytes(MakeByteVoxelArrayView(StackFrames));
+	return FVoxelUtilities::MurmurHashView(StackFrames);
 }
 
 namespace FVoxelUtilities
@@ -59,7 +58,66 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	VOXELCORE_API FVoxelStackFrames GetStackFrames(int32 NumFramesToIgnore = 2);
-	VOXELCORE_API TVoxelArray<FString> StackFramesToString(const FVoxelStackFrames& StackFrames);
-	VOXELCORE_API FString GetPrettyCallstack(int32 NumFramesToIgnore = 3);
+	VOXELCORE_API FVoxelStackFrames GetStackFramesImpl(
+		bool bEnableStats,
+		int32 NumFramesToIgnore);
+
+	VOXELCORE_API TVoxelArray<FString> StackFramesToStringImpl(
+		bool bEnableStats,
+		const FVoxelStackFrames& StackFrames,
+		bool bIncludeFilenames);
+
+	VOXELCORE_API FString GetPrettyCallstackImpl(
+		bool bEnableStats,
+		int32 NumFramesToIgnore);
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	FORCEINLINE FVoxelStackFrames GetStackFrames_NoStats(const int32 NumFramesToIgnore = 2)
+	{
+		return GetStackFramesImpl(
+			false,
+			NumFramesToIgnore);
+	}
+	FORCEINLINE FVoxelStackFrames GetStackFrames_WithStats(const int32 NumFramesToIgnore = 2)
+	{
+		return GetStackFramesImpl(
+			true,
+			NumFramesToIgnore);
+	}
+
+	FORCEINLINE TVoxelArray<FString> StackFramesToString_NoStats(
+		const FVoxelStackFrames& StackFrames,
+		const bool bIncludeFilenames = true)
+	{
+		return StackFramesToStringImpl(
+			false,
+			StackFrames,
+			bIncludeFilenames);
+	}
+
+	FORCEINLINE TVoxelArray<FString> StackFramesToString_WithStats(
+		const FVoxelStackFrames& StackFrames,
+		const bool bIncludeFilenames = true)
+	{
+		return StackFramesToStringImpl(
+			true,
+			StackFrames,
+			bIncludeFilenames);
+	}
+
+	FORCEINLINE FString GetPrettyCallstack_NoStats(const int32 NumFramesToIgnore = 3)
+	{
+		return GetPrettyCallstackImpl(
+			false,
+			NumFramesToIgnore);
+	}
+	FORCEINLINE FString GetPrettyCallstack_WithStats(const int32 NumFramesToIgnore = 3)
+	{
+		return GetPrettyCallstackImpl(
+			true,
+			NumFramesToIgnore);
+	}
 };

@@ -151,7 +151,7 @@ uint FloatToByte(const float Value)
 }
 float ByteToFloat(const uint Value)
 {
-	return Value / 255.f;
+	return Value * (1.f / 255.f);
 }
 
 uint FloatToNibble(const float Value)
@@ -160,7 +160,7 @@ uint FloatToNibble(const float Value)
 }
 float NibbleToFloat(const uint Value)
 {
-	return Value / 15.f;
+	return Value * (1.f / 15.f);
 }
 
 uint EncodeColor(const float4 Color)

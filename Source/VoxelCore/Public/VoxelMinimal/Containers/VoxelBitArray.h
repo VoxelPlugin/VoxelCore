@@ -5,7 +5,7 @@
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelAtomic.h"
 #include "VoxelMinimal/Utilities/VoxelMathUtilities.h"
-#include "VoxelMinimal/Containers/VoxelBitArrayHelpers.h"
+#include "VoxelMinimal/Containers/VoxelBitArrayUtilities.h"
 
 class FVoxelBitReference
 {
@@ -85,8 +85,9 @@ class TVoxelBitArray
 public:
 	typedef typename Allocator::SizeType SizeType;
 
-	static constexpr SizeType NumBitsPerWord = 32;
-	static constexpr SizeType NumBitsPerWordLog2 = 5;
+	static constexpr int32 NumBitsPerWord = FVoxelBitArrayUtilities::NumBitsPerWord;
+	static constexpr int32 NumBitsPerWord_Log2 = FVoxelBitArrayUtilities::NumBitsPerWord_Log2;
+	static constexpr uint32 IndexInWordMask = FVoxelBitArrayUtilities::IndexInWordMask;
 
 	template<typename>
 	friend class TVoxelBitArray;
@@ -126,7 +127,7 @@ public:
 
 		if (NumWords() != 0)
 		{
-			FMemory::Memcpy(GetWordData(), Other.GetWordData(), NumWords() * sizeof(uint32));
+			FVoxelUtilities::Memcpy(GetWordView(), Other.GetWordView());
 		}
 
 		EnsurePartialSlackBitsCleared();
@@ -143,7 +144,7 @@ public:
 			return false;
 		}
 
-		return FVoxelUtilities::MemoryEqual(GetWordData(), Other.GetWordData(), NumWords() * sizeof(uint32));
+		return FVoxelUtilities::Equal(GetWordView(), Other.GetWordView());
 	}
 
 public:
@@ -156,7 +157,7 @@ public:
 			BitArray.SetMaxBits(BitArray.NumBits);
 		}
 
-		Ar.Serialize(BitArray.GetWordData(), BitArray.NumWords() * sizeof(uint32));
+		BitArray.GetWordView().Serialize(Ar);
 		BitArray.EnsurePartialSlackBitsCleared();
 
 		return Ar;
@@ -189,22 +190,17 @@ public:
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(NewNumBits, 128);
 
-		// Has different behavior than TArray::SetNum
-		checkVoxelSlow(Num() == 0);
+		const SizeType OldNumBits = NumBits;
 
 		NumBits = NewNumBits;
-		SetMaxBits(FMath::Max(MaxBits, NewNumBits));
+		this->SetMaxBits(FMath::Max(MaxBits, NewNumBits));
 
-		if (NumWords() != 0)
+		if (NewNumBits > OldNumBits)
 		{
-			FMemory::Memset(GetWordData(), bValue ? 0xFF : 0, NumWords() * sizeof(uint32));
+			this->SetRange(OldNumBits, NewNumBits - OldNumBits, bValue);
 		}
 
 		ClearPartialSlackBits();
-	}
-	void SetNumZeroed(SizeType InNumBits)
-	{
-		this->SetNum(InNumBits, false);
 	}
 
 public:
@@ -238,40 +234,27 @@ public:
 public:
 	FORCEINLINE void SetRange(SizeType Index, SizeType Num, bool Value)
 	{
-		FVoxelBitArrayHelpers::SetRange(*this, Index, Num, Value);
-	}
-	FORCEINLINE bool TestAndClear(SizeType Index)
-	{
-		return FVoxelBitArrayHelpers::TestAndClear(*this, Index);
-	}
-	FORCEINLINE bool TestRange(SizeType Index, SizeType Num) const
-	{
-		return FVoxelBitArrayHelpers::TestRange(*this, Index, Num);
-	}
-	// Test a range, and clears it if all true
-	FORCEINLINE bool TestAndClearRange(SizeType Index, SizeType Num)
-	{
-		return FVoxelBitArrayHelpers::TestAndClearRange(*this, Index, Num);
+		FVoxelBitArrayUtilities::SetRange(GetWordView(), Index, Num, Value);
 	}
 
 public:
 	FORCEINLINE TOptional<bool> TryGetAll() const
 	{
-		return FVoxelBitArrayHelpers::TryGetAll(*this);
+		return FVoxelBitArrayUtilities::TryGetAll(GetWordView(), Num());
 	}
 	FORCEINLINE bool AllEqual(bool bValue) const
 	{
-		return FVoxelBitArrayHelpers::AllEqual(*this, bValue);
+		return FVoxelBitArrayUtilities::AllEqual(GetWordView(), Num(), bValue);
 	}
 	FORCEINLINE SizeType CountSetBits() const
 	{
 		EnsurePartialSlackBitsCleared();
-		return FVoxelBitArrayHelpers::CountSetBits(GetWordData(), NumWords());
+		return FVoxelUtilities::CountSetBits(GetWordView());
 	}
 	FORCEINLINE SizeType CountSetBits(SizeType Count) const
 	{
 		checkVoxelSlow(Count <= Num());
-		return FVoxelBitArrayHelpers::CountSetBits_UpperBound(GetWordData(), Count);
+		return FVoxelUtilities::CountSetBits(GetWordView(), Count);
 	}
 
 	template<
@@ -280,20 +263,13 @@ public:
 		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterate>>>
 	FORCEINLINE EVoxelIterate ForAllSetBits(LambdaType Lambda) const
 	{
-		return FVoxelBitArrayHelpers::ForAllSetBits(GetWordData(), NumWords(), Num(), Lambda);
-	}
-
-	// Will clear bits
-	FORCEINLINE TVoxelArray<FVoxelIntBox> GreedyMeshing3D(const FIntVector& Size)
-	{
-		checkVoxelSlow(Num() == Size.X * Size.Y * Size.Z);
-		return FVoxelBitArrayHelpers::GreedyMeshing3D(GetWordView(), Size);
+		return FVoxelBitArrayUtilities::ForAllSetBits(GetWordView(), Num(), Lambda);
 	}
 
 public:
 	FORCEINLINE int64 GetAllocatedSize() const
 	{
-		return FVoxelUtilities::DivideCeil_Positive(MaxBits, NumBitsPerWord) * sizeof(uint32);
+		return FVoxelUtilities::DivideCeil_Positive_Log2(MaxBits, NumBitsPerWord_Log2) * sizeof(uint32);
 	}
 	FORCEINLINE SizeType Num() const
 	{
@@ -301,7 +277,7 @@ public:
 	}
 	FORCEINLINE SizeType NumWords() const
 	{
-		return FVoxelUtilities::DivideCeil_Positive(NumBits, NumBitsPerWord);
+		return FVoxelUtilities::DivideCeil_Positive_Log2(NumBits, NumBitsPerWord_Log2);
 	}
 
 public:
@@ -311,8 +287,8 @@ public:
 
 		const int32 OldNumBits = NumBits;
 
-		const int32 OldLastWordIndex = NumBits == 0 ? -1 : (NumBits - 1) / NumBitsPerWord;
-		const int32 NewLastWordIndex = (NumBits + NumBitsToAdd - 1) / NumBitsPerWord;
+		const int32 OldLastWordIndex = NumBits == 0 ? -1 : (NumBits - 1) >> NumBitsPerWord_Log2;
+		const int32 NewLastWordIndex = (NumBits + NumBitsToAdd - 1) >> NumBitsPerWord_Log2;
 		if (NewLastWordIndex == OldLastWordIndex)
 		{
 			NumBits += NumBitsToAdd;
@@ -331,7 +307,7 @@ public:
 	{
 		const int32 Index = AddUninitialized(1);
 		checkVoxelSlow(IsValidIndex(Index));
-		FVoxelBitArrayHelpers::Set(GetWordData(), Index, bValue);
+		FVoxelBitArrayUtilities::Set(GetWordView(), Index, bValue);
 		return Index;
 	}
 
@@ -342,19 +318,23 @@ public:
 
 	FORCEINLINE FVoxelBitReference operator[](SizeType Index)
 	{
-		checkVoxelSlow(IsValidIndex(Index));
-		return FVoxelBitReference(this->GetWord(Index / NumBitsPerWord), 1u << (Index % NumBitsPerWord));
+		checkVoxelSlow(this->IsValidIndex(Index));
+		return FVoxelBitReference(
+			this->GetWord(Index >> NumBitsPerWord_Log2),
+			1u << (Index & IndexInWordMask));
 	}
 	FORCEINLINE FVoxelConstBitReference operator[](SizeType Index) const
 	{
-		checkVoxelSlow(IsValidIndex(Index));
-		return FVoxelConstBitReference(this->GetWord(Index / NumBitsPerWord), 1u << (Index % NumBitsPerWord));
+		checkVoxelSlow(this->IsValidIndex(Index));
+		return FVoxelConstBitReference(
+			this->GetWord(Index >> NumBitsPerWord_Log2),
+			1u << (Index & IndexInWordMask));
 	}
 
 	FORCEINLINE bool AtomicSet_ReturnOld(const int32 Index, const bool bValue)
 	{
-		uint32& Word = this->GetWord(Index / NumBitsPerWord);
-		const uint32 Mask = 1u << (Index % NumBitsPerWord);
+		uint32& Word = this->GetWord(Index >> NumBitsPerWord_Log2);
+		const uint32 Mask = 1u << (Index & IndexInWordMask);
 
 		if (bValue)
 		{
@@ -362,7 +342,7 @@ public:
 		}
 		else
 		{
-			return ReinterpretCastRef<TVoxelAtomic<uint32>>(Word).And_ReturnOld(Mask) & Mask;
+			return ReinterpretCastRef<TVoxelAtomic<uint32>>(Word).And_ReturnOld(~Mask) & Mask;
 		}
 	}
 	FORCEINLINE void AtomicSet(const int32 Index, const bool bValue)
@@ -391,13 +371,11 @@ public:
 
 	FORCEINLINE uint32& GetWord(SizeType Index)
 	{
-		checkVoxelSlow(0 <= Index && Index < NumWords());
-		return GetWordData()[Index];
+		return GetWordView()[Index];
 	}
 	FORCEINLINE const uint32& GetWord(SizeType Index) const
 	{
-		checkVoxelSlow(0 <= Index && Index < NumWords());
-		return GetWordData()[Index];
+		return GetWordView()[Index];
 	}
 
 private:
@@ -414,8 +392,8 @@ private:
 			return;
 		}
 
-		const SizeType PreviousMaxWords = FVoxelUtilities::DivideCeil_Positive(MaxBits, NumBitsPerWord);
-		const SizeType NewMaxWords = FVoxelUtilities::DivideCeil_Positive(NewMaxBits, NumBitsPerWord);
+		const SizeType PreviousMaxWords = FVoxelUtilities::DivideCeil_Positive_Log2(MaxBits, NumBitsPerWord_Log2);
+		const SizeType NewMaxWords = FVoxelUtilities::DivideCeil_Positive_Log2(NewMaxBits, NumBitsPerWord_Log2);
 
 		AllocatorInstance.ResizeAllocation(PreviousMaxWords, NewMaxWords, sizeof(uint32));
 

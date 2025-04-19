@@ -2,7 +2,7 @@
 
 #include "VoxelMinimal.h"
 
-uint64 FVoxelUtilities::MurmurHashBytes(const TConstVoxelArrayView<uint8> Bytes, const uint32 Seed)
+uint64 FVoxelUtilities::MurmurHashView(const TConstVoxelArrayView<uint8> Bytes, const uint32 Seed)
 {
 	constexpr int32 WordSize = sizeof(uint32);
 	const int32 Size = Bytes.Num() / WordSize;
@@ -31,8 +31,8 @@ uint64 FVoxelUtilities::MurmurHashBytes(const TConstVoxelArrayView<uint8> Bytes,
 
 FGuid FVoxelUtilities::CombineGuids(const TConstVoxelArrayView<FGuid> Guids)
 {
-	const uint64 AB = MurmurHashBytes(MakeByteVoxelArrayView(Guids), 0);
-	const uint64 CD = MurmurHashBytes(MakeByteVoxelArrayView(Guids), 1);
+	const uint64 AB = MurmurHashView(Guids, 0);
+	const uint64 CD = MurmurHashView(Guids, 1);
 
 	return FGuid(
 		ReinterpretCastRef<uint32[2]>(AB)[0],

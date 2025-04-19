@@ -67,15 +67,15 @@ void JumpFloodImpl(
 		{
 			VOXEL_SCOPE_COUNTER("Initialize ClosestTemp");
 
-			ParallelFor(ClosestXTemp, [&](const TVoxelArrayView<float> View)
+			Voxel::ParallelFor(ClosestXTemp, [&](const TVoxelArrayView<float> View)
 			{
 				FVoxelUtilities::SetAll(View, FVoxelUtilities::NaNf());
 			});
-			ParallelFor(ClosestYTemp, [&](const TVoxelArrayView<float> View)
+			Voxel::ParallelFor(ClosestYTemp, [&](const TVoxelArrayView<float> View)
 			{
 				FVoxelUtilities::SetAll(View, FVoxelUtilities::NaNf());
 			});
-			ParallelFor(ClosestZTemp, [&](const TVoxelArrayView<float> View)
+			Voxel::ParallelFor(ClosestZTemp, [&](const TVoxelArrayView<float> View)
 			{
 				FVoxelUtilities::SetAll(View, FVoxelUtilities::NaNf());
 			});

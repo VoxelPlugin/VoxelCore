@@ -109,6 +109,14 @@ public:
 	{
 		return HashTable.GetAllocatedSize() + Elements.GetAllocatedSize();
 	}
+	FORCEINLINE TVoxelArrayView<FElement> GetElements()
+	{
+		return Elements;
+	}
+	FORCEINLINE TConstVoxelArrayView<FElement> GetElements() const
+	{
+		return Elements;
+	}
 
 	void Reset()
 	{
@@ -319,9 +327,9 @@ public:
 		return true;
 	}
 
-	TVoxelSet<Type> Reverse() const
+	TVoxelSet Reverse() const
 	{
-		TVoxelSet<Type> Result;
+		TVoxelSet Result;
 		Result.Reserve(Num());
 		for (int32 Index = Elements.Num() - 1; Index >= 0; Index--)
 		{
@@ -329,9 +337,10 @@ public:
 		}
 		return Result;
 	}
-	TVoxelArray<Type> Array() const
+	template<typename ArrayAllocator = FDefaultAllocator>
+	TVoxelArray<Type, ArrayAllocator> Array() const
 	{
-		TVoxelArray<Type> Result;
+		TVoxelArray<Type, ArrayAllocator> Result;
 		Result.Reserve(Num());
 		for (const FElement& Element : Elements)
 		{
@@ -489,10 +498,7 @@ public:
 		}
 	}
 
-	FORCEINLINE FVoxelSetIndex Add_CheckNew(const Type& Value)
-	{
-		return this->AddHashed_CheckNew(this->HashValue(Value), Value);
-	}
+public:
 	FORCEINLINE FVoxelSetIndex Add_EnsureNew(const Type& Value)
 	{
 		const uint32 Hash = this->HashValue(Value);
@@ -506,8 +512,62 @@ public:
 
 		return this->AddHashed_CheckNew(Hash, Value);
 	}
+	FORCEINLINE FVoxelSetIndex Add_EnsureNew_EnsureNoGrow(const Type& Value)
+	{
+		const uint32 Hash = this->HashValue(Value);
+
+		const FVoxelSetIndex Index = this->FindHashed(Hash, Value);
+		if (Index.IsValid())
+		{
+			ensure(false);
+			return Index;
+		}
+
+		return this->AddHashed_CheckNew_EnsureNoGrow(Hash, Value);
+	}
+
+public:
+	FORCEINLINE FVoxelSetIndex Add_CheckNew(const Type& Value)
+	{
+		return this->AddHashed_CheckNew(this->HashValue(Value), Value);
+	}
+	FORCEINLINE FVoxelSetIndex Add_CheckNew_EnsureNoGrow(const Type& Value)
+	{
+		return this->AddHashed_CheckNew_EnsureNoGrow(this->HashValue(Value), Value);
+	}
 
 	FORCEINLINE FVoxelSetIndex AddHashed_CheckNew(const uint32 Hash, const Type& Value)
+	{
+		return this->AddHashed_CheckNew_Impl<true>(Hash, Value);
+	}
+	FORCEINLINE FVoxelSetIndex AddHashed_CheckNew_EnsureNoGrow(const uint32 Hash, const Type& Value)
+	{
+		return this->AddHashed_CheckNew_Impl<false>(Hash, Value);
+	}
+
+	FORCEINLINE FVoxelSetIndex Add(const Type& Value)
+	{
+		bool bIsInSet = false;
+		return this->FindOrAdd(Value, bIsInSet);
+	}
+	FORCEINLINE FVoxelSetIndex Add_EnsureNoGrow(const Type& Value)
+	{
+		bool bIsInSet = false;
+		return this->FindOrAdd_EnsureNoGrow(Value, bIsInSet);
+	}
+
+	FORCEINLINE FVoxelSetIndex FindOrAdd(const Type& Value, bool& bIsInSet)
+	{
+		return this->FindOrAdd_Impl<true>(Value, bIsInSet);
+	}
+	FORCEINLINE FVoxelSetIndex FindOrAdd_EnsureNoGrow(const Type& Value, bool& bIsInSet)
+	{
+		return this->FindOrAdd_Impl<false>(Value, bIsInSet);
+	}
+
+private:
+	template<bool bAllowGrow>
+	FORCEINLINE FVoxelSetIndex AddHashed_CheckNew_Impl(const uint32 Hash, const Type& Value)
 	{
 		checkVoxelSlow(Hash == this->HashValue(Value));
 		checkVoxelSlow(!this->Contains(Value));
@@ -519,7 +579,8 @@ public:
 
 		if (HashTable.Num() < GetHashSize(Elements.Num()))
 		{
-			Rehash();
+			ensureVoxelSlow(bAllowGrow);
+			RehashForAdd();
 		}
 		else
 		{
@@ -531,12 +592,8 @@ public:
 		return NewElementIndex;
 	}
 
-	FORCEINLINE FVoxelSetIndex Add(const Type& Value)
-	{
-		bool bIsInSet = false;
-		return this->FindOrAdd(Value, bIsInSet);
-	}
-	FORCEINLINE FVoxelSetIndex FindOrAdd(const Type& Value, bool& bIsInSet)
+	template<bool bAllowGrow>
+	FORCEINLINE FVoxelSetIndex FindOrAdd_Impl(const Type& Value, bool& bIsInSet)
 	{
 		CheckInvariants();
 
@@ -567,7 +624,8 @@ public:
 
 		if (HashTable.Num() < GetHashSize(Elements.Num()))
 		{
-			Rehash();
+			ensureVoxelSlow(bAllowGrow);
+			RehashForAdd();
 		}
 		else
 		{
@@ -578,59 +636,26 @@ public:
 
 		return NewElementIndex;
 	}
-	FORCEINLINE void Add_NoRehash(const Type& Value)
-	{
-		CheckInvariants();
-
-		const uint32 Hash = this->HashValue(Value);
-
-		if (HashTable.Num() > 0)
-		{
-			int32 ElementIndex = this->GetElementIndex(Hash);
-			while (ElementIndex != -1)
-			{
-				FElement& Element = Elements[ElementIndex];
-				if (Element.Value == Value)
-				{
-					return;
-				}
-				ElementIndex = Element.NextElementIndex;
-			}
-		}
-
-		const int32 NewElementIndex = Elements.Emplace();
-		FElement& Element = Elements[NewElementIndex];
-		Element.Value = Value;
-
-		checkVoxelSlow(HashTable.Num() >= GetHashSize(Elements.Num()));
-
-		int32& ElementIndex = GetElementIndex(Hash);
-		Element.NextElementIndex = ElementIndex;
-		ElementIndex = NewElementIndex;
-	}
 
 public:
 	// Not order-preserving
 	FORCEINLINE bool Remove(const Type& Value)
 	{
-		const uint32 Hash = this->HashValue(Value);
-		if (!this->ContainsHashed(Hash, Value))
+		return this->RemoveHashed(this->HashValue(Value), Value);
+	}
+	FORCEINLINE void Remove_Ensure(const Type& Value)
+	{
+		ensure(this->Remove(Value));
+	}
+	FORCEINLINE bool RemoveHashed(const uint32 Hash, const Type& Value)
+	{
+		checkVoxelSlow(this->HashValue(Value) == Hash);
+		CheckInvariants();
+
+		if (HashTable.Num() == 0)
 		{
 			return false;
 		}
-
-		this->RemoveHashedChecked(Hash, Value);
-		return true;
-	}
-	FORCEINLINE void RemoveChecked(const Type& Value)
-	{
-		this->RemoveHashedChecked(this->HashValue(Value), Value);
-	}
-	FORCEINLINE void RemoveHashedChecked(const uint32 Hash, const Type& Value)
-	{
-		checkVoxelSlow(this->Contains(Value));
-		checkVoxelSlow(this->HashValue(Value) == Hash);
-		CheckInvariants();
 
 		// Find element index, removing any reference to it
 		int32 ElementIndex;
@@ -638,6 +663,11 @@ public:
 			int32* ElementIndexPtr = &this->GetElementIndex(Hash);
 			while (true)
 			{
+				if (*ElementIndexPtr == -1)
+				{
+					return false;
+				}
+
 				FElement& Element = Elements[*ElementIndexPtr];
 				if (!(Element.Value == Value))
 				{
@@ -656,7 +686,7 @@ public:
 		if (ElementIndex == Elements.Num() - 1)
 		{
 			Elements.Pop();
-			return;
+			return true;
 		}
 
 		// Otherwise move the last element to our index
@@ -672,6 +702,8 @@ public:
 
 		*ElementIndexPtr = ElementIndex;
 		Elements[ElementIndex] = Elements.Pop();
+
+		return true;
 	}
 
 public:
@@ -735,7 +767,7 @@ public:
 
 		FORCEINLINE void RemoveCurrent()
 		{
-			SetPtr->RemoveChecked(MakeCopy(Value()));
+			SetPtr->Remove_Ensure(MakeCopy(Value()));
 			// Check for invalid access
 			ElementPtr = nullptr;
 			Index--;
@@ -812,6 +844,17 @@ private:
 		return ConstCast(this)->GetElementIndex(Hash);
 	}
 
+	FORCENOINLINE void RehashForAdd()
+	{
+		VOXEL_SCOPE_COUNTER_FORMAT_COND(
+			HashTable.Num() > 0,
+			"%s::Add Rehash %d -> %d",
+			GetGeneratedTypeName<TVoxelSet>(),
+			HashTable.Num(),
+			GetHashSize(Elements.Num()));
+
+		Rehash();
+	}
 	FORCENOINLINE void Rehash()
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Elements.Num(), 1024);

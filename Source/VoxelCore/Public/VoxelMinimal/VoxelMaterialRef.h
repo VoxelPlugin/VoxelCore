@@ -22,7 +22,7 @@ public:
 	// Will be null if the asset is force deleted
 	FORCEINLINE UMaterialInterface* GetMaterial() const
 	{
-		checkVoxelSlow(!WeakMaterial.Resolve() || WeakMaterial.Resolve() == Material);
+		checkVoxelSlow(!WeakMaterial.Resolve_Unsafe() || WeakMaterial.Resolve_Unsafe() == Material);
 		return Material;
 	}
 	FORCEINLINE TVoxelObjectPtr<UMaterialInterface> GetWeakMaterial() const

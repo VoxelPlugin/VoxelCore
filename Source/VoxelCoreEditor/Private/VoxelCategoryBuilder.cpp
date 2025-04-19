@@ -47,6 +47,30 @@ void FVoxelCategoryBuilder::Apply(IDetailLayoutBuilder& DetailLayout) const
 	}
 }
 
+void FVoxelCategoryBuilder::Apply(IDetailChildrenBuilder& ChildrenBuilder) const
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	if (RootCategory->AddProperties.Num() > 0)
+	{
+		const TSharedRef<FCustomNodeBuilder> CustomBuilder = MakeShared<FCustomNodeBuilder>();
+		CustomBuilder->CategoryPath = "Default";
+		RootCategory->Name = "Default";
+		CustomBuilder->Category = RootCategory;
+		ChildrenBuilder.AddCustomBuilder(CustomBuilder);
+	}
+
+	for (const auto& It : RootCategory->NameToChild)
+	{
+		It.Value->Apply(
+			(BaseNameForExpansionState.IsNone() ? "FVoxelCategoryBuilder" : BaseNameForExpansionState.ToString()) +
+			"." +
+			It.Key.ToString() +
+			".",
+			ChildrenBuilder);
+	}
+}
+
 void FVoxelCategoryBuilder::Apply(const FVoxelDetailInterface& DetailInterface) const
 {
 	VOXEL_FUNCTION_COUNTER();

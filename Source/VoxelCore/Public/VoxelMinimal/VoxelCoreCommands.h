@@ -2,11 +2,10 @@
 
 #pragma once
 
-#include "VoxelMinimal.h"
-
-extern VOXELCORE_API FSimpleMulticastDelegate GVoxelOnRefreshAll;
+#include "VoxelCoreMinimal.h"
 
 namespace Voxel
 {
+	extern VOXELCORE_API FSimpleMulticastDelegate OnRefreshAll;
 	VOXELCORE_API void RefreshAll();
 }

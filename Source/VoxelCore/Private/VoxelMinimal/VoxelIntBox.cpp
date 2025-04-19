@@ -67,7 +67,7 @@ FVoxelIntBox FVoxelIntBox::FromPositions(
 	const int32 Num = PositionX.Num();
 	check(Num == PositionY.Num());
 	check(Num == PositionZ.Num());
-	VOXEL_FUNCTION_COUNTER_NUM(Num, 0);
+	VOXEL_FUNCTION_COUNTER_NUM(Num);
 
 	if (Num == 0)
 	{

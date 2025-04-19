@@ -20,6 +20,6 @@ void UVoxelTickerWorldSubsystem::Tick(const float DeltaTime)
 		GetMoviePlayer()->IsStartupMoviePlaying())
 	{
 		// Force tick if we have a loading screen playing, as regular tickers aren't ticked then
-		FVoxelTicker::TickAll();
+		Voxel::ForceTick();
 	}
 }

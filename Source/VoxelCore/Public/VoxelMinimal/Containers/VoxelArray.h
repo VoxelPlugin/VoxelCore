@@ -99,16 +99,10 @@ public:
 		return Result;
 	}
 
-	FORCEINLINE SizeType Add_CheckNoGrow(const ElementType& Item)
+	FORCEINLINE SizeType Add_EnsureNoGrow(ElementType&& Item)
 	{
-		CheckAddress(&Item);
-		checkVoxelSlow(ArrayNum < ArrayMax);
-
-		const SizeType Index = ArrayNum++;
-
-		ElementType* Ptr = GetData() + Index;
-		new (Ptr) ElementType(Item);
-		return Index;
+		ensureVoxelSlow(ArrayNum < ArrayMax);
+		return this->Add(MoveTempIfPossible(Item));
 	}
 	FORCEINLINE SizeType Add_EnsureNoGrow(const ElementType& Item)
 	{
@@ -116,15 +110,10 @@ public:
 		return this->Add(Item);
 	}
 
-	FORCEINLINE ElementType& Add_GetRef_CheckNoGrow(const ElementType& Item)
+	FORCEINLINE ElementType& Add_GetRef_EnsureNoGrow(ElementType&& Item)
 	{
-		CheckAddress(&Item);
-		checkVoxelSlow(ArrayNum < ArrayMax);
-
-		const SizeType Index = ArrayNum++;
-
-		ElementType* Ptr = GetData() + Index;
-		return *new (Ptr) ElementType(Item);
+		ensureVoxelSlow(ArrayNum < ArrayMax);
+		return this->Add_GetRef(MoveTempIfPossible(Item));
 	}
 	FORCEINLINE ElementType& Add_GetRef_EnsureNoGrow(const ElementType& Item)
 	{
@@ -154,17 +143,6 @@ public:
 	}
 
 	template<typename... ArgsType>
-	FORCEINLINE SizeType Emplace_CheckNoGrow(ArgsType&&... Args)
-	{
-		checkVoxelSlow(ArrayNum < ArrayMax);
-
-		const SizeType Index = ArrayNum++;
-
-		ElementType* Ptr = GetData() + Index;
-		new (Ptr) ElementType(Forward<ArgsType>(Args)...);
-		return Index;
-	}
-	template<typename... ArgsType>
 	FORCEINLINE SizeType Emplace_EnsureNoGrow(ArgsType&&... Args)
 	{
 		ensureVoxelSlow(ArrayNum < ArrayMax);
@@ -191,16 +169,6 @@ public:
 	{
 		ensureVoxelSlow(ArrayNum < ArrayMax);
 		return this->Emplace_GetRef(Forward<ArgsType>(Args)...);
-	}
-	template<typename... ArgsType>
-	FORCEINLINE ElementType& Emplace_GetRef_CheckNoGrow(ArgsType&&... Args)
-	{
-		checkVoxelSlow(ArrayNum < ArrayMax);
-
-		const SizeType Index = ArrayNum++;
-
-		ElementType* Ptr = GetData() + Index;
-		return *new (Ptr) ElementType(Forward<ArgsType>(Args)...);
 	}
 
 	FORCEINLINE ElementType& Last(SizeType IndexFromTheEnd = 0)

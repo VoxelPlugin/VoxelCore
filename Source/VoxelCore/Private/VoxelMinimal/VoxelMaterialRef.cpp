@@ -80,7 +80,7 @@ TSharedRef<FVoxelMaterialInstanceRef> FVoxelMaterialInstanceRef::Make(UMaterialI
 	check(IsInGameThread());
 
 	const TSharedRef<FVoxelMaterialInstanceRef> MaterialRef = MakeShareable(new FVoxelMaterialInstanceRef());
-	MaterialRef->Material = Material;
+	MaterialRef->Material = &Material;
 	MaterialRef->WeakMaterial = Material;
 	GVoxelMaterialRefManager->MaterialRefs.Add(MaterialRef);
 

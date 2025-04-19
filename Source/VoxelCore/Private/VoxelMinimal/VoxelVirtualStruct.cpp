@@ -36,7 +36,7 @@ void FVoxelVirtualStruct::CopyTo(FVoxelVirtualStruct& Other) const
 	checkVoxelSlow(
 		EnumHasAllFlags(GetStruct()->StructFlags, STRUCT_CopyNative) ||
 		EnumHasAllFlags(GetStruct()->StructFlags, STRUCT_IsPlainOldData) ||
-		GetStruct()->ChildProperties);
+		GetStruct()->PropertyLink);
 
 	GetStruct()->CopyScriptStruct(&Other, this);
 }

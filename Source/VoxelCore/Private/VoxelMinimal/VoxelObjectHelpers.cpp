@@ -221,43 +221,6 @@ void ForeachObjectReference(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TVoxelDereferencingRange<TFieldRange<FProperty>> GetStructProperties(const UStruct& Struct, const EFieldIterationFlags IterationFlags)
-{
-	return TFieldRange<FProperty>(&Struct, IterationFlags);
-}
-
-TVoxelDereferencingRange<TFieldRange<FProperty>> GetStructProperties(const UStruct* Struct, const EFieldIterationFlags IterationFlags)
-{
-	check(Struct);
-	return TFieldRange<FProperty>(Struct, IterationFlags);
-}
-
-TVoxelDereferencingRange<TFieldRange<FProperty>> GetClassProperties(const UClass& Class, const EFieldIterationFlags IterationFlags)
-{
-	return TFieldRange<FProperty>(&Class, IterationFlags);
-}
-
-TVoxelDereferencingRange<TFieldRange<FProperty>> GetClassProperties(const UClass* Class, const EFieldIterationFlags IterationFlags)
-{
-	check(Class);
-	return TFieldRange<FProperty>(Class, IterationFlags);
-}
-
-TVoxelDereferencingRange<TFieldRange<FProperty>> GetFunctionProperties(const UFunction& Function, const EFieldIterationFlags IterationFlags)
-{
-	return TFieldRange<FProperty>(&Function, IterationFlags);
-}
-
-TVoxelDereferencingRange<TFieldRange<FProperty>> GetFunctionProperties(const UFunction* Function, const EFieldIterationFlags IterationFlags)
-{
-	check(Function);
-	return TFieldRange<FProperty>(Function, IterationFlags);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
 FSharedVoidRef MakeSharedStruct(const UScriptStruct* Struct, const void* StructToCopyFrom)
 {
 	checkVoxelSlow(Struct);
@@ -272,7 +235,7 @@ FSharedVoidRef MakeSharedStruct(const UScriptStruct* Struct, const void* StructT
 		checkVoxelSlow(
 			EnumHasAllFlags(Struct->StructFlags, STRUCT_CopyNative) ||
 			EnumHasAllFlags(Struct->StructFlags, STRUCT_IsPlainOldData) ||
-			Struct->ChildProperties);
+			Struct->PropertyLink);
 
 		Struct->CopyScriptStruct(Memory, StructToCopyFrom);
 	}

@@ -110,5 +110,54 @@ FORCEINLINE void Swap(T* RESTRICT& A, T* RESTRICT& B)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+#if PLATFORM_ANDROID
+namespace std
+{
+	template<typename DerivedType, typename BaseType>
+	constexpr bool derived_from =
+		__is_base_of(BaseType, DerivedType) &&
+		__is_convertible_to(
+			const volatile remove_reference_t<DerivedType>*,
+			const volatile remove_reference_t<BaseType>*);
+
+	template<typename Type>
+	concept Voxel_CanCastToBool_Impl = __is_convertible_to(Type, bool);
+
+	template<typename Type>
+	concept Voxel_CanCastToBool =
+		Voxel_CanCastToBool_Impl<Type>
+		&&
+		requires(Type&& Value)
+		{
+			{ !static_cast<Type&&>(Value) } -> Voxel_CanCastToBool_Impl;
+		};
+
+	template<typename TypeA, typename TypeB>
+	concept Voxel_equality_comparable_OneWay = requires(const remove_reference_t<TypeA>& A, const remove_reference_t<TypeB>& B)
+	{
+		{ A == B } -> Voxel_CanCastToBool;
+		{ A != B } -> Voxel_CanCastToBool;
+	};
+
+	template<typename TypeA, typename TypeB>
+	concept Voxel_equality_comparable_TwoWays =
+		Voxel_equality_comparable_OneWay<TypeA, TypeB> &&
+		Voxel_equality_comparable_OneWay<TypeB, TypeA>;
+
+	template<typename Type>
+	concept equality_comparable = Voxel_equality_comparable_OneWay<Type, Type>;
+
+	template<typename TypeA, typename TypeB>
+	concept equality_comparable_with =
+		equality_comparable<TypeA> &&
+		equality_comparable<TypeB> &&
+		Voxel_equality_comparable_TwoWays<TypeA, TypeB>;
+}
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 #include "VoxelMinimal/VoxelStats.h"
 #include "VoxelMinimal/VoxelMacros.h"

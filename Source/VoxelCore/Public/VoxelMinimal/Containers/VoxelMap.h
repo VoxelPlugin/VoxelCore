@@ -324,7 +324,7 @@ public:
 
 			for (const typename TVoxelMap<OtherKeyType, OtherValueType, OtherAllocator>::FElement& Element : Other.Elements)
 			{
-				Elements.Emplace_CheckNoGrow(KeyType(Element.Key), ValueType(Element.Value));
+				Elements.Emplace_EnsureNoGrow(KeyType(Element.Key), ValueType(Element.Value));
 			}
 
 			return;
@@ -343,7 +343,7 @@ public:
 			}
 			else
 			{
-				this->AddHashed_CheckNew_CheckNoRehash(Hash, Key, It.Value);
+				this->AddHashed_CheckNew_EnsureNoGrow(Hash, Key, It.Value);
 			}
 		}
 	}
@@ -355,7 +355,7 @@ public:
 		Result.Reserve(Elements.Num());
 		for (const FElement& Element : Elements)
 		{
-			Result.Add_CheckNoGrow(Element.Key);
+			Result.Add_EnsureNoGrow(Element.Key);
 		}
 		return Result;
 	}
@@ -367,7 +367,7 @@ public:
 		Result.Reserve(Elements.Num());
 		for (const FElement& Element : Elements)
 		{
-			Result.Add_CheckNoGrow(Element.Value);
+			Result.Add_EnsureNoGrow(Element.Value);
 		}
 		return Result;
 	}
@@ -515,10 +515,10 @@ public:
 	template<typename InKeyType>
 	requires
 	(
-		std::is_convertible_v<const InKeyType&, KeyType> &&
+		std::is_convertible_v<InKeyType&&, KeyType> &&
 		FVoxelUtilities::CanMakeSafe<ValueType>
 	)
-	FORCEINLINE ValueType& FindOrAdd(const InKeyType& Key)
+	FORCEINLINE ValueType& FindOrAdd(InKeyType&& Key)
 	{
 		const uint32 Hash = this->HashValue(Key);
 
@@ -536,10 +536,10 @@ public:
 	template<typename InKeyType>
 	requires
 	(
-		std::is_convertible_v<const InKeyType&, KeyType> &&
+		std::is_convertible_v<InKeyType&&, KeyType> &&
 		FVoxelUtilities::CanMakeSafe<ValueType>
 	)
-	FORCEINLINE ValueType& Add_CheckNew(const InKeyType& Key)
+	FORCEINLINE ValueType& Add_CheckNew(InKeyType&& Key)
 	{
 		return this->Add_CheckNew(Key, FVoxelUtilities::MakeSafe<ValueType>());
 	}
@@ -554,10 +554,10 @@ public:
 	template<typename InKeyType>
 	requires
 	(
-		std::is_convertible_v<const InKeyType&, KeyType> &&
+		std::is_convertible_v<InKeyType&&, KeyType> &&
 		FVoxelUtilities::CanMakeSafe<ValueType>
 	)
-	FORCEINLINE ValueType& Add_EnsureNew(const InKeyType& Key)
+	FORCEINLINE ValueType& Add_EnsureNew(InKeyType&& Key)
 	{
 		return this->Add_EnsureNew(Key, FVoxelUtilities::MakeSafe<ValueType>());
 	}
@@ -572,18 +572,18 @@ public:
 	template<typename InKeyType>
 	requires
 	(
-		std::is_convertible_v<const InKeyType&, KeyType> &&
+		std::is_convertible_v<InKeyType&&, KeyType> &&
 		FVoxelUtilities::CanMakeSafe<ValueType>
 	)
-	FORCEINLINE ValueType& Add_CheckNew_CheckNoRehash(const KeyType& Key)
+	FORCEINLINE ValueType& Add_CheckNew_EnsureNoGrow(KeyType&& Key)
 	{
-		return this->Add_CheckNew_CheckNoRehash(Key, FVoxelUtilities::MakeSafe<ValueType>());
+		return this->Add_CheckNew_EnsureNoGrow(Key, FVoxelUtilities::MakeSafe<ValueType>());
 	}
 	template<typename InValueType>
 	requires std::is_constructible_v<ValueType, InValueType&&>
-	FORCEINLINE ValueType& Add_CheckNew_CheckNoRehash(const KeyType& Key, InValueType&& Value)
+	FORCEINLINE ValueType& Add_CheckNew_EnsureNoGrow(const KeyType& Key, InValueType&& Value)
 	{
-		return this->AddHashed_CheckNew_CheckNoRehash(HashValue(Key), Key, Forward<InValueType>(Value));
+		return this->AddHashed_CheckNew_EnsureNoGrow(HashValue(Key), Key, Forward<InValueType>(Value));
 	}
 
 public:
@@ -696,7 +696,7 @@ public:
 
 		if (HashTable.Num() < GetHashSize(Elements.Num()))
 		{
-			Rehash();
+			RehashForAdd();
 		}
 		else
 		{
@@ -709,27 +709,10 @@ public:
 	}
 	template<typename InValueType>
 	requires std::is_constructible_v<ValueType, InValueType&&>
-	FORCEINLINE ValueType& AddHashed_CheckNew_CheckNoRehash(const uint32 Hash, const KeyType& Key, InValueType&& Value)
+	FORCEINLINE ValueType& AddHashed_CheckNew_EnsureNoGrow(const uint32 Hash, const KeyType& Key, InValueType&& Value)
 	{
-		checkVoxelSlow(!this->Contains(Key));
-		checkVoxelSlow(this->HashValue(Key) == Hash);
-		CheckInvariants();
-
-		const int32 NewElementIndex = Elements.Emplace_CheckNoGrow(Key, Forward<InValueType>(Value));
-		FElement& Element = Elements[NewElementIndex];
-
-		checkVoxelSlow(GetHashSize(Elements.Num()) <= HashTable.Num());
-
-		int32& ElementIndex = this->GetElementIndex(Hash);
-		Element.NextElementIndex = ElementIndex;
-		ElementIndex = NewElementIndex;
-
-		return Element.Value;
-	}
-	FORCEINLINE ValueType& AddHashed_CheckNew_EnsureNoRehash(const uint32 Hash, const KeyType& Key)
-	{
-		ensureVoxelSlow(GetHashSize(Elements.Num()) <= HashTable.Num());
-		return this->AddHashed_CheckNew(Hash, Key);
+		ensureVoxelSlow(GetHashSize(Elements.Num() + 1) <= HashTable.Num());
+		return this->AddHashed_CheckNew(Hash, Key, Forward<InValueType>(Value));
 	}
 
 public:
@@ -956,6 +939,17 @@ private:
 		return ConstCast(this)->GetElementIndex(Hash);
 	}
 
+	FORCENOINLINE void RehashForAdd()
+	{
+		VOXEL_SCOPE_COUNTER_FORMAT_COND(
+			HashTable.Num() > 0,
+			"%s::Add Rehash %d -> %d",
+			GetGeneratedTypeName<TVoxelMap>(),
+			HashTable.Num(),
+			GetHashSize(Elements.Num()));
+
+		Rehash();
+	}
 	FORCENOINLINE void Rehash()
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Elements.Num(), 1024);

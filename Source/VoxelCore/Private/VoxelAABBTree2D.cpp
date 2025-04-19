@@ -199,6 +199,13 @@ void FVoxelAABBTree2D::Shrink()
 	Leaves.Shrink();
 }
 
+TSharedRef<FVoxelAABBTree2D> FVoxelAABBTree2D::Create(TVoxelArray<FElement>&& Elements)
+{
+	const TSharedRef<FVoxelAABBTree2D> Tree = MakeShared<FVoxelAABBTree2D>();
+	Tree->Initialize(MoveTemp(Elements));
+	return Tree;
+}
+
 TSharedRef<FVoxelAABBTree2D> FVoxelAABBTree2D::Create(const TConstVoxelArrayView<FVoxelBox2D> Bounds)
 {
 	VOXEL_FUNCTION_COUNTER();
@@ -215,7 +222,5 @@ TSharedRef<FVoxelAABBTree2D> FVoxelAABBTree2D::Create(const TConstVoxelArrayView
 		};
 	}
 
-	const TSharedRef<FVoxelAABBTree2D> Tree = MakeShared<FVoxelAABBTree2D>();
-	Tree->Initialize(MoveTemp(Elements));
-	return Tree;
+	return Create(MoveTemp(Elements));
 }

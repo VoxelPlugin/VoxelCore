@@ -119,30 +119,6 @@ namespace Chaos
 
 			VOXEL_SCOPE_COUNTER("Fast cook");
 
-			FVoxelFastAABBTree::FElementArray Elements;
-			Elements.SetNum(Triangles.Num());
-			{
-				VOXEL_SCOPE_COUNTER("Build Elements");
-
-				for (int32 Index = 0; Index < Triangles.Num(); Index++)
-				{
-					const TVector<IndexType, 3>& Triangle = Triangles[Index];
-					const FVector3f VertexA = Vertices[Triangle.X];
-					const FVector3f VertexB = Vertices[Triangle.Y];
-					const FVector3f VertexC = Vertices[Triangle.Z];
-
-					Elements.Payload[Index] = Index;
-
-					Elements.MinX[Index] = FMath::Min3(VertexA.X, VertexB.X, VertexC.X);
-					Elements.MinY[Index] = FMath::Min3(VertexA.Y, VertexB.Y, VertexC.Y);
-					Elements.MinZ[Index] = FMath::Min3(VertexA.Z, VertexB.Z, VertexC.Z);
-
-					Elements.MaxX[Index] = FMath::Max3(VertexA.X, VertexB.X, VertexC.X);
-					Elements.MaxY[Index] = FMath::Max3(VertexA.Y, VertexB.Y, VertexC.Y);
-					Elements.MaxZ[Index] = FMath::Max3(VertexA.Z, VertexB.Z, VertexC.Z);
-				}
-			}
-
 			using FLeaf = TAABBTreeLeafArray<int32, false, float>;
 			using FBVHType = TAABBTree<int32, FLeaf, false, float>;
 			checkStatic(std::is_same_v<FBVHType, FTriangleMeshImplicitObject::BVHType>);
@@ -152,7 +128,32 @@ namespace Chaos
 			constexpr static int32 MaxTreeDepth = FBVHType::DefaultMaxTreeDepth;
 
 			FVoxelFastAABBTree Tree(MaxChildrenInLeaf, MaxTreeDepth);
-			Tree.Initialize(MoveTemp(Elements));
+			{
+				FVoxelFastAABBTree::FElementArray Elements;
+				Elements.SetNum(Triangles.Num());
+				{
+					VOXEL_SCOPE_COUNTER("Build Elements");
+
+					for (int32 Index = 0; Index < Triangles.Num(); Index++)
+					{
+						const TVector<IndexType, 3>& Triangle = Triangles[Index];
+						const FVector3f VertexA = Vertices[Triangle.X];
+						const FVector3f VertexB = Vertices[Triangle.Y];
+						const FVector3f VertexC = Vertices[Triangle.Z];
+
+						Elements.Payload[Index] = Index;
+
+						Elements.MinX[Index] = FMath::Min3(VertexA.X, VertexB.X, VertexC.X);
+						Elements.MinY[Index] = FMath::Min3(VertexA.Y, VertexB.Y, VertexC.Y);
+						Elements.MinZ[Index] = FMath::Min3(VertexA.Z, VertexB.Z, VertexC.Z);
+
+						Elements.MaxX[Index] = FMath::Max3(VertexA.X, VertexB.X, VertexC.X);
+						Elements.MaxY[Index] = FMath::Max3(VertexA.Y, VertexB.Y, VertexC.Y);
+						Elements.MaxZ[Index] = FMath::Max3(VertexA.Z, VertexB.Z, VertexC.Z);
+					}
+				}
+				Tree.Initialize(MoveTemp(Elements));
+			}
 
 			const TConstVoxelArrayView<FVoxelFastAABBTree::FNode> SrcNodes = Tree.GetNodes();
 			const TConstVoxelArrayView<FVoxelFastAABBTree::FLeaf> SrcLeaves = Tree.GetLeaves();
@@ -181,8 +182,8 @@ namespace Chaos
 						DestNode.bLeaf = false;
 						DestNode.ChildrenNodes[0] = SrcNode.ChildIndex0;
 						DestNode.ChildrenNodes[1] = SrcNode.ChildIndex1;
-						DestNode.ChildrenBounds[0] = FAABB3f(SrcNode.ChildBounds0_Min, SrcNode.ChildBounds0_Max);
-						DestNode.ChildrenBounds[1] = FAABB3f(SrcNode.ChildBounds1_Min, SrcNode.ChildBounds1_Max);
+						DestNode.ChildrenBounds[0] = FAABB3f(SrcNode.ChildBounds0.GetMin(), SrcNode.ChildBounds0.GetMax());
+						DestNode.ChildrenBounds[1] = FAABB3f(SrcNode.ChildBounds1.GetMin(), SrcNode.ChildBounds1.GetMax());
 					}
 				}
 			}
@@ -197,24 +198,18 @@ namespace Chaos
 					const FVoxelFastAABBTree::FLeaf& SrcLeaf = SrcLeaves[Index];
 					FLeaf& DestLeaf = DestLeaves[Index];
 
-					FVoxelUtilities::SetNumFast(DestLeaf.Elems, SrcLeaf.Elements.Num());
+					FVoxelUtilities::SetNumFast(DestLeaf.Elems, SrcLeaf.Num());
 
 					const TVoxelArrayView<TPayloadBoundsElement<int32, float>> Elems = MakeVoxelArrayView(DestLeaf.Elems);
 
-					for (int32 ElementIndex = 0; ElementIndex < SrcLeaf.Elements.Num(); ElementIndex++)
+					for (int32 ElementIndex = SrcLeaf.StartIndex; ElementIndex < SrcLeaf.EndIndex; ElementIndex++)
 					{
-						TPayloadBoundsElement<int32, float>& DestElement = Elems[ElementIndex];
+						TPayloadBoundsElement<int32, float>& DestElement = Elems[ElementIndex - SrcLeaf.StartIndex];
 
-						DestElement.Payload = SrcLeaf.Elements.Payload[ElementIndex];
+						DestElement.Payload = Tree.GetPayload(ElementIndex);
 						DestElement.Bounds = FAABB3f(
-							FVector3f(
-								SrcLeaf.Elements.MinX[ElementIndex],
-								SrcLeaf.Elements.MinY[ElementIndex],
-								SrcLeaf.Elements.MinZ[ElementIndex]),
-							FVector3f(
-								SrcLeaf.Elements.MaxX[ElementIndex],
-								SrcLeaf.Elements.MaxY[ElementIndex],
-								SrcLeaf.Elements.MaxZ[ElementIndex]));
+							Tree.GetBounds(ElementIndex).GetMin(),
+							Tree.GetBounds(ElementIndex).GetMax());
 					}
 				}
 			}

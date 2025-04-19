@@ -3,17 +3,57 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
-#include "Async/ParallelFor.h"
 #include "VoxelMinimal/VoxelFuture.h"
-#include "VoxelMinimal/Containers/VoxelMap.h"
-#include "VoxelMinimal/Containers/VoxelArray.h"
-#include "VoxelMinimal/Containers/VoxelArrayView.h"
 #include "VoxelMinimal/Utilities/VoxelLambdaUtilities.h"
+
+struct VOXELCORE_API FVoxelShouldCancel
+{
+public:
+	FVoxelShouldCancel();
+
+	FORCEINLINE operator bool() const
+	{
+		return ShouldCancelTasks.Get(std::memory_order_relaxed);
+	}
+
+private:
+	const TVoxelAtomic<bool>& ShouldCancelTasks;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 namespace Voxel
 {
 	extern VOXELCORE_API TMulticastDelegate<void(bool& bAnyTaskProcessed)> OnFlushGameTasks;
 	VOXELCORE_API void FlushGameTasks();
+
+	extern VOXELCORE_API FSimpleMulticastDelegate OnForceTick;
+	VOXELCORE_API void ForceTick();
+
+	VOXELCORE_API bool ShouldCancel();
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	VOXELCORE_API FVoxelFuture ExecuteSynchronously_Impl(TFunctionRef<FVoxelFuture()> Lambda);
+
+	template<typename LambdaType, typename Type = typename LambdaReturnType_T<LambdaType>::Type>
+	requires LambdaHasSignature_V<LambdaType, TVoxelFuture<Type>()>
+	FORCEINLINE TSharedRef<Type> ExecuteSynchronously(LambdaType Lambda)
+	{
+		const FVoxelFuture Future = Voxel::ExecuteSynchronously_Impl(Lambda);
+		return static_cast<const TVoxelFuture<Type>&>(Future).GetSharedValueChecked();
+	}
+
+	template<typename LambdaType>
+	requires LambdaHasSignature_V<LambdaType, FVoxelFuture()>
+	FORCEINLINE void ExecuteSynchronously(LambdaType Lambda)
+	{
+		Voxel::ExecuteSynchronously_Impl(Lambda);
+	}
 
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
@@ -110,233 +150,46 @@ namespace Voxel
 		});
 		return Promise;
 	}
-}
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
 
-template<typename T>
-TSharedRef<T> MakeShareable_GameThread(T* Object)
-{
-	return TSharedPtr<T>(Object, [](T* InObject)
+	template<typename T>
+	TSharedRef<T> MakeShareable_GameThread(T* Object)
 	{
-		Voxel::GameTask([=]
+		return TSharedPtr<T>(Object, [](T* InObject)
 		{
-			delete InObject;
-		});
-	}).ToSharedRef();
-}
-template<typename T>
-TSharedRef<T> MakeShareable_RenderThread(T* Object)
-{
-	return TSharedPtr<T>(Object, [](T* InObject)
+			Voxel::GameTask([=]
+			{
+				delete InObject;
+			});
+		}).ToSharedRef();
+	}
+	template<typename T>
+	TSharedRef<T> MakeShareable_RenderThread(T* Object)
 	{
-		Voxel::RenderTask([=]
+		return TSharedPtr<T>(Object, [](T* InObject)
 		{
-			delete InObject;
-		});
-	}).ToSharedRef();
-}
-
-template<typename T, typename... ArgTypes, typename = std::enable_if_t<std::is_constructible_v<T, ArgTypes...>>>
-TSharedRef<T> MakeShared_GameThread(ArgTypes&&... Args)
-{
-	return MakeShareable_GameThread(new T(Forward<ArgTypes>(Args)...));
-}
-template<typename T, typename... ArgTypes, typename = std::enable_if_t<std::is_constructible_v<T, ArgTypes...>>>
-TSharedRef<T> MakeShared_RenderThread(ArgTypes&&... Args)
-{
-	return MakeShareable_RenderThread(new T(Forward<ArgTypes>(Args)...));
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-template<
-	typename Type,
-	typename SizeType,
-	typename LambdaType,
-	typename = std::enable_if_t<
-		LambdaHasSignature_V<LambdaType, void(TVoxelArrayView<Type, SizeType>)> ||
-		LambdaHasSignature_V<LambdaType, void(TVoxelArrayView<const Type, SizeType>)> ||
-		LambdaHasSignature_V<LambdaType, void(Type&)> ||
-		LambdaHasSignature_V<LambdaType, void(const Type&)> ||
-		LambdaHasSignature_V<LambdaType, void(Type&, SizeType)> ||
-		LambdaHasSignature_V<LambdaType, void(const Type&, SizeType)>>>
-void ParallelFor(
-	const TVoxelArrayView<Type, SizeType> ArrayView,
-	LambdaType Lambda)
-{
-	VOXEL_FUNCTION_COUNTER();
-
-	if (ArrayView.Num() == 0)
-	{
-		return;
+			Voxel::RenderTask([=]
+			{
+				delete InObject;
+			});
+		}).ToSharedRef();
 	}
 
-	const SizeType NumThreads = FMath::Clamp<SizeType>(FPlatformMisc::NumberOfCoresIncludingHyperthreads(), 1, ArrayView.Num());
-	ParallelFor(NumThreads, [&](const int32 ThreadIndex)
+	template<typename T, typename... ArgTypes>
+	requires std::is_constructible_v<T, ArgTypes...>
+	TSharedRef<T> MakeShared_GameThread(ArgTypes&&... Args)
 	{
-		const SizeType ElementsPerThreads = FVoxelUtilities::DivideCeil_Positive<SizeType>(ArrayView.Num(), NumThreads);
-
-		const SizeType StartIndex = ThreadIndex * ElementsPerThreads;
-		const SizeType EndIndex = FMath::Min<SizeType>((ThreadIndex + 1) * ElementsPerThreads, ArrayView.Num());
-
-		if (StartIndex >= EndIndex)
-		{
-			// Will happen on small arrays
-			return;
-		}
-
-		if constexpr (
-			LambdaHasSignature_V<LambdaType, void(TVoxelArrayView<Type, SizeType>)> ||
-			LambdaHasSignature_V<LambdaType, void(TVoxelArrayView<const Type, SizeType>)>)
-		{
-			Lambda(ArrayView.Slice(StartIndex, EndIndex - StartIndex));
-		}
-		else if constexpr (
-			LambdaHasSignature_V<LambdaType, void(Type&)> ||
-			LambdaHasSignature_V<LambdaType, void(const Type&)>)
-		{
-			for (SizeType Index = StartIndex; Index < EndIndex; Index++)
-			{
-				Lambda(ArrayView[Index]);
-			}
-		}
-		else if constexpr (
-			LambdaHasSignature_V<LambdaType, void(Type&, SizeType)> ||
-			LambdaHasSignature_V<LambdaType, void(const Type&, SizeType)>)
-		{
-			for (SizeType Index = StartIndex; Index < EndIndex; Index++)
-			{
-				Lambda(ArrayView[Index], Index);
-			}
-		}
-		else
-		{
-			checkStatic(std::is_same_v<LambdaType, void>);
-		}
-	});
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-template<
-	typename Type,
-	typename Allocator,
-	typename LambdaType,
-	typename SizeType = typename Allocator::SizeType,
-	typename = std::enable_if_t<
-		LambdaHasSignature_V<LambdaType, void(TVoxelArrayView<Type, SizeType>)> ||
-		LambdaHasSignature_V<LambdaType, void(TVoxelArrayView<const Type, SizeType>)> ||
-		LambdaHasSignature_V<LambdaType, void(Type&)> ||
-		LambdaHasSignature_V<LambdaType, void(const Type&)> ||
-		LambdaHasSignature_V<LambdaType, void(Type&, SizeType)> ||
-		LambdaHasSignature_V<LambdaType, void(const Type&, SizeType)>>>
-void ParallelFor(
-	TArray<Type, Allocator>& Array,
-	LambdaType Lambda)
-{
-	ParallelFor(
-		MakeVoxelArrayView(Array),
-		MoveTemp(Lambda));
-}
-
-template<
-	typename Type,
-	typename Allocator,
-	typename LambdaType,
-	typename SizeType = typename Allocator::SizeType,
-	typename = std::enable_if_t<
-		LambdaHasSignature_V<LambdaType, void(TVoxelArrayView<const Type, SizeType>)> ||
-		LambdaHasSignature_V<LambdaType, void(const Type&)> ||
-		LambdaHasSignature_V<LambdaType, void(const Type&, SizeType)>>>
-void ParallelFor(
-	const TArray<Type, Allocator>& Array,
-	LambdaType Lambda)
-{
-	ParallelFor(
-		MakeVoxelArrayView(Array),
-		MoveTemp(Lambda));
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-template<typename KeyType, typename ValueType, typename Allocator, typename LambdaType>
-requires
-(
-	LambdaHasSignature_V<LambdaType, void(typename TVoxelMap<KeyType, ValueType, Allocator>::FElement&)> ||
-	LambdaHasSignature_V<LambdaType, void(const typename TVoxelMap<KeyType, ValueType, Allocator>::FElement&)>
-)
-void ParallelFor(
-	TVoxelMap<KeyType, ValueType, Allocator>& Map,
-	LambdaType Lambda)
-{
-	return ParallelFor(
-		Map.GetElements(),
-		MoveTemp(Lambda));
-}
-
-template<typename KeyType, typename ValueType, typename Allocator, typename LambdaType>
-requires LambdaHasSignature_V<LambdaType, void(const typename TVoxelMap<KeyType, ValueType, Allocator>::FElement&)>
-void ParallelFor(
-	const TVoxelMap<KeyType, ValueType, Allocator>& Map,
-	LambdaType Lambda)
-{
-	return ParallelFor(
-		Map.GetElements(),
-		MoveTemp(Lambda));
-}
-template<typename KeyType, typename ValueType, typename Allocator, typename LambdaType>
-requires LambdaHasSignature_V<LambdaType, void(const KeyType&)>
-void ParallelFor_Keys(
-	const TVoxelMap<KeyType, ValueType, Allocator>& Map,
-	LambdaType Lambda)
-{
-	return ParallelFor(
-		Map.GetElements(),
-		[&](const typename TVoxelMap<KeyType, ValueType, Allocator>::FElement& Element)
-		{
-			Lambda(Element.Key);
-		});
-}
-
-template<typename KeyType, typename ValueType, typename Allocator, typename LambdaType>
-requires
-(
-	LambdaHasSignature_V<LambdaType, void(ValueType&)> ||
-	LambdaHasSignature_V<LambdaType, void(const ValueType&)>
-)
-void ParallelFor_Values(
-	TVoxelMap<KeyType, ValueType, Allocator>& Map,
-	LambdaType Lambda)
-{
-	return ParallelFor(
-		Map.GetElements(),
-		[&](typename TVoxelMap<KeyType, ValueType, Allocator>::FElement& Element)
-		{
-			Lambda(Element.Value);
-		});
-}
-
-template<typename KeyType, typename ValueType, typename Allocator, typename LambdaType>
-requires LambdaHasSignature_V<LambdaType, void(const ValueType&)>
-void ParallelFor_Values(
-	const TVoxelMap<KeyType, ValueType, Allocator>& Map,
-	LambdaType Lambda)
-{
-	return ParallelFor(
-		Map.GetElements(),
-		[&](const typename TVoxelMap<KeyType, ValueType, Allocator>::FElement& Element)
-		{
-			Lambda(Element.Value);
-		});
+		return MakeShareable_GameThread(new T(Forward<ArgTypes>(Args)...));
+	}
+	template<typename T, typename... ArgTypes>
+	requires std::is_constructible_v<T, ArgTypes...>
+	TSharedRef<T> MakeShared_RenderThread(ArgTypes&&... Args)
+	{
+		return MakeShareable_RenderThread(new T(Forward<ArgTypes>(Args)...));
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

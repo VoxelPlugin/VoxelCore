@@ -60,13 +60,16 @@ float min(float, float);
 double min(double, double);
 uint8 min(uint8, uint8);
 int32 min(int32, int32);
+int64 min(int64, int64);
 float max(float, float);
 float max(double, double);
 uint8 max(uint8, uint8);
 int32 max(int32, int32);
+int64 max(int64, int64);
 float clamp(float value, float a, float b);
 double clamp(double value, double a, double b);
 int32 clamp(int32 value, int32 a, int32 b);
+int64 clamp(int64 value, int64 a, int64 b);
 
 bool isnan(float16 v);
 bool isnan(float v);
@@ -103,6 +106,14 @@ int64 shuffle(int64 value, int permutation);
 float16 shuffle(float16 value, int permutation);
 float shuffle(float value, int permutation);
 double shuffle(double value, int permutation);
+
+int8 shuffle(int8 value0, int8 value1, int permutation);
+int16 shuffle(int16 value0, int16 value1, int permutation);
+int32 shuffle(int32 value0, int32 value1, int permutation);
+int64 shuffle(int64 value0, int64 value1, int permutation);
+float16 shuffle(float16 value0, float16 value1, int permutation);
+float shuffle(float value0, float value1, int permutation);
+double shuffle(double value0, double value1, int permutation);
 
 bool any(bool v);
 bool all(bool v);
@@ -198,6 +209,9 @@ uniform double extract(double x, uniform int i);
 [[nodiscard]] float16 insert(float16 x, uniform int i, uniform float16 v);
 [[nodiscard]] float insert(float x, uniform int i, uniform float v);
 [[nodiscard]] double insert(double x, uniform int i, uniform double v);
+
+#define and(a, b) and_2(a, b)
+#define or(a, b) or_2(a, b)
 
 bool and(bool a, bool b);
 bool or(bool a, bool b);
@@ -300,7 +314,6 @@ int32 programIndex;
 #define FORCEINLINE inline
 
 extern "C" void VoxelISPC_Assert(uniform int Line);
-extern "C" void VoxelISPC_UnsupportedTargetWidth(uniform int Width);
 
 #if VOXEL_DEBUG
 #define check(...) \
@@ -317,8 +330,6 @@ extern "C" void VoxelISPC_UnsupportedTargetWidth(uniform int Width);
 #define VOXEL_ASSUME(...) assume((__VA_ARGS__))
 #endif
 
-#define unsupportedTargetWidth() VoxelISPC_UnsupportedTargetWidth(TARGET_WIDTH);
-
 #define PREPROCESSOR_JOIN_INNER(X, Y) X ## Y
 #define PREPROCESSOR_JOIN(X, Y) PREPROCESSOR_JOIN_INNER(X, Y)
 
@@ -328,16 +339,27 @@ extern "C" void VoxelISPC_UnsupportedTargetWidth(uniform int Width);
 #define KINDA_SMALL_NUMBER 1.e-4f
 #define BIG_NUMBER 3.4e+38f
 
+
 #define MAX_uint8	0xff
 #define MAX_uint16	0xffff
 #define MAX_uint32	0xffffffff
 #define MAX_uint64	0xffffffffffffffff
+
+#define MIN_int8	-128
 #define MAX_int8	0x7f
+
+#define MIN_int16	-32768
 #define MAX_int16	0x7fff
+
+#define MIN_int32	-2147483648
 #define MAX_int32	0x7fffffff
+
+#define MIN_int64	-9223372036854775808
 #define MAX_int64	0x7fffffffffffffff
+
 #define MIN_flt		1.175494351e-38F
 #define MAX_flt		3.402823466e+38F
+
 #define MIN_dbl		2.2250738585072014e-308
 #define MAX_dbl		1.7976931348623158e+308
 

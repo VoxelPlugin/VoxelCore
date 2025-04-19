@@ -26,7 +26,7 @@ private:
 	}
 
 public:
-	FVoxelPropertyValue AsValue() const;
+	FVoxelPropertyValue ToValue() const;
 
 	FORCEINLINE TVoxelArrayView<uint8> GetRawView()
 	{
@@ -149,7 +149,7 @@ public:
 	using FVoxelPropertyValueBase::Fixup;
 	void Fixup(const FVoxelPropertyType& NewType);
 	bool ImportFromUnrelated(FVoxelPropertyValue Other);
-	FVoxelPropertyTerminalValue AsTerminalValue() const;
+	FVoxelPropertyTerminalValue ToTerminalValue() const;
 
 public:
 	FORCEINLINE bool IsArray() const

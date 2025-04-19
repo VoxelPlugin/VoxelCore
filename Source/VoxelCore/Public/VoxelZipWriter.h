@@ -39,7 +39,7 @@ public:
 private:
 	const FWriteLambda WriteLambda;
 
-	mutable FVoxelCriticalSection CriticalSection;
+	FVoxelCriticalSection CriticalSection;
 	FWriteLambda WriteLambdaOverride_RequiresLock;
 
 	explicit FVoxelZipWriter(const FWriteLambda& WriteLambda)

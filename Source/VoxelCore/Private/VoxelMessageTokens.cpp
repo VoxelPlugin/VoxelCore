@@ -69,55 +69,7 @@ uint32 FVoxelMessageToken_Object::GetHash() const
 
 FString FVoxelMessageToken_Object::ToString() const
 {
-	ensure(IsInGameThread());
-
-	const UObject* Object = GetObject();
-	if (!Object)
-	{
-		return "<null>";
-	}
-
-	if (const UEdGraphNode* Node = Cast<UEdGraphNode>(Object))
-	{
-#if WITH_EDITOR
-		FString Result = Node->GetNodeTitle(ENodeTitleType::FullTitle).ToString();
-		if (Result.TrimStartAndEnd().IsEmpty())
-		{
-			Result = "<empty>";
-		}
-		return Result;
-#else
-		return Node->GetName();
-#endif
-	}
-
-	if (const AActor* Actor = Cast<AActor>(Object))
-	{
-		return Actor->GetActorNameOrLabel();
-	}
-
-	if (const UActorComponent* Component = Cast<UActorComponent>(Object))
-	{
-		FString ActorName;
-		if (const AActor* Owner = Component->GetOwner())
-		{
-			ActorName = Owner->GetActorNameOrLabel();
-		}
-		else
-		{
-			ActorName = "<null>";
-		}
-
-		return ActorName + "." + Component->GetName();
-	}
-
-	if (!Object->HasAnyFlags(RF_Transient))
-	{
-		// If we are a subobject of an asset, use the asset
-		Object = Object->GetOutermostObject();
-	}
-
-	return Object->GetName();
+	return WeakObject.GetReadableName();
 }
 
 TSharedRef<IMessageToken> FVoxelMessageToken_Object::GetMessageToken() const

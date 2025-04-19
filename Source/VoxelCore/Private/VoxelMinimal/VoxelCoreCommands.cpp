@@ -1,6 +1,6 @@
 ﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
 
-#include "VoxelCoreCommands.h"
+#include "VoxelMinimal.h"
 
 VOXEL_CONSOLE_COMMAND(
 	"voxel.RefreshAll",
@@ -9,11 +9,11 @@ VOXEL_CONSOLE_COMMAND(
 	Voxel::RefreshAll();
 }
 
-FSimpleMulticastDelegate GVoxelOnRefreshAll;
+FSimpleMulticastDelegate Voxel::OnRefreshAll;
 
 void Voxel::RefreshAll()
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	GVoxelOnRefreshAll.Broadcast();
+	Voxel::OnRefreshAll.Broadcast();
 }

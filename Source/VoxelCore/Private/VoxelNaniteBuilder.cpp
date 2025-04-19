@@ -186,20 +186,30 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData(TVoxelAr
 		Nanite::FPageStreamingState PageStreamingState{};
 		PageStreamingState.BulkOffset = RootData.Num();
 
+#if VOXEL_ENGINE_VERSION < 506
 		Nanite::FFixupChunk FixupChunk;
 		FixupChunk.Header.Magic = NANITE_FIXUP_MAGIC;
 		FixupChunk.Header.NumClusters = Clusters.Num();
-		FixupChunk.Header.NumHierachyFixups = Clusters.Num();
+		FixupChunk.Header.UE_506_SWITCH(NumHierachyFixups, NumHierarchyFixups) = Clusters.Num();
 		FixupChunk.Header.NumClusterFixups = Clusters.Num();
+#else
+		Nanite::FFixupChunkBuffer FixupChunkBuffer;
+		Nanite::FFixupChunk& FixupChunk = FixupChunkBuffer.Add_GetRef(
+			Clusters.Num(),
+			Clusters.Num(),
+			Clusters.Num());
+#endif
 
+#if VOXEL_ENGINE_VERSION < 506
 		const TVoxelArrayView<uint8> HierarchyFixupsData = MakeVoxelArrayView(FixupChunk.Data).LeftOf(sizeof(Nanite::FHierarchyFixup) * Clusters.Num());
 		const TVoxelArrayView<uint8> ClusterFixupsData = MakeVoxelArrayView(FixupChunk.Data).RightOf(sizeof(Nanite::FHierarchyFixup) * Clusters.Num());
 		const TVoxelArrayView<Nanite::FHierarchyFixup> HierarchyFixups = HierarchyFixupsData.ReinterpretAs<Nanite::FHierarchyFixup>();
 		const TVoxelArrayView<Nanite::FClusterFixup> ClusterFixups = ClusterFixupsData.ReinterpretAs<Nanite::FClusterFixup>().LeftOf(Clusters.Num());
+#endif
 
 		for (int32 Index = 0; Index < Clusters.Num(); Index++)
 		{
-			HierarchyFixups[Index] = Nanite::FHierarchyFixup(
+			UE_506_SWITCH(HierarchyFixups[Index], FixupChunk.GetHierarchyFixup(Index)) = Nanite::FHierarchyFixup(
 				PageIndex,
 				Resources.HierarchyNodes.Num() + ClusterIndexOffset + Index,
 				0,
@@ -207,14 +217,20 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData(TVoxelAr
 				0,
 				0);
 
-			ClusterFixups[Index] = Nanite::FClusterFixup(
+			UE_506_SWITCH(ClusterFixups[Index], FixupChunk.GetClusterFixup(Index)) = Nanite::FClusterFixup(
 				PageIndex,
 				Index,
 				0,
 				0);
 		}
 
+#if VOXEL_ENGINE_VERSION < 506
 		RootData.Append(MakeByteVoxelArrayView(FixupChunk).LeftOf(FixupChunk.GetSize()));
+#else
+		RootData.Append(TConstVoxelArrayView<uint8>(
+			reinterpret_cast<uint8*>(&FixupChunk),
+			FixupChunk.GetSize()));
+#endif
 
 		const int32 PageStartIndex = RootData.Num();
 
@@ -259,8 +275,10 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData(TVoxelAr
 	Resources.NormalPrecision = -1;
 	Resources.NumInputTriangles = 0;
 	Resources.NumInputVertices = Mesh.Positions.Num();
+#if VOXEL_ENGINE_VERSION < 506
 	Resources.NumInputMeshes = 1;
 	Resources.NumInputTexCoords = Mesh.TextureCoordinates.Num();
+#endif
 	Resources.NumClusters = AllClusters.Num();
 	Resources.NumRootPages = Pages.Num();
 	Resources.HierarchyRootOffsets.Add(0);
@@ -275,13 +293,19 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData(TVoxelAr
 	LODResource->Sections.Emplace();
 
 	// Ensure UStaticMesh::HasValidRenderData returns true
-	LODResource->VertexBuffers.StaticMeshVertexBuffer.Init(1, 1);
-	LODResource->VertexBuffers.PositionVertexBuffer.Init(1);
-	LODResource->VertexBuffers.ColorVertexBuffer.Init(1);
+	// Use MAX_flt to try to not have the vertex picked by vertex snapping
+	const TVoxelArray<FVector3f> DummyPositions = { FVector3f(MAX_flt) };
+
+	LODResource->VertexBuffers.StaticMeshVertexBuffer.Init(DummyPositions.Num(), 1);
+	LODResource->VertexBuffers.PositionVertexBuffer.Init(DummyPositions);
+	LODResource->VertexBuffers.ColorVertexBuffer.Init(DummyPositions.Num());
+
+	// Ensure FStaticMeshRenderData::GetFirstValidLODIdx doesn't return -1
+	LODResource->BuffersSize = 1;
 
 	RenderData->LODResources.Add(LODResource);
 
-	RenderData->LODVertexFactories.Emplace_GetRef(GMaxRHIFeatureLevel);
+	RenderData->LODVertexFactories.Add(FStaticMeshVertexFactories(GMaxRHIFeatureLevel));
 
 	return RenderData;
 }

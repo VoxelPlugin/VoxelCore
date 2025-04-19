@@ -6,9 +6,13 @@
 
 struct FVoxelWelfordVariance
 {
+	// Average value
 	varying float Average;
+	// ScaledVariance = Sum(Square(X[i] - Average))
+	// Variance = ScaledVariance / (Num - 1)
 	varying float ScaledVariance;
-	uniform float Num;
+	// Number of values
+	varying float Num;
 };
 
 FORCEINLINE void InitializeVariance(FVoxelWelfordVariance& Variance)
@@ -28,106 +32,46 @@ FORCEINLINE void AddVariance(
 	Variance.Average += Delta / Variance.Num;
 	Variance.ScaledVariance += Delta * (Value - Variance.Average);
 }
+FORCEINLINE void AddVariance(
+	FVoxelWelfordVariance& Variance,
+	const uniform float Value)
+{
+	uniform float Num = extract(Variance.Num, 0);
+	uniform float Average = extract(Variance.Average, 0);
+	uniform float ScaledVariance = extract(Variance.ScaledVariance, 0);
+
+	Num += 1.f;
+
+	const uniform float Delta = Value - Average;
+	Average += Delta / Num;
+	ScaledVariance += Delta * (Value - Average);
+
+	Variance.Num = insert(Variance.Num, 0, Num);
+	Variance.Average = insert(Variance.Average, 0, Average);
+	Variance.ScaledVariance = insert(Variance.ScaledVariance, 0, ScaledVariance);
+}
 
 FORCEINLINE uniform float GetUniformAverage(const FVoxelWelfordVariance Variance)
 {
-	return reduce_add(Variance.Average) / programCount;
+	const varying float Weight = Variance.Num / reduce_add(Variance.Num);
+	return reduce_add(Weight * Variance.Average);
 }
 FORCEINLINE uniform float GetUniformVariance(const FVoxelWelfordVariance Variance)
 {
-	// Variance is the mean of the variances + the variance of the means
-	// https://en.wikipedia.org/wiki/Law_of_total_variance
+	const varying float Variance_Array = select(
+		Variance.Num <= 1,
+		0.f,
+		Variance.ScaledVariance / (Variance.Num - 1));
 
-	if (Variance.Num <= 1)
-	{
-		return 0.f;
-	}
+	const varying float Average_Array = Variance.Average;
+	const varying float Weight_Array = Variance.Num / reduce_add(Variance.Num);
 
-	const varying float VaryingVariance = Variance.ScaledVariance / (Variance.Num - 1);
+	const uniform float Variance_Average = reduce_add(Weight_Array * Variance_Array);
 
-#if TARGET_WIDTH == 8
-	const uniform float Variance0 = extract(VaryingVariance, 0);
-	const uniform float Variance1 = extract(VaryingVariance, 1);
-	const uniform float Variance2 = extract(VaryingVariance, 2);
-	const uniform float Variance3 = extract(VaryingVariance, 3);
-	const uniform float Variance4 = extract(VaryingVariance, 4);
-	const uniform float Variance5 = extract(VaryingVariance, 5);
-	const uniform float Variance6 = extract(VaryingVariance, 6);
-	const uniform float Variance7 = extract(VaryingVariance, 7);
+	const uniform float Average_Average = reduce_add(Weight_Array * Average_Array);
+	const uniform float Average_Variance = reduce_add(Weight_Array * Square(Average_Array - Average_Average));
 
-	uniform float VarianceMean = (
-		Variance0 +
-		Variance1 +
-		Variance2 +
-		Variance3 +
-		Variance4 +
-		Variance5 +
-		Variance6 +
-		Variance7) / 8.f;
-
-	const uniform float Average0 = extract(Variance.Average, 0);
-	const uniform float Average1 = extract(Variance.Average, 1);
-	const uniform float Average2 = extract(Variance.Average, 2);
-	const uniform float Average3 = extract(Variance.Average, 3);
-	const uniform float Average4 = extract(Variance.Average, 4);
-	const uniform float Average5 = extract(Variance.Average, 5);
-	const uniform float Average6 = extract(Variance.Average, 6);
-	const uniform float Average7 = extract(Variance.Average, 7);
-
-	const uniform float AverageMean = (
-		Average0 +
-		Average1 +
-		Average2 +
-		Average3 +
-		Average4 +
-		Average5 +
-		Average6 +
-		Average7) / 8.f;
-
-	const uniform float AverageVariance = (
-		Square(Average0 - AverageMean) +
-		Square(Average1 - AverageMean) +
-		Square(Average2 - AverageMean) +
-		Square(Average3 - AverageMean) +
-		Square(Average4 - AverageMean) +
-		Square(Average5 - AverageMean) +
-		Square(Average6 - AverageMean) +
-		Square(Average7 - AverageMean)) / 8.f;
-
-	return VarianceMean + AverageVariance;
-#elif TARGET_WIDTH == 4
-	const uniform float Variance0 = extract(VaryingVariance, 0);
-	const uniform float Variance1 = extract(VaryingVariance, 1);
-	const uniform float Variance2 = extract(VaryingVariance, 2);
-	const uniform float Variance3 = extract(VaryingVariance, 3);
-
-	uniform float VarianceMean = (
-		Variance0 +
-		Variance1 +
-		Variance2 +
-		Variance3) / 4.f;
-
-	const uniform float Average0 = extract(Variance.Average, 0);
-	const uniform float Average1 = extract(Variance.Average, 1);
-	const uniform float Average2 = extract(Variance.Average, 2);
-	const uniform float Average3 = extract(Variance.Average, 3);
-
-	const uniform float AverageMean = (
-		Average0 +
-		Average1 +
-		Average2 +
-		Average3) / 4.f;
-
-	const uniform float AverageVariance = (
-		Square(Average0 - AverageMean) +
-		Square(Average1 - AverageMean) +
-		Square(Average2 - AverageMean) +
-		Square(Average3 - AverageMean)) / 4.f;
-
-	return VarianceMean + AverageVariance;
-#else
-#error "Unsupported TARGET_WIDTH"
-	unsupportedTargetWidth();
-	return 0.f;
-#endif
+	// Law of Total Variance: variance is the mean of the variances + the variance of the means
+	// !!!!! Note that this is an over-estimation: true variance will be smaller !!!!!
+	return Variance_Average + Average_Variance;
 }

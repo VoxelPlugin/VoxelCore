@@ -48,7 +48,6 @@ template<typename FromType, typename ToType>
 requires
 (
 	!std::is_same_v<FromType, ToType> &&
-	!std::is_same_v<FromType, std::remove_const_t<ToType>> &&
 	bool(TPointerIsConvertibleFromTo<FromType, ToType>::Value)
 )
 struct TVoxelArrayView_IsCompatible<FromType*, ToType*> : std::true_type
@@ -82,7 +81,7 @@ public:
 	(
 		!std::is_same_v<OtherRangeType, TVoxelArrayView> &&
 		bool(TIsContiguousContainer<std::remove_cv_t<std::remove_reference_t<OtherRangeType>>>::Value) &&
-		IsCompatibleElementType_V<std::remove_pointer_t<decltype(::GetData(DeclVal<OtherRangeType>()))>>
+		IsCompatibleElementType_V<std::remove_pointer_t<decltype(::GetData(std::declval<OtherRangeType>()))>>
 	)
 	FORCEINLINE TVoxelArrayView(OtherRangeType&& Other)
 	{
@@ -235,13 +234,13 @@ FORCEINLINE auto MakeVoxelArrayView(T&& Other)
 		checkStatic(sizeof(Other) < sizeof(T) * MAX_int32);
 
 		return TVoxelArrayView<
-			std::remove_reference_t<decltype(*GetData(DeclVal<T>()))>,
+			std::remove_reference_t<decltype(*GetData(std::declval<T>()))>,
 			int32>(Other);
 	}
 	else if constexpr (TIsContiguousContainer<T>::Value)
 	{
 		return TVoxelArrayView<
-			std::remove_reference_t<decltype(*GetData(DeclVal<T>()))>,
+			std::remove_reference_t<decltype(*GetData(std::declval<T>()))>,
 			decltype(GetNum(Other))>(Other);
 	}
 	else

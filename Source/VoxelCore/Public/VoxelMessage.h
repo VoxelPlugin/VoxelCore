@@ -18,6 +18,7 @@ struct VOXELCORE_API FVoxelMessageToken
 	GENERATED_VIRTUAL_STRUCT_BODY()
 
 public:
+	// Messages will be skipped if they have the same hash, so this must not have collisions
 	virtual uint32 GetHash() const VOXEL_PURE_VIRTUAL({});
 	virtual FString ToString() const VOXEL_PURE_VIRTUAL({});
 	virtual TSharedRef<IMessageToken> GetMessageToken() const;
@@ -98,4 +99,6 @@ private:
 		: Severity(Severity)
 	{
 	}
+
+	friend class FVoxelMessageManager;
 };

@@ -2,11 +2,32 @@
 
 #include "VoxelMinimal.h"
 
+#if !UE_BUILD_SHIPPING
 VOXEL_RUN_ON_STARTUP_GAME()
 {
-	if (!FVoxelUtilities::IsDevWorkflow())
+	if (!VOXEL_DEBUG &&
+		!FVoxelUtilities::IsDevWorkflow())
 	{
 		return;
+	}
+
+	for (const double Value : TVoxelArray<double>
+		{
+			0,
+			MIN_flt,
+			MAX_flt,
+			MIN_dbl,
+			MAX_dbl,
+			0.593970065772997547958216,
+			3971.0465808296292259329051626,
+			7594.5251824225479095402171066
+		})
+	{
+		FVoxelUtilities::DoubleToFloat_Lower(Value);
+		FVoxelUtilities::DoubleToFloat_Higher(Value);
+
+		FVoxelUtilities::DoubleToFloat_Lower(-Value);
+		FVoxelUtilities::DoubleToFloat_Higher(-Value);
 	}
 
 	{
@@ -24,4 +45,40 @@ VOXEL_RUN_ON_STARTUP_GAME()
 		TVoxelSet<int32> Set2 = Set;
 		TVoxelSet<float> Set3 = TVoxelSet<float>(Set);
 	}
+
+	{
+		TVoxelChunkedSparseArray<int32> Values;
+		Values.Add(1);
+		for (const int32 Value : Values)
+		{
+		}
+	}
+
+	{
+		int64 Sum = 0;
+		TVoxelChunkedSparseArray<int32> Values;
+		for (int32 Index = 0; Index < 16000; Index++)
+		{
+			Sum += Index;
+			Values.Add(Index);
+		}
+
+		for (int32 Index = 0; Index < 1024; Index++)
+		{
+			const int32 Rand = FMath::RandRange(0, 15599);
+			if (Values.IsAllocated_ValidIndex(Rand))
+			{
+				Sum -= Rand;
+				Values.RemoveAt(Rand);
+			}
+		}
+
+		int64 NewSum = 0;
+		for (const int32 Value : Values)
+		{
+			NewSum += Value;
+		}
+		check(Sum == NewSum);
+	}
 }
+#endif

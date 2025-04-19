@@ -147,7 +147,8 @@ private:
 	{ \
 		FVoxelVirtualStruct::Internal_UpdateWeakReferenceInternal(SharedPtr, this); \
 	} \
-	template<typename T, typename = std::enable_if_t<!TIsReferenceType<T>::Value>> \
+	template<typename T> \
+	requires (!std::is_reference_v<T>) \
 	FORCEINLINE static auto MakeSharedCopy(T&& Data) -> decltype(auto) \
 	{ \
 		return ::MakeSharedCopy(MoveTemp(Data)); \
@@ -186,7 +187,8 @@ private:
 		VOXEL_ENABLE_SHARED_FROM_THIS(SharedRef); \
 		return SharedRef; \
 	} \
-	template<typename T, typename = std::enable_if_t<!TIsReferenceType<T>::Value>> \
+	template<typename T> \
+	requires (!std::is_reference_v<T>) \
 	FORCEINLINE static auto MakeSharedCopy(T&& Data) -> decltype(auto) \
 	{ \
 		return ::MakeSharedCopy(MoveTemp(Data)); \
@@ -220,6 +222,11 @@ private:
 VOXEL_CAST_CHECK
 FORCEINLINE To* CastStruct(From* Struct)
 {
+	if constexpr (std::is_same_v<To, From>)
+	{
+		return Struct;
+	}
+
 	if (!Struct ||
 		!Struct->template IsA<To>())
 	{
@@ -231,6 +238,11 @@ FORCEINLINE To* CastStruct(From* Struct)
 VOXEL_CAST_CHECK
 FORCEINLINE const To* CastStruct(const From* Struct)
 {
+	if constexpr (std::is_same_v<To, From>)
+	{
+		return Struct;
+	}
+
 	if (!Struct ||
 		!Struct->template IsA<To>())
 	{
@@ -358,6 +370,13 @@ FORCEINLINE TUniquePtr<const To> CastStructChecked(TUniquePtr<const From>&& Stru
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+VOXEL_CAST_CHECK
+FORCEINLINE TSharedPtr<To> CastStructEnsured(const TSharedRef<From>& Struct)
+{
+	const TSharedPtr<To> Result = CastStruct<To>(Struct);
+	ensure(Result);
+	return Result;
+}
 VOXEL_CAST_CHECK
 FORCEINLINE TSharedPtr<To> CastStructEnsured(const TSharedPtr<From>& Struct)
 {

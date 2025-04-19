@@ -58,6 +58,16 @@ namespace FVoxelUtilities
 		checkVoxelSlow(Divisor > 0);
 		return (Dividend + Divisor - 1) / Divisor;
 	}
+	template<typename T>
+	FORCEINLINE T DivideCeil_Positive_Log2(T Dividend, T DivisorLog2)
+	{
+		checkVoxelSlow(Dividend >= 0);
+		checkVoxelSlow(DivisorLog2 >= 0);
+
+		const T Result = (Dividend + (1 << DivisorLog2) - 1) >> DivisorLog2;
+		checkVoxelSlow(Result == FVoxelUtilities::DivideCeil_Positive(Dividend, 1 << DivisorLog2));
+		return Result;
+	}
 
 	template<typename T>
 	FORCEINLINE T PositiveMod(T Dividend, T Divisor)
@@ -407,8 +417,131 @@ namespace FVoxelUtilities
 		return bIsNaN;
 	}
 
+	FORCEINLINE bool IsFinite(const float Value)
+	{
+		const bool bIsFinite = (IntBits(Value) & 0x7FFFFFFF) < 0x7F800000;
+		checkVoxelSlow(bIsFinite == FMath::IsFinite(Value));
+		return bIsFinite;
+	}
+	FORCEINLINE bool IsFinite(const double Value)
+	{
+		const bool bIsFinite = (IntBits(Value) & 0x7FFFFFFFFFFFFFFF_u64) < 0x7FF0000000000000_u64;
+		checkVoxelSlow(bIsFinite == FMath::IsFinite(Value));
+		return bIsFinite;
+	}
+
 	template<typename T>
 	bool IsNaN(T) = delete;
+	template<typename T>
+	bool IsFinite(T) = delete;
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	FORCEINLINE float DoubleToFloat_Lower(const double Value)
+	{
+		if (!IsFinite(Value))
+		{
+			return Value;
+		}
+
+		float Result = float(Value);
+		if (Result > Value)
+		{
+			if (Result < 0)
+			{
+				ReinterpretCastRef<uint32>(Result)++;
+			}
+			else if (Result > 0)
+			{
+				ReinterpretCastRef<uint32>(Result)--;
+			}
+			else
+			{
+				checkVoxelSlow(Result == 0);
+				checkVoxelSlow(Value < 0);
+				Result = -MIN_flt;
+			}
+		}
+
+		checkVoxelSlow(double(Result) <= Value);
+		return Result;
+	}
+	FORCEINLINE float DoubleToFloat_Higher(const double Value)
+	{
+		if (!IsFinite(Value))
+		{
+			return Value;
+		}
+
+		float Result = float(Value);
+		if (Result < Value)
+		{
+			if (Result < 0)
+			{
+				ReinterpretCastRef<uint32>(Result)--;
+			}
+			else if (Result > 0)
+			{
+				ReinterpretCastRef<uint32>(Result)++;
+			}
+			else
+			{
+				checkVoxelSlow(Result == 0);
+				checkVoxelSlow(Value > 0);
+				Result = MIN_flt;
+			}
+		}
+
+		checkVoxelSlow(Value <= double(Result));
+		return Result;
+	}
+
+	FORCEINLINE FVector2f DoubleToFloat_Lower(const FVector2d& Value)
+	{
+		return FVector2f(
+			DoubleToFloat_Lower(Value.X),
+			DoubleToFloat_Lower(Value.Y));
+	}
+	FORCEINLINE FVector2f DoubleToFloat_Higher(const FVector2d& Value)
+	{
+		return FVector2f(
+			DoubleToFloat_Higher(Value.X),
+			DoubleToFloat_Higher(Value.Y));
+	}
+
+	FORCEINLINE FVector3f DoubleToFloat_Lower(const FVector3d& Value)
+	{
+		return FVector3f(
+			DoubleToFloat_Lower(Value.X),
+			DoubleToFloat_Lower(Value.Y),
+			DoubleToFloat_Lower(Value.Z));
+	}
+	FORCEINLINE FVector3f DoubleToFloat_Higher(const FVector3d& Value)
+	{
+		return FVector3f(
+			DoubleToFloat_Higher(Value.X),
+			DoubleToFloat_Higher(Value.Y),
+			DoubleToFloat_Higher(Value.Z));
+	}
+
+	FORCEINLINE FVector4f DoubleToFloat_Lower(const FVector4d& Value)
+	{
+		return FVector4f(
+			DoubleToFloat_Lower(Value.X),
+			DoubleToFloat_Lower(Value.Y),
+			DoubleToFloat_Lower(Value.Z),
+			DoubleToFloat_Lower(Value.W));
+	}
+	FORCEINLINE FVector4f DoubleToFloat_Higher(const FVector4d& Value)
+	{
+		return FVector4f(
+			DoubleToFloat_Higher(Value.X),
+			DoubleToFloat_Higher(Value.Y),
+			DoubleToFloat_Higher(Value.Z),
+			DoubleToFloat_Higher(Value.W));
+	}
 
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////

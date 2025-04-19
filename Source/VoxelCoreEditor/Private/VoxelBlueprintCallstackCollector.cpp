@@ -2,9 +2,11 @@
 
 #include "VoxelMinimal.h"
 #include "VoxelMessage.h"
-#if WITH_EDITOR
+#include "K2Node_Tunnel.h"
 #include "Kismet2/KismetDebugUtilities.h"
 #include "Kismet2/KismetEditorUtilities.h"
+
+DEFINE_PRIVATE_ACCESS(FBlueprintDebugData, PerFunctionLineNumbers);
 
 void GatherBlueprintCallstack(const TSharedRef<FVoxelMessage>& Message)
 {
@@ -45,10 +47,60 @@ void GatherBlueprintCallstack(const TSharedRef<FVoxelMessage>& Message)
 	}
 
 	const int32 CodeOffset = Frame.Code - Frame.Node->Script.GetData() - 1;
-	const UEdGraphNode* BlueprintNode = GeneratedClass->DebugData.FindSourceNodeFromCodeLocation(Frame.Node, CodeOffset, true);
+
+	const FDebuggingInfoForSingleFunction* FunctionInfo = PrivateAccess::PerFunctionLineNumbers(GeneratedClass->DebugData).Find(Frame.Node);
+	if (!FunctionInfo)
+	{
+		return;
+	}
+
+	TVoxelArray<int32> CodeOffsets;
+	FunctionInfo->LineNumberToSourceNodeMap.GenerateKeyArray(CodeOffsets);
+	CodeOffsets.Sort();
+
+	if (!ensureVoxelSlow(CodeOffsets.Num() > 0))
+	{
+		return;
+	}
+
+	const auto GetNode = [&](const int32 Index)
+	{
+		return FunctionInfo->LineNumberToSourceNodeMap[CodeOffsets[Index]].Get();
+	};
+
+	int32 Index = Algo::LowerBound(CodeOffsets, CodeOffset);
+	if (!ensureVoxelSlow(CodeOffsets.IsValidIndex(Index)))
+	{
+		return;
+	}
+
+	const UEdGraphNode* BlueprintNode = GetNode(Index);
+
+	// Search forward for a node
+	while (!BlueprintNode)
+	{
+		if (!CodeOffsets.IsValidIndex(Index + 1))
+		{
+			break;
+		}
+
+		Index++;
+		BlueprintNode = GetNode(Index);
+	}
+
 	if (!BlueprintNode)
 	{
 		return;
+	}
+
+	// With latent nodes the code offset points to a tunnel
+	// Walk backwards to the actual function call
+	while (
+		BlueprintNode->IsA<UK2Node_Tunnel>() &&
+		Index > 0)
+	{
+		Index--;
+		BlueprintNode = GetNode(Index);
 	}
 
 	Message->AddToken(FVoxelMessageTokenFactory::CreateObjectToken(BlueprintNode));
@@ -61,4 +113,3 @@ VOXEL_RUN_ON_STARTUP_GAME()
 		GatherBlueprintCallstack(Message);
 	});
 }
-#endif

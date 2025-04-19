@@ -8,6 +8,8 @@
 #include "VoxelMacros.h"
 #include "HAL/LowLevelMemStats.h"
 
+#define VOXEL_STATS (STATS && CPUPROFILERTRACE_ENABLED)
+
 UE_TRACE_CHANNEL_EXTERN(VoxelChannel, VOXELCORE_API);
 
 DECLARE_STATS_GROUP(TEXT("Voxel"), STATGROUP_Voxel, STATCAT_Advanced);
@@ -38,7 +40,7 @@ VOXELCORE_API void ExitVoxelLLMScope();
 #define VOXEL_LLM_SCOPE()
 #endif
 
-#if CPUPROFILERTRACE_ENABLED
+#if VOXEL_STATS
 FORCEINLINE bool AreVoxelStatsEnabled()
 {
 	return VoxelChannel.IsEnabled();
@@ -107,12 +109,20 @@ VOXELCORE_API FName VoxelStats_AddNum(const FString& Format, int32 Num);
 #define VOXEL_SCOPE_COUNTER_FORMAT(Format, ...) VOXEL_SCOPE_COUNTER_FORMAT_COND(true, Format, ##__VA_ARGS__)
 #define VOXEL_FUNCTION_COUNTER() VOXEL_FUNCTION_COUNTER_COND(true)
 
-#define VOXEL_SCOPE_COUNTER_NUM(Name, Num, Threshold) checkStatic(Threshold >= 0); VOXEL_SCOPE_COUNTER_FNAME_COND((Num) > (Threshold), VoxelStats_AddNum(STATIC_FSTRING(Name), Num))
-#define VOXEL_FUNCTION_COUNTER_NUM(Num, Threshold) checkStatic(Threshold >= 0); VOXEL_SCOPE_COUNTER_NUM(VOXEL_STATS_CLEAN_FUNCTION_NAME, Num, Threshold)
+FORCEINLINE bool VoxelScopeCounterCondition(int32 Num)
+{
+	return true;
+}
+FORCEINLINE bool VoxelScopeCounterCondition(const int32 Num, const int32 Threshold)
+{
+	return Num > Threshold;
+}
+
+#define VOXEL_SCOPE_COUNTER_NUM(Name, Num, ...) VOXEL_SCOPE_COUNTER_FNAME_COND(VoxelScopeCounterCondition(Num, ##__VA_ARGS__), VoxelStats_AddNum(STATIC_FSTRING(Name), Num))
+#define VOXEL_FUNCTION_COUNTER_NUM(Num, ...) VOXEL_SCOPE_COUNTER_NUM(VOXEL_STATS_CLEAN_FUNCTION_NAME, Num, ##__VA_ARGS__)
 
 #define VOXEL_LOG_FUNCTION_STATS() FScopeLogTime PREPROCESSOR_JOIN(FScopeLogTime_, __LINE__)(*STATIC_FSTRING(VOXEL_STATS_CLEAN_FUNCTION_NAME));
 #define VOXEL_LOG_SCOPE_STATS(Name) FScopeLogTime PREPROCESSOR_JOIN(FScopeLogTime_, __LINE__)(*STATIC_FSTRING(VOXEL_STATS_CLEAN_FUNCTION_NAME + "." + FString(Name)));
-#define VOXEL_TRACE_BOOKMARK() TRACE_BOOKMARK(*STATIC_FSTRING(VOXEL_STATS_CLEAN_FUNCTION_NAME));
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -126,7 +136,7 @@ VOXELCORE_API FName VoxelStats_AddNum(const FString& Format, int32 Num);
 	VOXEL_DEBUG_ONLY(FVoxelCounter64 StatName;) \
 	DEFINE_STAT(StatName ## _Stat)
 
-#if STATS
+#if VOXEL_STATS
 #define INC_VOXEL_COUNTER_BY(StatName, Amount) \
 	VOXEL_DEBUG_ONLY(StatName.Add(Amount);) \
 	FThreadStats::AddMessage(GET_STATFNAME(StatName ## _Stat), EStatOperation::Add, int64(Amount));
@@ -163,7 +173,7 @@ VOXELCORE_API FName VoxelStats_AddNum(const FString& Format, int32 Num);
 
 #define FVoxelStatsRefHelper VOXEL_APPEND_LINE(__FVoxelStatsRefHelper)
 
-#if STATS
+#if VOXEL_STATS
 #define VOXEL_ALLOCATED_SIZE_TRACKER(StatName) \
 	struct FVoxelStatsRefHelper \
 	{ \
@@ -523,7 +533,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#if STATS
+#if VOXEL_STATS
 #define VOXEL_COUNT_INSTANCES() \
 	static FVoxelCounter64 VoxelInstanceCount; \
 	struct FVoxelStatsRefHelper \
@@ -553,7 +563,16 @@ private:
 			return *this; \
 		} \
 	}; \
-	FVoxelStatsRefHelper VOXEL_APPEND_LINE(__VoxelStatsRefHelper);
+	FVoxelStatsRefHelper VOXEL_APPEND_LINE(__VoxelStatsRefHelper); \
+	\
+	template<typename T> \
+	friend auto& GetVoxelInstanceCount();
+
+template<typename T>
+auto& GetVoxelInstanceCount()
+{
+	return T::VoxelInstanceCount;
+}
 
 #define DEFINE_VOXEL_INSTANCE_COUNTER(Struct) \
 	DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num " #Struct), STAT_Num ## Struct, STATGROUP_VoxelTypes); \
@@ -561,7 +580,7 @@ private:
 	\
 	VOXEL_RUN_ON_STARTUP_GAME() \
 	{ \
-		RegisterVoxelInstanceCounter(GET_STATFNAME(STAT_Num ## Struct), Struct::VoxelInstanceCount); \
+		RegisterVoxelInstanceCounter(GET_STATFNAME(STAT_Num ## Struct), GetVoxelInstanceCount<Struct>()); \
 	}
 #else
 #define VOXEL_COUNT_INSTANCES()

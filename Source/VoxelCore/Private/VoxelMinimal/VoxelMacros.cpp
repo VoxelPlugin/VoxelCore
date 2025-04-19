@@ -2,6 +2,7 @@
 
 #include "VoxelMinimal.h"
 #include "Interfaces/IPluginManager.h"
+#include "Serialization/AsyncPackageLoader.h"
 
 VOXEL_CONSOLE_VARIABLE(
 	VOXELCORE_API, bool, GVoxelProfilerInfiniteLoop, false,
@@ -12,20 +13,74 @@ VOXEL_CONSOLE_VARIABLE(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+FVoxelCounter32 GVoxelNumGCScopes;
+
+struct FVoxelGCScopeGuard::FImpl
+{
+	FGCScopeGuard Guard;
+
+	FImpl()
+	{
+		GVoxelNumGCScopes.Increment();
+	}
+	~FImpl()
+	{
+		GVoxelNumGCScopes.Decrement();
+	}
+};
+
+FVoxelGCScopeGuard::FVoxelGCScopeGuard()
+{
+	if (IsInGameThread())
+	{
+		return;
+	}
+
+	VOXEL_FUNCTION_COUNTER();
+	Impl = MakePimpl<FImpl>();
+}
+
+FVoxelGCScopeGuard::~FVoxelGCScopeGuard()
+{
+	if (!Impl)
+	{
+		return;
+	}
+
+	VOXEL_FUNCTION_COUNTER();
+	Impl.Reset();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+DEFINE_PRIVATE_ACCESS(FUObjectArray, ObjObjectsCritical);
+
 bool Voxel_CanAccessUObject()
 {
 	if (IsInGameThread() ||
+		IsInParallelGameThread() ||
 		IsInAsyncLoadingThread())
 	{
 		return true;
 	}
 
-	if (IsGarbageCollecting())
+	if (IsGarbageCollecting() ||
+		GVoxelNumGCScopes.Get() > 0)
 	{
 		return true;
 	}
 
-	return false;
+	// If we fail to lock GUObjectArray it means it's likely locked already, meaning accessing objects async is safe
+	// This is needed to not incorrectly raise errors when GetAllReferencersIncludingWeak is called
+	if (PrivateAccess::ObjObjectsCritical(GUObjectArray).TryLock())
+	{
+		PrivateAccess::ObjObjectsCritical(GUObjectArray).Unlock();
+		return false;
+	}
+
+	return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -101,7 +156,6 @@ struct FVoxelRunOnStartupStatics
 	FFunctions GameFunctions;
 	FFunctions EditorFunctions;
 	FFunctions EditorCommandletFunctions;
-	FFunctions FirstTickFunctions;
 
 	static FVoxelRunOnStartupStatics& Get()
 	{
@@ -120,14 +174,10 @@ FVoxelRunOnStartupPhaseHelper::FVoxelRunOnStartupPhaseHelper(const EVoxelRunOnSt
 	{
 		FVoxelRunOnStartupStatics::Get().EditorFunctions.Add(Priority, MoveTemp(Lambda));
 	}
-	else if (Phase == EVoxelRunOnStartupPhase::EditorCommandlet)
-	{
-		FVoxelRunOnStartupStatics::Get().EditorCommandletFunctions.Add(Priority, MoveTemp(Lambda));
-	}
 	else
 	{
-		check(Phase == EVoxelRunOnStartupPhase::FirstTick);
-		FVoxelRunOnStartupStatics::Get().FirstTickFunctions.Add(Priority, MoveTemp(Lambda));
+		check(Phase == EVoxelRunOnStartupPhase::EditorCommandlet);
+		FVoxelRunOnStartupStatics::Get().EditorCommandletFunctions.Add(Priority, MoveTemp(Lambda));
 	}
 }
 
@@ -157,9 +207,4 @@ FDelayedAutoRegisterHelper GVoxelRunOnStartup_Editor(EDelayedRegisterRunPhase::E
 	}
 
 	FVoxelRunOnStartupStatics::Get().EditorFunctions.Execute();
-});
-
-FDelayedAutoRegisterHelper GVoxelRunOnStartup_FirstTick(EDelayedRegisterRunPhase::EndOfEngineInit, []
-{
-	FVoxelRunOnStartupStatics::Get().FirstTickFunctions.Execute();
 });

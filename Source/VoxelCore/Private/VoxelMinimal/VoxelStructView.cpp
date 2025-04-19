@@ -32,6 +32,10 @@ bool FConstVoxelStructView::Identical(const FConstVoxelStructView Other) const
 	checkVoxelSlow(IsValid());
 	checkVoxelSlow(Other.IsValid());
 	checkVoxelSlow(GetScriptStruct() == Other.GetScriptStruct());
+
+	// Check that we have something to check
+	checkVoxelSlow(EnumHasAllFlags(GetScriptStruct()->StructFlags, STRUCT_IdenticalNative) || GetScriptStruct()->PropertyLink);
+
 	return GetScriptStruct()->CompareScriptStruct(Other.GetStructMemory(), GetStructMemory(), PPF_None);
 }
 
@@ -57,7 +61,7 @@ void FConstVoxelStructView::CopyTo(const FVoxelStructView Other) const
 	else
 	{
 		// Check that we have something to copy
-		checkVoxelSlow(GetScriptStruct()->ChildProperties);
+		checkVoxelSlow(GetScriptStruct()->PropertyLink);
 
 		GetScriptStruct()->CopyScriptStruct(Other.GetStructMemory(), GetStructMemory());
 	}

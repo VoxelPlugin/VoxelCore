@@ -108,7 +108,7 @@ struct FVoxelUnrealInsightsLauncher
 	}
 };
 
-#if STATS
+#if VOXEL_STATS
 VOXEL_CONSOLE_COMMAND(
 	"voxel.StartInsights",
 	"")

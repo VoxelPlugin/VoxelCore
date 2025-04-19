@@ -6,7 +6,7 @@
 
 class FVoxelSingletonSceneViewExtension;
 
-class VOXELCORE_API FVoxelSingletonManager
+class FVoxelSingletonManager
 	: public FVoxelTicker
 	, public FGCObject
 {
@@ -33,4 +33,4 @@ private:
 	TVoxelArray<FVoxelSingleton*> Singletons;
 	TSharedPtr<FVoxelSingletonSceneViewExtension> ViewExtension;
 };
-extern VOXELCORE_API FVoxelSingletonManager* GVoxelSingletonManager;
+extern FVoxelSingletonManager* GVoxelSingletonManager;

@@ -207,6 +207,40 @@ FORCEINLINE generic int4 MakeInt4(
 	return Result;
 }
 
+FORCEINLINE generic long2 MakeLong2(
+	const generic int64 X,
+	const generic int64 Y)
+{
+	generic long2 Result;
+	Result.x = X;
+	Result.y = Y;
+	return Result;
+}
+FORCEINLINE generic long3 MakeLong3(
+	const generic int64 X,
+	const generic int64 Y,
+	const generic int64 Z)
+{
+	generic long3 Result;
+	Result.x = X;
+	Result.y = Y;
+	Result.z = Z;
+	return Result;
+}
+FORCEINLINE generic long4 MakeLong4(
+	const generic int64 X,
+	const generic int64 Y,
+	const generic int64 Z,
+	const generic int64 W)
+{
+	generic long4 Result;
+	Result.x = X;
+	Result.y = Y;
+	Result.z = Z;
+	Result.w = W;
+	return Result;
+}
+
 #define VECTOR_OP(Type, OpOp, Op) \
 	FORCEINLINE generic Type ## 2 OpOp(generic Type ## 2 A, generic Type ## 2 B) \
 	{ \
@@ -314,6 +348,11 @@ SCALAR_VECTOR_OP(int, int32, int, operator*, *);
 SCALAR_VECTOR_OP(int, int32, int, operator+, +);
 SCALAR_VECTOR_OP(int, int32, int, operator-, -);
 
+SCALAR_VECTOR_OP(long, int64, long, operator*, *);
+// Slow SCALAR_VECTOR_OP(long, int64, long, operator/, /);
+SCALAR_VECTOR_OP(long, int64, long, operator+, +);
+SCALAR_VECTOR_OP(long, int64, long, operator-, -);
+
 SCALAR_VECTOR_OP(int, float, float, operator*, *);
 SCALAR_VECTOR_OP(int, float, float, operator/, /);
 SCALAR_VECTOR_OP(int, float, float, operator+, +);
@@ -393,6 +432,36 @@ FORCEINLINE generic float3 clamp(
 	const generic float B)
 {
 	return MakeFloat3(
+		clamp(Value.x, A, B),
+		clamp(Value.y, A, B),
+		clamp(Value.z, A, B));
+}
+
+FORCEINLINE generic double2 clamp(
+	const generic double2 Value,
+	const generic double2 A,
+	const generic double2 B)
+{
+	return MakeDouble2(
+		clamp(Value.x, A.x, B.x),
+		clamp(Value.y, A.y, B.y));
+}
+FORCEINLINE generic double3 clamp(
+	const generic double3 Value,
+	const generic double3 A,
+	const generic double3 B)
+{
+	return MakeDouble3(
+		clamp(Value.x, A.x, B.x),
+		clamp(Value.y, A.y, B.y),
+		clamp(Value.z, A.z, B.z));
+}
+FORCEINLINE generic double3 clamp(
+	const generic double3 Value,
+	const generic double A,
+	const generic double B)
+{
+	return MakeDouble3(
 		clamp(Value.x, A, B),
 		clamp(Value.y, A, B),
 		clamp(Value.z, A, B));
@@ -780,15 +849,19 @@ FORCEINLINE generic float SafeSmoothMax(
 	return -SafeSmoothMin(-DistanceA, -DistanceB, Smoothness);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 FORCEINLINE generic float BilinearInterpolation(
 	const generic float A,
 	const generic float B,
 	const generic float C,
 	const generic float D,
-	const generic float X,
-	const generic float Y)
+	const generic float AlphaX,
+	const generic float AlphaY)
 {
-	return lerp(lerp(A, B, X), lerp(C, D, X), Y);
+	return lerp(lerp(A, B, AlphaX), lerp(C, D, AlphaX), AlphaY);
 }
 
 FORCEINLINE generic float TrilinearInterpolation(
@@ -800,14 +873,70 @@ FORCEINLINE generic float TrilinearInterpolation(
 	const generic float F,
 	const generic float G,
 	const generic float H,
-	const generic float X,
-	const generic float Y,
-	const generic float Z)
+	const generic float AlphaX,
+	const generic float AlphaY,
+	const generic float AlphaZ)
 {
 	return lerp(
-		BilinearInterpolation(A, B, C, D, X, Y),
-		BilinearInterpolation(E, F, G, H, X, Y),
-		Z);
+		BilinearInterpolation(A, B, C, D, AlphaX, AlphaY),
+		BilinearInterpolation(E, F, G, H, AlphaX, AlphaY),
+		AlphaZ);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FORCEINLINE generic float BicubicInterpolation(
+	const uniform FBicubicWeights Weights,
+	const generic float p00,
+	const generic float p01,
+	const generic float p02,
+	const generic float p03,
+	const generic float p10,
+	const generic float p11,
+	const generic float p12,
+	const generic float p13,
+	const generic float p20,
+	const generic float p21,
+	const generic float p22,
+	const generic float p23,
+	const generic float p30,
+	const generic float p31,
+	const generic float p32,
+	const generic float p33,
+	const generic float AlphaX,
+	const generic float AlphaY)
+{
+	const generic float p0 =
+		p00 * (Weights.p0A + AlphaX * (Weights.p0B + AlphaX * (Weights.p0C + AlphaX * Weights.p0D))) +
+		p01 * (Weights.p1A + AlphaX * (Weights.p1B + AlphaX * (Weights.p1C + AlphaX * Weights.p1D))) +
+		p02 * (Weights.p2A + AlphaX * (Weights.p2B + AlphaX * (Weights.p2C + AlphaX * Weights.p2D))) +
+		p03 * (Weights.p3A + AlphaX * (Weights.p3B + AlphaX * (Weights.p3C + AlphaX * Weights.p3D)));
+
+	const generic float p1 =
+		p10 * (Weights.p0A + AlphaX * (Weights.p0B + AlphaX * (Weights.p0C + AlphaX * Weights.p0D))) +
+		p11 * (Weights.p1A + AlphaX * (Weights.p1B + AlphaX * (Weights.p1C + AlphaX * Weights.p1D))) +
+		p12 * (Weights.p2A + AlphaX * (Weights.p2B + AlphaX * (Weights.p2C + AlphaX * Weights.p2D))) +
+		p13 * (Weights.p3A + AlphaX * (Weights.p3B + AlphaX * (Weights.p3C + AlphaX * Weights.p3D)));
+
+	const generic float p2 =
+		p20 * (Weights.p0A + AlphaX * (Weights.p0B + AlphaX * (Weights.p0C + AlphaX * Weights.p0D))) +
+		p21 * (Weights.p1A + AlphaX * (Weights.p1B + AlphaX * (Weights.p1C + AlphaX * Weights.p1D))) +
+		p22 * (Weights.p2A + AlphaX * (Weights.p2B + AlphaX * (Weights.p2C + AlphaX * Weights.p2D))) +
+		p23 * (Weights.p3A + AlphaX * (Weights.p3B + AlphaX * (Weights.p3C + AlphaX * Weights.p3D)));
+
+	const generic float p3 =
+		p30 * (Weights.p0A + AlphaX * (Weights.p0B + AlphaX * (Weights.p0C + AlphaX * Weights.p0D))) +
+		p31 * (Weights.p1A + AlphaX * (Weights.p1B + AlphaX * (Weights.p1C + AlphaX * Weights.p1D))) +
+		p32 * (Weights.p2A + AlphaX * (Weights.p2B + AlphaX * (Weights.p2C + AlphaX * Weights.p2D))) +
+		p33 * (Weights.p3A + AlphaX * (Weights.p3B + AlphaX * (Weights.p3C + AlphaX * Weights.p3D)));
+
+	return
+		p0 * (Weights.p0A + AlphaY * (Weights.p0B + AlphaY * (Weights.p0C + AlphaY * Weights.p0D))) +
+		p1 * (Weights.p1A + AlphaY * (Weights.p1B + AlphaY * (Weights.p1C + AlphaY * Weights.p1D))) +
+		p2 * (Weights.p2A + AlphaY * (Weights.p2B + AlphaY * (Weights.p2C + AlphaY * Weights.p2D))) +
+		p3 * (Weights.p3A + AlphaY * (Weights.p3B + AlphaY * (Weights.p3C + AlphaY * Weights.p3D)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -363,7 +363,7 @@ bool FVoxelUtilities::IsFloat(FStringView Text)
 		return IsInt(Text);
 	}
 
-	return true;
+	return false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -372,7 +372,7 @@ bool FVoxelUtilities::IsFloat(FStringView Text)
 
 FName FVoxelUtilities::Concatenate(const FStringView& String, const FName Name)
 {
-	TStringBuilderWithBuffer<TCHAR, NAME_SIZE> Builder;
+	TStringBuilder<NAME_SIZE> Builder;
 	Builder.Append(String);
 	AppendName(Builder, Name);
 	return FName(Builder);
@@ -380,7 +380,7 @@ FName FVoxelUtilities::Concatenate(const FStringView& String, const FName Name)
 
 FName FVoxelUtilities::Concatenate(const FName Name, const FStringView& String)
 {
-	TStringBuilderWithBuffer<TCHAR, NAME_SIZE> Builder;
+	TStringBuilder<NAME_SIZE> Builder;
 	AppendName(Builder, Name);
 	Builder.Append(String);
 	return FName(Builder);
@@ -388,7 +388,7 @@ FName FVoxelUtilities::Concatenate(const FName Name, const FStringView& String)
 
 FName FVoxelUtilities::Concatenate(const FName A, const FName B)
 {
-	TStringBuilderWithBuffer<TCHAR, NAME_SIZE> Builder;
+	TStringBuilder<NAME_SIZE> Builder;
 	AppendName(Builder, A);
 	AppendName(Builder, B);
 	return FName(Builder);
@@ -416,4 +416,13 @@ TVoxelArray<uint8> FVoxelUtilities::HexToBlob(const FString& Source)
 	verify(FString::ToHexBlob(Source, Result.GetData(), Result.Num()));
 
 	return Result;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FString LexToString(const FSphere& Sphere)
+{
+	return FString::Printf(TEXT("Center=(%s), Radius=%f"), *Sphere.Center.ToString(), Sphere.W);
 }

@@ -5,6 +5,7 @@
 #include "VoxelMinimal.h"
 
 extern VOXELCORE_API FVoxelTaskContext* GVoxelGlobalTaskContext;
+extern FVoxelTaskContext* GVoxelSynchronousTaskContext;
 
 class VOXELCORE_API FVoxelTaskContextStrongRef
 {
@@ -15,12 +16,17 @@ public:
 	~FVoxelTaskContextStrongRef();
 };
 
-class VOXELCORE_API FVoxelTaskContextWeakRef
+class alignas(8) VOXELCORE_API FVoxelTaskContextWeakRef
 {
 public:
 	FVoxelTaskContextWeakRef() = default;
 
 	TUniquePtr<FVoxelTaskContextStrongRef> Pin() const;
+
+	FORCEINLINE bool operator==(const FVoxelTaskContextWeakRef& Other) const
+	{
+		return ReinterpretCastRef<uint64>(*this) == ReinterpretCastRef<uint64>(Other);
+	}
 
 private:
 	int32 Index = -1;
@@ -32,13 +38,17 @@ private:
 class VOXELCORE_API FVoxelTaskContext
 {
 public:
-	const bool bCanCancelTasks;
-	const bool bTrackPromisesCallstacks;
+	using FLambdaWrapper = TVoxelUniqueFunction<TVoxelUniqueFunction<void()>(TVoxelUniqueFunction<void()>)>;
 
-	FVoxelTaskContext(
-		bool bCanCancelTasks,
-		bool bTrackPromisesCallstacks);
+	const FName Name;
+	const bool bCanCancelTasks;
+	bool bSynchronous = false;
+	bool bTrackPromisesCallstacks = false;
+	FLambdaWrapper LambdaWrapper;
+
+	static TSharedRef<FVoxelTaskContext> Create(FName Name);
 	virtual ~FVoxelTaskContext();
+	UE_NONCOPYABLE(FVoxelTaskContext);
 
 	VOXEL_COUNT_INSTANCES();
 
@@ -47,10 +57,16 @@ public:
 		EVoxelFutureThread Thread,
 		TVoxelUniqueFunction<void()> Lambda);
 
-	void FlushTasks();
+	void CancelTasks();
 	void DumpToLog();
+	void FlushAllTasks() const;
+	void FlushTasksUntil(TFunctionRef<bool()> Condition) const;
 
 public:
+	FORCEINLINE const TVoxelAtomic<bool>& GetShouldCancelTasksRef() const
+	{
+		return ShouldCancelTasks;
+	}
 	FORCEINLINE bool IsCancellingTasks() const
 	{
 		return ShouldCancelTasks.Get(std::memory_order_relaxed);
@@ -95,12 +111,19 @@ public:
 
 private:
 	FVoxelTaskContextWeakRef SelfWeakRef;
-	FVoxelCounter32_WithPadding NumStrongRefs;
-	FVoxelCounter32_WithPadding NumPromises;
-	FVoxelCounter32_WithPadding NumPendingTasks;
-	FVoxelCounter32_WithPadding NumLaunchedTasks;
-	FVoxelCounter32_WithPadding NumRenderTasks;
-	TVoxelAtomic_WithPadding<bool> ShouldCancelTasks = false;
+	VOXEL_ATOMIC_PADDING;
+	FVoxelCounter32 NumStrongRefs;
+	VOXEL_ATOMIC_PADDING;
+	FVoxelCounter32 NumPromises;
+	VOXEL_ATOMIC_PADDING;
+	FVoxelCounter32 NumPendingTasks;
+	VOXEL_ATOMIC_PADDING;
+	FVoxelCounter32 NumLaunchedTasks;
+	VOXEL_ATOMIC_PADDING;
+	FVoxelCounter32 NumRenderTasks;
+	VOXEL_ATOMIC_PADDING;
+	TVoxelAtomic<bool> ShouldCancelTasks = false;
+	VOXEL_ATOMIC_PADDING;
 
 private:
 	static constexpr int32 MaxLaunchedTasks = 256;
@@ -112,10 +135,18 @@ private:
 	FVoxelCriticalSection AsyncTasksCriticalSection;
 	FTaskArray AsyncTasks_RequiresLock;
 
+	bool bIsProcessingGameTasks = false;
+
+	FVoxelTaskContext(
+		FName Name,
+		bool bCanCancelTasks);
+
 	void LaunchTasks();
 	void LaunchTask(TVoxelUniqueFunction<void()> Task);
 
-	void ProcessGameTasks(bool& bAnyTaskProcessed);
+	void ProcessGameTasks(
+		bool& bAnyTaskProcessed,
+		TVoxelChunkedArray<TVoxelUniqueFunction<void()>>& OutGameTasksToDelete);
 
 private:
 	FVoxelCriticalSection CriticalSection;
@@ -157,20 +188,6 @@ public:
 		}
 
 		return *GVoxelGlobalTaskContext;
-	}
-
-public:
-	// Call the lambda in the global task context, avoiding any task leak or weird dependencies
-	template<
-		typename LambdaType,
-		typename T = LambdaReturnType_T<LambdaType>>
-	static TVoxelFutureType<T> CallInGlobalContext(LambdaType Lambda)
-	{
-		return GetContext().Wrap(INLINE_LAMBDA
-		{
-			FVoxelTaskScope Scope(*GVoxelGlobalTaskContext);
-			return Lambda();
-		});
 	}
 
 private:

@@ -41,13 +41,13 @@ public:
 		return Array;
 	}
 
-	FORCEINLINE uint32* RESTRICT GetWordData()
+	FORCEINLINE TVoxelArrayView<uint32> GetWordView()
 	{
-		return Array.GetData();
+		return Array;
 	}
-	FORCEINLINE const uint32* RESTRICT GetWordData() const
+	FORCEINLINE TConstVoxelArrayView<uint32> GetWordView() const
 	{
-		return Array.GetData();
+		return Array;
 	}
 
 	FORCEINLINE uint32& GetWord(int32 Index)
@@ -73,44 +73,26 @@ public:
 		return 0 <= Index && Index < Num();
 	}
 
-	FORCEINLINE void Set(const int32 Index, const bool bValue)
-	{
-		checkVoxelSlow(IsValidIndex(Index));
-
-		const uint32 Mask = 1u << (Index % NumBitsPerWord);
-		uint32& Value = Array[Index / NumBitsPerWord];
-
-		if (bValue)
-		{
-			Value |= Mask;
-		}
-		else
-		{
-			Value &= ~Mask;
-		}
-
-		checkVoxelSlow(Test(Index) == bValue);
-	}
 	FORCEINLINE void SetAll(const bool bValue)
 	{
 		FMemory::Memset(Array.GetData(), bValue ? 0xFF : 0x00, Array.Num() * Array.GetTypeSize());
 	}
 	FORCEINLINE TOptional<bool> TryGetAll() const
 	{
-		return FVoxelBitArrayHelpers::TryGetAll(*this);
+		return FVoxelBitArrayUtilities::TryGetAll(*this);
 	}
 	FORCEINLINE bool AllEqual(bool bValue) const
 	{
-		return FVoxelBitArrayHelpers::AllEqual(*this, bValue);
+		return FVoxelBitArrayUtilities::AllEqual(*this, bValue);
 	}
 	FORCEINLINE int32 CountSetBits() const
 	{
-		return FVoxelBitArrayHelpers::CountSetBits(GetWordData(), NumWords());
+		return FVoxelUtilities::CountSetBits(GetWordView());
 	}
 	FORCEINLINE int32 CountSetBits(const int32 Count) const
 	{
 		checkVoxelSlow(Count <= Num());
-		return FVoxelBitArrayHelpers::CountSetBits_UpperBound(GetWordData(), Count);
+		return FVoxelUtilities::CountSetBits(GetWordView(), Count);
 	}
 
 	template<
@@ -119,27 +101,22 @@ public:
 		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterate>>>
 	FORCEINLINE EVoxelIterate ForAllSetBits(LambdaType Lambda) const
 	{
-		return FVoxelBitArrayHelpers::ForAllSetBits(GetWordData(), NumWords(), Num(), Lambda);
+		return FVoxelBitArrayUtilities::ForAllSetBits(GetWordView(), Num(), Lambda);
 	}
 
-	FORCEINLINE bool Test(const int32 Index) const
-	{
-		checkVoxelSlow(IsValidIndex(Index));
-		return Array[Index / NumBitsPerWord] & (1u << (Index % NumBitsPerWord));
-	}
-	FORCEINLINE bool TestAndClear(int32 Index)
-	{
-		return FVoxelBitArrayHelpers::TestAndClear(*this, Index);
-	}
 	FORCEINLINE FVoxelBitReference operator[](const int32 Index)
 	{
 		checkVoxelSlow(IsValidIndex(Index));
-		return FVoxelBitReference(Array[Index / NumBitsPerWord], 1u << (Index % NumBitsPerWord));
+		return FVoxelBitReference(
+			Array[Index >> FVoxelBitArrayUtilities::NumBitsPerWord_Log2],
+			1u << (Index & FVoxelBitArrayUtilities::IndexInWordMask));
 	}
 	FORCEINLINE FVoxelConstBitReference operator[](const int32 Index) const
 	{
 		checkVoxelSlow(IsValidIndex(Index));
-		return FVoxelConstBitReference(Array[Index / NumBitsPerWord], 1u << (Index % NumBitsPerWord));
+		return FVoxelConstBitReference(
+			Array[Index >> FVoxelBitArrayUtilities::NumBitsPerWord_Log2],
+			1u << (Index & FVoxelBitArrayUtilities::IndexInWordMask));
 	}
 
 	FORCEINLINE bool AtomicSet_ReturnOld(const int32 Index, const bool bValue)
@@ -153,7 +130,7 @@ public:
 		}
 		else
 		{
-			return ReinterpretCastRef<TVoxelAtomic<uint32>>(Word).And_ReturnOld(Mask) & Mask;
+			return ReinterpretCastRef<TVoxelAtomic<uint32>>(Word).And_ReturnOld(~Mask) & Mask;
 		}
 	}
 	FORCEINLINE void AtomicSet(const int32 Index, const bool bValue)
@@ -163,21 +140,12 @@ public:
 
 	FORCEINLINE void SetRange(const int32 Index, const int32 Num, const bool bValue)
 	{
-		return FVoxelBitArrayHelpers::SetRange(*this, Index, Num, bValue);
-	}
-	FORCEINLINE bool TestRange(int32 Index, int32 Num) const
-	{
-		return FVoxelBitArrayHelpers::TestRange(*this, Index, Num);
-	}
-	// Test a range, and clears it if all true
-	FORCEINLINE bool TestAndClearRange(int32 Index, int32 Num)
-	{
-		return FVoxelBitArrayHelpers::TestAndClearRange(*this, Index, Num);
+		return FVoxelBitArrayUtilities::SetRange(GetWordView(), Index, Num, bValue);
 	}
 
 	friend FArchive& operator<<(FArchive& Ar, TVoxelStaticBitArray& BitArray)
 	{
-		Ar.Serialize(BitArray.GetWordData(), BitArray.NumWords() * sizeof(uint32));
+		BitArray.GetWordView().Serialize(Ar);
 		return Ar;
 	}
 
@@ -200,15 +168,10 @@ public:
 
 	FORCEINLINE bool operator==(const TVoxelStaticBitArray& Other) const
 	{
-		return FVoxelUtilities::MemoryEqual(
-			GetWordData(),
-			Other.GetWordData(),
-			NumWords() * sizeof(uint32));
+		return FVoxelUtilities::Equal(GetWordView(), Other.GetWordView());
 	}
 
 private:
 	ArrayType Array{ NoInit };
 };
-
-template<uint32 Size>
-constexpr bool std::is_trivially_destructible_v_voxel<TVoxelStaticBitArray<Size>> = true;
+checkStatic(std::is_trivially_destructible_v<TVoxelStaticBitArray<32>>);

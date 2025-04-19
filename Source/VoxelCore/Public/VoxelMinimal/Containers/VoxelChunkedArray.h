@@ -4,6 +4,7 @@
 
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelIterate.h"
+#include "VoxelMinimal/VoxelTypeCompatibleBytes.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelStaticArray.h"
 #include "VoxelMinimal/Utilities/VoxelMathUtilities.h"
@@ -14,10 +15,10 @@ template<typename Type, int32 MaxBytesPerChunk = 1 << 14>
 class TVoxelChunkedArray
 {
 public:
-	static constexpr int32 NumPerChunkLog2 = FVoxelUtilities::FloorLog2<FMath::DivideAndRoundDown<int32>(MaxBytesPerChunk, sizeof(TTypeCompatibleBytes<Type>))>();
-	static constexpr int32 NumPerChunk = 1 << NumPerChunkLog2;
+	static constexpr int32 NumPerChunk_Log2 = FVoxelUtilities::FloorLog2<FMath::DivideAndRoundDown<int32>(MaxBytesPerChunk, sizeof(TVoxelTypeCompatibleBytes<Type>))>();
+	static constexpr int32 NumPerChunk = 1 << NumPerChunk_Log2;
 
-	using FChunk = TVoxelStaticArray<TTypeCompatibleBytes<Type>, NumPerChunk>;
+	using FChunk = TVoxelStaticArray<TVoxelTypeCompatibleBytes<Type>, NumPerChunk>;
 	using FChunkArray = TVoxelInlineArray<TUniquePtr<FChunk>, 1>;
 
 	TVoxelChunkedArray() = default;
@@ -69,7 +70,7 @@ public:
 
 		ArrayNum = NewNum;
 
-		const int32 NewNumChunks = FVoxelUtilities::DivideCeil_Positive(ArrayNum, NumPerChunk);
+		const int32 NewNumChunks = FVoxelUtilities::DivideCeil_Positive_Log2(ArrayNum, NumPerChunk_Log2);
 		if (NumChunks > NewNumChunks)
 		{
 			NumChunks = NewNumChunks;
@@ -90,7 +91,7 @@ public:
 		VOXEL_FUNCTION_COUNTER_NUM(NewNum, 1024);
 
 		const int32 OldArrayNum = ArrayNum;
-		const int32 NewNumChunks = FVoxelUtilities::DivideCeil_Positive(NewNum, NumPerChunk);
+		const int32 NewNumChunks = FVoxelUtilities::DivideCeil_Positive_Log2(NewNum, NumPerChunk_Log2);
 
 		if (NewNum < ArrayNum)
 		{
@@ -143,7 +144,7 @@ public:
 	}
 	void Reserve(const int32 Number)
 	{
-		const int32 NewNumChunks = FVoxelUtilities::DivideCeil_Positive(Number, NumPerChunk);
+		const int32 NewNumChunks = FVoxelUtilities::DivideCeil_Positive_Log2(Number, NumPerChunk_Log2);
 
 		ChunkArray.Reserve(NewNumChunks);
 
@@ -223,7 +224,7 @@ public:
 			Result.Reserve(Num());
 			for (const Type& Value : *this)
 			{
-				Result.Add_CheckNoGrow(Value);
+				Result.Add_EnsureNoGrow(Value);
 			}
 			return Result;
 		}
@@ -797,8 +798,8 @@ private:
 		ArrayNum += Count;
 		const int32 NewNum = ArrayNum;
 
-		const int32 OldNumChunks = FVoxelUtilities::DivideCeil_Positive(OldNum, NumPerChunk);
-		const int32 NewNumChunks = FVoxelUtilities::DivideCeil_Positive(NewNum, NumPerChunk);
+		const int32 OldNumChunks = FVoxelUtilities::DivideCeil_Positive_Log2(OldNum, NumPerChunk_Log2);
+		const int32 NewNumChunks = FVoxelUtilities::DivideCeil_Positive_Log2(NewNum, NumPerChunk_Log2);
 
 		checkVoxelSlow(NumChunks == OldNumChunks);
 		for (int32 ChunkIndex = OldNumChunks; ChunkIndex < NewNumChunks; ChunkIndex++)

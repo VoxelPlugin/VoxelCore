@@ -58,7 +58,7 @@ FVoxelPromiseState::FVoxelPromiseState(
 	if (Context.bTrackPromisesCallstacks)
 	{
 		VOXEL_SCOPE_LOCK(Context.CriticalSection);
-		StackIndex = Context.StackFrames_RequiresLock.Add(FVoxelUtilities::GetStackFrames(4));
+		StackIndex = Context.StackFrames_RequiresLock.Add(FVoxelUtilities::GetStackFrames_WithStats(4));
 	}
 }
 

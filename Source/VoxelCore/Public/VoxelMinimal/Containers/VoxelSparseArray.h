@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/VoxelTypeCompatibleBytes.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelBitArray.h"
 #include "VoxelMinimal/Utilities/VoxelMathUtilities.h"
@@ -13,7 +14,7 @@ class TVoxelSparseArray
 private:
 	union FValue
 	{
-		TTypeCompatibleBytes<Type> Value;
+		TVoxelTypeCompatibleBytes<Type> Value;
 		int32 NextFreeIndex = -1;
 	};
 
@@ -24,6 +25,55 @@ public:
 		Reset();
 	}
 
+	TVoxelSparseArray(TVoxelSparseArray&& Other)
+	{
+		ArrayNum = Other.ArrayNum;
+		FirstFreeIndex = Other.FirstFreeIndex;
+		AllocationFlags = MoveTemp(AllocationFlags);
+		Values = MoveTemp(Values);
+
+		Other.ArrayNum = 0;
+		Other.FirstFreeIndex = -1;
+	}
+	TVoxelSparseArray(const TVoxelSparseArray& Other)
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 1024);
+
+		ArrayNum = Other.Num();
+		AllocationFlags.SetNum(Other.Num(), true);
+		Values.Reserve(Other.Num());
+
+		for (const Type& Value : Other)
+		{
+			new(Values.Emplace_GetRef_EnsureNoGrow().Value) Type(Value);
+		}
+	}
+
+	TVoxelSparseArray& operator=(TVoxelSparseArray&& Other)
+	{
+		Empty();
+		new(this) TVoxelSparseArray(MoveTemp(Other));
+		return *this;
+	}
+	TVoxelSparseArray& operator=(const TVoxelSparseArray& Other)
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 1024);
+
+		Reset();
+
+		ArrayNum = Other.Num();
+		AllocationFlags.SetNum(Other.Num(), true);
+		Values.Reserve(Other.Num());
+
+		for (const Type& Value : Other)
+		{
+			new(Values.Emplace_GetRef_EnsureNoGrow().Value) Type(Value);
+		}
+
+		return *this;
+	}
+
+public:
 	void Reserve(const int32 Number)
 	{
 		AllocationFlags.Reserve(Number);
@@ -56,6 +106,10 @@ public:
 	FORCEINLINE int32 Num() const
 	{
 		return ArrayNum;
+	}
+	FORCEINLINE int32 Max_Unsafe() const
+	{
+		return AllocationFlags.Num();
 	}
 	FORCEINLINE int64 GetAllocatedSize() const
 	{

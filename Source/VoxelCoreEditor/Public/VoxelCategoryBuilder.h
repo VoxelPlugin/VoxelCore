@@ -21,6 +21,7 @@ public:
 		const FAddProperty& AddProperty);
 
 	void Apply(IDetailLayoutBuilder& DetailLayout) const;
+	void Apply(IDetailChildrenBuilder& ChildrenBuilder) const;
 	void Apply(const FVoxelDetailInterface& DetailInterface) const;
 	void ApplyFlat(const FVoxelDetailInterface& DetailInterface) const;
 

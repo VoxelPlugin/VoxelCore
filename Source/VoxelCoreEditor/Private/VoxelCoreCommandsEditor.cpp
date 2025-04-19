@@ -1,7 +1,6 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelEditorMinimal.h"
-#include "VoxelCoreCommands.h"
 #include "LevelEditor.h"
 
 class FVoxelCoreCommands : public TVoxelCommands<FVoxelCoreCommands>

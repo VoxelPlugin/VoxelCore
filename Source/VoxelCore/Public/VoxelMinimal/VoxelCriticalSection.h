@@ -52,7 +52,7 @@ public:
 	}
 
 public:
-	FORCEINLINE void Lock()
+	FORCEINLINE void Lock() const
 	{
 		checkVoxelSlow(LockerThreadId.Get() != FPlatformTLS::GetCurrentThreadId());
 
@@ -61,7 +61,7 @@ public:
 		checkVoxelSlow(LockerThreadId.Get() == 0);
 		VOXEL_DEBUG_ONLY(LockerThreadId.Set(FPlatformTLS::GetCurrentThreadId()));
 	}
-	FORCEINLINE bool TryLock()
+	FORCEINLINE bool TryLock() const
 	{
 		checkVoxelSlow(LockerThreadId.Get() != FPlatformTLS::GetCurrentThreadId());
 
@@ -76,7 +76,7 @@ public:
 		return true;
 	}
 
-	FORCEINLINE void Unlock()
+	FORCEINLINE void Unlock() const
 	{
 		checkVoxelSlow(LockerThreadId.Get() == FPlatformTLS::GetCurrentThreadId());
 		VOXEL_DEBUG_ONLY(LockerThreadId.Set(0));
@@ -95,9 +95,9 @@ public:
 	}
 
 private:
-	TVoxelAtomic<bool, Padding> bIsLocked;
+	mutable TVoxelAtomic<bool, Padding> bIsLocked;
 #if VOXEL_DEBUG
-	TVoxelAtomic<uint32> LockerThreadId = 0;
+	mutable TVoxelAtomic<uint32> LockerThreadId = 0;
 #endif
 };
 

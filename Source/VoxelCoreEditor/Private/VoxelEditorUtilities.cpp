@@ -209,13 +209,13 @@ DEFINE_PRIVATE_ACCESS(FDetailPropertyRow, ParentCategory);
 
 FSimpleDelegate FVoxelEditorUtilities::MakeRefreshDelegate(IDetailCustomization* DetailCustomization, const IPropertyTypeCustomizationUtils& CustomizationUtils)
 {
-	const IDetailsViewPrivate* DetailView = PrivateAccess::ParentCategory(static_cast<const FDetailPropertyRow&>(CustomizationUtils)).Pin()->GetDetailsView();
+	const IDetailsViewPrivate* DetailView = PrivateAccess::ParentCategory(static_cast<const FDetailPropertyRow&>(CustomizationUtils)).Pin()->UE_506_SWITCH(GetDetailsView, GetDetailsViewSharedPtr().Get)();
 	return MakeRefreshDelegate(DetailCustomization, CustomizationUtils.GetPropertyUtilities(), DetailView);
 }
 
 FSimpleDelegate FVoxelEditorUtilities::MakeRefreshDelegate(IDetailCustomization* DetailCustomization, const IDetailLayoutBuilder& DetailLayout)
 {
-	return MakeRefreshDelegate(DetailCustomization, DetailLayout.GetPropertyUtilities(), DetailLayout.GetDetailsView());
+	return MakeRefreshDelegate(DetailCustomization, DetailLayout.GetPropertyUtilities(), DetailLayout.UE_506_SWITCH(GetDetailsView, GetDetailsViewSharedPtr().Get)());
 }
 
 FSimpleDelegate FVoxelEditorUtilities::MakeRefreshDelegate(IDetailCustomization* DetailCustomization, const IDetailCategoryBuilder& CategoryBuilder)
@@ -246,13 +246,13 @@ FSimpleDelegate FVoxelEditorUtilities::MakeRefreshDelegate(IPropertyTypeCustomiz
 
 FSimpleDelegate FVoxelEditorUtilities::MakeRefreshDelegate(IPropertyTypeCustomization* DetailCustomization, const IPropertyTypeCustomizationUtils& CustomizationUtils)
 {
-	const IDetailsViewPrivate* DetailView = PrivateAccess::ParentCategory(static_cast<const FDetailPropertyRow&>(CustomizationUtils)).Pin()->GetDetailsView();
+	const IDetailsViewPrivate* DetailView = PrivateAccess::ParentCategory(static_cast<const FDetailPropertyRow&>(CustomizationUtils)).Pin()->UE_506_SWITCH(GetDetailsView, GetDetailsViewSharedPtr().Get)();
 	return MakeRefreshDelegate(DetailCustomization, CustomizationUtils.GetPropertyUtilities(), DetailView);
 }
 
 FSimpleDelegate FVoxelEditorUtilities::MakeRefreshDelegate(IPropertyTypeCustomization* DetailCustomization, const IDetailLayoutBuilder& DetailLayout)
 {
-	return MakeRefreshDelegate(DetailCustomization, DetailLayout.GetPropertyUtilities(), DetailLayout.GetDetailsView());
+	return MakeRefreshDelegate(DetailCustomization, DetailLayout.GetPropertyUtilities(), DetailLayout.UE_506_SWITCH(GetDetailsView, GetDetailsViewSharedPtr().Get)());
 }
 
 FSimpleDelegate FVoxelEditorUtilities::MakeRefreshDelegate(IPropertyTypeCustomization* DetailCustomization, const IDetailCategoryBuilder& CategoryBuilder)
@@ -598,6 +598,13 @@ public:
 	virtual void Initialize() override
 	{
 		Pool = MakeShared<FAssetThumbnailPool>(48);
+
+		FCoreDelegates::OnPreExit.AddLambda([this]
+		{
+			// Unsafe to destroy if UObjectInitialized is false
+			check(UObjectInitialized());
+			Pool.Reset();
+		});
 	}
 	virtual void Tick() override
 	{

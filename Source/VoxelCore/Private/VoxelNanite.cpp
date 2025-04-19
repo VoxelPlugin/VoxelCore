@@ -269,11 +269,19 @@ FPackedCluster FCluster::Pack(const FEncodingInfo& Info) const
 	Result.SetPosBitsY(Info.PositionBits.Y);
 	Result.SetPosBitsZ(Info.PositionBits.Z);
 
+#if VOXEL_ENGINE_VERSION >= 506
+	Result.LODBounds = FSphere3f(FVector3f(
+			Bounds.GetCenter().X,
+			Bounds.GetCenter().Y,
+			Bounds.GetCenter().Z),
+		Bounds.Size().Length());
+#else
 	Result.LODBounds = FVector4f(
 		Bounds.GetCenter().X,
 		Bounds.GetCenter().Y,
 		Bounds.GetCenter().Z,
 		Bounds.Size().Length());
+#endif
 
 	Result.BoxBoundsCenter = FVector3f(Bounds.GetCenter());
 
@@ -282,7 +290,7 @@ FPackedCluster FCluster::Pack(const FEncodingInfo& Info) const
 		(uint32(FFloat16(MaxEdgeLength).Encoded) << 16);
 
 	Result.BoxBoundsExtent = FVector3f(Bounds.GetExtent());
-	Result.Flags = NANITE_CLUSTER_FLAG_STREAMING_LEAF | NANITE_CLUSTER_FLAG_ROOT_LEAF;
+	Result.UE_506_SWITCH(Flags, Flags_NumClusterBoneInfluences) = NANITE_CLUSTER_FLAG_STREAMING_LEAF | NANITE_CLUSTER_FLAG_ROOT_LEAF;
 
 	Result.SetBitsPerAttribute(Info.BitsPerAttribute);
 	Result.SetNormalPrecision(Info.Settings.NormalBits);

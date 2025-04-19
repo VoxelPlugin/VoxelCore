@@ -250,26 +250,29 @@ FORCEINLINE UScriptStruct* StaticStructFast()
 {
 	VOXEL_STATIC_HELPER(UScriptStruct*)
 	{
-		if constexpr (std::is_same_v<Struct, FVector2f>)
+		if constexpr (false)
 		{
-			StaticValue = FindCoreStruct(TEXT("Vector2f"));
+
 		}
-		else if constexpr (std::is_same_v<Struct, FVector3f>)
-		{
-			StaticValue = FindCoreStruct(TEXT("Vector3f"));
+
+#define CASE(Type) \
+		else if constexpr (std::is_same_v<Struct, F ## Type>) \
+		{ \
+			StaticValue = FindCoreStruct(TEXT(#Type)); \
 		}
-		else if constexpr (std::is_same_v<Struct, FVector4f>)
-		{
-			StaticValue = FindCoreStruct(TEXT("Vector4f"));
-		}
-		else if constexpr (std::is_same_v<Struct, FLinearColor>)
-		{
-			StaticValue = FindCoreStruct(TEXT("LinearColor"));
-		}
-		else if constexpr (std::is_same_v<Struct, FQuat4f>)
-		{
-			StaticValue = FindCoreStruct(TEXT("Quat4f"));
-		}
+
+		CASE(Vector2f)
+		CASE(Vector3f)
+		CASE(Vector4f)
+		CASE(LinearColor)
+		CASE(Quat4f)
+		CASE(Int64Point)
+		CASE(Int64Vector2)
+		CASE(Int64Vector)
+		CASE(Int64Vector4)
+
+#undef CASE
+
 		else
 		{
 			StaticValue = TBaseStructure<std::decay_t<Struct>>::Get();
@@ -305,7 +308,7 @@ void ForEachAssetDataOfClass(TFunctionRef<void(const FAssetData&)> Operation)
 	ForEachAssetDataOfClass(T::StaticClass(), Operation);
 }
 
-template<typename T, typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<T&>()))>>>
+template<typename T, typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(std::declval<LambdaType>()(std::declval<T&>()))>>>
 void ForEachAssetOfClass(LambdaType&& Operation)
 {
 	ForEachAssetOfClass(T::StaticClass(), [&](UObject* Asset)
@@ -314,7 +317,7 @@ void ForEachAssetOfClass(LambdaType&& Operation)
 	});
 }
 
-template<typename T, typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<T&>()))>>>
+template<typename T, typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(std::declval<LambdaType>()(std::declval<T&>()))>>>
 void ForEachObjectOfClass(LambdaType&& Operation, bool bIncludeDerivedClasses = true, EObjectFlags ExcludeFlags = RF_ClassDefaultObject | RF_MirroredGarbage, EInternalObjectFlags ExclusionInternalFlags = EInternalObjectFlags::None)
 {
 	ForEachObjectOfClass(T::StaticClass(), [&](UObject* Object)
@@ -324,7 +327,7 @@ void ForEachObjectOfClass(LambdaType&& Operation, bool bIncludeDerivedClasses = 
 	}, bIncludeDerivedClasses, ExcludeFlags, ExclusionInternalFlags);
 }
 
-template<typename T, typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(DeclVal<LambdaType>()(DeclVal<T&>()))>>>
+template<typename T, typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(std::declval<LambdaType>()(std::declval<T&>()))>>>
 void ForEachObjectOfClass_Copy(LambdaType&& Operation, bool bIncludeDerivedClasses = true, EObjectFlags ExcludeFlags = RF_ClassDefaultObject | RF_MirroredGarbage, EInternalObjectFlags ExclusionInternalFlags = EInternalObjectFlags::None)
 {
 	TVoxelChunkedArray<T*> Objects;
@@ -395,22 +398,49 @@ VOXELCORE_API void ForeachObjectReference(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-VOXELCORE_API TVoxelDereferencingRange<TFieldRange<FProperty>> GetStructProperties(const UStruct& Struct, EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default);
-VOXELCORE_API TVoxelDereferencingRange<TFieldRange<FProperty>> GetStructProperties(const UStruct* Struct, EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default);
+template<typename T = FProperty>
+TVoxelDereferencingRange<TFieldRange<T>> GetStructProperties(const UStruct& Struct, const EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default)
+{
+	return TFieldRange<T>(&Struct, IterationFlags);
+}
+template<typename T = FProperty>
+TVoxelDereferencingRange<TFieldRange<T>> GetStructProperties(const UStruct* Struct, const EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default)
+{
+	check(Struct);
+	return TFieldRange<T>(Struct, IterationFlags);
+}
 
-VOXELCORE_API TVoxelDereferencingRange<TFieldRange<FProperty>> GetClassProperties(const UClass& Class, EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default);
-VOXELCORE_API TVoxelDereferencingRange<TFieldRange<FProperty>> GetClassProperties(const UClass* Class, EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default);
+template<typename T = FProperty>
+TVoxelDereferencingRange<TFieldRange<T>> GetClassProperties(const UClass& Class, const EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default)
+{
+	return TFieldRange<FProperty>(&Class, IterationFlags);
+}
+template<typename T = FProperty>
+TVoxelDereferencingRange<TFieldRange<T>> GetClassProperties(const UClass* Class, const EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default)
+{
+	check(Class);
+	return TFieldRange<T>(Class, IterationFlags);
+}
 
-VOXELCORE_API TVoxelDereferencingRange<TFieldRange<FProperty>> GetFunctionProperties(const UFunction& Function, EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default);
-VOXELCORE_API TVoxelDereferencingRange<TFieldRange<FProperty>> GetFunctionProperties(const UFunction* Function, EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default);
+template<typename T = FProperty>
+TVoxelDereferencingRange<TFieldRange<T>> GetFunctionProperties(const UFunction& Function, const EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default)
+{
+	return TFieldRange<FProperty>(&Function, IterationFlags);
+}
+template<typename T = FProperty>
+TVoxelDereferencingRange<TFieldRange<T>> GetFunctionProperties(const UFunction* Function, const EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default)
+{
+	check(Function);
+	return TFieldRange<T>(Function, IterationFlags);
+}
 
 template<typename T>
-FORCEINLINE TVoxelDereferencingRange<TFieldRange<FProperty>> GetStructProperties(const EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default)
+TVoxelDereferencingRange<TFieldRange<FProperty>> GetStructProperties(const EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default)
 {
 	return GetStructProperties(StaticStructFast<T>(), IterationFlags);
 }
 template<typename T>
-FORCEINLINE TVoxelDereferencingRange<TFieldRange<FProperty>> GetClassProperties(const EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default)
+TVoxelDereferencingRange<TFieldRange<FProperty>> GetClassProperties(const EFieldIterationFlags IterationFlags = EFieldIterationFlags::Default)
 {
 	return GetClassProperties(StaticClassFast<T>(), IterationFlags);
 }

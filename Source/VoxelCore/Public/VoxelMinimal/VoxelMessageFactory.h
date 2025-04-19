@@ -23,7 +23,7 @@ struct TVoxelMessageTokenFactory
 struct CVoxelMessageTokenFactoryHasCreateMessageToken
 {
 	template<typename T>
-	auto Requires() -> decltype(DeclVal<T>().CreateMessageToken());
+	auto Requires() -> decltype(std::declval<T>().CreateMessageToken());
 };
 
 struct VOXELCORE_API FVoxelMessageTokenFactory
@@ -81,7 +81,7 @@ public:
 
 private:
 	template<typename T>
-	static constexpr bool HasFactory = std::is_same_v<decltype(TVoxelMessageTokenFactory<T>::CreateToken(DeclVal<T&>())), TSharedRef<FVoxelMessageToken>>;
+	static constexpr bool HasFactory = std::is_same_v<decltype(TVoxelMessageTokenFactory<T>::CreateToken(std::declval<T&>())), TSharedRef<FVoxelMessageToken>>;
 
 	// For type checking
 	FORCEINLINE static TSharedRef<FVoxelMessageToken>&& ReturnToken(TSharedRef<FVoxelMessageToken>&& Token)

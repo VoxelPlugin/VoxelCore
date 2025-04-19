@@ -121,7 +121,7 @@ FString VoxelStats_CleanupFunctionName(const FString& FunctionName)
 #if !INTELLISENSE_PARSER
 FName VoxelStats_PrintfImpl(const TCHAR* Format, ...)
 {
-	constexpr int32 BufferSize = 512;
+	constexpr int32 BufferSize = NAME_SIZE;
 
 	TCHAR Buffer[BufferSize];
 	int32 Result;
@@ -129,7 +129,8 @@ FName VoxelStats_PrintfImpl(const TCHAR* Format, ...)
 		va_list VAList;
 		va_start(VAList, Format);
 		Result = FCString::GetVarArgs(Buffer, BufferSize, Format, VAList);
-		if (!ensure(Result < BufferSize))
+		if (!ensure(Result != -1) ||
+			!ensure(Result < BufferSize))
 		{
 			Result = BufferSize - 1;
 		}
@@ -143,7 +144,7 @@ FName VoxelStats_PrintfImpl(const TCHAR* Format, ...)
 
 FName VoxelStats_AddNum(const FString& Format, const int32 Num)
 {
-	TStringBuilderWithBuffer<TCHAR, NAME_SIZE> String;
+	TStringBuilder<NAME_SIZE> String;
 	String.Append(Format);
 	String.Append(TEXTVIEW(" Num="));
 	FVoxelUtilities::AppendNumber(String, Num);
@@ -154,7 +155,7 @@ FName VoxelStats_AddNum(const FString& Format, const int32 Num)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#if STATS
+#if VOXEL_STATS
 FName Voxel_GetDynamicMemoryStatName(const FName Name)
 {
 	static FVoxelCriticalSection CriticalSection;
@@ -303,7 +304,7 @@ void FVoxelStackTrace::Capture()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#if STATS
+#if VOXEL_STATS
 TVoxelMap<FName, const FVoxelCounter64*> GVoxelStatNameToInstanceCounter;
 
 void RegisterVoxelInstanceCounter(const FName StatName, const FVoxelCounter64& Counter)

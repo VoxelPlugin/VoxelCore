@@ -4,6 +4,18 @@
 
 DEFINE_VOXEL_INSTANCE_COUNTER(IVoxelWorldSubsystem);
 
+FORCEINLINE const TCHAR* LexToString(const ENetMode NetMode)
+{
+	switch (NetMode)
+	{
+	case NM_Client: return TEXT("Client");
+	case NM_DedicatedServer: return TEXT("DedicatedServer");
+	case NM_ListenServer: return TEXT("ListenServer");
+	case NM_Standalone: return TEXT("Standalone");
+	default: return TEXT("Invalid");
+	}
+}
+
 class FVoxelWorldSubsystemManager : public FVoxelSingleton
 {
 public:
@@ -23,7 +35,7 @@ public:
 	{
 		VOXEL_FUNCTION_COUNTER();
 
-		TVoxelArray<TPair<const UObject*, TVoxelArray<TSharedPtr<IVoxelWorldSubsystem>>>> WorldToSubsystems;
+		TVoxelArray<TPair<const UWorld*, TVoxelArray<TSharedPtr<IVoxelWorldSubsystem>>>> WorldToSubsystems;
 		{
 			VOXEL_SCOPE_LOCK(CriticalSection);
 
@@ -51,7 +63,9 @@ public:
 
 		for (const auto& WorldIt : WorldToSubsystems)
 		{
-			VOXEL_SCOPE_COUNTER_FORMAT("%s", *WorldIt.Key->GetPathName());
+			VOXEL_SCOPE_COUNTER_FORMAT("%s %s",
+				*WorldIt.Key->GetPathName(),
+				LexToString(WorldIt.Key->GetNetMode()));
 
 			for (const TSharedPtr<IVoxelWorldSubsystem>& Subsystem : WorldIt.Value)
 			{
@@ -86,6 +100,7 @@ TSharedRef<IVoxelWorldSubsystem> IVoxelWorldSubsystem::GetInternal(
 	TSharedRef<IVoxelWorldSubsystem>(*Constructor)())
 {
 	ensureVoxelSlow(!World.IsExplicitlyNull());
+	ensureVoxelSlowNoSideEffects(!IsInGameThread() || World.IsValid_Slow());
 	VOXEL_SCOPE_LOCK(GVoxelWorldSubsystemManager->CriticalSection);
 
 	TSharedPtr<IVoxelWorldSubsystem>& Subsystem = GVoxelWorldSubsystemManager->WorldToNameToSubsystem_RequiresLock.FindOrAdd(World).FindOrAdd(Name);

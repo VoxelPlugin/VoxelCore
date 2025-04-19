@@ -28,6 +28,7 @@ public:
 
 public:
 	UObject* Resolve() const;
+	UObject* Resolve_Unsafe() const;
 	UObject* Resolve_Ensured() const;
 	bool IsValid_Slow() const;
 
@@ -123,12 +124,17 @@ public:
 	FORCEINLINE ObjectType* Resolve() const
 	{
 		// Don't require including the type
-		return (ObjectType*)FVoxelObjectPtr::Resolve();
+		return reinterpret_cast<ObjectType*>(FVoxelObjectPtr::Resolve());
+	}
+	FORCEINLINE ObjectType* Resolve_Unsafe() const
+	{
+		// Don't require including the type
+		return reinterpret_cast<ObjectType*>(FVoxelObjectPtr::Resolve_Unsafe());
 	}
 	FORCEINLINE ObjectType* Resolve_Ensured() const
 	{
 		ObjectType* Object = Resolve();
-		ensure(Object || IsExplicitlyNull());
+		ensureVoxelSlow(Object || IsExplicitlyNull());
 		return Object;
 	}
 
@@ -214,17 +220,24 @@ public:
 };
 
 template<typename T>
+requires std::derived_from<T, UObject>
 FORCEINLINE TVoxelObjectPtr<T> MakeVoxelObjectPtr(T* Object)
 {
 	return TVoxelObjectPtr<T>(Object);
 }
 template<typename T>
+requires std::derived_from<T, UObject>
 FORCEINLINE TVoxelObjectPtr<T> MakeVoxelObjectPtr(T& Object)
 {
 	return TVoxelObjectPtr<T>(Object);
 }
 template<typename T>
 FORCEINLINE TVoxelObjectPtr<T> MakeVoxelObjectPtr(const TObjectPtr<T>& Object)
+{
+	return TVoxelObjectPtr<T>(Object);
+}
+template<typename T>
+FORCEINLINE TVoxelObjectPtr<T> MakeVoxelObjectPtr(const TWeakObjectPtr<T>& Object)
 {
 	return TVoxelObjectPtr<T>(Object);
 }

@@ -30,7 +30,7 @@ public:
 	{
 		return Impl.Bytes;
 	}
-	template<typename T, typename = decltype(DeclVal<FArchive&>() << DeclVal<T&>())>
+	template<typename T, typename = decltype(std::declval<FArchive&>() << std::declval<T&>())>
 	FORCEINLINE FVoxelWriter& operator<<(const T& Value)
 	{
 		Impl << ConstCast(Value);
@@ -89,7 +89,7 @@ public:
 		return Impl;
 	}
 
-	template<typename T, typename = decltype(DeclVal<FArchive&>() << DeclVal<T&>())>
+	template<typename T, typename = decltype(std::declval<FArchive&>() << std::declval<T&>())>
 	FORCEINLINE FVoxelReader& operator<<(T& Value)
 	{
 		Impl << Value;

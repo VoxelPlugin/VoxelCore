@@ -28,47 +28,10 @@ bool GVoxelDoNotCreateSubobjects = false;
 ///////////////////////////////////////////////////////////////////////////////
 
 #if WITH_EDITOR
-TArray<TFunction<bool(const UObject&)>> GVoxelTryFocusObjectFunctions;
-
-VOXEL_RUN_ON_STARTUP_EDITOR()
-{
-	GVoxelTryFocusObjectFunctions.Add([](const UObject& Object)
-	{
-		const UEdGraph* EdGraph = Cast<UEdGraph>(&Object);
-		if (!EdGraph)
-		{
-			return false;
-		}
-
-		const TSharedPtr<IBlueprintEditor> BlueprintEditor = FKismetEditorUtilities::GetIBlueprintEditorForObject(EdGraph, true);
-		if (!BlueprintEditor.IsValid())
-		{
-			return false;
-		}
-
-		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(EdGraph);
-		return true;
-	});
-
-	GVoxelTryFocusObjectFunctions.Add([](const UObject& Object)
-	{
-		const UEdGraphNode* EdGraphNode = Cast<UEdGraphNode>(&Object);
-		if (!EdGraphNode)
-		{
-			return false;
-		}
-
-		const TSharedPtr<IBlueprintEditor> BlueprintEditor = FKismetEditorUtilities::GetIBlueprintEditorForObject(EdGraphNode, true);
-		if (!BlueprintEditor.IsValid())
-		{
-			return false;
-		}
-
-		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(EdGraphNode);
-		return true;
-	});
-}
+TVoxelArray<TVoxelUniqueFunction<bool(const UObject&)>> GVoxelTryFocusObjectFunctions;
 #endif
+TVoxelArray<TVoxelUniqueFunction<FString(const UObject&)>> GVoxelTryGetObjectNameFunctions;
+
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -201,6 +164,34 @@ FString FVoxelUtilities::GetPropertyTooltip(const FString& FunctionTooltip, cons
 ///////////////////////////////////////////////////////////////////////////////
 
 #if WITH_EDITOR
+FString FVoxelUtilities::GetFunctionType(const FProperty& Property)
+{
+	// Convert TObjectPtr to raw pointers for UFunctions
+
+	FString ExtendedType;
+	FString Type = Property.GetCPPType(&ExtendedType);
+
+	if (ExtendedType.RemoveFromStart("TObjectPtr<"))
+	{
+		ensure(ExtendedType.RemoveFromEnd(">"));
+		ExtendedType += "*";
+	}
+	if (Type.RemoveFromStart("TObjectPtr<"))
+	{
+		ensure(Type.RemoveFromEnd(">"));
+		Type += "*";
+	}
+	if (ExtendedType.RemoveFromStart("<TObjectPtr<"))
+	{
+		ensure(ExtendedType.RemoveFromEnd("> >"));
+		ExtendedType = "<" + ExtendedType + "*>";
+	}
+
+	Type += ExtendedType;
+
+	return Type;
+}
+
 TMap<FName, FString> FVoxelUtilities::GetMetadata(const UObject* Object)
 {
 	if (!ensure(Object))
@@ -208,7 +199,11 @@ TMap<FName, FString> FVoxelUtilities::GetMetadata(const UObject* Object)
 		return {};
 	}
 
+#if VOXEL_ENGINE_VERSION < 506
 	return Object->GetPackage()->GetMetaData()->ObjectMetaDataMap.FindRef(Object);
+#else
+	return Object->GetPackage()->GetMetaData().ObjectMetaDataMap.FindRef(Object);
+#endif
 }
 #endif
 
@@ -336,7 +331,7 @@ void FVoxelUtilities::FocusObject(const UObject* Object)
 	}
 
 	bool bFunctionSuccessful = false;
-	for (const TFunction<bool(const UObject&)>& Function : GVoxelTryFocusObjectFunctions)
+	for (const TVoxelUniqueFunction<bool(const UObject&)>& Function : GVoxelTryFocusObjectFunctions)
 	{
 		if (Function(*Object))
 		{
@@ -347,6 +342,22 @@ void FVoxelUtilities::FocusObject(const UObject* Object)
 	if (bFunctionSuccessful)
 	{
 		return;
+	}
+
+	if (const UEdGraph* EdGraph = Cast<UEdGraph>(Object))
+	{
+		if (const TSharedPtr<IBlueprintEditor> BlueprintEditor = FKismetEditorUtilities::GetIBlueprintEditorForObject(EdGraph, true))
+		{
+			FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(EdGraph);
+		}
+	}
+
+	if (const UEdGraphNode* EdGraphNode = Cast<UEdGraphNode>(Object))
+	{
+		if (const TSharedPtr<IBlueprintEditor> BlueprintEditor = FKismetEditorUtilities::GetIBlueprintEditorForObject(EdGraphNode, true))
+		{
+			FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(EdGraphNode);
+		}
 	}
 
 	if (const AActor* Actor = Cast<AActor>(Object))
@@ -403,6 +414,84 @@ void FVoxelUtilities::FocusObject(const UObject& Object)
 	FocusObject(&Object);
 }
 #endif
+
+FString FVoxelUtilities::GetReadableName(const UObject* Object)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	ensure(IsInGameThread());
+
+	if (!Object)
+	{
+		return "<null>";
+	}
+
+	{
+		FString Result;
+		for (const TVoxelUniqueFunction<FString(const UObject&)>& Function : GVoxelTryGetObjectNameFunctions)
+		{
+			const FString Name = Function(*Object);
+
+			if (!Name.IsEmpty())
+			{
+				ensure(Result.IsEmpty());
+				Result = Name;
+			}
+		}
+
+		if (!Result.IsEmpty())
+		{
+			return Result;
+		}
+	}
+
+	if (const UEdGraphNode* Node = Cast<UEdGraphNode>(Object))
+	{
+#if WITH_EDITOR
+		FString Result = Node->GetNodeTitle(ENodeTitleType::FullTitle).ToString();
+		if (Result.TrimStartAndEnd().IsEmpty())
+		{
+			Result = "<empty>";
+		}
+		return Result;
+#else
+		return Node->GetName();
+#endif
+	}
+
+	if (const AActor* Actor = Cast<AActor>(Object))
+	{
+		return Actor->GetActorNameOrLabel();
+	}
+
+	if (const UActorComponent* Component = Cast<UActorComponent>(Object))
+	{
+		FString ActorName;
+		if (const AActor* Owner = Component->GetOwner())
+		{
+			ActorName = Owner->GetActorNameOrLabel();
+		}
+		else
+		{
+			ActorName = "<null>";
+		}
+
+		return ActorName + "." + Component->GetName();
+	}
+
+	if (!Object->HasAnyFlags(RF_Transient))
+	{
+		// If we are a subobject of an asset, use the asset
+		Object = Object->GetOutermostObject();
+	}
+
+	return Object->GetName();
+}
+
+FString FVoxelUtilities::GetReadableName(const UObject& Object)
+{
+	return GetReadableName(&Object);
+}
 
 void FVoxelUtilities::InvokeFunctionWithNoParameters(UObject* Object, UFunction* Function)
 {
@@ -563,7 +652,7 @@ UObject* FVoxelUtilities::NewObject_Safe(UObject* Outer, const UClass* Class, co
 
 uint64 FVoxelUtilities::HashProperty(const FProperty& Property, const void* DataPtr)
 {
-	checkVoxelSlow(IsInGameThread());
+	checkUObjectAccess();
 
 	switch (Property.GetCastFlags())
 	{

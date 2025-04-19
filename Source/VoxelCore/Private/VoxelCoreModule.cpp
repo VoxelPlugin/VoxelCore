@@ -78,7 +78,7 @@ public:
 			return;
 		}
 
-		GVoxelGlobalTaskContext->FlushTasks();
+		GVoxelGlobalTaskContext->FlushAllTasks();
 
 #if !WITH_EDITOR && (PLATFORM_MAC || PLATFORM_IOS)
 		// Getting exit crashes on Mac
@@ -87,9 +87,12 @@ public:
 
 		GOnVoxelModuleUnloaded_DoCleanup.Broadcast();
 
-		GVoxelGlobalTaskContext->FlushTasks();
+		GVoxelGlobalTaskContext->FlushAllTasks();
 
 		FVoxelSingletonManager::Destroy();
+
+		delete GVoxelSynchronousTaskContext;
+		GVoxelSynchronousTaskContext = nullptr;
 
 		delete GVoxelGlobalTaskContext;
 		GVoxelGlobalTaskContext = nullptr;
@@ -133,8 +136,4 @@ IMPLEMENT_MODULE(FVoxelCoreModule, VoxelCore);
 extern "C" void VoxelISPC_Assert(const int32 Line)
 {
 	ensureAlwaysMsgf(false, TEXT("%d"), Line);
-}
-extern "C" void VoxelISPC_UnsupportedTargetWidth(const int32 Width)
-{
-	LOG_VOXEL(Fatal, "Unsupported ISPC target width: %d", Width);
 }

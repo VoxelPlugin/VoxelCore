@@ -451,6 +451,46 @@ export void ArrayUtilities_GetMinMax_int32(
 	*OutMax = MaxResult;
 }
 
+export void ArrayUtilities_GetMinMax_int64(
+	const uniform int64 Values[],
+	const uniform int32 Num,
+	int64* uniform OutMin,
+	int64* uniform OutMax)
+{
+	const uniform int32 AlignedNum = programCount * (Num / programCount);
+
+	uniform int64 MinResult;
+	uniform int64 MaxResult;
+	if (AlignedNum != 0)
+	{
+		varying int64 MinValue = MAX_int64;
+		varying int64 MaxValue = -MAX_int64;
+		for (uniform int32 Index = 0; Index < AlignedNum; Index += programCount)
+		{
+			const varying int64 Value = Values[Index + programIndex];
+			MinValue = min(MinValue, Value);
+			MaxValue = max(MaxValue, Value);
+		}
+		MinResult = reduce_min(MinValue);
+		MaxResult = reduce_max(MaxValue);
+	}
+	else
+	{
+		MinResult = MAX_int64;
+		MaxResult = -MAX_int64;
+	}
+
+	for (uniform int32 Index = AlignedNum; Index < Num; Index++)
+	{
+		const uniform int64 Value = Values[Index];
+		MinResult = min(MinResult, Value);
+		MaxResult = max(MaxResult, Value);
+	}
+
+	*OutMin = MinResult;
+	*OutMax = MaxResult;
+}
+
 export void ArrayUtilities_GetMinMax_float(
 	const uniform float Values[],
 	const uniform int32 Num,

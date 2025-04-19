@@ -83,6 +83,42 @@ namespace FVoxelUtilities
 	///////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////
 
+	FORCEINLINE void CombineScaleAndOffset(
+		const float ScaleA,
+		const float OffsetA,
+		const float ScaleB,
+		const float OffsetB,
+		float& OutScale,
+		float& OutOffset)
+	{
+		// Height = (Height * ScaleA + OffsetA) * ScaleB + OffsetB
+		// Height = Height * ScaleA * ScaleB + OffsetA * ScaleB + OffsetB
+
+		OutScale = ScaleA * ScaleB;
+		OutOffset = OffsetA * ScaleB + OffsetB;
+	}
+	FORCEINLINE void CombineScaleAndOffset(
+		const float ScaleA,
+		const float OffsetA,
+		const float ScaleB,
+		const float OffsetB,
+		const float ScaleC,
+		const float OffsetC,
+		float& OutScale,
+		float& OutOffset)
+	{
+		// Height = ((Height * ScaleA + OffsetA) * ScaleB + OffsetB) * ScaleC + OffsetC
+		// Height = (Height * ScaleA * ScaleB + OffsetA * ScaleB + OffsetB) * ScaleC + OffsetC
+		// Height = Height * ScaleA * ScaleB * ScaleC + OffsetA * ScaleB * ScaleC + OffsetB * ScaleC + OffsetC
+
+		OutScale = ScaleA * ScaleB * ScaleC;
+		OutOffset = OffsetA * ScaleB * ScaleC + OffsetB * ScaleC + OffsetC;
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+
 	// See https://www.iquilezles.org/www/articles/smin/smin.htm
 	// Unlike SmoothMin this is order-independent
 	FORCEINLINE float ExponentialSmoothMin(const float DistanceA, const float DistanceB, const float Smoothness)

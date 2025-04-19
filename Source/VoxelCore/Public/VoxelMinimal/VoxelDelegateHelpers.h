@@ -333,6 +333,10 @@ struct TMakeStrongPtrLambdaHelper<TVoxelTypes<ArgTypes...>, ReturnType>
 };
 
 template<typename T, typename LambdaType>
+requires
+(
+	sizeof(decltype(MakeSharedRef(DeclVal<const T&>()))) != 0
+)
 FORCEINLINE auto MakeStrongPtrLambda(const T& Ptr, LambdaType Lambda)
 {
 	return TMakeStrongPtrLambdaHelper<LambdaArgTypes_T<LambdaType>, LambdaReturnType_T<LambdaType>>::Make(Ptr, MoveTemp(Lambda));

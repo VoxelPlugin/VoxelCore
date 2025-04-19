@@ -67,6 +67,7 @@ bool FVoxelEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs)
 	return bHandled;
 }
 
+#if VOXEL_ENGINE_VERSION < 506
 bool FVoxelEditorViewportClient::InputAxis(
 	FViewport* InViewport,
 	const FInputDeviceId DeviceID,
@@ -75,19 +76,30 @@ bool FVoxelEditorViewportClient::InputAxis(
 	const float DeltaTime,
 	const int32 NumSamples,
 	const bool bGamepad)
+#else
+bool FVoxelEditorViewportClient::InputAxis(const FInputKeyEventArgs& Args)
+#endif
 {
 	if (bDisableInput)
 	{
 		return true;
 	}
 
+#if VOXEL_ENGINE_VERSION < 506
 	if (PreviewScene->HandleViewportInput(InViewport, DeviceID, Key, Delta, DeltaTime, NumSamples, bGamepad))
+#else
+	if (PreviewScene->HandleViewportInput(Args.Viewport, Args.InputDevice, Args.Key, Args.AmountDepressed, Args.DeltaTime, Args.NumSamples, Args.IsGamepad()))
+#endif
 	{
 		Invalidate();
 		return true;
 	}
 
+#if VOXEL_ENGINE_VERSION < 506
 	return FEditorViewportClient::InputAxis(InViewport, DeviceID, Key, Delta, DeltaTime, NumSamples, bGamepad);
+#else
+	return FEditorViewportClient::InputAxis(Args);
+#endif
 }
 
 UE::Widget::EWidgetMode FVoxelEditorViewportClient::GetWidgetMode() const

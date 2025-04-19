@@ -62,8 +62,7 @@ void FVoxelToolkit::AddReferencedObjects(FReferenceCollector& Collector)
 FVoxelToolkit* FVoxelToolkit::OpenToolkit(const UObject& Asset, const UScriptStruct* ToolkitStruct)
 {
 	VOXEL_FUNCTION_COUNTER();
-	ensure(!Asset.HasAnyFlags(RF_ClassDefaultObject));
-	ensure(!Asset.IsDefaultSubobject());
+	ensure(!Asset.IsTemplate());
 
 	const FObjectProperty* ObjectProperty = MakeSharedStruct<FVoxelToolkit>(ToolkitStruct)->GetObjectProperty();
 	if (!ensure(ObjectProperty))

@@ -1,6 +1,7 @@
 ﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelBufferPool.h"
+#include "VoxelTaskContext.h"
 #include "TextureResource.h"
 #include "Engine/Texture2D.h"
 
@@ -141,13 +142,17 @@ TSharedRef<FVoxelBufferRef> FVoxelBufferPoolBase::Allocate_AnyThread(const int64
 		Num);
 }
 
-TVoxelFuture<FVoxelBufferRef> FVoxelBufferPoolBase::Upload_AnyThread(
+FVoxelBufferUpload FVoxelBufferPoolBase::Upload_AnyThread(
 	const FSharedVoidPtr& Owner,
 	const TConstVoxelArrayView64<uint8> Data,
 	const TSharedPtr<FVoxelBufferRef>& ExistingBufferRef)
 {
+	VOXEL_FUNCTION_COUNTER();
 	ensure(Data.Num() > 0);
 	checkVoxelSlow(Data.Num() % BytesPerElement == 0);
+
+	FVoxelTaskContext& ReturnContext = FVoxelTaskScope::GetContext();
+	FVoxelTaskScope Scope(*GVoxelGlobalTaskContext);
 
 	const int64 Num = Data.Num() / BytesPerElement;
 
@@ -171,10 +176,14 @@ TVoxelFuture<FVoxelBufferRef> FVoxelBufferPoolBase::Upload_AnyThread(
 			VOXEL_MESSAGE(Error, "Out of memory: {0}", BufferName);
 		}
 
-		return BufferRef.ToSharedRef();
+		return FVoxelBufferUpload
+		{
+			{},
+			BufferRef.ToSharedRef()
+		};
 	}
 
-	TVoxelPromise<FVoxelBufferRef> Promise;
+	const FVoxelPromise Promise;
 
 	UploadQueue.Enqueue(FUpload
 	{
@@ -186,10 +195,14 @@ TVoxelFuture<FVoxelBufferRef> FVoxelBufferPoolBase::Upload_AnyThread(
 
 	CheckUploadQueue_AnyThread();
 
-	return Promise;
+	return FVoxelBufferUpload
+	{
+		ReturnContext.Wrap(Promise),
+		BufferRef.ToSharedRef()
+	};
 }
 
-TVoxelFuture<FVoxelBufferRef> FVoxelBufferPoolBase::Upload_AnyThread(
+FVoxelBufferUpload FVoxelBufferPoolBase::Upload_AnyThread(
 	TVoxelArray<uint8> Data,
 	const TSharedPtr<FVoxelBufferRef>& ExistingBufferRef)
 {
@@ -238,7 +251,12 @@ void FVoxelBufferPoolBase::FAllocationPool::Free(const int64 Index)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void FVoxelBufferPoolBase::CheckUploadQueue_AnyThread()
+int64 FVoxelBufferPool::GetMaxAllocatedNum() const
+{
+	return FMath::DivideAndRoundDown<int64>(MAX_uint32, BytesPerElement);
+}
+
+void FVoxelBufferPool::CheckUploadQueue_AnyThread()
 {
 	if (UploadQueue.IsEmpty())
 	{
@@ -263,7 +281,11 @@ void FVoxelBufferPoolBase::CheckUploadQueue_AnyThread()
 	}));
 }
 
-FVoxelFuture FVoxelBufferPoolBase::ProcessUploads_AnyThread()
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FVoxelFuture FVoxelBufferPool::ProcessUploads_AnyThread()
 {
 	VOXEL_FUNCTION_COUNTER();
 	checkVoxelSlow(IsProcessingUploads.Get());
@@ -310,15 +332,6 @@ FVoxelFuture FVoxelBufferPoolBase::ProcessUploads_AnyThread()
 	}));
 }
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-int64 FVoxelBufferPool::GetMaxAllocatedNum() const
-{
-	return FMath::DivideAndRoundDown<int64>(MAX_uint32, BytesPerElement);
-}
-
 FVoxelFuture FVoxelBufferPool::ProcessUploadsImpl_AnyThread(TVoxelArray<FUpload>&& Uploads)
 {
 	VOXEL_FUNCTION_COUNTER();
@@ -342,6 +355,9 @@ FVoxelFuture FVoxelBufferPool::ProcessUploadsImpl_AnyThread(TVoxelArray<FUpload>
 	{
 		VOXEL_SCOPE_COUNTER("RHICreateBuffer");
 
+#if VOXEL_ENGINE_VERSION >= 506
+		check(false);
+#else
 		const FRHIBufferDesc BufferDesc(
 			NumBytes,
 			BytesPerElement,
@@ -354,6 +370,7 @@ FVoxelFuture FVoxelBufferPool::ProcessUploadsImpl_AnyThread(TVoxelArray<FUpload>
 			BufferDesc,
 			ERHIAccess::CopySrc | ERHIAccess::SRVCompute,
 			CreateInfo);
+#endif
 	}
 
 	TVoxelArrayView64<uint8> BufferView;
@@ -408,7 +425,7 @@ FVoxelFuture FVoxelBufferPool::ProcessUploadsImpl_AnyThread(TVoxelArray<FUpload>
 			CopyInfos.Add_EnsureNoGrow(FCopyInfo
 			{
 				Upload.BufferRef,
-				Upload.BufferRefPromise,
+				Upload.Promise,
 				UploadBuffer,
 				UploadIndex
 			});
@@ -450,6 +467,9 @@ void FVoxelBufferPool::ProcessCopies_RenderThread(
 
 		const FBufferRHIRef OldBufferRHI = BufferRHI_RenderThread;
 
+#if VOXEL_ENGINE_VERSION >= 506
+		check(false);
+#else
 		FRHIResourceCreateInfo CreateInfo(*BufferName);
 
 		BufferRHI_RenderThread = RHICmdList.CreateBuffer(
@@ -464,6 +484,7 @@ void FVoxelBufferPool::ProcessCopies_RenderThread(
 			BufferRHI_RenderThread,
 			GPixelFormats[PixelFormat].BlockBytes,
 			PixelFormat);
+#endif
 
 		if (OldBufferRHI)
 		{
@@ -491,7 +512,7 @@ void FVoxelBufferPool::ProcessCopies_RenderThread(
 			CopyInfo.BufferRef->Num() * BytesPerElement);
 
 		// Upload is complete: notify caller
-		CopyInfo.BufferRefPromise->Set(CopyInfo.BufferRef.ToSharedRef());
+		CopyInfo.Promise->Set();
 	}
 }
 
@@ -510,6 +531,16 @@ class FVoxelTextureBufferPoolSingleton : public FVoxelSingleton
 {
 public:
 	//~ Begin FVoxelSingleton Interface
+	virtual void Tick() override
+	{
+		VOXEL_FUNCTION_COUNTER();
+		VOXEL_SCOPE_LOCK(GVoxelTextureBufferPoolStatics.CriticalSection);
+
+		for (FVoxelTextureBufferPool* Pool : GVoxelTextureBufferPoolStatics.Pools)
+		{
+			Pool->Tick();
+		}
+	}
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
 	{
 		VOXEL_FUNCTION_COUNTER();
@@ -546,63 +577,79 @@ FVoxelTextureBufferPool::FVoxelTextureBufferPool(
 FVoxelTextureBufferPool::~FVoxelTextureBufferPool()
 {
 	VOXEL_SCOPE_LOCK(GVoxelTextureBufferPoolStatics.CriticalSection);
-	GVoxelTextureBufferPoolStatics.Pools.RemoveChecked(this);
+	GVoxelTextureBufferPoolStatics.Pools.Remove_Ensure(this);
 }
 
-void FVoxelTextureBufferPool::AddReferencedObjects(FReferenceCollector& Collector)
-{
-	VOXEL_FUNCTION_COUNTER();
-
-	Collector.AddReferencedObject(Texture_GameThread);
-}
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 int64 FVoxelTextureBufferPool::GetMaxAllocatedNum() const
 {
 	return FMath::Square(MaxTextureSize);
 }
 
-FVoxelFuture FVoxelTextureBufferPool::ProcessUploadsImpl_AnyThread(TVoxelArray<FUpload>&& Uploads)
+void FVoxelTextureBufferPool::CheckUploadQueue_AnyThread()
+{
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void FVoxelTextureBufferPool::Tick()
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	return Voxel::GameTask(MakeWeakPtrLambda(this, [this, Uploads = MakeSharedCopy(MoveTemp(Uploads))]
+	TVoxelArray<FUpload> Uploads;
 	{
-		if (IsEngineExitRequested())
+		FUpload Upload;
+		while (UploadQueue.Dequeue(Upload))
 		{
-			return FVoxelFuture();
+			Uploads.Add(MoveTemp(Upload));
+		}
+	}
+
+	if (Uploads.Num() == 0 ||
+		IsEngineExitRequested())
+	{
+		return;
+	}
+
+	UpdateStats();
+
+	UTexture2D* OldTexture = Texture_GameThread;
+	{
+		// Do this after dequeuing all copies to make sure we allocate a big enough buffer for them
+		const int64 Num = FMath::Min(BufferCount.Get(), GetMaxAllocatedNum());
+		const int32 Size = FMath::Max<int32>(1024, FMath::RoundUpToPowerOfTwo(FMath::CeilToInt(FMath::Sqrt(double(Num)))));
+
+		{
+			const int64 AllocatedNum = FMath::Square<int64>(Size);
+			ensure(AllocatedNum <= 1 << 30);
+			AllocatedMemory.Set(AllocatedNum * BytesPerElement);
 		}
 
-		UTexture2D* OldTexture = Texture_GameThread;
+		if (!Texture_GameThread ||
+			Texture_GameThread->GetSizeX() != Size)
 		{
-			// Do this after dequeuing all copies to make sure we allocate a big enough buffer for them
-			const int64 Num = FMath::Min(BufferCount.Get(), GetMaxAllocatedNum());
-			const int32 Size = FMath::Max<int32>(1024, FMath::RoundUpToPowerOfTwo(FMath::CeilToInt(FMath::Sqrt(double(Num)))));
+			Texture_GameThread = FVoxelTextureUtilities::CreateTexture2D(
+				FName(BufferName + FString("_Texture")),
+				Size,
+				Size,
+				false,
+				TF_Default,
+				PixelFormat);
 
-			{
-				const int64 AllocatedNum = FMath::Square<int64>(Size);
-				ensure(AllocatedNum <= 1 << 30);
-				AllocatedMemory.Set(AllocatedNum * BytesPerElement);
-			}
-
-			if (!Texture_GameThread ||
-				Texture_GameThread->GetSizeX() != Size)
-			{
-				Texture_GameThread = FVoxelTextureUtilities::CreateTexture2D(
-					FName(BufferName + FString("_Texture")),
-					Size,
-					Size,
-					false,
-					TF_Default,
-					PixelFormat);
-
-				FVoxelTextureUtilities::RemoveBulkData(Texture_GameThread);
-			}
+			FVoxelTextureUtilities::RemoveBulkData(Texture_GameThread);
 		}
+	}
 
+	{
 		UTexture2D* NewTexture = Texture_GameThread;
 		if (!ensure(NewTexture))
 		{
-			return FVoxelFuture();
+			return;
 		}
 
 		if (OldTexture &&
@@ -641,66 +688,76 @@ FVoxelFuture FVoxelTextureBufferPool::ProcessUploadsImpl_AnyThread(TVoxelArray<F
 				}
 			});
 		}
+	}
+	check(Texture_GameThread);
 
-		check(Texture_GameThread);
+	FTextureResource* Resource = Texture_GameThread->GetResource();
+	if (!ensure(Resource))
+	{
+		return;
+	}
 
-		FTextureResource* Resource = Texture_GameThread->GetResource();
-		if (!ensure(Resource))
+	Voxel::RenderTask(MakeWeakPtrLambda(this, [this, Resource, Uploads = MoveTemp(Uploads)]
+	{
+		VOXEL_FUNCTION_COUNTER();
+
+		FRHITexture* TextureRHI = Resource->GetTexture2DRHI();
+		if (!ensure(TextureRHI))
 		{
-			return FVoxelFuture();
+			return;
 		}
 
-		return Voxel::RenderTask(MakeWeakPtrLambda(this, [this, Resource, Uploads]
+		TextureRHI_RenderThread = TextureRHI;
+
+		const int32 TextureSize = TextureRHI->GetSizeX();
+
+		for (const FUpload& Upload : Uploads)
 		{
-			FRHITexture* TextureRHI = Resource->GetTexture2DRHI();
-			if (!ensure(TextureRHI))
+			checkVoxelSlow(Upload.NumBytes() % BytesPerElement == 0);
+			const int64 Num = Upload.NumBytes() / BytesPerElement;
+
+			checkVoxelSlow(Upload.BufferRef->WeakPool == AsWeak());
+			checkVoxelSlow(Upload.BufferRef->Num() == Num);
+
+			int64 Offset = Upload.BufferRef->GetIndex();
+			TConstVoxelArrayView64<uint8> Data = Upload.Data;
+
+			while (Data.Num() > 0)
 			{
-				return;
+				check(Data.Num() % BytesPerElement == 0);
+
+				const int64 NumToCopy = FMath::Min(Data.Num() / BytesPerElement, TextureSize - (Offset % TextureSize));
+
+				const FUpdateTextureRegion2D UpdateRegion(
+					Offset % TextureSize,
+					Offset / TextureSize,
+					0,
+					0,
+					NumToCopy,
+					1);
+
+				RHIUpdateTexture2D_Safe(
+					TextureRHI,
+					0,
+					UpdateRegion,
+					NumToCopy * BytesPerElement,
+					Data.LeftOf(NumToCopy * BytesPerElement));
+
+				Offset += NumToCopy;
+				Data = Data.RightOf(NumToCopy * BytesPerElement);
 			}
 
-			TextureRHI_RenderThread = TextureRHI;
+			// Upload is complete: notify caller
+			Upload.Promise->Set();
+		}
 
-			const int32 TextureSize = TextureRHI->GetSizeX();
-
-			for (const FUpload& Upload : *Uploads)
-			{
-				checkVoxelSlow(Upload.NumBytes() % BytesPerElement == 0);
-				const int64 Num = Upload.NumBytes() / BytesPerElement;
-
-				checkVoxelSlow(Upload.BufferRef->WeakPool == AsWeak());
-				checkVoxelSlow(Upload.BufferRef->Num() == Num);
-
-				int64 Offset = Upload.BufferRef->GetIndex();
-				TConstVoxelArrayView64<uint8> Data = Upload.Data;
-
-				while (Data.Num() > 0)
-				{
-					check(Data.Num() % BytesPerElement == 0);
-
-					const int64 NumToCopy = FMath::Min(Data.Num() / BytesPerElement, TextureSize - (Offset % TextureSize));
-
-					const FUpdateTextureRegion2D UpdateRegion(
-						Offset % TextureSize,
-						Offset / TextureSize,
-						0,
-						0,
-						NumToCopy,
-						1);
-
-					RHIUpdateTexture2D_Safe(
-						TextureRHI,
-						0,
-						UpdateRegion,
-						NumToCopy * BytesPerElement,
-						Data.LeftOf(NumToCopy * BytesPerElement));
-
-					Offset += NumToCopy;
-					Data = Data.RightOf(NumToCopy * BytesPerElement);
-				}
-
-				// Upload is complete: notify caller
-				Upload.BufferRefPromise->Set(Upload.BufferRef.ToSharedRef());
-			}
-		}));
+		UpdateStats();
 	}));
+}
+
+void FVoxelTextureBufferPool::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	Collector.AddReferencedObject(Texture_GameThread);
 }

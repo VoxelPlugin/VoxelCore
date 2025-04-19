@@ -61,6 +61,25 @@ struct int4
 	int32 w;
 };
 
+struct long2
+{
+	int64 x;
+	int64 y;
+};
+struct long3
+{
+	int64 x;
+	int64 y;
+	int64 z;
+};
+struct long4
+{
+	int64 x;
+	int64 y;
+	int64 z;
+	int64 w;
+};
+
 #define float2_zero MakeFloat2(0, 0)
 #define float3_zero MakeFloat3(0, 0, 0)
 #define float4_zero MakeFloat4(0, 0, 0, 0)
@@ -73,17 +92,25 @@ struct int4
 #define int3_zero MakeInt3(0, 0, 0)
 #define int4_zero MakeInt4(0, 0, 0, 0)
 
+#define long2_zero MakeLong2(0, 0)
+#define long3_zero MakeLong3(0, 0, 0)
+#define long4_zero MakeLong4(0, 0, 0, 0)
+
 #define float2_one MakeFloat2(1, 1)
 #define float3_one MakeFloat3(1, 1, 1)
 #define float4_one MakeFloat4(1, 1, 1, 1)
+
+#define double2_one MakeDouble2(1, 1)
+#define double3_one MakeDouble3(1, 1, 1)
+#define double4_one MakeDouble4(1, 1, 1, 1)
 
 #define int2_one MakeInt2(1, 1)
 #define int3_one MakeInt3(1, 1, 1)
 #define int4_one MakeInt4(1, 1, 1, 1)
 
-#define double2_one MakeDouble2(1, 1)
-#define double3_one MakeDouble3(1, 1, 1)
-#define double4_one MakeDouble4(1, 1, 1, 1)
+#define long2_one MakeLong2(1, 1)
+#define long3_one MakeLong3(1, 1, 1)
+#define long4_one MakeLong4(1, 1, 1, 1)
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

@@ -19,6 +19,7 @@ public:
 	void Tick()
 	{
 		VOXEL_SCOPE_COUNTER_FORMAT("FVoxelTicker::Tick Num=%d", TickerDatas.Num());
+		check(IsInGameThread());
 
 		for (int32 Index = 0; Index < TickerDatas.Num(); Index++)
 		{
@@ -47,6 +48,14 @@ FVoxelTickerManager* GVoxelTickerManager = nullptr;
 VOXEL_RUN_ON_STARTUP(Game, 999)
 {
 	GVoxelTickerManager = new FVoxelTickerManager();
+
+	Voxel::OnForceTick.AddLambda([]
+	{
+		if (GVoxelTickerManager)
+		{
+			GVoxelTickerManager->Tick();
+		}
+	});
 }
 
 void DestroyVoxelTickers()
@@ -86,16 +95,8 @@ FVoxelTicker::~FVoxelTicker()
 		return;
 	}
 
+	checkVoxelSlow(TickerData->Ticker == this);
+	TickerData->Ticker = nullptr;
+
 	TickerData->bIsDestroyed = true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-void FVoxelTicker::TickAll()
-{
-	VOXEL_FUNCTION_COUNTER();
-
-	GVoxelTickerManager->Tick();
 }

@@ -44,7 +44,7 @@ public:
 
 	const FBox LocalSpaceMeshBounds;
 
-	TVoxelStaticArray<FMip, DistanceField::NumMips> Mips{ ForceInit };
+	TVoxelStaticArray<FMip, DistanceField::NumMips> Mips;
 
 	explicit FVoxelDistanceFieldWrapper(
 		const FBox& LocalSpaceMeshBounds)

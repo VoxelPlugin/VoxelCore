@@ -8,14 +8,17 @@
 #include "Serialization/BulkData.h"
 #include "VoxelMinimal/VoxelStructView.h"
 #include "VoxelMinimal/VoxelObjectHelpers.h"
+#include "VoxelMinimal/VoxelUniqueFunction.h"
+#include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 
 class FUObjectToken;
 
 extern VOXELCORE_API bool GVoxelDoNotCreateSubobjects;
 #if WITH_EDITOR
-extern VOXELCORE_API TArray<TFunction<bool(const UObject&)>> GVoxelTryFocusObjectFunctions;
+extern VOXELCORE_API TVoxelArray<TVoxelUniqueFunction<bool(const UObject&)>> GVoxelTryFocusObjectFunctions;
 #endif
+extern VOXELCORE_API TVoxelArray<TVoxelUniqueFunction<FString(const UObject&)>> GVoxelTryGetObjectNameFunctions;
 
 namespace FVoxelUtilities
 {
@@ -24,6 +27,7 @@ namespace FVoxelUtilities
 	VOXELCORE_API FString GetPropertyTooltip(const UFunction& Function, const FProperty& Property);
 	VOXELCORE_API FString GetPropertyTooltip(const FString& FunctionTooltip, const FString& PropertyName, bool bIsReturnPin);
 
+	VOXELCORE_API FString GetFunctionType(const FProperty& Property);
 	VOXELCORE_API TMap<FName, FString> GetMetadata(const UObject* Object);
 
 	VOXELCORE_API FString SanitizeCategory(const FString& Category);
@@ -67,6 +71,10 @@ namespace FVoxelUtilities
 	VOXELCORE_API void FocusObject(const UObject* Object);
 	VOXELCORE_API void FocusObject(const UObject& Object);
 #endif
+
+	VOXELCORE_API FString GetReadableName(const UObject* Object);
+	VOXELCORE_API FString GetReadableName(const UObject& Object);
+
 	VOXELCORE_API void InvokeFunctionWithNoParameters(UObject* Object, UFunction* Function);
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -163,12 +171,6 @@ namespace FVoxelUtilities
 	void AddStructReferencedObjects(FReferenceCollector& Collector, T& Struct)
 	{
 		FVoxelUtilities::AddStructReferencedObjects(Collector, FVoxelStructView::Make(Struct));
-	}
-
-	template<typename T>
-	bool AreStructsIdentical(const T& A, const T& B)
-	{
-		return T::StaticStruct()->CompareScriptStruct(&A, &B, PPF_None);
 	}
 
 	// Force load a deprecated object even if Export.bIsInheritedInstance is true

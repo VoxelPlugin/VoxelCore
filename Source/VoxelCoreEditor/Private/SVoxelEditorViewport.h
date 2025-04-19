@@ -27,7 +27,11 @@ public:
 	virtual void Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
 	virtual void DrawCanvas(FViewport& InViewport, FSceneView& View, FCanvas& Canvas) override;
 	virtual bool InputKey(const FInputKeyEventArgs& EventArgs) override;
+#if VOXEL_ENGINE_VERSION < 506
 	virtual bool InputAxis(FViewport* Viewport, FInputDeviceId DeviceID, FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad) override;
+#else
+	virtual bool InputAxis(const FInputKeyEventArgs& Args) override;
+#endif
 	virtual UE::Widget::EWidgetMode GetWidgetMode() const override;
 	//~ End FEditorViewportClient Interface
 };

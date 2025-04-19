@@ -45,6 +45,20 @@ private:
 	friend FVoxelTextureBufferPool;
 };
 
+struct VOXELCORE_API FVoxelBufferUpload
+{
+	FVoxelFuture Future;
+	TSharedRef<FVoxelBufferRef> BufferRef;
+
+	FVoxelBufferUpload(
+		const FVoxelFuture& Future,
+		const TSharedRef<FVoxelBufferRef>& BufferRef)
+		: Future(Future)
+		, BufferRef(BufferRef)
+	{
+	}
+};
+
 class VOXELCORE_API FVoxelBufferPoolBase : public TSharedFromThis<FVoxelBufferPoolBase>
 {
 public:
@@ -91,17 +105,17 @@ protected:
 public:
 	TSharedRef<FVoxelBufferRef> Allocate_AnyThread(int64 Num);
 
-	TVoxelFuture<FVoxelBufferRef> Upload_AnyThread(
+	FVoxelBufferUpload Upload_AnyThread(
 		const FSharedVoidPtr& Owner,
 		TConstVoxelArrayView64<uint8> Data,
 		const TSharedPtr<FVoxelBufferRef>& ExistingBufferRef = nullptr);
 
-	TVoxelFuture<FVoxelBufferRef> Upload_AnyThread(
+	FVoxelBufferUpload Upload_AnyThread(
 		TVoxelArray<uint8> Data,
 		const TSharedPtr<FVoxelBufferRef>& ExistingBufferRef = nullptr);
 
 	template<typename T>
-	TVoxelFuture<FVoxelBufferRef> Upload_AnyThread(
+	FVoxelBufferUpload Upload_AnyThread(
 		TVoxelArray<T> Data,
 		const TSharedPtr<FVoxelBufferRef>& ExistingBufferRef = nullptr)
 	{
@@ -190,23 +204,17 @@ protected:
 		FSharedVoidPtr Owner;
 		TConstVoxelArrayView64<uint8> Data;
 		TSharedPtr<FVoxelBufferRef> BufferRef;
-		TSharedPtr<TVoxelPromise<FVoxelBufferRef>> BufferRefPromise;
+		TSharedPtr<FVoxelPromise> Promise;
 
 		FORCEINLINE int64 NumBytes() const
 		{
 			return Data.Num();
 		}
 	};
-
-	TVoxelAtomic<bool> IsProcessingUploads = false;
-
 	TQueue<FUpload, EQueueMode::Mpsc> UploadQueue;
 
-	void CheckUploadQueue_AnyThread();
-	FVoxelFuture ProcessUploads_AnyThread();
-
 	virtual int64 GetMaxAllocatedNum() const = 0;
-	virtual FVoxelFuture ProcessUploadsImpl_AnyThread(TVoxelArray<FUpload>&& Uploads) = 0;
+	virtual void CheckUploadQueue_AnyThread() = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -234,22 +242,25 @@ public:
 protected:
 	//~ Begin FVoxelBufferPoolBase Interface
 	virtual int64 GetMaxAllocatedNum() const override;
-	virtual FVoxelFuture ProcessUploadsImpl_AnyThread(TVoxelArray<FUpload>&& Uploads) override;
+	virtual void CheckUploadQueue_AnyThread() override;
 	//~ End FVoxelBufferPoolBase Interface
 
 private:
 	FBufferRHIRef BufferRHI_RenderThread;
 	FShaderResourceViewRHIRef BufferSRV_RenderThread;
 
-private:
+	TVoxelAtomic<bool> IsProcessingUploads = false;
+
+	FVoxelFuture ProcessUploads_AnyThread();
+	FVoxelFuture ProcessUploadsImpl_AnyThread(TVoxelArray<FUpload>&& Uploads);
+
 	struct FCopyInfo
 	{
 		TSharedPtr<FVoxelBufferRef> BufferRef;
-		TSharedPtr<TVoxelPromise<FVoxelBufferRef>> BufferRefPromise;
+		TSharedPtr<FVoxelPromise> Promise;
 		FBufferRHIRef SourceBuffer;
 		int64 SourceOffset = 0;
 	};
-
 	void ProcessCopies_RenderThread(
 		FRHICommandList& RHICmdList,
 		TConstVoxelArrayView<FCopyInfo> CopyInfos);
@@ -298,13 +309,14 @@ public:
 protected:
 	//~ Begin FVoxelBufferPoolBase Interface
 	virtual int64 GetMaxAllocatedNum() const override;
-	virtual FVoxelFuture ProcessUploadsImpl_AnyThread(TVoxelArray<FUpload>&& Uploads) override;
+	virtual void CheckUploadQueue_AnyThread() override;
 	//~ End FVoxelBufferPoolBase Interface
 
 private:
 	TObjectPtr<UTexture2D> Texture_GameThread;
 	FTextureRHIRef TextureRHI_RenderThread;
 
+	void Tick();
 	void AddReferencedObjects(FReferenceCollector& Collector);
 
 	friend class FVoxelTextureBufferPoolSingleton;

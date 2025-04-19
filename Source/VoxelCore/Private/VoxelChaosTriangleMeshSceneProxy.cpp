@@ -3,6 +3,7 @@
 #include "VoxelChaosTriangleMeshSceneProxy.h"
 #include "MeshBatch.h"
 #include "RawIndexBuffer.h"
+#include "SceneView.h"
 #include "SceneManagement.h"
 #include "LocalVertexFactory.h"
 #include "Rendering/ColorVertexBuffer.h"

@@ -4,7 +4,7 @@
 
 FVoxelObjectPtr::FVoxelObjectPtr(const UObject* Object)
 {
-	checkVoxelSlow(IsInGameThread() || IsInAsyncLoadingThread());
+	checkUObjectAccess();
 
 	if (!Object)
 	{
@@ -32,6 +32,12 @@ FVoxelObjectPtr::FVoxelObjectPtr(const UObject* Object)
 
 UObject* FVoxelObjectPtr::Resolve() const
 {
+	checkUObjectAccess();
+	return Resolve_Unsafe();
+}
+
+UObject* FVoxelObjectPtr::Resolve_Unsafe() const
+{
 	if (ObjectSerialNumber == 0)
 	{
 		return nullptr;
@@ -49,13 +55,13 @@ UObject* FVoxelObjectPtr::Resolve() const
 		return nullptr;
 	}
 
-	return static_cast<UObject*>(ObjectItem->Object);
+	return static_cast<UObject*>(ObjectItem->UE_506_SWITCH(Object, GetObject()));
 }
 
 UObject* FVoxelObjectPtr::Resolve_Ensured() const
 {
 	UObject* Object = Resolve();
-	ensure(Object);
+	ensureVoxelSlow(Object);
 	return Object;
 }
 
@@ -70,7 +76,7 @@ bool FVoxelObjectPtr::IsValid_Slow() const
 
 FName FVoxelObjectPtr::GetFName() const
 {
-	checkVoxelSlow(IsInGameThread());
+	FVoxelGCScopeGuard Guard;
 
 	const UObject* Object = Resolve();
 	if (!Object)
@@ -102,22 +108,5 @@ FString FVoxelObjectPtr::GetPathName() const
 FString FVoxelObjectPtr::GetReadableName() const
 {
 	checkVoxelSlow(IsInGameThread());
-
-	const UObject* Object = Resolve();
-	if (!Object)
-	{
-		return TEXT("<null>");
-	}
-
-	if (const AActor* Actor = Cast<AActor>(Object))
-	{
-		return Actor->GetActorNameOrLabel();
-	}
-
-	if (const UActorComponent* Component = Cast<UActorComponent>(Object))
-	{
-		return Component->GetReadableName();
-	}
-
-	return Object->GetName();
+	return FVoxelUtilities::GetReadableName(Resolve());
 }

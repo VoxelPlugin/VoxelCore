@@ -8,7 +8,7 @@
 template<typename IteratorType>
 struct TVoxelDereferencingIterator
 {
-	using Type = std::remove_pointer_t<std::remove_reference_t<decltype(*DeclVal<IteratorType&>())>>;
+	using Type = std::remove_pointer_t<std::remove_reference_t<decltype(*std::declval<IteratorType&>())>>;
 
 	mutable IteratorType Iterator;
 
@@ -44,23 +44,23 @@ TVoxelDereferencingIterator<IteratorType> MakeDereferencingIterator(IteratorType
 	return TVoxelDereferencingIterator<IteratorType>(MoveTemp(Iterator));
 }
 
-template<typename T, typename = decltype(begin(DeclVal<T&>()))>
+template<typename T, typename = decltype(begin(std::declval<T&>()))>
 FORCEINLINE auto VoxelDereferencingRange_CallBegin(T& Value)
 {
 	return begin(Value);
 }
-template<typename T, typename = decltype(end(DeclVal<T&>()))>
+template<typename T, typename = decltype(end(std::declval<T&>()))>
 FORCEINLINE auto VoxelDereferencingRange_CallEnd(T& Value)
 {
 	return end(Value);
 }
 
-template<typename T, typename = decltype(DeclVal<T&>().begin()), typename = void>
+template<typename T, typename = decltype(std::declval<T&>().begin()), typename = void>
 FORCEINLINE auto VoxelDereferencingRange_CallBegin(T& Value)
 {
 	return Value.begin();
 }
-template<typename T, typename = decltype(DeclVal<T&>().end()), typename = void>
+template<typename T, typename = decltype(std::declval<T&>().end()), typename = void>
 FORCEINLINE auto VoxelDereferencingRange_CallEnd(T& Value)
 {
 	return Value.end();
@@ -70,7 +70,7 @@ template<typename RangeType>
 class TVoxelDereferencingRange
 {
 public:
-	using Type = typename decltype(MakeDereferencingIterator(VoxelDereferencingRange_CallBegin(DeclVal<RangeType&>())))::Type;
+	using Type = typename decltype(MakeDereferencingIterator(VoxelDereferencingRange_CallBegin(std::declval<RangeType&>())))::Type;
 
 	RangeType Range;
 

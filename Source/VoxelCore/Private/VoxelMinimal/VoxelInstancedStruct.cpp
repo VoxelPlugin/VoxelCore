@@ -155,7 +155,7 @@ bool FVoxelInstancedStruct::Serialize(FArchive& Ar)
 			LOG_VOXEL(Warning, "Struct %s not found. Archive: %s Callstack: \n%s",
 				*StructPath,
 				*FVoxelUtilities::GetArchivePath(Ar),
-				*FVoxelUtilities::GetPrettyCallstack());
+				*FVoxelUtilities::GetPrettyCallstack_WithStats());
 
 			Ar.Seek(Ar.Tell() + SerializedSize);
 		}

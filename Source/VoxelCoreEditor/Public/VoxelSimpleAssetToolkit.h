@@ -37,6 +37,10 @@ public:
 	{
 		return *PrivateViewport;
 	}
+	TSharedRef<SVoxelViewport> GetSharedViewport() const
+	{
+		return PrivateViewport.ToSharedRef();
+	}
 
 public:
 	virtual void SetupPreview() {}

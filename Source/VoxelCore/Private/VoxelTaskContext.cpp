@@ -8,11 +8,17 @@ VOXEL_CONSOLE_VARIABLE(
 	"voxel.OneThread",
 	"If true, will run all voxel tasks on the game thread. Useful when debugging.");
 
+VOXEL_CONSOLE_VARIABLE(
+	VOXELCORE_API, bool, GVoxelTrackAllPromisesCallstacks, false,
+	"voxel.TrackAllPromisesCallstacks",
+	"");
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 FVoxelTaskContext* GVoxelGlobalTaskContext = nullptr;
+FVoxelTaskContext* GVoxelSynchronousTaskContext = nullptr;
 
 DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelTaskContext);
 
@@ -34,7 +40,15 @@ public:
 	//~ Begin FVoxelSingleton Interface
 	virtual void Initialize() override
 	{
-		GVoxelGlobalTaskContext = new FVoxelTaskContext(false, false);
+		GVoxelGlobalTaskContext = new FVoxelTaskContext(
+			"GlobalTaskContext",
+			false);
+
+		GVoxelSynchronousTaskContext = new FVoxelTaskContext(
+			"ExecuteSynchronously",
+			false);
+
+		GVoxelSynchronousTaskContext->bSynchronous = true;
 
 		Voxel::OnFlushGameTasks.AddLambda([this](bool& bAnyTaskProcessed)
 		{
@@ -54,20 +68,33 @@ public:
 	{
 		VOXEL_FUNCTION_COUNTER();
 
-		TVoxelArray<FVoxelTaskContextStrongRef> StrongRefs;
-		StrongRefs.Reserve(GVoxelTaskContextArray->Contexts_RequiresLock.Num());
+		TVoxelArray<FVoxelTaskContextWeakRef> WeakRefs;
+		WeakRefs.Reserve(GVoxelTaskContextArray->Contexts_RequiresLock.Num());
 		{
 			VOXEL_SCOPE_READ_LOCK(GVoxelTaskContextArray->CriticalSection);
 
 			for (FVoxelTaskContext* Context : GVoxelTaskContextArray->Contexts_RequiresLock)
 			{
-				StrongRefs.Emplace(*Context);
+				WeakRefs.Emplace(*Context);
 			}
 		}
 
-		for (const FVoxelTaskContextStrongRef& StrongRef : StrongRefs)
+		for (const FVoxelTaskContextWeakRef& WeakRef : WeakRefs)
 		{
-			StrongRef.Context.ProcessGameTasks(bAnyTaskProcessed);
+			TUniquePtr<FVoxelTaskContextStrongRef> StrongRef = WeakRef.Pin();
+			if (!StrongRef)
+			{
+				continue;
+			}
+
+			TVoxelChunkedArray<TVoxelUniqueFunction<void()>> GameTasksToDelete;
+
+			StrongRef->Context.ProcessGameTasks(bAnyTaskProcessed, GameTasksToDelete);
+			StrongRef.Reset();
+
+			// Delete the tasks AFTER the strong ref is released, as one of the task could be the last thing keeping the task context alive
+			// (in which case we get into an infinite loop if we are still holding a strong ref to it)
+			GameTasksToDelete.Empty();
 		}
 	}
 };
@@ -125,10 +152,10 @@ FVoxelTaskContextStrongRef::~FVoxelTaskContextStrongRef()
 ///////////////////////////////////////////////////////////////////////////////
 
 FVoxelTaskContext::FVoxelTaskContext(
-	const bool bCanCancelTasks,
-	const bool bTrackPromisesCallstacks)
-	: bCanCancelTasks(bCanCancelTasks)
-	, bTrackPromisesCallstacks(bTrackPromisesCallstacks)
+	const FName Name,
+	const bool bCanCancelTasks)
+	: Name(Name)
+	, bCanCancelTasks(bCanCancelTasks)
 {
 	VOXEL_SCOPE_WRITE_LOCK(GVoxelTaskContextArray->CriticalSection);
 
@@ -136,32 +163,67 @@ FVoxelTaskContext::FVoxelTaskContext(
 	SelfWeakRef.Serial = GVoxelTaskContextArray->SerialCounter.Increment_ReturnNew();
 }
 
+TSharedRef<FVoxelTaskContext> FVoxelTaskContext::Create(const FName Name)
+{
+	FVoxelTaskContext* Context = new FVoxelTaskContext(
+		Name,
+		true);
+
+	if (GVoxelTrackAllPromisesCallstacks)
+	{
+		Context->bTrackPromisesCallstacks = true;
+	}
+
+	return MakeShareable_CustomDestructor(Context, [=]
+	{
+		checkVoxelSlow(Context != GVoxelGlobalTaskContext);
+
+		Context->CancelTasks();
+
+		const auto ScheduleDelete = [Context]
+		{
+			// Make sure to delete the task context in the global task context, see FVoxelTaskContext::~FVoxelTaskContext
+			GVoxelGlobalTaskContext->Dispatch(EVoxelFutureThread::AsyncThread, [Context]
+			{
+				delete Context;
+			});
+		};
+
+		if (Context->NumRenderTasks.Get() > 0)
+		{
+			// Wait for the render tasks to be done before deleting to avoid a stall
+			ENQUEUE_RENDER_COMMAND(FVoxelTaskContext_Destroy)([=](FRHICommandList&)
+			{
+				ScheduleDelete();
+			});
+		}
+		else
+		{
+			ScheduleDelete();
+		}
+	});
+}
+
 FVoxelTaskContext::~FVoxelTaskContext()
 {
 	VOXEL_FUNCTION_COUNTER();
 
+	// Can't delete within ourselves, would loop forever
+	check(this == GVoxelGlobalTaskContext || &FVoxelTaskScope::GetContext() != this);
+
 	if (bCanCancelTasks)
 	{
-		ShouldCancelTasks.Set(true);
-
-		{
-			VOXEL_SCOPE_LOCK(GameTasksCriticalSection);
-
-			NumPendingTasks.Subtract(GameTasks_RequiresLock.Num());
-			GameTasks_RequiresLock.Empty();
-		}
-
-		{
-			VOXEL_SCOPE_LOCK(AsyncTasksCriticalSection);
-
-			NumPendingTasks.Subtract(AsyncTasks_RequiresLock.Num());
-			AsyncTasks_RequiresLock.Empty();
-		}
+		CancelTasks();
 	}
 
 	while (true)
 	{
-		FlushTasks();
+		FlushTasksUntil([&]
+		{
+			return
+				NumStrongRefs.Get() == 0 &&
+				NumPendingTasks.Get() == 0;
+		});
 
 		if (NumStrongRefs.Get() == 0 &&
 			NumPendingTasks.Get() == 0)
@@ -173,6 +235,8 @@ FVoxelTaskContext::~FVoxelTaskContext()
 				{
 					break;
 				}
+
+				GVoxelTaskContextArray->CriticalSection.WriteUnlock();
 			}
 		}
 
@@ -208,6 +272,11 @@ void FVoxelTaskContext::Dispatch(
 	if (ShouldCancelTasks.Get())
 	{
 		return;
+	}
+
+	if (LambdaWrapper)
+	{
+		Lambda = LambdaWrapper(MoveTemp(Lambda));
 	}
 
 	switch (Thread)
@@ -250,6 +319,13 @@ void FVoxelTaskContext::Dispatch(
 	break;
 	case EVoxelFutureThread::AsyncThread:
 	{
+		if (bSynchronous)
+		{
+			FVoxelTaskScope Scope(*this);
+			Lambda();
+			return;
+		}
+
 		NumPendingTasks.Increment();
 
 		if (NumLaunchedTasks.Get() < MaxLaunchedTasks)
@@ -272,43 +348,25 @@ void FVoxelTaskContext::Dispatch(
 	}
 }
 
-void FVoxelTaskContext::FlushTasks()
+void FVoxelTaskContext::CancelTasks()
 {
 	VOXEL_FUNCTION_COUNTER();
+	check(bCanCancelTasks);
 
-	double LastLogTime = FPlatformTime::Seconds();
+	ShouldCancelTasks.Set(true);
 
-	// if NumStrongRefs > 0, we need to wait for the promise who pinned us to complete
-
-	while (
-		NumStrongRefs.Get() > 0 ||
-		NumPendingTasks.Get() > 0)
 	{
-		if (IsInGameThread())
-		{
-			Voxel::FlushGameTasks();
-		}
+		VOXEL_SCOPE_LOCK(GameTasksCriticalSection);
 
-		if (NumRenderTasks.Get() > 0)
-		{
-			// Only do this if really necessary
-			FlushRenderingCommands();
-		}
+		NumPendingTasks.Subtract(GameTasks_RequiresLock.Num());
+		GameTasks_RequiresLock.Empty();
+	}
 
-		if (NumStrongRefs.Get() == 0 &&
-			NumPendingTasks.Get() == 0)
-		{
-			return;
-		}
+	{
+		VOXEL_SCOPE_LOCK(AsyncTasksCriticalSection);
 
-		if (FPlatformTime::Seconds() - LastLogTime > 1)
-		{
-			LastLogTime = FPlatformTime::Seconds();
-
-			LOG_VOXEL(Log, "FlushTasks: waiting for %d tasks", NumPendingTasks.Get());
-		}
-
-		FPlatformProcess::Yield();
+		NumPendingTasks.Subtract(AsyncTasks_RequiresLock.Num());
+		AsyncTasks_RequiresLock.Empty();
 	}
 }
 
@@ -341,9 +399,84 @@ void FVoxelTaskContext::DumpToLog()
 	{
 		LOG_VOXEL(Log, "x%d:", It.Value);
 
-		for (const FString& Line : FVoxelUtilities::StackFramesToString(It.Key))
+		for (const FString& Line : FVoxelUtilities::StackFramesToString_WithStats(It.Key))
 		{
 			LOG_VOXEL(Log, "\t%s", *Line);
+		}
+	}
+}
+
+void FVoxelTaskContext::FlushAllTasks() const
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	FlushTasksUntil([&]
+	{
+		if (ShouldCancelTasks.Get())
+		{
+			// NumPromises will never be zero when cancelling
+			return
+				NumStrongRefs.Get() == 0 &&
+				NumPendingTasks.Get() == 0;
+		}
+		else
+		{
+			return
+				NumPromises.Get() == 0 &&
+				NumPendingTasks.Get() == 0;
+		}
+	});
+}
+
+void FVoxelTaskContext::FlushTasksUntil(const TFunctionRef<bool()> Condition) const
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	double LastLogTime = FPlatformTime::Seconds();
+
+	// if NumStrongRefs > 0, we need to wait for the promise who pinned us to complete
+
+	while (!Condition())
+	{
+		if (IsInGameThread())
+		{
+			Voxel::FlushGameTasks();
+
+			// ProcessGameTasks holds a strong ref, if this happens we are stuck
+			checkf(!bIsProcessingGameTasks, TEXT("FVoxelTaskContext deleted during ProcessGameTasks"));
+		}
+
+		if (Condition())
+		{
+			return;
+		}
+
+		if (IsInGameThread() &&
+			NumRenderTasks.Get() > 0)
+		{
+			// Only do this if really necessary
+			FlushRenderingCommands();
+		}
+
+		if (Condition())
+		{
+			return;
+		}
+
+		if (FPlatformTime::Seconds() - LastLogTime > 1)
+		{
+			LastLogTime = FPlatformTime::Seconds();
+
+			LOG_VOXEL(Log, "FlushTasks: waiting for %d tasks", NumPendingTasks.Get());
+		}
+
+		if (IsInGameThread())
+		{
+			FPlatformProcess::Yield();
+		}
+		else
+		{
+			FPlatformProcess::Sleep(0.001f);
 		}
 	}
 }
@@ -409,10 +542,20 @@ void FVoxelTaskContext::LaunchTask(TVoxelUniqueFunction<void()> Task)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void FVoxelTaskContext::ProcessGameTasks(bool& bAnyTaskProcessed)
+void FVoxelTaskContext::ProcessGameTasks(
+	bool& bAnyTaskProcessed,
+	TVoxelChunkedArray<TVoxelUniqueFunction<void()>>& OutGameTasksToDelete)
 {
 	VOXEL_FUNCTION_COUNTER();
 	check(IsInGameThread());
+
+	check(!bIsProcessingGameTasks);
+	bIsProcessingGameTasks = true;
+	ON_SCOPE_EXIT
+	{
+		check(bIsProcessingGameTasks);
+		bIsProcessingGameTasks = false;
+	};
 
 	TVoxelChunkedArray<TVoxelUniqueFunction<void()>> GameTasks;
 	{
@@ -436,6 +579,8 @@ void FVoxelTaskContext::ProcessGameTasks(bool& bAnyTaskProcessed)
 		}
 		NumPendingTasks.Decrement();
 	}
+
+	OutGameTasksToDelete = MoveTemp(GameTasks);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

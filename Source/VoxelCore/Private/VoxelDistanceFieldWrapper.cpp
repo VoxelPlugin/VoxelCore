@@ -53,9 +53,9 @@ void FVoxelDistanceFieldWrapper::SetSize(const FIntVector& Mip0IndirectionSize)
 	for (int32 MipIndex = 0; MipIndex < DistanceField::NumMips; MipIndex++)
 	{
 		Mips[MipIndex].IndirectionSize = FIntVector(
-			FVoxelUtilities::DivideCeil_Positive(Mip0IndirectionSize.X, 1 << MipIndex),
-			FVoxelUtilities::DivideCeil_Positive(Mip0IndirectionSize.Y, 1 << MipIndex),
-			FVoxelUtilities::DivideCeil_Positive(Mip0IndirectionSize.Z, 1 << MipIndex));
+			FVoxelUtilities::DivideCeil_Positive_Log2(Mip0IndirectionSize.X, MipIndex),
+			FVoxelUtilities::DivideCeil_Positive_Log2(Mip0IndirectionSize.Y, MipIndex),
+			FVoxelUtilities::DivideCeil_Positive_Log2(Mip0IndirectionSize.Z, MipIndex));
 
 		Mips[MipIndex].Bricks.Reset();
 		Mips[MipIndex].Bricks.SetNum(Mips[MipIndex].IndirectionSize.X * Mips[MipIndex].IndirectionSize.Y * Mips[MipIndex].IndirectionSize.Z);

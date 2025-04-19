@@ -4,24 +4,25 @@
 
 #include "CoreMinimal.h"
 #include "VoxelMacros.h"
+#include "Misc/GeneratedTypeName.h"
 
-template<typename T, typename = decltype(DeclVal<T>().AsWeak())>
+template<typename T, typename = decltype(std::declval<T>().AsWeak())>
 FORCEINLINE TWeakPtr<T> MakeWeakPtr(T* Ptr)
 {
 	return StaticCastWeakPtr<T>(Ptr->AsWeak());
 }
-template<typename T, typename = decltype(DeclVal<T>().AsWeak())>
+template<typename T, typename = decltype(std::declval<T>().AsWeak())>
 FORCEINLINE TWeakPtr<T> MakeWeakPtr(T& Ptr)
 {
 	return StaticCastWeakPtr<T>(Ptr.AsWeak());
 }
 
-template<typename T, typename = decltype(DeclVal<T>().AsShared())>
+template<typename T, typename = decltype(std::declval<T>().AsShared())>
 FORCEINLINE TSharedRef<T> MakeSharedRef(T* Ptr)
 {
 	return StaticCastSharedRef<T>(Ptr->AsShared());
 }
-template<typename T, typename = decltype(DeclVal<T>().AsShared())>
+template<typename T, typename = decltype(std::declval<T>().AsShared())>
 FORCEINLINE TSharedRef<T> MakeSharedRef(T& Ptr)
 {
 	return StaticCastSharedRef<T>(Ptr.AsShared());
@@ -47,14 +48,16 @@ FORCEINLINE TWeakPtr<T> MakeWeakPtr(const TSharedRef<T>& Ptr)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-// Need std::enable_if_t as &&& is equivalent to &, so T could get matched with Smthg&
+// Need requires as &&& is equivalent to &, so T could get matched with Smthg&
 template<typename T>
-FORCEINLINE std::enable_if_t<!TIsReferenceType<T>::Value, TSharedRef<T>> MakeSharedCopy(T&& Data)
+requires (!std::is_reference_v<T>)
+FORCEINLINE TSharedRef<T> MakeSharedCopy(T&& Data)
 {
 	return MakeShared<T>(MoveTemp(Data));
 }
 template<typename T>
-FORCEINLINE std::enable_if_t<!TIsReferenceType<T>::Value, TUniquePtr<T>> MakeUniqueCopy(T&& Data)
+requires (!std::is_reference_v<T>)
+FORCEINLINE TUniquePtr<T> MakeUniqueCopy(T&& Data)
 {
 	return MakeUnique<T>(MoveTemp(Data));
 }
@@ -138,6 +141,16 @@ FORCEINLINE SharedPointerInternals::TReferenceControllerBase<ESPMode::ThreadSafe
 	return ReinterpretCastRef<SharedPointerInternals::TReferenceControllerBase<ESPMode::ThreadSafe>*>(WeakReferencer);
 }
 
+namespace Voxel::Private
+{
+	template<typename T>
+	std::true_type IsSharedFromThisImpl(const TSharedFromThis<T>&);
+	std::false_type IsSharedFromThisImpl(...);
+}
+
+template<typename T>
+constexpr bool IsSharedFromThis = decltype(Voxel::Private::IsSharedFromThisImpl(std::declval<T>()))::value;
+
 template<typename T>
 FORCEINLINE const TWeakPtr<T>& GetSharedFromThisWeakPtr(const TSharedFromThis<T>& SharedFromThis)
 {
@@ -146,6 +159,34 @@ FORCEINLINE const TWeakPtr<T>& GetSharedFromThisWeakPtr(const TSharedFromThis<T>
 		TWeakPtr<T> WeakPtr;
 	};
 	return ReinterpretCastRef<FSharedFromThis>(SharedFromThis).WeakPtr;
+}
+
+template<typename T>
+requires IsSharedFromThis<T>
+FORCEINLINE TWeakPtr<T> WeakFromThis(T& Value)
+{
+	return StaticCastWeakPtr<T>(Value.AsWeak());
+}
+template<typename T>
+requires IsSharedFromThis<T>
+FORCEINLINE TSharedRef<T> SharedFromThis(T& Value)
+{
+	return StaticCastSharedRef<T>(Value.AsShared());
+}
+
+template<typename T>
+requires IsSharedFromThis<T>
+FORCEINLINE TWeakPtr<T> WeakFromThis(T* Value)
+{
+	checkVoxelSlow(Value);
+	return StaticCastWeakPtr<T>(Value->AsWeak());
+}
+template<typename T>
+requires IsSharedFromThis<T>
+FORCEINLINE TSharedRef<T> SharedFromThis(T* Value)
+{
+	checkVoxelSlow(Value);
+	return StaticCastSharedRef<T>(Value->AsShared());
 }
 
 template<typename T>
@@ -181,6 +222,26 @@ FORCEINLINE TSharedRef<T> MakeShareable_CustomDestructor(T* Object, LambdaType&&
 
 			OnDestroy();
 		}));
+}
+
+template<typename T>
+[[nodiscard]] FORCEINLINE TSharedRef<T> MakeShareable_Stats(T* Object)
+{
+	return ReinterpretCastRef<TSharedRef<T>>(TSharedPtr<T>(
+		Object,
+		[](T* InObject)
+		{
+			VOXEL_SCOPE_COUNTER(FString::Printf(TEXT("Destroy %s"), GetGeneratedTypeName<T>()));
+			delete InObject;
+		}));
+}
+
+template<typename T, typename... ArgTypes>
+requires std::is_constructible_v<T, ArgTypes...>
+[[nodiscard]] FORCEINLINE TSharedRef<T> MakeShared_Stats(ArgTypes&&... Args)
+{
+	VOXEL_SCOPE_COUNTER(FString::Printf(TEXT("Construct %s"), GetGeneratedTypeName<T>()));
+	return MakeShareable_Stats(new T(Forward<ArgTypes>(Args)...));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -270,7 +331,7 @@ namespace SharedPointerInternals
 	{
 	public:
 		template<typename ObjectType, typename... ArgTypes>
-		static void Call(decltype(ObjectType(DeclVal<ArgTypes>()...))* = nullptr);
+		static void Call(decltype(ObjectType(std::declval<ArgTypes>()...))* = nullptr);
 	};
 
 	template<typename ObjectType, typename... ArgTypes>
@@ -288,4 +349,13 @@ requires SharedPointerInternals::CanMakeShared<InObjectType, InArgTypes&&...>
 }
 
 #define MakeShared MakeShared_Safe
+
+template<typename T, typename... ArgTypes>
+requires std::is_constructible_v<T, ArgTypes...>
+[[nodiscard]] FORCEINLINE TUniquePtr<T> MakeUnique_Safe(ArgTypes&&... Args)
+{
+	return MakeUnique<T>(Forward<ArgTypes>(Args)...);
+}
+
+#define MakeUnique MakeUnique_Safe
 #endif

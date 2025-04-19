@@ -7,7 +7,7 @@
 #include "VoxelMinimal/VoxelSharedPtr.h"
 #include "VoxelMinimal/VoxelUniqueFunction.h"
 
-class FVoxelFuture;
+struct FVoxelFuture;
 class FVoxelPromise;
 class FVoxelPromiseState;
 class FVoxelTaskContext;
@@ -115,6 +115,12 @@ public:
 	void Set(const FSharedVoidRef& NewValue);
 
 public:
+#if VOXEL_DEBUG
+	void CheckCanAddContinuation(const FVoxelFuture& Future);
+#else
+	void CheckCanAddContinuation(const FVoxelFuture& Future) {}
+#endif
+
 	void AddContinuation(const FVoxelFuture& Future);
 
 	void AddContinuation(
@@ -146,7 +152,7 @@ checkStatic(sizeof(IVoxelPromiseState) == 24);
 ///////////////////////////////////////////////////////////////////////////////
 
 // FVoxelFuture() is a valid, completed future
-class VOXELCORE_API FVoxelFuture
+struct VOXELCORE_API FVoxelFuture
 {
 public:
 	using PromiseType = FVoxelPromise;
@@ -179,6 +185,7 @@ public:
 				return;
 			}
 
+			Future.PromiseState->CheckCanAddContinuation(*this);
 			Future.PromiseState->AddContinuation(EVoxelFutureThread::AnyThread, [Counter, LocalPromiseState = PromiseState]
 			{
 				if (Counter->Decrement_ReturnNew() == 0)

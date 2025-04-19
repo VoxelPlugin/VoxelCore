@@ -54,6 +54,7 @@ public:
 	void Initialize(TVoxelArray<FElement>&& Elements);
 	void Shrink();
 
+	static TSharedRef<FVoxelAABBTree> Create(TVoxelArray<FElement>&& Elements);
 	static TSharedRef<FVoxelAABBTree> Create(TConstVoxelArrayView<FVoxelBox> Bounds);
 
 public:

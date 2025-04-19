@@ -131,7 +131,7 @@ export void VoxelDistanceFieldUtilities_JumpFlood_JumpFlood(
 				\
 				const varying float NeighborClosestX = InClosestX[BaseIndex + Step * (DX + DY * SizeX + DZ * SizeXY)]; \
 				\
-				if (any(intbits(NeighborClosestX) != 0xFFFFFFFF)) \
+				if (any(intbits(NeighborClosestX) != NaNf_uint)) \
 				{ \
 					const varying float NeighborClosestY = InClosestY[BaseIndex + Step * (DX + DY * SizeX + DZ * SizeXY)]; \
 					const varying float NeighborClosestZ = InClosestZ[BaseIndex + Step * (DX + DY * SizeX + DZ * SizeXY)]; \
@@ -141,7 +141,7 @@ export void VoxelDistanceFieldUtilities_JumpFlood_JumpFlood(
 						Square(Y - NeighborClosestY) + \
 						Square(Z - NeighborClosestZ); \
 					\
-					if (intbits(NeighborClosestX) != 0xFFFFFFFF && \
+					if (intbits(NeighborClosestX) != NaNf_uint && \
 						Distance < BestDistance) \
 					{ \
 						BestDistance = Distance; \

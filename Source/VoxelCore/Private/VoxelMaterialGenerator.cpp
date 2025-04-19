@@ -245,7 +245,7 @@ bool FVoxelMaterialGenerator::ShouldDuplicateFunction(const UMaterialFunction& F
 	VisitedFunctions.Add_CheckNew(&Function);
 	ON_SCOPE_EXIT
 	{
-		VisitedFunctions.RemoveChecked(&Function);
+		VisitedFunctions.Remove_Ensure(&Function);
 	};
 
 	if (const bool* Value = FunctionToShouldDuplicate.Find(&Function))
