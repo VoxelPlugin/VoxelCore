@@ -107,24 +107,24 @@ FString FVoxelIntBox::ToString() const
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TVoxelFixedArray<FVoxelIntBox, 6> FVoxelIntBox::Difference(const FVoxelIntBox& Other) const
+FVoxelIntBox FVoxelIntBox::Remove_Union(const FVoxelIntBox& Other) const
 {
     if (!Intersects(Other))
     {
-        return { *this };
+        return *this;
     }
 
-    TVoxelFixedArray<FVoxelIntBox, 6> OutBoxes;
+	FVoxelIntBox Result = InvertedInfinite;
 
     if (Min.Z < Other.Min.Z)
     {
         // Add bottom
-        OutBoxes.Emplace(Min, FIntVector(Max.X, Max.Y, Other.Min.Z));
+        Result += FVoxelIntBox(Min, FIntVector(Max.X, Max.Y, Other.Min.Z));
     }
     if (Other.Max.Z < Max.Z)
     {
         // Add top
-        OutBoxes.Emplace(FIntVector(Min.X, Min.Y, Other.Max.Z), Max);
+        Result += FVoxelIntBox(FIntVector(Min.X, Min.Y, Other.Max.Z), Max);
     }
 
     const int32 MinZ = FMath::Max(Min.Z, Other.Min.Z);
@@ -133,12 +133,12 @@ TVoxelFixedArray<FVoxelIntBox, 6> FVoxelIntBox::Difference(const FVoxelIntBox& O
     if (Min.X < Other.Min.X)
     {
         // Add X min
-        OutBoxes.Emplace(FIntVector(Min.X, Min.Y, MinZ), FIntVector(Other.Min.X, Max.Y, MaxZ));
+        Result += FVoxelIntBox(FIntVector(Min.X, Min.Y, MinZ), FIntVector(Other.Min.X, Max.Y, MaxZ));
     }
     if (Other.Max.X < Max.X)
     {
         // Add X max
-        OutBoxes.Emplace(FIntVector(Other.Max.X, Min.Y, MinZ), FIntVector(Max.X, Max.Y, MaxZ));
+        Result += FVoxelIntBox(FIntVector(Other.Max.X, Min.Y, MinZ), FIntVector(Max.X, Max.Y, MaxZ));
     }
 
     const int32 MinX = FMath::Max(Min.X, Other.Min.X);
@@ -147,16 +147,75 @@ TVoxelFixedArray<FVoxelIntBox, 6> FVoxelIntBox::Difference(const FVoxelIntBox& O
     if (Min.Y < Other.Min.Y)
     {
         // Add Y min
-        OutBoxes.Emplace(FIntVector(MinX, Min.Y, MinZ), FIntVector(MaxX, Other.Min.Y, MaxZ));
+        Result += FVoxelIntBox(FIntVector(MinX, Min.Y, MinZ), FIntVector(MaxX, Other.Min.Y, MaxZ));
     }
     if (Other.Max.Y < Max.Y)
     {
         // Add Y max
-        OutBoxes.Emplace(FIntVector(MinX, Other.Max.Y, MinZ), FIntVector(MaxX, Max.Y, MaxZ));
+        Result += FVoxelIntBox(FIntVector(MinX, Other.Max.Y, MinZ), FIntVector(MaxX, Max.Y, MaxZ));
     }
 
-    return OutBoxes;
+	if (!Result.IsValid())
+	{
+		return {};
+	}
+
+    return Result;
 }
+
+void FVoxelIntBox::Remove_Split(
+	const FVoxelIntBox& Other,
+	TVoxelArray<FVoxelIntBox>& OutRemainder) const
+{
+    if (!Intersects(Other))
+    {
+        OutRemainder.Add(*this);
+        return;
+    }
+
+    if (Min.Z < Other.Min.Z)
+    {
+        // Add bottom
+        OutRemainder.Emplace(Min, FIntVector(Max.X, Max.Y, Other.Min.Z));
+    }
+    if (Other.Max.Z < Max.Z)
+    {
+        // Add top
+        OutRemainder.Emplace(FIntVector(Min.X, Min.Y, Other.Max.Z), Max);
+    }
+
+    const int32 MinZ = FMath::Max(Min.Z, Other.Min.Z);
+    const int32 MaxZ = FMath::Min(Max.Z, Other.Max.Z);
+
+    if (Min.X < Other.Min.X)
+    {
+        // Add X min
+        OutRemainder.Emplace(FIntVector(Min.X, Min.Y, MinZ), FIntVector(Other.Min.X, Max.Y, MaxZ));
+    }
+    if (Other.Max.X < Max.X)
+    {
+        // Add X max
+        OutRemainder.Emplace(FIntVector(Other.Max.X, Min.Y, MinZ), FIntVector(Max.X, Max.Y, MaxZ));
+    }
+
+    const int32 MinX = FMath::Max(Min.X, Other.Min.X);
+    const int32 MaxX = FMath::Min(Max.X, Other.Max.X);
+
+    if (Min.Y < Other.Min.Y)
+    {
+        // Add Y min
+        OutRemainder.Emplace(FIntVector(MinX, Min.Y, MinZ), FIntVector(MaxX, Other.Min.Y, MaxZ));
+    }
+    if (Other.Max.Y < Max.Y)
+    {
+        // Add Y max
+        OutRemainder.Emplace(FIntVector(MinX, Other.Max.Y, MinZ), FIntVector(MaxX, Max.Y, MaxZ));
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 bool FVoxelIntBox::Subdivide(
     const int32 ChildrenSize,

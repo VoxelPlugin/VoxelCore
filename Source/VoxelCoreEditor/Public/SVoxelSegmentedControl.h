@@ -122,6 +122,8 @@ public:
 		SLATE_ATTRIBUTE(OptionType, Value)
 		SLATE_ATTRIBUTE(FValuesMap, Values)
 		SLATE_ATTRIBUTE(FMargin, UniformPadding)
+		SLATE_ATTRIBUTE(FMargin, SlotPadding)
+		SLATE_ATTRIBUTE(FMargin, BorderPadding)
 		SLATE_EVENT(FOnValueChanged, OnValueChanged)
 		SLATE_EVENT(FOnValuesChanged, OnValuesChanged)
 		SLATE_ARGUMENT(int32, MaxSegmentsPerLine)
@@ -173,6 +175,8 @@ public:
 		OnValuesChanged = InArgs._OnValuesChanged;
 
 		UniformPadding = InArgs._UniformPadding;
+		SlotPadding = InArgs._SlotPadding;
+		BorderPadding = InArgs._BorderPadding;
 
 		MaxSegmentsPerLine = InArgs._MaxSegmentsPerLine;
 		Children.AddSlots(MoveTemp(const_cast<TArray<typename FSlot::FSlotArguments>&>(InArgs._Slots)));
@@ -181,12 +185,13 @@ public:
 
 	void RebuildChildren()
 	{
-		FMargin SlotPadding = Style->UniformPadding;
-		SlotPadding.Right = 0.0f;
+		FMargin InnerSlotPadding = SlotPadding.IsSet() ? SlotPadding.Get() : Style->UniformPadding;
+		const float RightPadding = InnerSlotPadding.Right;
+		InnerSlotPadding.Right = 0.0f;
 
 		const TSharedRef<SUniformGridPanel> UniformBox =
 			SNew(SUniformGridPanel)
-			.SlotPadding(SlotPadding)
+			.SlotPadding(InnerSlotPadding)
 			.MinDesiredSlotWidth(MinDesiredSlotWidth);
 
 		const int32 NumSlots = Children.Num();
@@ -277,11 +282,25 @@ public:
 			];
 		}
 
+		FMargin BackgroundBorderPadding;
+		if (BorderPadding.IsSet())
+		{
+			BackgroundBorderPadding = BorderPadding.Get();
+			BackgroundBorderPadding.Left -= InnerSlotPadding.Left;
+			BackgroundBorderPadding.Top -= InnerSlotPadding.Top;
+			BackgroundBorderPadding.Right -= RightPadding;
+			BackgroundBorderPadding.Bottom -= InnerSlotPadding.Bottom;
+		}
+		else
+		{
+			BackgroundBorderPadding = FMargin(0.f, 0.f, RightPadding, 0.f);
+		}
+
 		ChildSlot
 		[
 			SNew(SBorder)
 			.BorderImage(&Style->BackgroundBrush)
-			.Padding(0.f, 0.f, Style->UniformPadding.Right, 0.f)
+			.Padding(BackgroundBorderPadding)
 			[
 				UniformBox
 			]
@@ -551,6 +570,8 @@ private:
 	TSlateAttribute<TMap<OptionType, ECheckBoxState>, EInvalidateWidgetReason::Paint, TSlateAttributeMapComparePredicate> CurrentValues;
 
 	TAttribute<FMargin> UniformPadding;
+	TAttribute<FMargin> SlotPadding;
+	TAttribute<FMargin> BorderPadding;
 
 	const FSegmentedControlStyle* Style = nullptr;
 

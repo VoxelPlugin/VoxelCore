@@ -8,7 +8,7 @@
 #endif
 
 VOXEL_CONSOLE_COMMAND(
-	"voxel.toggleNamedEvents",
+	"voxel.ToggleNamedEvents",
 	"Toggle verbose named events (expensive!)")
 {
     static bool bToggled = false;
@@ -111,7 +111,7 @@ struct FVoxelUnrealInsightsLauncher
 #if VOXEL_STATS
 VOXEL_CONSOLE_COMMAND(
 	"voxel.StartInsights",
-	"")
+	"Enable voxel events and start Unreal Insights")
 {
 	GCycleStatsShouldEmitNamedEvents++;
 	UE::Trace::ToggleChannel(TEXT("VoxelChannel"), true);
@@ -125,7 +125,7 @@ VOXEL_CONSOLE_COMMAND(
 
 VOXEL_CONSOLE_COMMAND(
 	"voxel.StopInsights",
-	"")
+	"Stop trace & disable voxel events")
 {
 	FTraceAuxiliary::Stop();
 

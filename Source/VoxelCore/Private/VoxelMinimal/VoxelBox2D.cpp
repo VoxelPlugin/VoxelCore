@@ -2,12 +2,12 @@
 
 #include "VoxelMinimal.h"
 
-const FVoxelBox2D FVoxelBox2D::Infinite = FVoxelBox2D(FVector2d(-1e50), FVector2d(1e50));
+const FVoxelBox2D FVoxelBox2D::Infinite = FVoxelBox2D(FVector2d(-1e30), FVector2d(1e30));
 const FVoxelBox2D FVoxelBox2D::InvertedInfinite = []
 {
 	FVoxelBox2D Box;
-	Box.Min = FVector2d(1e50);
-	Box.Max = FVector2d(-1e50);
+	Box.Min = FVector2d(1e30);
+	Box.Max = FVector2d(-1e30);
 	return Box;
 }();
 
@@ -133,24 +133,24 @@ FString FVoxelBox2D::ToString() const
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TVoxelFixedArray<FVoxelBox2D, 4> FVoxelBox2D::Difference(const FVoxelBox2D& Other) const
+FVoxelBox2D FVoxelBox2D::Remove_Union(const FVoxelBox2D& Other) const
 {
     if (!Intersects(Other))
     {
-        return { *this };
+        return *this;
     }
 
-    TVoxelFixedArray<FVoxelBox2D, 4> OutBoxes;
+    FVoxelBox2D Result = InvertedInfinite;
 
     if (Min.X < Other.Min.X)
     {
         // Add X min
-        OutBoxes.Emplace(FVector2D(Min.X, Min.Y), FVector2D(Other.Min.X, Max.Y));
+        Result += FVoxelBox2D(FVector2D(Min.X, Min.Y), FVector2D(Other.Min.X, Max.Y));
     }
     if (Other.Max.X < Max.X)
     {
         // Add X max
-        OutBoxes.Emplace(FVector2D(Other.Max.X, Min.Y), FVector2D(Max.X, Max.Y));
+        Result += FVoxelBox2D(FVector2D(Other.Max.X, Min.Y), FVector2D(Max.X, Max.Y));
     }
 
     const double MinX = FMath::Max(Min.X, Other.Min.X);
@@ -159,15 +159,56 @@ TVoxelFixedArray<FVoxelBox2D, 4> FVoxelBox2D::Difference(const FVoxelBox2D& Othe
     if (Min.Y < Other.Min.Y)
     {
         // Add Y min
-        OutBoxes.Emplace(FVector2D(MinX, Min.Y), FVector2D(MaxX, Other.Min.Y));
+        Result += FVoxelBox2D(FVector2D(MinX, Min.Y), FVector2D(MaxX, Other.Min.Y));
     }
     if (Other.Max.Y < Max.Y)
     {
         // Add Y max
-        OutBoxes.Emplace(FVector2D(MinX, Other.Max.Y), FVector2D(MaxX, Max.Y));
+        Result += FVoxelBox2D(FVector2D(MinX, Other.Max.Y), FVector2D(MaxX, Max.Y));
     }
 
-    return OutBoxes;
+	if (!Result.IsValid())
+	{
+		return {};
+	}
+
+    return Result;
+}
+
+void FVoxelBox2D::Remove_Split(
+    const FVoxelBox2D& Other,
+    TVoxelArray<FVoxelBox2D>& OutRemainder) const
+{
+    if (!Intersects(Other))
+    {
+        OutRemainder.Add(*this);
+        return;
+    }
+
+    if (Min.X < Other.Min.X)
+    {
+        // Add X min
+        OutRemainder.Emplace(FVector2D(Min.X, Min.Y), FVector2D(Other.Min.X, Max.Y));
+    }
+    if (Other.Max.X < Max.X)
+    {
+        // Add X max
+        OutRemainder.Emplace(FVector2D(Other.Max.X, Min.Y), FVector2D(Max.X, Max.Y));
+    }
+
+    const double MinX = FMath::Max(Min.X, Other.Min.X);
+    const double MaxX = FMath::Min(Max.X, Other.Max.X);
+
+    if (Min.Y < Other.Min.Y)
+    {
+        // Add Y min
+        OutRemainder.Emplace(FVector2D(MinX, Min.Y), FVector2D(MaxX, Other.Min.Y));
+    }
+    if (Other.Max.Y < Max.Y)
+    {
+        // Add Y max
+        OutRemainder.Emplace(FVector2D(MinX, Other.Max.Y), FVector2D(MaxX, Max.Y));
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////

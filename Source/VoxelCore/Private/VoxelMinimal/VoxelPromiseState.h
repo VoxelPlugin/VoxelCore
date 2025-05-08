@@ -5,9 +5,7 @@
 #include "VoxelMinimal.h"
 #include "VoxelTaskContext.h"
 
-class FVoxelPromiseState
-	: public IVoxelPromiseState
-	, public TSharedFromThis<FVoxelPromiseState>
+class FVoxelPromiseState : public IVoxelPromiseState
 {
 public:
 	struct FContinuation
@@ -22,7 +20,7 @@ public:
 
 		const EVoxelFutureThread Thread;
 		const EType Type;
-		TVoxelStaticArray<uint64, 2> Storage{ NoInit };
+		TVoxelStaticArray<uint64, 2> Storage{ ForceInit };
 
 		TUniquePtr<FContinuation> NextContinuation;
 
@@ -31,7 +29,7 @@ public:
 			: Thread(EVoxelFutureThread::AnyThread)
 			, Type(EType::Future)
 		{
-			new(&Storage) TSharedRef<FVoxelPromiseState>(StaticCastSharedRef<FVoxelPromiseState>(Future.PromiseState.ToSharedRef()));
+			new(&Storage[0]) TRefCountPtr<FVoxelPromiseState>(Future.PromiseState);
 		}
 		FORCEINLINE FContinuation(
 			const EVoxelFutureThread Thread,
@@ -54,20 +52,17 @@ public:
 			switch (Type)
 			{
 			default: VOXEL_ASSUME(false);
-			case EType::Future: GetFuture().~TSharedRef();
-				break;
-			case EType::VoidLambda: GetVoidLambda().~TVoxelUniqueFunction();
-				break;
-			case EType::ValueLambda: GetValueLambda().~TVoxelUniqueFunction();
-				break;
+			case EType::Future: GetFuture().~TRefCountPtr(); break;
+			case EType::VoidLambda: GetVoidLambda().~TVoxelUniqueFunction(); break;
+			case EType::ValueLambda: GetValueLambda().~TVoxelUniqueFunction(); break;
 			}
 		}
 
 	public:
-		FORCEINLINE TSharedRef<FVoxelPromiseState>& GetFuture()
+		FORCEINLINE TRefCountPtr<FVoxelPromiseState>& GetFuture()
 		{
 			checkVoxelSlow(Type == EType::Future);
-			return ReinterpretCastRef<TSharedRef<FVoxelPromiseState>>(Storage);
+			return ReinterpretCastRef<TRefCountPtr<FVoxelPromiseState>>(Storage[0]);
 		}
 		FORCEINLINE TVoxelUniqueFunction<void()>& GetVoidLambda()
 		{
@@ -104,18 +99,15 @@ public:
 
 	~FVoxelPromiseState();
 
-	VOXEL_COUNT_INSTANCES();
-
 public:
 	void Set();
 	void Set(const FSharedVoidRef& NewValue);
 	void AddContinuation(TUniquePtr<FContinuation> Continuation);
 
 private:
-	int32 StackIndex = -1;
 	TUniquePtr<FContinuation> Continuation_RequiresLock;
 
 	void SetImpl(FVoxelTaskContext& Context);
 };
-checkStatic(sizeof(FVoxelPromiseState) == 64);
+checkStatic(sizeof(FVoxelPromiseState) == 48);
 checkStatic(sizeof(FVoxelPromiseState::FContinuation) == 32);

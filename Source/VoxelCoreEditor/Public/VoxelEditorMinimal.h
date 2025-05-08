@@ -10,7 +10,6 @@
 #include "VoxelEditorUtilities.h"
 #include "VoxelDetailInterface.h"
 #include "SVoxelDetailComboBox.h"
-#include "VoxelThumbnailRenderers.h"
 #include "VoxelStructDetailsWrapper.h"
 #include "VoxelPlaceableItemUtilities.h"
 #include "VoxelInstancedStructDetailsWrapper.h"

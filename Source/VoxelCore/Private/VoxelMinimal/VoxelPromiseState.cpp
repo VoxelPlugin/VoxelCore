@@ -2,8 +2,6 @@
 
 #include "VoxelPromiseState.h"
 
-DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelPromiseState);
-
 FORCEINLINE void FVoxelPromiseState::FContinuation::Execute(
 	FVoxelTaskContext& Context,
 	const FVoxelPromiseState& NewValue)
@@ -154,7 +152,7 @@ void FVoxelPromiseState::AddContinuation(TUniquePtr<FContinuation> Continuation)
 	if (KeepAliveIndex == -1)
 	{
 		VOXEL_SCOPE_LOCK(Context.CriticalSection);
-		KeepAliveIndex = Context.PromisesToKeepAlive_RequiresLock.Add(AsShared());
+		KeepAliveIndex = Context.PromisesToKeepAlive_RequiresLock.Add(this);
 	}
 
 	checkVoxelSlow(!Continuation->NextContinuation);

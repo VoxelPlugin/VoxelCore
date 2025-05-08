@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelCoreEditorMinimal.h"
+#include "IStructureDataProvider.h"
 
 class VOXELCOREEDITOR_API FVoxelDetailInterface
 {
@@ -80,6 +81,11 @@ public:
 		// Both AddExternalStructure impl just call AddExternalStructureProperty with NAME_None
 		return AddExternalStructureProperty(StructData, NAME_None, Params);
 	}
+	IDetailPropertyRow* AddExternalStructure(const TSharedRef<IStructureDataProvider>& StructData, const FAddPropertyParams& Params = FAddPropertyParams()) const
+	{
+		// Both AddExternalStructure impl just call AddExternalStructureProperty with NAME_None
+		return AddExternalStructureProperty(StructData, NAME_None, Params);
+	}
 	IDetailPropertyRow* AddExternalStructureProperty(const TSharedRef<FStructOnScope>& StructData, const FName PropertyName, const FAddPropertyParams& Params = FAddPropertyParams()) const
 	{
 		if (IsCategoryBuilder())
@@ -88,6 +94,19 @@ public:
 		}
 		else
 		{
+			return GetChildrenBuilder().AddExternalStructureProperty(StructData, PropertyName, Params);
+		}
+	}
+	IDetailPropertyRow* AddExternalStructureProperty(const TSharedRef<IStructureDataProvider>& StructData, const FName PropertyName, const FAddPropertyParams& Params = FAddPropertyParams()) const
+	{
+		if (IsCategoryBuilder())
+		{
+			return GetCategoryBuilder().AddExternalStructureProperty(StructData, PropertyName, EPropertyLocation::Default, Params);
+		}
+		else
+		{
+			// FStructurePropertyNode::GetInstancesNum will crash
+			ensure(!StructData->IsPropertyIndirection());
 			return GetChildrenBuilder().AddExternalStructureProperty(StructData, PropertyName, Params);
 		}
 	}

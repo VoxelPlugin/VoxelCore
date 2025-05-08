@@ -1,17 +1,17 @@
 ﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
+#include "Misc/ScopedSlowTask.h"
 #include "VoxelDistanceFieldUtilitiesImpl.ispc.generated.h"
 
-void JumpFloodImpl(
+void FVoxelUtilities::JumpFlood(
 	const FIntVector& Size,
 	const TVoxelArrayView<float> Distances,
-	TVoxelArray<float>* OutClosestX,
-	TVoxelArray<float>* OutClosestY,
-	TVoxelArray<float>* OutClosestZ)
+	TVoxelArray<float>& OutClosestX,
+	TVoxelArray<float>& OutClosestY,
+	TVoxelArray<float>& OutClosestZ)
 {
 	VOXEL_FUNCTION_COUNTER();
-	VOXEL_SCOPE_COUNTER_FORMAT("JumpFlood %dx%dx%d Num=%d", Size.X, Size.Y, Size.Z, Size.X * Size.Y * Size.Z);
 
 	const int64 SizeXYZ = Size.X * Size.Y * Size.Z;
 	if (!ensureVoxelSlow(SizeXYZ < 1024 * 1024 * 1024))
@@ -19,24 +19,12 @@ void JumpFloodImpl(
 		return;
 	}
 
-	TVoxelArray<float> ClosestX;
-	TVoxelArray<float> ClosestY;
-	TVoxelArray<float> ClosestZ;
-
-	TVoxelArray<float> ClosestXTemp;
-	TVoxelArray<float> ClosestYTemp;
-	TVoxelArray<float> ClosestZTemp;
-
 	{
 		VOXEL_SCOPE_COUNTER("SetNumFast");
 
-		FVoxelUtilities::SetNumFast(ClosestX, SizeXYZ);
-		FVoxelUtilities::SetNumFast(ClosestY, SizeXYZ);
-		FVoxelUtilities::SetNumFast(ClosestZ, SizeXYZ);
-
-		FVoxelUtilities::SetNumFast(ClosestXTemp, SizeXYZ);
-		FVoxelUtilities::SetNumFast(ClosestYTemp, SizeXYZ);
-		FVoxelUtilities::SetNumFast(ClosestZTemp, SizeXYZ);
+		SetNumFast(OutClosestX, SizeXYZ);
+		SetNumFast(OutClosestY, SizeXYZ);
+		SetNumFast(OutClosestZ, SizeXYZ);
 	}
 
 	{
@@ -56,69 +44,122 @@ void JumpFloodImpl(
 					Size.Y,
 					Size.Z,
 					Distances.GetData(),
-					ClosestX.GetData(),
-					ClosestY.GetData(),
-					ClosestZ.GetData());
+					OutClosestX.GetData(),
+					OutClosestY.GetData(),
+					OutClosestZ.GetData());
 			});
 		}
 	}
 
-	{
-		{
-			VOXEL_SCOPE_COUNTER("Initialize ClosestTemp");
+	JumpFlood_Initialized(
+		Size,
+		Distances,
+		OutClosestX,
+		OutClosestY,
+		OutClosestZ);
+}
 
-			Voxel::ParallelFor(ClosestXTemp, [&](const TVoxelArrayView<float> View)
+void FVoxelUtilities::JumpFlood_Initialized(
+	const FIntVector& Size,
+	const TVoxelArrayView<float> Distances,
+	TVoxelArray<float>& ClosestX,
+	TVoxelArray<float>& ClosestY,
+	TVoxelArray<float>& ClosestZ)
+{
+	VOXEL_FUNCTION_COUNTER();
+	VOXEL_SCOPE_COUNTER_FORMAT("JumpFlood %dx%dx%d Num=%d", Size.X, Size.Y, Size.Z, Size.X * Size.Y * Size.Z);
+
+	const int64 SizeXYZ = Size.X * Size.Y * Size.Z;
+	if (!ensureVoxelSlow(SizeXYZ < 1024 * 1024 * 1024))
+	{
+		return;
+	}
+
+	check(ClosestX.Num() == SizeXYZ);
+	check(ClosestY.Num() == SizeXYZ);
+	check(ClosestZ.Num() == SizeXYZ);
+
+	TVoxelArray<float> ClosestXTemp;
+	TVoxelArray<float> ClosestYTemp;
+	TVoxelArray<float> ClosestZTemp;
+	{
+		VOXEL_SCOPE_COUNTER("SetNumFast");
+
+		SetNumFast(ClosestXTemp, SizeXYZ);
+		SetNumFast(ClosestYTemp, SizeXYZ);
+		SetNumFast(ClosestZTemp, SizeXYZ);
+	}
+
+	{
+		VOXEL_SCOPE_COUNTER("Initialize ClosestTemp");
+
+		Voxel::ParallelFor(ClosestXTemp, [&](const TVoxelArrayView<float> View)
+		{
+			SetAll(View, NaNf());
+		});
+		Voxel::ParallelFor(ClosestYTemp, [&](const TVoxelArrayView<float> View)
+		{
+			SetAll(View, NaNf());
+		});
+		Voxel::ParallelFor(ClosestZTemp, [&](const TVoxelArrayView<float> View)
+		{
+			SetAll(View, NaNf());
+		});
+	}
+
+	const int32 NumPasses = FMath::Max<int32>(1, FMath::FloorLog2(Size.GetMax()));
+
+	TVoxelOptional<FScopedSlowTask> SlowTask;
+	if (IsInGameThread())
+	{
+		SlowTask.Emplace(NumPasses, INVTEXT("Jump Flood"));
+	}
+
+	for (int32 Pass = 0; Pass < NumPasses; Pass++)
+	{
+		if (SlowTask)
+		{
+			SlowTask->EnterProgressFrame();
+
+			if (SlowTask->ShouldCancel())
 			{
-				FVoxelUtilities::SetAll(View, FVoxelUtilities::NaNf());
-			});
-			Voxel::ParallelFor(ClosestYTemp, [&](const TVoxelArrayView<float> View)
-			{
-				FVoxelUtilities::SetAll(View, FVoxelUtilities::NaNf());
-			});
-			Voxel::ParallelFor(ClosestZTemp, [&](const TVoxelArrayView<float> View)
-			{
-				FVoxelUtilities::SetAll(View, FVoxelUtilities::NaNf());
-			});
+				return;
+			}
 		}
 
-		const int32 NumPasses = FMath::Max<int32>(1, FMath::FloorLog2(Size.GetMax()));
+		// -1: we want to start with half the size
+		const int32 Step = 1 << (NumPasses - 1 - Pass);
 
-		for (int32 Pass = 0; Pass < NumPasses; Pass++)
+		ON_SCOPE_EXIT
 		{
-			// -1: we want to start with half the size
-			const int32 Step = 1 << (NumPasses - 1 - Pass);
+			Swap(ClosestX, ClosestXTemp);
+			Swap(ClosestY, ClosestYTemp);
+			Swap(ClosestZ, ClosestZTemp);
+		};
 
-			ON_SCOPE_EXIT
+		VOXEL_SCOPE_COUNTER_FORMAT("JumpFlood Step=%d", Step);
+
+		FVoxelParallelTaskScope Scope;
+
+		for (int32 Z = 0; Z < Size.Z; Z++)
+		{
+			Scope.AddTask([&, Z]
 			{
-				Swap(ClosestX, ClosestXTemp);
-				Swap(ClosestY, ClosestYTemp);
-				Swap(ClosestZ, ClosestZTemp);
-			};
+				VOXEL_SCOPE_COUNTER_FORMAT("FVoxelUtilities::JumpFlood JumpFlood Num=%d", Size.X * Size.Y);
 
-			VOXEL_SCOPE_COUNTER_FORMAT("JumpFlood Step=%d", Step);
-
-			FVoxelParallelTaskScope Scope;
-
-			for (int32 Z = 0; Z < Size.Z; Z++)
-			{
-				Scope.AddTask([&, Z]
-				{
-					VOXEL_SCOPE_COUNTER_FORMAT("FVoxelUtilities::JumpFlood JumpFlood Num=%d", Size.X * Size.Y);
-
-					ispc::VoxelDistanceFieldUtilities_JumpFlood_JumpFlood(
-						Z,
-						Size.X,
-						Size.Y,
-						Size.Z,
-						Step,
-						ClosestX.GetData(),
-						ClosestY.GetData(),
-						ClosestZ.GetData(),
-						ClosestXTemp.GetData(),
-						ClosestYTemp.GetData(),
-						ClosestZTemp.GetData());
-				});
-			}
+				ispc::VoxelDistanceFieldUtilities_JumpFlood_JumpFlood(
+					Z,
+					Size.X,
+					Size.Y,
+					Size.Z,
+					Step,
+					ClosestX.GetData(),
+					ClosestY.GetData(),
+					ClosestZ.GetData(),
+					ClosestXTemp.GetData(),
+					ClosestYTemp.GetData(),
+					ClosestZTemp.GetData());
+			});
 		}
 	}
 
@@ -146,32 +187,12 @@ void JumpFloodImpl(
 		}
 	}
 
-	if (OutClosestX)
-	{
-		*OutClosestX = MoveTemp(ClosestX);
-	}
-	if (OutClosestY)
-	{
-		*OutClosestY = MoveTemp(ClosestY);
-	}
-	if (OutClosestZ)
-	{
-		*OutClosestZ = MoveTemp(ClosestZ);
-	}
-
 	Voxel::AsyncTask([
-		ClosestX = MakeSharedCopy(MoveTemp(ClosestX)),
-		ClosestY = MakeSharedCopy(MoveTemp(ClosestY)),
-		ClosestZ = MakeSharedCopy(MoveTemp(ClosestZ)),
 		ClosestXTemp = MakeSharedCopy(MoveTemp(ClosestXTemp)),
 		ClosestYTemp = MakeSharedCopy(MoveTemp(ClosestYTemp)),
 		ClosestZTemp = MakeSharedCopy(MoveTemp(ClosestZTemp))]
 	{
-		VOXEL_SCOPE_COUNTER("Free Closest");
-
-		ClosestX->Reset();
-		ClosestY->Reset();
-		ClosestZ->Reset();
+		VOXEL_SCOPE_COUNTER("FVoxelUtilities::JumpFlood Free Closest");
 
 		ClosestXTemp->Reset();
 		ClosestYTemp->Reset();
@@ -179,33 +200,32 @@ void JumpFloodImpl(
 	});
 }
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-void FVoxelUtilities::JumpFlood(
-	const FIntVector& Size,
-	const TVoxelArrayView<float> Distances,
-	TVoxelArray<float>& OutClosestX,
-	TVoxelArray<float>& OutClosestY,
-	TVoxelArray<float>& OutClosestZ)
-{
-	JumpFloodImpl(
-		Size,
-		Distances,
-		&OutClosestX,
-		&OutClosestY,
-		&OutClosestZ);
-}
-
 void FVoxelUtilities::JumpFlood(
 	const FIntVector& Size,
 	const TVoxelArrayView<float> Distances)
 {
-	JumpFloodImpl(
+	VOXEL_FUNCTION_COUNTER();
+
+	TVoxelArray<float> ClosestX;
+	TVoxelArray<float> ClosestY;
+	TVoxelArray<float> ClosestZ;
+
+	JumpFlood(
 		Size,
 		Distances,
-		nullptr,
-		nullptr,
-		nullptr);
+		ClosestX,
+		ClosestY,
+		ClosestZ);
+
+	Voxel::AsyncTask([
+		ClosestX = MakeSharedCopy(MoveTemp(ClosestX)),
+		ClosestY = MakeSharedCopy(MoveTemp(ClosestY)),
+		ClosestZ = MakeSharedCopy(MoveTemp(ClosestZ))]
+	{
+		VOXEL_SCOPE_COUNTER("FVoxelUtilities::JumpFlood Free Closest");
+
+		ClosestX->Reset();
+		ClosestY->Reset();
+		ClosestZ->Reset();
+	});
 }

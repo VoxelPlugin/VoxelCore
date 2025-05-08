@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "VoxelCoreEditorMinimal.h"
+#include "VoxelEditorMinimal.h"
+#include "VoxelAssetIcon.h"
 #include "ThumbnailHelpers.h"
 #include "ThumbnailRendering/TextureThumbnailRenderer.h"
 #include "ThumbnailRendering/DefaultSizedThumbnailRenderer.h"
@@ -68,11 +69,7 @@ public:
 	virtual void Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* Target, FCanvas* Canvas, bool bAdditionalViewFamily) final override;
 	//~ End UTextureThumbnailRenderer Interface
 
-	virtual UTexture* GetTexture(UObject* Object) const
-	{
-		ensure(false);
-		return nullptr;
-	}
+	virtual UTexture* GetTexture(UObject* Object) const VOXEL_PURE_VIRTUAL({});
 };
 
 UCLASS(Abstract)
@@ -81,17 +78,12 @@ class VOXELCOREEDITOR_API UVoxelTextureWithBackgroundRenderer : public UDefaultS
 	GENERATED_BODY()
 
 	//~ Begin UVoxelTextureThumbnailRenderer Interface
-	virtual bool CanVisualizeAsset(UObject* Object) override { return true; }
+	virtual bool CanVisualizeAsset(UObject* Object) override;
 	virtual void Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* Target, FCanvas* Canvas, bool bAdditionalViewFamily) final override;
 	virtual void BeginDestroy() override;
 	//~ End UVoxelTextureThumbnailRenderer Interface
 
-	virtual void GetTextureWithBackground(
-		UObject* Object,
-		UTexture2D*& OutBackgroundTexture,
-		UTexture2D*& OutTexture,
-		FSlateColor& OutTextureColor,
-		FSlateColor& OutColor) const {}
+	virtual FVoxelAssetIcon GetAssetIcon(UObject* Object) const VOXEL_PURE_VIRTUAL({});
 
 private:
 	TSharedPtr<FWidgetRenderer> WidgetRenderer;

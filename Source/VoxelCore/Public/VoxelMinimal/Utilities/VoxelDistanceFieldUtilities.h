@@ -139,6 +139,13 @@ namespace FVoxelUtilities
 		TVoxelArray<float>& OutClosestY,
 		TVoxelArray<float>& OutClosestZ);
 
+	VOXELCORE_API void JumpFlood_Initialized(
+		const FIntVector& Size,
+		TVoxelArrayView<float> Distances,
+		TVoxelArray<float>& ClosestX,
+		TVoxelArray<float>& ClosestY,
+		TVoxelArray<float>& ClosestZ);
+
 	VOXELCORE_API void JumpFlood(
 		const FIntVector& Size,
 		TVoxelArrayView<float> Distances);

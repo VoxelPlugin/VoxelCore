@@ -144,7 +144,7 @@ void FVoxelMessageManager::LogMessage_GameThread(const TSharedRef<FVoxelMessage>
 		default: VOXEL_ASSUME(false);
 		case EVoxelMessageSeverity::Info:
 		{
-			LOG_VOXEL(Log, "%s", *Message->ToString());
+			LOG_VOXEL(Display, "%s", *Message->ToString());
 		}
 		break;
 		case EVoxelMessageSeverity::Warning:

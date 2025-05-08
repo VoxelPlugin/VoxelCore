@@ -52,7 +52,6 @@
 #include "Framework/Commands/Commands.h"
 #include "Framework/Commands/GenericCommands.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
-#include "Framework/Notifications/NotificationManager.h"
 
 #include "Widgets/SCanvas.h"
 #include "Widgets/SToolTip.h"
@@ -82,4 +81,3 @@
 #include "Widgets/Layout/SSeparator.h"
 #include "Widgets/Layout/SWidgetSwitcher.h"
 #include "Widgets/Docking/SDockTab.h"
-#include "Widgets/Notifications/SNotificationList.h"

@@ -1,4 +1,4 @@
-// Copyright Voxel Plugin SAS. All Rights Reserved.
+﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #pragma once
 
@@ -7,15 +7,95 @@
 class VOXELCORE_API FVoxelAABBTree
 {
 public:
-	struct FElement
+	struct FElementArray
 	{
-		FVoxelBox Bounds;
-		int32 Payload = -1;
+		TVoxelArray<int32> Payload;
+		TVoxelArray<float> MinX;
+		TVoxelArray<float> MinY;
+		TVoxelArray<float> MinZ;
+		TVoxelArray<float> MaxX;
+		TVoxelArray<float> MaxY;
+		TVoxelArray<float> MaxZ;
+
+		FORCEINLINE int32 Num() const
+		{
+			checkVoxelSlow(Payload.Num() == MinX.Num());
+			checkVoxelSlow(Payload.Num() == MinY.Num());
+			checkVoxelSlow(Payload.Num() == MinZ.Num());
+			checkVoxelSlow(Payload.Num() == MaxX.Num());
+			checkVoxelSlow(Payload.Num() == MaxY.Num());
+			checkVoxelSlow(Payload.Num() == MaxZ.Num());
+			return Payload.Num();
+		}
+		FORCEINLINE int32 Max() const
+		{
+			checkVoxelSlow(Payload.Max() == MinX.Max());
+			checkVoxelSlow(Payload.Max() == MinY.Max());
+			checkVoxelSlow(Payload.Max() == MinZ.Max());
+			checkVoxelSlow(Payload.Max() == MaxX.Max());
+			checkVoxelSlow(Payload.Max() == MaxY.Max());
+			checkVoxelSlow(Payload.Max() == MaxZ.Max());
+			return Payload.Max();
+		}
+		FORCEINLINE void Reserve(const int32 Number)
+		{
+			// Add some padding to make sure ISPC is safe
+			Payload.Reserve(Number + 16);
+			MinX.Reserve(Number + 16);
+			MinY.Reserve(Number + 16);
+			MinZ.Reserve(Number + 16);
+			MaxX.Reserve(Number + 16);
+			MaxY.Reserve(Number + 16);
+			MaxZ.Reserve(Number + 16);
+		}
+
+		FORCEINLINE void Set(
+			const int32 WriteIndex,
+			const FVoxelBox& Bounds,
+			const int32 PayloadIndex)
+		{
+			MinX[WriteIndex] = FVoxelUtilities::DoubleToFloat_Lower(Bounds.Min.X);
+			MinY[WriteIndex] = FVoxelUtilities::DoubleToFloat_Lower(Bounds.Min.Y);
+			MinZ[WriteIndex] = FVoxelUtilities::DoubleToFloat_Lower(Bounds.Min.Z);
+			MaxX[WriteIndex] = FVoxelUtilities::DoubleToFloat_Higher(Bounds.Max.X);
+			MaxY[WriteIndex] = FVoxelUtilities::DoubleToFloat_Higher(Bounds.Max.Y);
+			MaxZ[WriteIndex] = FVoxelUtilities::DoubleToFloat_Higher(Bounds.Max.Z);
+			Payload[WriteIndex] = PayloadIndex;
+		}
+		FORCEINLINE void SetNum(const int32 Number)
+		{
+			Reserve(Number);
+
+			Payload.SetNum(Number, EAllowShrinking::No);
+			MinX.SetNum(Number, EAllowShrinking::No);
+			MinY.SetNum(Number, EAllowShrinking::No);
+			MinZ.SetNum(Number, EAllowShrinking::No);
+			MaxX.SetNum(Number, EAllowShrinking::No);
+			MaxY.SetNum(Number, EAllowShrinking::No);
+			MaxZ.SetNum(Number, EAllowShrinking::No);
+		}
+
+		FORCEINLINE void Add(
+			const FVoxelBox& Bounds,
+			const int32 PayloadIndex)
+		{
+			ensureVoxelSlow(Bounds.IsValidAndNotEmpty());
+
+			MinX.Add(FVoxelUtilities::DoubleToFloat_Lower(Bounds.Min.X));
+			MinY.Add(FVoxelUtilities::DoubleToFloat_Lower(Bounds.Min.Y));
+			MinZ.Add(FVoxelUtilities::DoubleToFloat_Lower(Bounds.Min.Z));
+			MaxX.Add(FVoxelUtilities::DoubleToFloat_Higher(Bounds.Max.X));
+			MaxY.Add(FVoxelUtilities::DoubleToFloat_Higher(Bounds.Max.Y));
+			MaxZ.Add(FVoxelUtilities::DoubleToFloat_Higher(Bounds.Max.Z));
+			Payload.Add(PayloadIndex);
+		}
 	};
+
 	struct FNode
 	{
-		FVoxelBox ChildBounds0;
-		FVoxelBox ChildBounds1;
+	public:
+		FVoxelFastBox ChildBounds0;
+		FVoxelFastBox ChildBounds1;
 
 		union
 		{
@@ -37,36 +117,59 @@ public:
 	};
 	struct FLeaf
 	{
-		TVoxelArray<FElement> Elements;
+		int32 StartIndex = -1;
+		int32 EndIndex = -1;
+
+		FORCEINLINE int32 Num() const
+		{
+			checkVoxelSlow(StartIndex < EndIndex);
+			return EndIndex - StartIndex;
+		}
 	};
 
 	const int32 MaxChildrenInLeaf;
 	const int32 MaxTreeDepth;
 
 	explicit FVoxelAABBTree(
-		const int32 MaxChildrenInLeaf = 12,
-		const int32 MaxTreeDepth = 16)
-		: MaxChildrenInLeaf(MaxChildrenInLeaf)
-		, MaxTreeDepth(MaxTreeDepth)
-	{
-	}
+		int32 MaxChildrenInLeaf = 12,
+		int32 MaxTreeDepth = 16);
 
-	void Initialize(TVoxelArray<FElement>&& Elements);
+	void Initialize(FElementArray&& Elements);
 	void Shrink();
 
-	static TSharedRef<FVoxelAABBTree> Create(TVoxelArray<FElement>&& Elements);
+	void DrawTree(
+		TVoxelObjectPtr<UWorld> World,
+		const FLinearColor& Color,
+		const FTransform& Transform,
+		int32 Index) const;
+
+	static TSharedRef<FVoxelAABBTree> Create(FElementArray&& Elements);
 	static TSharedRef<FVoxelAABBTree> Create(TConstVoxelArrayView<FVoxelBox> Bounds);
 
 public:
+	FORCEINLINE int32 Num() const
+	{
+		return Payloads.Num();
+	}
 	FORCEINLINE bool IsEmpty() const
 	{
-		return Nodes.Num() == 0;
+		return Payloads.Num() == 0;
 	}
-	FORCEINLINE const FVoxelBox& GetBounds() const
+	const FVoxelFastBox& GetBounds() const
 	{
-		ensure(RootBounds.IsValidAndNotEmpty());
+		ensure(RootBounds.GetBox().IsValidAndNotEmpty());
 		return RootBounds;
 	}
+
+	FORCEINLINE int32 GetPayload(const int32 Index) const
+	{
+		return Payloads[Index];
+	}
+	FORCEINLINE const FVoxelFastBox& GetBounds(const int32 Index) const
+	{
+		return ElementBounds[Index];
+	}
+
 	FORCEINLINE TConstVoxelArrayView<FNode> GetNodes() const
 	{
 		return Nodes;
@@ -77,109 +180,7 @@ public:
 	}
 
 public:
-	using FBulkRaycastLambda = TFunctionRef<void(int32 Payload, TVoxelArrayView<FVector3f> RayPositions, TVoxelArrayView<FVector3f> RayDirections)>;
-	void BulkRaycast(
-		TConstVoxelArrayView<FVector3f> RayPositions,
-		TConstVoxelArrayView<FVector3f> RayDirections,
-		FBulkRaycastLambda Lambda);
-
-	template<typename LambdaType>
-	bool Raycast(const FVector& RayOrigin, const FVector& RayDirection, LambdaType&& Lambda) const
-	{
-		if (Nodes.Num() == 0)
-		{
-			return true;
-		}
-
-		TVoxelInlineArray<int32, 64> QueuedNodes;
-		QueuedNodes.Add_EnsureNoGrow(0);
-
-		while (QueuedNodes.Num() > 0)
-		{
-			const int32 NodeIndex = QueuedNodes.Pop();
-
-			const FNode& Node = Nodes[NodeIndex];
-			if (Node.bLeaf)
-			{
-				const FLeaf& Leaf = Leaves[Node.LeafIndex];
-				for (const FElement& Element : Leaf.Elements)
-				{
-					if (!Element.Bounds.RayBoxIntersection(RayOrigin, RayDirection))
-					{
-						continue;
-					}
-
-					if (!Lambda(Element.Payload))
-					{
-						return false;
-					}
-				}
-			}
-			else
-			{
-				if (Node.ChildBounds0.RayBoxIntersection(RayOrigin, RayDirection))
-				{
-					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex0);
-				}
-				if (Node.ChildBounds1.RayBoxIntersection(RayOrigin, RayDirection))
-				{
-					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex1);
-				}
-			}
-		}
-
-		return true;
-	}
-	template<typename LambdaType>
-	bool Sweep(const FVector& RayOrigin, const FVector& RayDirection, const FVector& SweepHalfExtents, LambdaType&& Lambda) const
-	{
-		if (Nodes.Num() == 0)
-		{
-			return true;
-		}
-
-		TVoxelInlineArray<int32, 64> QueuedNodes;
-		QueuedNodes.Add_EnsureNoGrow(0);
-
-		while (QueuedNodes.Num() > 0)
-		{
-			const int32 NodeIndex = QueuedNodes.Pop();
-
-			const FNode& Node = Nodes[NodeIndex];
-			if (Node.bLeaf)
-			{
-				const FLeaf& Leaf = Leaves[Node.LeafIndex];
-				for (const FElement& Element : Leaf.Elements)
-				{
-					if (!Element.Bounds.Extend(SweepHalfExtents).RayBoxIntersection(RayOrigin, RayDirection))
-					{
-						continue;
-					}
-
-					if (!Lambda(Element.Payload))
-					{
-						return false;
-					}
-				}
-			}
-			else
-			{
-				if (Node.ChildBounds0.Extend(SweepHalfExtents).RayBoxIntersection(RayOrigin, RayDirection))
-				{
-					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex0);
-				}
-				if (Node.ChildBounds1.Extend(SweepHalfExtents).RayBoxIntersection(RayOrigin, RayDirection))
-				{
-					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex1);
-				}
-			}
-		}
-
-		return true;
-	}
-
-public:
-	FORCEINLINE bool Intersects(const FVoxelBox& Bounds) const
+	FORCEINLINE bool Intersects(const FVoxelFastBox& Bounds) const
 	{
 		return Intersects(Bounds, [](int32)
 		{
@@ -187,27 +188,32 @@ public:
 		});
 	}
 	template<typename LambdaType>
+	requires LambdaHasSignature_V<LambdaType, bool(int32)>
 	FORCEINLINE bool Intersects(
-		const FVoxelBox& Bounds,
+		const FVoxelFastBox& Bounds,
 		LambdaType&& CustomCheck) const
 	{
 		// Critical for performance
-		if (!RootBounds.Intersects(Bounds))
+		if (!Bounds.Intersects(RootBounds))
 		{
 			return false;
 		}
 
-		return this->IntersectsImpl(Bounds, MoveTemp(CustomCheck));
+		return this->IntersectsImpl(
+			Bounds,
+			MoveTemp(CustomCheck));
 	}
 
 private:
 	template<typename LambdaType>
-	bool IntersectsImpl(
-		const FVoxelBox& Bounds,
+	FORCENOINLINE bool IntersectsImpl(
+		const FVoxelFastBox& Bounds,
 		LambdaType&& CustomCheck) const
 	{
-		checkVoxelSlow(RootBounds.Intersects(Bounds));
-		checkVoxelSlow(Nodes.Num() > 0);
+		if (Nodes.Num() == 0)
+		{
+			return false;
+		}
 
 		TVoxelInlineArray<int32, 64> QueuedNodes;
 		QueuedNodes.Add_EnsureNoGrow(0);
@@ -220,14 +226,14 @@ private:
 			if (Node.bLeaf)
 			{
 				const FLeaf& Leaf = Leaves[Node.LeafIndex];
-				for (const FElement& Element : Leaf.Elements)
+				for (int32 Index = Leaf.StartIndex; Index < Leaf.EndIndex; Index++)
 				{
-					if (!Element.Bounds.Intersects(Bounds))
+					if (!Bounds.Intersects(ElementBounds[Index]))
 					{
 						continue;
 					}
 
-					if (CustomCheck(Element.Payload))
+					if (CustomCheck(Payloads[Index]))
 					{
 						return true;
 					}
@@ -235,11 +241,11 @@ private:
 			}
 			else
 			{
-				if (Node.ChildBounds0.Intersects(Bounds))
+				if (Bounds.Intersects(Node.ChildBounds0))
 				{
 					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex0);
 				}
-				if (Node.ChildBounds1.Intersects(Bounds))
+				if (Bounds.Intersects(Node.ChildBounds1))
 				{
 					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex1);
 				}
@@ -251,6 +257,11 @@ private:
 
 public:
 	template<typename ShouldVisitType, typename VisitType>
+	requires
+	(
+		LambdaHasSignature_V<ShouldVisitType, bool(const FVoxelFastBox&)> &&
+		LambdaHasSignature_V<VisitType, void(int32)>
+	)
 	void Traverse(ShouldVisitType&& ShouldVisit, VisitType&& Visit) const
 	{
 		if (Nodes.Num() == 0)
@@ -269,14 +280,15 @@ public:
 			if (Node.bLeaf)
 			{
 				const FLeaf& Leaf = Leaves[Node.LeafIndex];
-				for (const FElement& Element : Leaf.Elements)
+
+				for (int32 Index = Leaf.StartIndex; Index < Leaf.EndIndex; Index++)
 				{
-					if (!ShouldVisit(Element.Bounds))
+					if (!ShouldVisit(ElementBounds[Index]))
 					{
 						continue;
 					}
 
-					Visit(Element.Payload);
+					Visit(Payloads[Index]);
 				}
 			}
 			else
@@ -293,18 +305,56 @@ public:
 		}
 	}
 	template<typename VisitType>
-	void TraverseBounds(const FVoxelBox& Bounds, VisitType&& Visit) const
+	requires LambdaHasSignature_V<VisitType, void(int32)>
+	void TraverseBounds(
+		const FVoxelFastBox& Bounds,
+		VisitType&& Visit) const
 	{
-		this->Traverse(
-			[&](const FVoxelBox& OtherBounds)
+		if (Nodes.Num() == 0)
+		{
+			return;
+		}
+
+		TVoxelInlineArray<int32, 64> QueuedNodes;
+		QueuedNodes.Add_EnsureNoGrow(0);
+
+		while (QueuedNodes.Num() > 0)
+		{
+			const int32 NodeIndex = QueuedNodes.Pop();
+
+			const FNode& Node = Nodes[NodeIndex];
+			if (Node.bLeaf)
 			{
-				return OtherBounds.Intersects(Bounds);
-			},
-			MoveTemp(Visit));
+				const FLeaf& Leaf = Leaves[Node.LeafIndex];
+
+				for (int32 Index = Leaf.StartIndex; Index < Leaf.EndIndex; Index++)
+				{
+					if (!Bounds.Intersects(ElementBounds[Index]))
+					{
+						continue;
+					}
+
+					Visit(Payloads[Index]);
+				}
+			}
+			else
+			{
+				if (Bounds.Intersects(Node.ChildBounds0))
+				{
+					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex0);
+				}
+				if (Bounds.Intersects(Node.ChildBounds1))
+				{
+					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex1);
+				}
+			}
+		}
 	}
 
 private:
-	FVoxelBox RootBounds = FVoxelBox::InvertedInfinite;
+	FVoxelFastBox RootBounds;
 	TVoxelArray<FNode> Nodes;
 	TVoxelArray<FLeaf> Leaves;
+	TVoxelArray<int32> Payloads;
+	TVoxelArray<FVoxelFastBox> ElementBounds;
 };

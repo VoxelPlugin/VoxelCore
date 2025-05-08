@@ -4,25 +4,18 @@
 #include "VoxelTaskContext.h"
 #include "VoxelPromiseState.h"
 
-VOXEL_CONSOLE_VARIABLE(
-	VOXELCORE_API, bool, GVoxelEnablePromiseTracking, false,
-	"voxel.EnablePromiseTracking",
-	"");
+DEFINE_VOXEL_INSTANCE_COUNTER(IVoxelPromiseState);
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-TSharedRef<IVoxelPromiseState> IVoxelPromiseState::New(
+TRefCountPtr<IVoxelPromiseState> IVoxelPromiseState::New(
 	FVoxelTaskContext* ContextOverride,
 	const bool bWithValue)
 {
-	return MakeShared<FVoxelPromiseState>(ContextOverride, bWithValue);
+	return new FVoxelPromiseState(ContextOverride, bWithValue);
 }
 
-TSharedRef<IVoxelPromiseState> IVoxelPromiseState::New(const FSharedVoidRef& Value)
+TRefCountPtr<IVoxelPromiseState> IVoxelPromiseState::New(const FSharedVoidRef& Value)
 {
-	return MakeShared<FVoxelPromiseState>(Value);
+	return new FVoxelPromiseState(Value);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -66,7 +59,9 @@ void IVoxelPromiseState::CheckCanAddContinuation(const FVoxelFuture& Future)
 
 	// If we can cancel tasks we cannot have a future in a different context depend on us, as we will never complete if cancelled
 	// That other future, being in a different context, won't be cancelled and will be stuck
-	check(!ThisContextPtr->Context.bCanCancelTasks);
+	check(
+		&ThisContextPtr->Context == GVoxelGlobalTaskContext ||
+		&ThisContextPtr->Context == GVoxelSynchronousTaskContext);
 }
 #endif
 
@@ -88,6 +83,15 @@ void IVoxelPromiseState::AddContinuation(
 	TVoxelUniqueFunction<void(const FSharedVoidRef&)> Continuation)
 {
 	static_cast<FVoxelPromiseState*>(this)->AddContinuation(MakeUnique<FVoxelPromiseState::FContinuation>(Thread, MoveTemp(Continuation)));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void IVoxelPromiseState::Destroy()
+{
+	delete static_cast<FVoxelPromiseState*>(this);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

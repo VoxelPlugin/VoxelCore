@@ -4,7 +4,7 @@
 
 VOXEL_CONSOLE_COMMAND(
 	"voxel.DumpDependencies",
-	"")
+	"Dump all depedencies, more effective if voxel.TrackAllPromisesCallstacks is true")
 {
 	GVoxelDependencyManager->Dump();
 }

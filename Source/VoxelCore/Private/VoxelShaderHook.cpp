@@ -8,8 +8,6 @@
 #include "SourceControlOperations.h"
 #include "HAL/PlatformFileManager.h"
 #include "VoxelShaderHooksManager.h"
-#include "Widgets/Notifications/SNotificationList.h"
-#include "Framework/Notifications/NotificationManager.h"
 
 FVoxelShaderFileData::FVoxelShaderFileData(const FString& Path, const FString& Content)
 	: Path(Path)
@@ -766,10 +764,9 @@ bool FVoxelShaderHookGroup::IsEnabled() const
 	{
 		Voxel::GameTask([this]
 		{
-			if (const TSharedPtr<SNotificationItem> Notification = WeakNotification.Pin())
+			if (const TSharedPtr<FVoxelNotification> Notification = WeakNotification.Pin())
 			{
-				// Reset expiration
-				Notification->ExpireAndFadeout();
+				Notification->ResetExpiration();
 				return;
 			}
 
@@ -789,29 +786,21 @@ bool FVoxelShaderHookGroup::IsEnabled() const
 			Text += "\n\n";
 			Text += "Reason: " + Description;
 
-			FNotificationInfo Info(FText::FromString(Title));
-			Info.SubText = FText::FromString(Text);
-			Info.ButtonDetails.Add(FNotificationButtonInfo(
-				INVTEXT("Settings"),
-				INVTEXT("Open settings"),
-				FSimpleDelegate::CreateLambda([]
+			const TSharedRef<FVoxelNotification> Notification = FVoxelNotification::Create_Failed(Title);
+			Notification->SetSubText(Text);
+
+			Notification->AddButton(
+				"Settings",
+				"Open settings",
+				[]
 				{
 					ISettingsModule& SettingsModule = FModuleManager::LoadModuleChecked<ISettingsModule>(TEXT("Settings"));
 					const UVoxelShaderHooksSettings* Settings = GetDefault<UVoxelShaderHooksSettings>();
 					SettingsModule.ShowViewer(Settings->GetContainerName(), Settings->GetCategoryName(), Settings->GetSectionName());
-				}),
-				SNotificationItem::CS_Fail));
-			Info.bUseSuccessFailIcons = true;
-			Info.WidthOverride = 300.0f;
-			Info.ExpireDuration = 10.f;
+				});
 
-			const TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
-			if (!Notification)
-			{
-				return;
-			}
+			Notification->ExpireAndFadeoutIn(10.f);
 
-			Notification->SetCompletionState(SNotificationItem::CS_Fail);
 			WeakNotification = Notification;
 		});
 

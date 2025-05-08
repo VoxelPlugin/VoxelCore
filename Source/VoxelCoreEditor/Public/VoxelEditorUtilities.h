@@ -240,7 +240,8 @@ public:
 
 		TrackHandle(PropertyHandle);
 
-		if (!ensure(PropertyHandle))
+		if (!ensure(PropertyHandle) ||
+			!ensure(PropertyHandle->IsValidHandle()))
 		{
 			return;
 		}

@@ -264,6 +264,10 @@ FORCEINLINE auto MakeByteVoxelArrayView(T&& Value)
 template<typename T, typename SizeType>
 struct TVoxelConstCast<TVoxelArrayView<const T, SizeType>>
 {
+	FORCEINLINE static TVoxelArrayView<T, SizeType>& ConstCast(TVoxelArrayView<const T, SizeType>& Value)
+	{
+		return ReinterpretCastRef<TVoxelArrayView<T, SizeType>>(Value);
+	}
 	FORCEINLINE static const TVoxelArrayView<T, SizeType>& ConstCast(const TVoxelArrayView<const T, SizeType>& Value)
 	{
 		return ReinterpretCastRef<TVoxelArrayView<T, SizeType>>(Value);

@@ -176,9 +176,7 @@ namespace FVoxelUtilities
 		const TVector<Real>& A,
 		const TVector<Real>& B,
 		const TVector<Real>& C,
-		Real& OutAlphaA,
-		Real& OutAlphaB,
-		Real& OutAlphaC)
+		TVector<Real>& OutBarycentrics)
 	{
 		const TVector<Real> CA = A - C;
 		const TVector<Real> CB = B - C;
@@ -194,11 +192,14 @@ namespace FVoxelUtilities
 		const Real Determinant = SizeCA * SizeCB - d * d;
 		ensureVoxelSlow(Determinant > 0.f);
 
-		OutAlphaA = (SizeCB * a - d * b) / Determinant;
-		OutAlphaB = (SizeCA * b - d * a) / Determinant;
-		OutAlphaC = 1 - OutAlphaA - OutAlphaB;
+		OutBarycentrics.X = (SizeCB * a - d * b) / Determinant;
+		OutBarycentrics.Y = (SizeCA * b - d * a) / Determinant;
+		OutBarycentrics.Z = 1 - OutBarycentrics.X - OutBarycentrics.Y;
 
-		ensureVoxelSlow(OutAlphaA > 0 || OutAlphaB > 0 || OutAlphaC > 0);
+		ensureVoxelSlow(
+			OutBarycentrics.X > 0 ||
+			OutBarycentrics.Y > 0 ||
+			OutBarycentrics.Z > 0);
 	}
 
 	template<typename Real>
@@ -239,28 +240,28 @@ namespace FVoxelUtilities
 		const TVector<Real>& A,
 		const TVector<Real>& B,
 		const TVector<Real>& C,
-		Real& OutAlphaA,
-		Real& OutAlphaB,
-		Real& OutAlphaC)
+		TVector<Real>& OutBarycentrics)
 	{
 		FVoxelUtilities::GetTriangleBarycentrics(
 			Point,
 			A,
 			B,
 			C,
-			OutAlphaA,
-			OutAlphaB,
-			OutAlphaC);
+			OutBarycentrics);
 
-		if (OutAlphaA >= 0 &&
-			OutAlphaB >= 0 &&
-			OutAlphaC >= 0)
+		if (OutBarycentrics.X >= 0 &&
+			OutBarycentrics.Y >= 0 &&
+			OutBarycentrics.Z >= 0)
 		{
 			// We're inside the triangle
-			return TVector<Real>::DistSquared(Point, OutAlphaA * A + OutAlphaB * B + OutAlphaC * C);
+			return TVector<Real>::DistSquared(
+				Point,
+				OutBarycentrics.X * A +
+				OutBarycentrics.Y * B +
+				OutBarycentrics.Z * C);
 		}
 
-		if (OutAlphaA > 0)
+		if (OutBarycentrics.X > 0)
 		{
 			// Rules out BC
 
@@ -272,21 +273,21 @@ namespace FVoxelUtilities
 
 			if (DistanceAB < DistanceAC)
 			{
-				OutAlphaA = 1 - AlphaB_AB;
-				OutAlphaB = AlphaB_AB;
-				OutAlphaC = 0;
+				OutBarycentrics.X = 1 - AlphaB_AB;
+				OutBarycentrics.Y = AlphaB_AB;
+				OutBarycentrics.Z = 0;
 				return DistanceAB;
 			}
 			else
 			{
-				OutAlphaA = 1 - AlphaC_AC;
-				OutAlphaB = 0;
-				OutAlphaC = AlphaC_AC;
+				OutBarycentrics.X = 1 - AlphaC_AC;
+				OutBarycentrics.Y = 0;
+				OutBarycentrics.Z = AlphaC_AC;
 				return DistanceAC;
 			}
 		}
 
-		if (OutAlphaB > 0)
+		if (OutBarycentrics.Y > 0)
 		{
 			// Rules out AC
 
@@ -298,21 +299,21 @@ namespace FVoxelUtilities
 
 			if (DistanceAB < DistanceBC)
 			{
-				OutAlphaA = 1 - AlphaB_AB;
-				OutAlphaB = AlphaB_AB;
-				OutAlphaC = 0;
+				OutBarycentrics.X = 1 - AlphaB_AB;
+				OutBarycentrics.Y = AlphaB_AB;
+				OutBarycentrics.Z = 0;
 				return DistanceAB;
 			}
 			else
 			{
-				OutAlphaA = 0;
-				OutAlphaB = 1 - AlphaC_BC;
-				OutAlphaC = AlphaC_BC;
+				OutBarycentrics.X = 0;
+				OutBarycentrics.Y = 1 - AlphaC_BC;
+				OutBarycentrics.Z = AlphaC_BC;
 				return DistanceBC;
 			}
 		}
 
-		ensureVoxelSlow(OutAlphaC > 0);
+		ensureVoxelSlow(OutBarycentrics.Z > 0);
 
 		// Rules out AB
 
@@ -324,16 +325,16 @@ namespace FVoxelUtilities
 
 		if (DistanceBC < DistanceAC)
 		{
-			OutAlphaA = 0;
-			OutAlphaB = AlphaC_BC;
-			OutAlphaC = 1 - AlphaC_BC;
+			OutBarycentrics.X = 0;
+			OutBarycentrics.Y = AlphaC_BC;
+			OutBarycentrics.Z = 1 - AlphaC_BC;
 			return DistanceBC;
 		}
 		else
 		{
-			OutAlphaA = AlphaC_AC;
-			OutAlphaB = 0;
-			OutAlphaC = 1 - AlphaC_AC;
+			OutBarycentrics.X = AlphaC_AC;
+			OutBarycentrics.Y = 0;
+			OutBarycentrics.Z = 1 - AlphaC_AC;
 			return DistanceAC;
 		}
 	}
@@ -345,17 +346,13 @@ namespace FVoxelUtilities
 		const TVector<Real>& B,
 		const TVector<Real>& C)
 	{
-		Real AlphaA;
-		Real AlphaB;
-		Real AlphaC;
+		TVector<Real> Barycentrics;
 		return FVoxelUtilities::PointTriangleDistanceSquared(
 			Point,
 			A,
 			B,
 			C,
-			AlphaA,
-			AlphaB,
-			AlphaC);
+			Barycentrics);
 	}
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -413,22 +410,18 @@ namespace FVoxelUtilities
 		checkVoxelSlow(!bResult || (AB != 0 && BC != 0 && CA != 0));
 
 #if VOXEL_DEBUG
-		Real AlphaA;
-		Real AlphaB;
-		Real AlphaC;
+		TVector<Real> Barycentrics;
 		GetTriangleBarycentrics(
 			TVector<Real>(P, 0),
 			TVector<Real>(A, 0),
 			TVector<Real>(B, 0),
 			TVector<Real>(C, 0),
-			AlphaA,
-			AlphaB,
-			AlphaC);
+			Barycentrics);
 
 		check(bResult == (
-			AlphaA >= 0 &&
-			AlphaB >= 0 &&
-			AlphaC >= 0));
+			Barycentrics.X >= 0 &&
+			Barycentrics.Y >= 0 &&
+			Barycentrics.Z >= 0));
 #endif
 
 		return bResult;

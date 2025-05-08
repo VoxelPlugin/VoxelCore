@@ -229,15 +229,10 @@ private:
 template<typename Type>
 requires
 (
-	!(
-		std::is_move_constructible_v<Type> &&
-		std::is_move_assignable_v<Type>
-	)
-	&&
-	!(
-		std::is_copy_constructible_v<Type> &&
-		std::is_copy_assignable_v<Type>
-	)
+	!std::is_move_constructible_v<Type> &&
+	!std::is_move_assignable_v<Type> &&
+	!std::is_copy_constructible_v<Type> &&
+	!std::is_copy_assignable_v<Type>
 )
 struct TVoxelOptional<Type> : TVoxelOptionalBase<Type, TVoxelOptional<Type>>
 {
@@ -245,6 +240,52 @@ public:
 	using Super = TVoxelOptionalBase<Type, TVoxelOptional<Type>>;
 	using Super::Super;
 	using Super::operator=;
+};
+
+template<typename Type>
+requires
+(
+	std::is_move_constructible_v<Type> &&
+	!std::is_move_assignable_v<Type> &&
+	!std::is_copy_constructible_v<Type> &&
+	!std::is_copy_assignable_v<Type>
+)
+struct TVoxelOptional<Type> : TVoxelOptionalBase<Type, TVoxelOptional<Type>>
+{
+public:
+	using Super = TVoxelOptionalBase<Type, TVoxelOptional<Type>>;
+	using Super::Super;
+	using Super::operator=;
+
+	FORCEINLINE TVoxelOptional(TVoxelOptional&& Other)
+		: Super(MoveTemp(Other))
+	{
+	}
+};
+
+template<typename Type>
+requires
+(
+	std::is_move_constructible_v<Type> &&
+	!std::is_move_assignable_v<Type> &&
+	std::is_copy_constructible_v<Type> &&
+	!std::is_copy_assignable_v<Type>
+)
+struct TVoxelOptional<Type> : TVoxelOptionalBase<Type, TVoxelOptional<Type>>
+{
+public:
+	using Super = TVoxelOptionalBase<Type, TVoxelOptional<Type>>;
+	using Super::Super;
+	using Super::operator=;
+
+	FORCEINLINE TVoxelOptional(TVoxelOptional&& Other)
+		: Super(MoveTemp(Other))
+	{
+	}
+	FORCEINLINE TVoxelOptional(const TVoxelOptional& Other)
+		: Super(Other)
+	{
+	}
 };
 
 template<typename Type>

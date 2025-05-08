@@ -6,7 +6,7 @@
 VOXEL_CONSOLE_VARIABLE(
 	VOXELCORE_API, float, GVoxelDebugThicknessMultiplier, 1.f,
 	"voxel.debug.ThicknessMultiplier",
-	"");
+	"Thickness multiplier for voxel debug lines");
 
 FVoxelDebugDrawer::FVoxelDebugDrawer()
 {
@@ -69,8 +69,8 @@ FVoxelDebugDrawer& FVoxelDebugDrawer::DrawLine(
 	{
 		DrawDebugLine(
 			State.GetWorld(),
-			Start,
-			End,
+			FVoxelUtilities::Clamp(Start, -1e9, 1e9),
+			FVoxelUtilities::Clamp(End, -1e9, 1e9),
 			State.Color.ToFColor(true),
 			false,
 			State.LifeTime,
@@ -95,7 +95,7 @@ FVoxelDebugDrawer& FVoxelDebugDrawer::DrawBox(
 
 	if (bScaleBySize)
 	{
-		PrivateState->Thickness *= FMath::Sqrt(Box.Size().GetAbsMax()) / 10.f;
+		PrivateState->Thickness *= FMath::Clamp(FMath::Sqrt(Box.Size().GetAbsMax()) / 10.f, 0.1f, 100.f);
 	}
 
 	const auto Get = [&](const double X, const double Y, const double Z) -> FVector

@@ -1,47 +1,9 @@
 ﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelEditorMinimal.h"
+#include "Details/VoxelInstancedStructDataProvider.h"
 
 DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelInstancedStructDetailsWrapper);
-
-class FVoxelStructCustomizationWrapperTicker : public FVoxelEditorSingleton
-{
-public:
-	TArray<TWeakPtr<FVoxelInstancedStructDetailsWrapper>> WeakWrappers;
-
-	//~ Begin FVoxelEditorSingleton Interface
-	virtual void Tick() override
-	{
-		VOXEL_FUNCTION_COUNTER();
-		check(IsInGameThread());
-
-		WeakWrappers.RemoveAllSwap([](const TWeakPtr<FVoxelInstancedStructDetailsWrapper>& WeakChildWrapper)
-		{
-			return !WeakChildWrapper.IsValid();
-		});
-
-		const double Time = FPlatformTime::Seconds();
-		for (const TWeakPtr<FVoxelInstancedStructDetailsWrapper>& WeakWrapper : WeakWrappers)
-		{
-			const TSharedPtr<FVoxelInstancedStructDetailsWrapper> Wrapper = WeakWrapper.Pin();
-			if (!ensure(Wrapper.IsValid()))
-			{
-				continue;
-			}
-
-			if (Time < Wrapper->LastSyncTime + 0.1)
-			{
-				continue;
-			}
-			Wrapper->LastSyncTime = Time;
-
-			// Tricky: can tick once after the property is gone due to SListPanel being delayed
-			Wrapper->SyncFromSource();
-		}
-	}
-	//~ End FVoxelEditorSingleton Interface
-};
-FVoxelStructCustomizationWrapperTicker* GVoxelStructCustomizationWrapperTicker = new FVoxelStructCustomizationWrapperTicker();
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -56,50 +18,14 @@ TSharedPtr<FVoxelInstancedStructDetailsWrapper> FVoxelInstancedStructDetailsWrap
 		return nullptr;
 	}
 
-	bool bHasValidStruct = true;
-	TOptional<const UScriptStruct*> Struct;
-	FVoxelEditorUtilities::ForeachData<FVoxelInstancedStruct>(InstancedStructHandle, [&](const FVoxelInstancedStruct& InstancedStruct)
-	{
-		if (!Struct.IsSet())
-		{
-			Struct = InstancedStruct.GetScriptStruct();
-			return;
-		}
+	const TSharedRef<FVoxelInstancedStructDataProvider> DataProvider = MakeShared<FVoxelInstancedStructDataProvider>(InstancedStructHandle);
 
-		if (Struct.GetValue() != InstancedStruct.GetScriptStruct())
-		{
-			bHasValidStruct = false;
-		}
-	});
-
-	if (!ensure(Struct.IsSet()) ||
-		!bHasValidStruct ||
-		!Struct.GetValue())
-	{
-		return nullptr;
-	}
-
-	const TSharedRef<FStructOnScope> StructOnScope = MakeShared<FStructOnScope>(Struct.GetValue());
-
-	// Make sure the struct also has a valid package set, so that properties that rely on this (like FText) work correctly
-	{
-		TArray<UPackage*> OuterPackages;
-		InstancedStructHandle->GetOuterPackages(OuterPackages);
-		if (OuterPackages.Num() > 0)
-		{
-			StructOnScope->SetPackage(OuterPackages[0]);
-		}
-	}
-
-	const TSharedRef<FVoxelInstancedStructDetailsWrapper> Result(new FVoxelInstancedStructDetailsWrapper(InstancedStructHandle, StructOnScope));
-	GVoxelStructCustomizationWrapperTicker->WeakWrappers.Add(Result);
-	Result->SyncFromSource();
-	return Result;
+	return MakeShareable(new FVoxelInstancedStructDetailsWrapper(InstancedStructHandle, DataProvider));
 }
 
 TArray<TSharedPtr<IPropertyHandle>> FVoxelInstancedStructDetailsWrapper::AddChildStructure()
 {
-	const TArray<TSharedPtr<IPropertyHandle>> ChildHandles = InstancedStructHandle->AddChildStructure(StructOnScope);
+	const TArray<TSharedPtr<IPropertyHandle>> ChildHandles = InstancedStructHandle->AddChildStructure(DataProvider);
 	for (const TSharedPtr<IPropertyHandle>& ChildHandle : ChildHandles)
 	{
 		SetupChildHandle(ChildHandle);
@@ -111,7 +37,11 @@ IDetailPropertyRow* FVoxelInstancedStructDetailsWrapper::AddExternalStructure(
 	const FVoxelDetailInterface& DetailInterface,
 	const FAddPropertyParams& Params)
 {
-	IDetailPropertyRow* Row = DetailInterface.AddExternalStructure(StructOnScope, Params);
+	const TSharedRef<FVoxelInstancedStructDataProvider> DataProviderCopy = MakeSharedCopy(*DataProvider);
+	// Otherwise FStructurePropertyNode::GetInstancesNum will crash
+	DataProviderCopy->bIsPropertyIndirection = false;
+
+	IDetailPropertyRow* Row = DetailInterface.AddExternalStructure(DataProviderCopy, Params);
 	if (!ensure(Row))
 	{
 		return nullptr;
@@ -129,36 +59,6 @@ IDetailPropertyRow* FVoxelInstancedStructDetailsWrapper::AddExternalStructure(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void FVoxelInstancedStructDetailsWrapper::SyncFromSource() const
-{
-	VOXEL_FUNCTION_COUNTER();
-
-	FVoxelEditorUtilities::ForeachData<FVoxelInstancedStruct>(InstancedStructHandle, [&](FVoxelInstancedStruct& InstancedStruct)
-	{
-		if (!ensureVoxelSlow(InstancedStruct.GetScriptStruct() == StructOnScope->GetStruct()))
-		{
-			return;
-		}
-
-		FVoxelStructView(InstancedStruct).CopyTo(*StructOnScope);
-	});
-}
-
-void FVoxelInstancedStructDetailsWrapper::SyncToSource() const
-{
-	VOXEL_FUNCTION_COUNTER();
-
-	FVoxelEditorUtilities::ForeachData<FVoxelInstancedStruct>(InstancedStructHandle, [&](FVoxelInstancedStruct& InstancedStruct)
-	{
-		if (!ensureVoxelSlow(InstancedStruct.GetScriptStruct() == StructOnScope->GetStruct()))
-		{
-			return;
-		}
-
-		FVoxelStructView(*StructOnScope).CopyTo(InstancedStruct);
-	});
-}
-
 void FVoxelInstancedStructDetailsWrapper::SetupChildHandle(const TSharedPtr<IPropertyHandle>& Handle) const
 {
 	if (!ensure(Handle))
@@ -172,21 +72,6 @@ void FVoxelInstancedStructDetailsWrapper::SetupChildHandle(const TSharedPtr<IPro
 		for (auto& It : *Map)
 		{
 			Handle->SetInstanceMetaData(It.Key, It.Value);
-		}
-	}
-
-	// Forward instance metadata, used to avoid infinite recursion in inline graphs
-	for (TSharedPtr<IPropertyHandle> ParentHandle = InstancedStructHandle; ParentHandle; ParentHandle = ParentHandle->GetParentHandle())
-	{
-		if (const TMap<FName, FString>* Map = ParentHandle->GetInstanceMetaDataMap())
-		{
-			for (auto& It : *Map)
-			{
-				if (It.Key.ToString().StartsWith("Recursive_"))
-				{
-					Handle->SetInstanceMetaData(It.Key, It.Value);
-				}
-			}
 		}
 	}
 
@@ -205,8 +90,6 @@ void FVoxelInstancedStructDetailsWrapper::SetupChildHandle(const TSharedPtr<IPro
 			return;
 		}
 		LastPostChangeFrame = GFrameCounter;
-
-		SyncToSource();
 
 		{
 			VOXEL_SCOPE_COUNTER("NotifyPostChange");

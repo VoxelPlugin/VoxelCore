@@ -40,6 +40,9 @@ public:
 		const TSharedPtr<SViewportToolBar>& ParentToolBar)
 	{
 	}
+	virtual void PopulateOverlay(const TSharedRef<SOverlay>& Overlay)
+	{
+	}
 
 public:
 	virtual void Draw(

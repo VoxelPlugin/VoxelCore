@@ -51,23 +51,23 @@ void FVoxelCategoryBuilder::Apply(IDetailChildrenBuilder& ChildrenBuilder) const
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	if (RootCategory->AddProperties.Num() > 0)
+	for (const FAddProperty& AddProperty : RootCategory->AddProperties)
 	{
-		const TSharedRef<FCustomNodeBuilder> CustomBuilder = MakeShared<FCustomNodeBuilder>();
-		CustomBuilder->CategoryPath = "Default";
-		RootCategory->Name = "Default";
-		CustomBuilder->Category = RootCategory;
-		ChildrenBuilder.AddCustomBuilder(CustomBuilder);
+		AddProperty(ChildrenBuilder);
 	}
 
 	for (const auto& It : RootCategory->NameToChild)
 	{
-		It.Value->Apply(
+		const TSharedRef<FCustomNodeBuilder> CustomBuilder = MakeShared<FCustomNodeBuilder>();
+
+		CustomBuilder->CategoryPath =
 			(BaseNameForExpansionState.IsNone() ? "FVoxelCategoryBuilder" : BaseNameForExpansionState.ToString()) +
 			"." +
-			It.Key.ToString() +
-			".",
-			ChildrenBuilder);
+			It.Key.ToString();
+
+		CustomBuilder->Category = It.Value;
+
+		ChildrenBuilder.AddCustomBuilder(CustomBuilder);
 	}
 }
 

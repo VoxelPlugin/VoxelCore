@@ -78,6 +78,7 @@ public:
 			return;
 		}
 
+		GVoxelGlobalTaskContext->CancelTasks();
 		GVoxelGlobalTaskContext->FlushAllTasks();
 
 #if !WITH_EDITOR && (PLATFORM_MAC || PLATFORM_IOS)
@@ -86,8 +87,6 @@ public:
 #endif
 
 		GOnVoxelModuleUnloaded_DoCleanup.Broadcast();
-
-		GVoxelGlobalTaskContext->FlushAllTasks();
 
 		FVoxelSingletonManager::Destroy();
 

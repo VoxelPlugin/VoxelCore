@@ -26,6 +26,26 @@ FORCEINLINE generic uint64 select(generic bool cond, generic uint64 t, generic u
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+FORCEINLINE generic float min3(
+	const generic float A,
+	const generic float B,
+	const generic float C)
+{
+	return min(A, min(B, C));
+}
+
+FORCEINLINE generic float max3(
+	const generic float A,
+	const generic float B,
+	const generic float C)
+{
+	return max(A, max(B, C));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 FORCEINLINE generic float lerp(const generic float A, const generic float B, const generic float Alpha)
 {
 	// Minimize float precision errors in case A or B is huge
@@ -96,9 +116,20 @@ FORCEINLINE generic uint32 MurmurHash32(const generic uint32 Value, const generi
 	return MurmurHash32(H ^ Value);
 }
 
+FORCEINLINE generic int32 PositiveMod(const generic int32 Dividend, const generic int32 Divisor)
+{
+	IGNORE_PERF_WARNING
+	return ((Dividend % Divisor) + Divisor) % Divisor;
+}
+
 FORCEINLINE generic bool IsPowerOfTwo(const generic uint32 Value)
 {
 	return (Value & (Value - 1)) == 0;
+}
+
+FORCEINLINE generic int32 FloorLog2(const generic int32 Value)
+{
+	return 31 - count_leading_zeros(Value | 1);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -377,6 +408,47 @@ FORCEINLINE generic float3 MakeFloat3(const generic int3 Value)
 	return Result;
 }
 
+FORCEINLINE generic float2 MakeFloat2(const generic double2 Value)
+{
+	generic float2 Result;
+	Result.x = Value.x;
+	Result.y = Value.y;
+	return Result;
+}
+FORCEINLINE generic float3 MakeFloat3(const generic double3 Value)
+{
+	generic float3 Result;
+	Result.x = Value.x;
+	Result.y = Value.y;
+	Result.z = Value.z;
+	return Result;
+}
+
+FORCEINLINE generic double2 MakeDouble2(const generic float2 Value)
+{
+	generic double2 Result;
+	Result.x = Value.x;
+	Result.y = Value.y;
+	return Result;
+}
+FORCEINLINE generic double3 MakeDouble3(const generic float3 Value)
+{
+	generic double3 Result;
+	Result.x = Value.x;
+	Result.y = Value.y;
+	Result.z = Value.z;
+	return Result;
+}
+FORCEINLINE generic double4 MakeDouble4(const generic float4 Value)
+{
+	generic double4 Result;
+	Result.x = Value.x;
+	Result.y = Value.y;
+	Result.z = Value.z;
+	Result.w = Value.w;
+	return Result;
+}
+
 FORCEINLINE generic int2 MakeInt2(const generic float2 Value)
 {
 	generic int2 Result;
@@ -535,6 +607,23 @@ FORCEINLINE generic double length(const generic double3 Value)
 	return sqrt(Value.x * Value.x + Value.y * Value.y + Value.z * Value.z);
 }
 
+FORCEINLINE generic float length_squared(const generic float2 Value)
+{
+	return Value.x * Value.x + Value.y * Value.y;
+}
+FORCEINLINE generic float length_squared(const generic float3 Value)
+{
+	return Value.x * Value.x + Value.y * Value.y + Value.z * Value.z;
+}
+FORCEINLINE generic double length_squared(const generic double2 Value)
+{
+	return Value.x * Value.x + Value.y * Value.y;
+}
+FORCEINLINE generic double length_squared(const generic double3 Value)
+{
+	return Value.x * Value.x + Value.y * Value.y + Value.z * Value.z;
+}
+
 FORCEINLINE generic float distance(const generic float2 A, const generic float2 B)
 {
 	return length(B - A);
@@ -550,6 +639,23 @@ FORCEINLINE generic double distance(const generic double2 A, generic const doubl
 FORCEINLINE generic double distance(const generic double3 A, const generic double3 B)
 {
 	return length(B - A);
+}
+
+FORCEINLINE generic float distance_squared(const generic float2 A, const generic float2 B)
+{
+	return length_squared(B - A);
+}
+FORCEINLINE generic float distance_squared(const generic float3 A, const generic float3 B)
+{
+	return length_squared(B - A);
+}
+FORCEINLINE generic double distance_squared(const generic double2 A, generic const double2 B)
+{
+	return length_squared(B - A);
+}
+FORCEINLINE generic double distance_squared(const generic double3 A, const generic double3 B)
+{
+	return length_squared(B - A);
 }
 
 FORCEINLINE generic float2 normalize(const generic float2 Vector)
@@ -577,6 +683,20 @@ FORCEINLINE generic float2 abs(const generic float2 Vector)
 FORCEINLINE generic float3 abs(const generic float3 Vector)
 {
 	return MakeFloat3(
+		abs(Vector.x),
+		abs(Vector.y),
+		abs(Vector.z));
+}
+
+FORCEINLINE generic double2 abs(const generic double2 Vector)
+{
+	return MakeDouble2(
+		abs(Vector.x),
+		abs(Vector.y));
+}
+FORCEINLINE generic double3 abs(const generic double3 Vector)
+{
+	return MakeDouble3(
 		abs(Vector.x),
 		abs(Vector.y),
 		abs(Vector.z));
@@ -639,6 +759,21 @@ FORCEINLINE generic float3 max(const generic float3 A, const generic float3 B)
 		max(A.z, B.z));
 }
 
+FORCEINLINE generic double3 min(const generic double3 A, const generic double3 B)
+{
+	return MakeDouble3(
+		min(A.x, B.x),
+		min(A.y, B.y),
+		min(A.z, B.z));
+}
+FORCEINLINE generic double3 max(const generic double3 A, const generic double3 B)
+{
+	return MakeDouble3(
+		max(A.x, B.x),
+		max(A.y, B.y),
+		max(A.z, B.z));
+}
+
 FORCEINLINE generic float3 min(const generic float3 A, const generic float B)
 {
 	return MakeFloat3(
@@ -678,6 +813,26 @@ FORCEINLINE generic float DistanceSquared(const generic float3 A, const generic 
 {
 	const generic float3 C = A - B;
 	return dot(C, C);
+}
+
+FORCEINLINE bool Contains(
+	const generic float2 Position,
+	const uniform float2 BoundsMin,
+	const uniform float2 BoundsMax)
+{
+	return
+		BoundsMin.x <= Position.x && Position.x <= BoundsMax.x &&
+		BoundsMin.y <= Position.y && Position.y <= BoundsMax.y;
+}
+
+FORCEINLINE bool Contains(
+	const generic double2 Position,
+	const uniform double2 BoundsMin,
+	const uniform double2 BoundsMax)
+{
+	return
+		BoundsMin.x <= Position.x && Position.x <= BoundsMax.x &&
+		BoundsMin.y <= Position.y && Position.y <= BoundsMax.y;
 }
 
 FORCEINLINE bool Contains(
@@ -861,7 +1016,10 @@ FORCEINLINE generic float BilinearInterpolation(
 	const generic float AlphaX,
 	const generic float AlphaY)
 {
-	return lerp(lerp(A, B, AlphaX), lerp(C, D, AlphaX), AlphaY);
+	return lerp(
+		lerp(A, B, AlphaX),
+		lerp(C, D, AlphaX),
+		AlphaY);
 }
 
 FORCEINLINE generic float TrilinearInterpolation(
@@ -887,8 +1045,128 @@ FORCEINLINE generic float TrilinearInterpolation(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+FORCEINLINE generic float3 BilinearInterpolation(
+	const generic float3 A,
+	const generic float3 B,
+	const generic float3 C,
+	const generic float3 D,
+	const generic float AlphaX,
+	const generic float AlphaY)
+{
+	return lerp(
+		lerp(A, B, AlphaX),
+		lerp(C, D, AlphaX),
+		AlphaY);
+}
+
+FORCEINLINE generic float3 TrilinearInterpolation(
+	const generic float3 A,
+	const generic float3 B,
+	const generic float3 C,
+	const generic float3 D,
+	const generic float3 E,
+	const generic float3 F,
+	const generic float3 G,
+	const generic float3 H,
+	const generic float AlphaX,
+	const generic float AlphaY,
+	const generic float AlphaZ)
+{
+	return lerp(
+		BilinearInterpolation(A, B, C, D, AlphaX, AlphaY),
+		BilinearInterpolation(E, F, G, H, AlphaX, AlphaY),
+		AlphaZ);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// Interpolate between p1 and p2 using Alpha
+FORCEINLINE generic float CubicInterpolation(
+	const generic float p0,
+	const generic float p1,
+	const generic float p2,
+	const generic float p3,
+	const generic float Alpha)
+{
+#if 0
+	// See https://en.wikipedia.org/wiki/Mitchell%E2%80%93Netravali_filters
+
+	const uniform float B = clamp(Smoothness, 0.f, 1.f);
+	const uniform float C = (1.f - B) / 2.f;
+
+	p0A = B / 6.f;       p0B = -B / 2.f - C; p0C = B / 2.f + 2.f * C;              p0D = -B / 6.f - C;
+	p1A = 1.f - B / 3.f; p1B = 0.f;          p1C = 2.f * B + C - 3.f;              p1D = -3.f / 2.f * B - C + 2.f;
+	p2A = B / 6.f;       p2B = +B / 2.f + C; p2C = -5.f / 2.f * B - 2.f * C + 3.f; p2D = +3.f / 2.f * B + C - 2.f;
+	p3A = 0.f;           p3B = 0.f;          p3C = -C;                             p3D = +B / 6.f + C;
+
+	return
+		p0 * (p0A + AlphaX * (p0B + AlphaX * (p0C + AlphaX * p0D))) +
+		p1 * (p1A + AlphaX * (p1B + AlphaX * (p1C + AlphaX * p1D))) +
+		p2 * (p2A + AlphaX * (p2B + AlphaX * (p2C + AlphaX * p2D))) +
+		p3 * (p3A + AlphaX * (p3B + AlphaX * (p3C + AlphaX * p3D)));
+#endif
+
+#if 1
+	// Smoothness = 0
+
+	return
+		p1 +
+
+		Alpha *
+		(
+			p0 * -0.5f +
+			p2 * +0.5f
+		) +
+
+		Alpha * Alpha *
+		(
+			p0 +
+			p1 * -2.5f +
+			p2 * +2.0f +
+			p3 * -0.5f
+		) +
+
+		Alpha * Alpha * Alpha *
+		(
+			p0 * -0.5f +
+			p1 * +1.5f +
+			p2 * -1.5f +
+			p3 * +0.5f
+		);
+#else
+	// Smoothness = 1
+
+	return
+		p0 * 1.f / 6.f +
+		p1 * 2.f / 3.f +
+		p2 * 1.f / 6.f +
+
+		Alpha *
+		(
+			p0 * -0.5f +
+			p2 * 0.5f
+		) +
+
+		Alpha * Alpha *
+		(
+			p0 * 0.5f +
+			p1 * -1.f +
+			p2 * 0.5f
+		) +
+
+		Alpha * Alpha * Alpha *
+		(
+			p0 * -1.f / 6.f +
+			p1 * 0.5f +
+			p2 * -0.5f +
+			p3 * 1.f / 6.f
+		);
+#endif
+}
+
 FORCEINLINE generic float BicubicInterpolation(
-	const uniform FBicubicWeights Weights,
 	const generic float p00,
 	const generic float p01,
 	const generic float p02,
@@ -908,35 +1186,93 @@ FORCEINLINE generic float BicubicInterpolation(
 	const generic float AlphaX,
 	const generic float AlphaY)
 {
-	const generic float p0 =
-		p00 * (Weights.p0A + AlphaX * (Weights.p0B + AlphaX * (Weights.p0C + AlphaX * Weights.p0D))) +
-		p01 * (Weights.p1A + AlphaX * (Weights.p1B + AlphaX * (Weights.p1C + AlphaX * Weights.p1D))) +
-		p02 * (Weights.p2A + AlphaX * (Weights.p2B + AlphaX * (Weights.p2C + AlphaX * Weights.p2D))) +
-		p03 * (Weights.p3A + AlphaX * (Weights.p3B + AlphaX * (Weights.p3C + AlphaX * Weights.p3D)));
+	return CubicInterpolation(
+		CubicInterpolation(p00, p01, p02, p03, AlphaX),
+		CubicInterpolation(p10, p11, p12, p13, AlphaX),
+		CubicInterpolation(p20, p21, p22, p23, AlphaX),
+		CubicInterpolation(p30, p31, p32, p33, AlphaX),
+		AlphaY);
+}
 
-	const generic float p1 =
-		p10 * (Weights.p0A + AlphaX * (Weights.p0B + AlphaX * (Weights.p0C + AlphaX * Weights.p0D))) +
-		p11 * (Weights.p1A + AlphaX * (Weights.p1B + AlphaX * (Weights.p1C + AlphaX * Weights.p1D))) +
-		p12 * (Weights.p2A + AlphaX * (Weights.p2B + AlphaX * (Weights.p2C + AlphaX * Weights.p2D))) +
-		p13 * (Weights.p3A + AlphaX * (Weights.p3B + AlphaX * (Weights.p3C + AlphaX * Weights.p3D)));
-
-	const generic float p2 =
-		p20 * (Weights.p0A + AlphaX * (Weights.p0B + AlphaX * (Weights.p0C + AlphaX * Weights.p0D))) +
-		p21 * (Weights.p1A + AlphaX * (Weights.p1B + AlphaX * (Weights.p1C + AlphaX * Weights.p1D))) +
-		p22 * (Weights.p2A + AlphaX * (Weights.p2B + AlphaX * (Weights.p2C + AlphaX * Weights.p2D))) +
-		p23 * (Weights.p3A + AlphaX * (Weights.p3B + AlphaX * (Weights.p3C + AlphaX * Weights.p3D)));
-
-	const generic float p3 =
-		p30 * (Weights.p0A + AlphaX * (Weights.p0B + AlphaX * (Weights.p0C + AlphaX * Weights.p0D))) +
-		p31 * (Weights.p1A + AlphaX * (Weights.p1B + AlphaX * (Weights.p1C + AlphaX * Weights.p1D))) +
-		p32 * (Weights.p2A + AlphaX * (Weights.p2B + AlphaX * (Weights.p2C + AlphaX * Weights.p2D))) +
-		p33 * (Weights.p3A + AlphaX * (Weights.p3B + AlphaX * (Weights.p3C + AlphaX * Weights.p3D)));
-
-	return
-		p0 * (Weights.p0A + AlphaY * (Weights.p0B + AlphaY * (Weights.p0C + AlphaY * Weights.p0D))) +
-		p1 * (Weights.p1A + AlphaY * (Weights.p1B + AlphaY * (Weights.p1C + AlphaY * Weights.p1D))) +
-		p2 * (Weights.p2A + AlphaY * (Weights.p2B + AlphaY * (Weights.p2C + AlphaY * Weights.p2D))) +
-		p3 * (Weights.p3A + AlphaY * (Weights.p3B + AlphaY * (Weights.p3C + AlphaY * Weights.p3D)));
+FORCEINLINE generic float TricubicInterpolation(
+	const generic float p000,
+	const generic float p001,
+	const generic float p002,
+	const generic float p003,
+	const generic float p010,
+	const generic float p011,
+	const generic float p012,
+	const generic float p013,
+	const generic float p020,
+	const generic float p021,
+	const generic float p022,
+	const generic float p023,
+	const generic float p030,
+	const generic float p031,
+	const generic float p032,
+	const generic float p033,
+	const generic float p100,
+	const generic float p101,
+	const generic float p102,
+	const generic float p103,
+	const generic float p110,
+	const generic float p111,
+	const generic float p112,
+	const generic float p113,
+	const generic float p120,
+	const generic float p121,
+	const generic float p122,
+	const generic float p123,
+	const generic float p130,
+	const generic float p131,
+	const generic float p132,
+	const generic float p133,
+	const generic float p200,
+	const generic float p201,
+	const generic float p202,
+	const generic float p203,
+	const generic float p210,
+	const generic float p211,
+	const generic float p212,
+	const generic float p213,
+	const generic float p220,
+	const generic float p221,
+	const generic float p222,
+	const generic float p223,
+	const generic float p230,
+	const generic float p231,
+	const generic float p232,
+	const generic float p233,
+	const generic float p300,
+	const generic float p301,
+	const generic float p302,
+	const generic float p303,
+	const generic float p310,
+	const generic float p311,
+	const generic float p312,
+	const generic float p313,
+	const generic float p320,
+	const generic float p321,
+	const generic float p322,
+	const generic float p323,
+	const generic float p330,
+	const generic float p331,
+	const generic float p332,
+	const generic float p333,
+	const generic float AlphaX,
+	const generic float AlphaY,
+	const generic float AlphaZ)
+{
+	return CubicInterpolation(
+		BicubicInterpolation(
+			p000, p001, p002, p003, p010, p011, p012, p013, p020, p021, p022, p023, p030, p031, p032, p033, AlphaX, AlphaY),
+		BicubicInterpolation(
+			p100, p101, p102, p103, p110, p111, p112, p113, p120, p121, p122, p123, p130, p131, p132, p133, AlphaX, AlphaY),
+		BicubicInterpolation(
+			p200, p201, p202, p203, p210, p211, p212, p213, p220, p221, p222, p223, p230, p231, p232, p233, AlphaX, AlphaY),
+		BicubicInterpolation(
+			p300, p301, p302, p303, p310, p311, p312, p313, p320, p321, p322, p323, p330, p331, p332, p333, AlphaX, AlphaY),
+		AlphaZ);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -980,9 +1316,71 @@ FORCEINLINE generic uint64 ReadBits(generic uint64 Data, const generic int32 Fir
 	return Data;
 }
 
-FORCEINLINE generic bool IsNearlyZero(const generic float Float)
+FORCEINLINE generic bool IsNearlyZero(const generic float Value, const generic float Tolerance = KINDA_SMALL_NUMBER)
 {
-	return abs(Float) < KINDA_SMALL_NUMBER;
+	return abs(Value) <= Tolerance;
+}
+FORCEINLINE generic bool IsNearlyEqual(const generic float A, const generic float B, const generic float Tolerance = KINDA_SMALL_NUMBER)
+{
+	return abs(A - B) <= Tolerance;
+}
+
+FORCEINLINE generic float2 CubicInterp(
+	const generic float2 P0,
+	const generic float2 T0,
+	const generic float2 P1,
+	const generic float2 T1,
+	const generic float A)
+{
+	const generic float A2 = A * A;
+	const generic float A3 = A2 * A;
+
+	return
+		P0 * (+2 * A3 - 3 * A2 + 1) +
+		T0 * (+1 * A3 - 2 * A2 + A) +
+		P1 * (-2 * A3 + 3 * A2) +
+		T1 * (+1 * A3 - 1 * A2);
+}
+FORCEINLINE generic float3 CubicInterp(
+	const generic float3 P0,
+	const generic float3 T0,
+	const generic float3 P1,
+	const generic float3 T1,
+	const generic float A)
+{
+	const generic float A2 = A * A;
+	const generic float A3 = A2 * A;
+
+	return
+		P0 * (+2 * A3 - 3 * A2 + 1) +
+		T0 * (+1 * A3 - 2 * A2 + A) +
+		P1 * (-2 * A3 + 3 * A2) +
+		T1 * (+1 * A3 - 1 * A2);
+}
+
+FORCEINLINE generic float2 CubicInterpDerivative(
+	const generic float2 P0,
+	const generic float2 T0,
+	const generic float2 P1,
+	const generic float2 T1,
+	const generic float A)
+{
+	const generic float2 a = +6.f * P0 + 3.f * T0 + 3.f * T1 - 6.f * P1;
+	const generic float2 b = -6.f * P0 - 4.f * T0 - 2.f * T1 + 6.f * P1;
+
+	return a * A * A + b * A + T0;
+}
+FORCEINLINE generic float3 CubicInterpDerivative(
+	const generic float3 P0,
+	const generic float3 T0,
+	const generic float3 P1,
+	const generic float3 T1,
+	const generic float A)
+{
+	const generic float3 a = +6.f * P0 + 3.f * T0 + 3.f * T1 - 6.f * P1;
+	const generic float3 b = -6.f * P0 - 4.f * T0 - 2.f * T1 + 6.f * P1;
+
+	return a * A * A + b * A + T0;
 }
 
 // H00
@@ -1296,19 +1694,33 @@ FORCEINLINE generic double3 UnrotateVector(const generic double3 Position, const
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FORCEINLINE generic float2 RotateVector2D(const generic float2 Position, const generic float2 Rotation)
+FORCEINLINE generic float2 RotateVector(const generic float2 Position, const generic float2 Rotation)
 {
 	generic float2 Result;
 	Result.x = Position.x * Rotation.x - Position.y * Rotation.y;
-	Result.y = Position.x * Rotation.y + Position.y * Rotation.x;
+	Result.y = Position.y * Rotation.x + Position.x * Rotation.y;
 	return Result;
 }
-
-FORCEINLINE generic double2 RotateVector2D(const generic double2 Position, generic const double2 Rotation)
+FORCEINLINE generic double2 RotateVector(const generic double2 Position, generic const double2 Rotation)
 {
 	generic double2 Result;
 	Result.x = Position.x * Rotation.x - Position.y * Rotation.y;
-	Result.y = Position.x * Rotation.y + Position.y * Rotation.x;
+	Result.y = Position.y * Rotation.x + Position.x * Rotation.y;
+	return Result;
+}
+
+FORCEINLINE generic float2 UnrotateVector(const generic float2 Position, const generic float2 Rotation)
+{
+	generic float2 Result;
+	Result.x = Position.x * Rotation.x + Position.y * Rotation.y;
+	Result.y = Position.y * Rotation.x - Position.x * Rotation.y;
+	return Result;
+}
+FORCEINLINE generic double2 UnrotateVector(const generic double2 Position, generic const double2 Rotation)
+{
+	generic double2 Result;
+	Result.x = Position.x * Rotation.x + Position.y * Rotation.y;
+	Result.y = Position.y * Rotation.x - Position.x * Rotation.y;
 	return Result;
 }
 

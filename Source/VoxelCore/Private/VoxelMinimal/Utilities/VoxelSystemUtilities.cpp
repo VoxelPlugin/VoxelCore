@@ -69,6 +69,84 @@ int32 FVoxelUtilities::GetNumBackgroundWorkerThreads()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+void FVoxelUtilities::Yield()
+{
+	if (IsInGameThread())
+	{
+		FPlatformProcess::Yield();
+	}
+	else
+	{
+		VOXEL_SCOPE_COUNTER("Sleep");
+		FPlatformProcess::Sleep(0.001f);
+	}
+}
+
+void FVoxelUtilities::WaitFor(const TFunctionRef<bool()> Condition)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	const double StartTime = FPlatformTime::Seconds();
+	double LastLogTime = -1;
+
+	const auto CheckStalled = [&]
+	{
+		const double Now = FPlatformTime::Seconds();
+		if (Now - StartTime < 10)
+		{
+			return;
+		}
+		ensureVoxelSlow(false);
+
+		if (Now - LastLogTime < 1)
+		{
+			return;
+		}
+
+		LastLogTime = Now;
+
+		LOG_VOXEL(Warning, "FVoxelUtilities::WaitFor stuck for %fs. Callstack:\n%s",
+			Now - StartTime,
+			*GetPrettyCallstack_WithStats())
+	};
+
+	if (IsInGameThread())
+	{
+		VOXEL_SCOPE_COUNTER("Busy wait");
+
+		while (!Condition())
+		{
+			CheckStalled();
+			FPlatformProcess::Yield();
+		}
+	}
+	else
+	{
+		{
+			VOXEL_SCOPE_COUNTER("Busy wait");
+
+			while (!Condition())
+			{
+				if (FPlatformTime::Seconds() - StartTime > 0.0005)
+				{
+					// Wait up to 500us
+					break;
+				}
+
+				FPlatformProcess::Yield();
+			}
+		}
+
+		while (!Condition())
+		{
+			CheckStalled();
+
+			VOXEL_SCOPE_COUNTER("Sleep");
+			FPlatformProcess::Sleep(0.001f);
+		}
+	}
+}
+
 void FVoxelUtilities::DelayedCall(TFunction<void()> Call, const float Delay)
 {
 	// Delay will be inaccurate if not on game thread but that's fine

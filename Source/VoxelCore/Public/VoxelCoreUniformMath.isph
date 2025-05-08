@@ -12,25 +12,3 @@ FORCEINLINE uniform int32 DivideFloor(const uniform int32 Dividend, const unifor
 {
 	return Dividend / Divisor;
 }
-
-struct FBicubicWeights
-{
-	uniform float p0A, p0B, p0C, p0D;
-	uniform float p1A, p1B, p1C, p1D;
-	uniform float p2A, p2B, p2C, p2D;
-	uniform float p3A, p3B, p3C, p3D;
-};
-
-FORCEINLINE void InitializeBicubicWeights(
-	uniform FBicubicWeights& Weights,
-	const uniform float Smoothness)
-{
-	const uniform float B = clamp(Smoothness, 0.f, 1.f);
-	const uniform float C = (1.f - B) / 2.f;
-
-	// See https://en.wikipedia.org/wiki/Mitchell%E2%80%93Netravali_filters
-	Weights.p0A = B / 6.f;       Weights.p0B = -B / 2.f - C; Weights.p0C = B / 2.f + 2.f * C;              Weights.p0D = -B / 6.f - C;
-	Weights.p1A = 1.f - B / 3.f; Weights.p1B = 0.f;          Weights.p1C = 2.f * B + C - 3.f;              Weights.p1D = -3.f / 2.f * B - C + 2.f;
-	Weights.p2A = B / 6.f;       Weights.p2B = +B / 2.f + C; Weights.p2C = -5.f / 2.f * B - 2.f * C + 3.f; Weights.p2D = +3.f / 2.f * B + C - 2.f;
-	Weights.p3A = 0.f;           Weights.p3B = 0.f;          Weights.p3C = -C;                             Weights.p3D = +B / 6.f + C;
-}

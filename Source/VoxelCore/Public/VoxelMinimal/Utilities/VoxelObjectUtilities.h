@@ -20,6 +20,8 @@ extern VOXELCORE_API TVoxelArray<TVoxelUniqueFunction<bool(const UObject&)>> GVo
 #endif
 extern VOXELCORE_API TVoxelArray<TVoxelUniqueFunction<FString(const UObject&)>> GVoxelTryGetObjectNameFunctions;
 
+VOXELCORE_API void SerializeVoxelVersion(FArchive& Ar);
+
 namespace FVoxelUtilities
 {
 #if WITH_EDITOR
@@ -83,6 +85,10 @@ namespace FVoxelUtilities
 
 	VOXELCORE_API FString GetArchivePath(const FArchive& Ar);
 	VOXELCORE_API bool ShouldSerializeBulkData(FArchive& Ar);
+
+	VOXELCORE_API void SerializeStruct(
+		FArchive& Ar,
+		UScriptStruct*& Struct);
 
 	GENERATE_VOXEL_MEMBER_FUNCTION_CHECK(Serialize);
 

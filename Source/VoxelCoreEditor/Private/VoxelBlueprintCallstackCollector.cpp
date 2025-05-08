@@ -1,10 +1,11 @@
 ﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
 
-#include "VoxelMinimal.h"
+#include "VoxelEditorMinimal.h"
 #include "VoxelMessage.h"
 #include "K2Node_Tunnel.h"
 #include "Kismet2/KismetDebugUtilities.h"
 #include "Kismet2/KismetEditorUtilities.h"
+#include "VoxelMessageToken_BlueprintCallstack.h"
 
 DEFINE_PRIVATE_ACCESS(FBlueprintDebugData, PerFunctionLineNumbers);
 
@@ -25,85 +26,111 @@ void GatherBlueprintCallstack(const TSharedRef<FVoxelMessage>& Message)
 	{
 		return;
 	}
-	const FFrame& Frame = *ScriptStack.Last();
 
-	const UClass* Class = FKismetDebugUtilities::FindClassForNode(nullptr, Frame.Node);
-	if (!Class)
+	TArray<TWeakObjectPtr<const UEdGraphNode>> Callstack;
+	TSet<const UEdGraphNode*> AddedNodes;
+	for (const FFrame* Frame : ScriptStack)
 	{
-		return;
-	}
-
-	const UBlueprint* Blueprint = Cast<UBlueprint>(Class->ClassGeneratedBy);
-	if (!Blueprint)
-	{
-		return;
-	}
-
-	const UBlueprintGeneratedClass* GeneratedClass = Cast<UBlueprintGeneratedClass>(Class);
-	if (!GeneratedClass ||
-		!GeneratedClass->DebugData.IsValid())
-	{
-		return;
-	}
-
-	const int32 CodeOffset = Frame.Code - Frame.Node->Script.GetData() - 1;
-
-	const FDebuggingInfoForSingleFunction* FunctionInfo = PrivateAccess::PerFunctionLineNumbers(GeneratedClass->DebugData).Find(Frame.Node);
-	if (!FunctionInfo)
-	{
-		return;
-	}
-
-	TVoxelArray<int32> CodeOffsets;
-	FunctionInfo->LineNumberToSourceNodeMap.GenerateKeyArray(CodeOffsets);
-	CodeOffsets.Sort();
-
-	if (!ensureVoxelSlow(CodeOffsets.Num() > 0))
-	{
-		return;
-	}
-
-	const auto GetNode = [&](const int32 Index)
-	{
-		return FunctionInfo->LineNumberToSourceNodeMap[CodeOffsets[Index]].Get();
-	};
-
-	int32 Index = Algo::LowerBound(CodeOffsets, CodeOffset);
-	if (!ensureVoxelSlow(CodeOffsets.IsValidIndex(Index)))
-	{
-		return;
-	}
-
-	const UEdGraphNode* BlueprintNode = GetNode(Index);
-
-	// Search forward for a node
-	while (!BlueprintNode)
-	{
-		if (!CodeOffsets.IsValidIndex(Index + 1))
+		if (!Frame)
 		{
-			break;
+			continue;
 		}
 
-		Index++;
-		BlueprintNode = GetNode(Index);
+		const UClass* Class = FKismetDebugUtilities::FindClassForNode(nullptr, Frame->Node);
+		if (!Class)
+		{
+			continue;
+		}
+
+		const UBlueprint* Blueprint = Cast<UBlueprint>(Class->ClassGeneratedBy);
+		if (!Blueprint)
+		{
+			continue;
+		}
+
+		const UBlueprintGeneratedClass* GeneratedClass = Cast<UBlueprintGeneratedClass>(Class);
+		if (!GeneratedClass ||
+			!GeneratedClass->DebugData.IsValid())
+		{
+			continue;
+		}
+
+		const int32 CodeOffset = Frame->Code - Frame->Node->Script.GetData() - 1;
+
+		const FDebuggingInfoForSingleFunction* FunctionInfo = PrivateAccess::PerFunctionLineNumbers(GeneratedClass->DebugData).Find(Frame->Node);
+		if (!FunctionInfo)
+		{
+			continue;
+		}
+
+		TVoxelArray<int32> CodeOffsets;
+		FunctionInfo->LineNumberToSourceNodeMap.GenerateKeyArray(CodeOffsets);
+		CodeOffsets.Sort();
+
+		if (!ensureVoxelSlow(CodeOffsets.Num() > 0))
+		{
+			continue;
+		}
+
+		const auto GetNode = [&](const int32 Index)
+		{
+			return FunctionInfo->LineNumberToSourceNodeMap[CodeOffsets[Index]].Get();
+		};
+
+		int32 Index = Algo::LowerBound(CodeOffsets, CodeOffset);
+		if (!ensureVoxelSlow(CodeOffsets.IsValidIndex(Index)))
+		{
+			continue;
+		}
+
+		const UEdGraphNode* BlueprintNode = GetNode(Index);
+
+		// Search forward for a node
+		while (!BlueprintNode)
+		{
+			if (!CodeOffsets.IsValidIndex(Index + 1))
+			{
+				break;
+			}
+
+			Index++;
+			BlueprintNode = GetNode(Index);
+		}
+
+		if (!BlueprintNode)
+		{
+			continue;
+		}
+
+		// With latent nodes the code offset points to a tunnel
+		// Walk backwards to the actual function call
+		for (int32 InnerIndex = 0; InnerIndex < Index; InnerIndex++)
+		{
+			BlueprintNode = GetNode(InnerIndex);
+			if (BlueprintNode->IsA<UK2Node_Tunnel>())
+			{
+				continue;
+			}
+
+			if (AddedNodes.Contains(BlueprintNode))
+			{
+				continue;
+			}
+
+			AddedNodes.Add(BlueprintNode);
+			Callstack.Add(BlueprintNode);
+		}
 	}
 
-	if (!BlueprintNode)
-	{
-		return;
-	}
+	FString Text = Message->ToString();
+	Message->AddToken(FVoxelMessageTokenFactory::CreateObjectToken(Callstack.Last().Get()));
 
-	// With latent nodes the code offset points to a tunnel
-	// Walk backwards to the actual function call
-	while (
-		BlueprintNode->IsA<UK2Node_Tunnel>() &&
-		Index > 0)
-	{
-		Index--;
-		BlueprintNode = GetNode(Index);
-	}
+	const TSharedRef<FVoxelMessageToken_BlueprintCallstack> Token = MakeShared<FVoxelMessageToken_BlueprintCallstack>();
+	Token->Callstack = Callstack;
+	Token->Title = Text;
 
-	Message->AddToken(FVoxelMessageTokenFactory::CreateObjectToken(BlueprintNode));
+	Message->AddText(" ");
+	Message->AddToken(Token);
 }
 
 VOXEL_RUN_ON_STARTUP_GAME()

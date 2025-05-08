@@ -103,8 +103,7 @@ public:
 		return static_cast<const T&>(*this);
 	}
 
-	void CopyTo(FVoxelVirtualStruct& Other) const;
-	TSharedRef<FVoxelVirtualStruct> MakeSharedCopy() const;
+	TSharedRef<FVoxelVirtualStruct> MakeSharedCopy_Generic() const;
 
 public:
 	TSharedRef<FJsonObject> SaveToJson(
@@ -138,14 +137,32 @@ private:
 	mutable TVoxelDuplicateTransient<UScriptStruct*> PrivateStruct;
 };
 
-#define VOXEL_ENABLE_SHARED_FROM_THIS(Name) \
-	SharedPointerInternals::EnableSharedFromThis(&Name, &Name.Get());
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
-#define GENERATED_VIRTUAL_STRUCT_BODY_NO_COPY_IMPL(Parent) \
-	virtual UScriptStruct* PREPROCESSOR_JOIN(Internal_GetStruct, Parent)() const override { return StaticStruct(); } \
-	virtual void Internal_UpdateWeakReferenceInternal(const TSharedPtr<FVoxelVirtualStruct>& SharedPtr) \
+#define IMPL_GENERATED_VIRTUAL_STRUCT_BODY_MAKE_SHARED_COPY() \
+	FORCEINLINE auto MakeSharedCopy() const -> decltype(auto) \
 	{ \
-		FVoxelVirtualStruct::Internal_UpdateWeakReferenceInternal(SharedPtr, this); \
+		checkStatic(std::is_copy_assignable_v<VOXEL_THIS_TYPE>); \
+		\
+		if constexpr (std::is_final_v<VOXEL_THIS_TYPE>) \
+		{ \
+			if constexpr (std::is_copy_constructible_v<VOXEL_THIS_TYPE>) \
+			{ \
+				return ::MakeSharedCopy(*this); \
+			} \
+			else \
+			{ \
+				TSharedRef<VOXEL_THIS_TYPE> SharedRef = MakeShared<VOXEL_THIS_TYPE>(); \
+				*SharedRef = *this; \
+				return SharedRef; \
+			} \
+		} \
+		\
+		TSharedRef<VOXEL_THIS_TYPE> SharedRef = StaticCastSharedRef<VOXEL_THIS_TYPE>(MakeSharedCopy_Generic()); \
+		SharedPointerInternals::EnableSharedFromThis(&SharedRef, &SharedRef.Get()); \
+		return SharedRef; \
 	} \
 	template<typename T> \
 	requires (!std::is_reference_v<T>) \
@@ -159,16 +176,14 @@ private:
 		return ::MakeSharedCopy(Data); \
 	}
 
-#define GENERATED_VIRTUAL_STRUCT_BODY_IMPL(Parent) \
-	GENERATED_VIRTUAL_STRUCT_BODY_NO_COPY_IMPL(Parent) \
-	FORCEINLINE auto MakeSharedCopy() const -> decltype(auto) \
+#define GENERATED_VIRTUAL_STRUCT_BODY_NO_COPY(Parent) \
+	virtual UScriptStruct* PREPROCESSOR_JOIN(Internal_GetStruct, Parent)() const override { return StaticStruct(); } \
+	virtual void Internal_UpdateWeakReferenceInternal(const TSharedPtr<FVoxelVirtualStruct>& SharedPtr) \
 	{ \
-		const TSharedRef<VOXEL_THIS_TYPE> SharedRef = StaticCastSharedRef<VOXEL_THIS_TYPE>(Super::MakeSharedCopy()); \
-		VOXEL_ENABLE_SHARED_FROM_THIS(SharedRef); \
-		return SharedRef; \
+		FVoxelVirtualStruct::Internal_UpdateWeakReferenceInternal(SharedPtr, this); \
 	}
 
-#define DECLARE_VIRTUAL_STRUCT_PARENT(Parent, Macro) \
+#define DECLARE_VIRTUAL_STRUCT_PARENT_NO_COPY(Parent, Macro) \
 	virtual FString Internal_GetMacroName() const override \
 	{ \
 		return #Macro; \
@@ -180,27 +195,15 @@ private:
 	virtual UScriptStruct* Internal_GetStruct ## Parent() const \
 	{ \
 		return StaticStruct(); \
-	} \
-	FORCEINLINE auto MakeSharedCopy() const -> decltype(auto) \
-	{ \
-		const TSharedRef<VOXEL_THIS_TYPE> SharedRef = StaticCastSharedRef<VOXEL_THIS_TYPE>(Super::MakeSharedCopy()); \
-		VOXEL_ENABLE_SHARED_FROM_THIS(SharedRef); \
-		return SharedRef; \
-	} \
-	template<typename T> \
-	requires (!std::is_reference_v<T>) \
-	FORCEINLINE static auto MakeSharedCopy(T&& Data) -> decltype(auto) \
-	{ \
-		return ::MakeSharedCopy(MoveTemp(Data)); \
-	} \
-	template<typename T> \
-	FORCEINLINE static auto MakeSharedCopy(const T& Data) -> decltype(auto) \
-	{ \
-		return ::MakeSharedCopy(Data); \
 	}
 
-#define GENERATED_VIRTUAL_STRUCT_BODY() GENERATED_VIRTUAL_STRUCT_BODY_IMPL(PREPROCESSOR_NOTHING)
-#define GENERATED_VIRTUAL_STRUCT_BODY_NO_COPY() GENERATED_VIRTUAL_STRUCT_BODY_NO_COPY_IMPL(PREPROCESSOR_NOTHING)
+#define GENERATED_VIRTUAL_STRUCT_BODY(Parent) \
+	GENERATED_VIRTUAL_STRUCT_BODY_NO_COPY(Parent) \
+	IMPL_GENERATED_VIRTUAL_STRUCT_BODY_MAKE_SHARED_COPY()
+
+#define DECLARE_VIRTUAL_STRUCT_PARENT(Parent, Macro) \
+	DECLARE_VIRTUAL_STRUCT_PARENT_NO_COPY(Parent, Macro) \
+	IMPL_GENERATED_VIRTUAL_STRUCT_BODY_MAKE_SHARED_COPY()
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

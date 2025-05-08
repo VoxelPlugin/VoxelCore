@@ -3,13 +3,13 @@
 #include "VoxelDependency.h"
 #include "VoxelDependencyManager.h"
 #include "VoxelInvalidationCallstack.h"
+#include "VoxelAABBTree.h"
 #include "VoxelAABBTree2D.h"
-#include "VoxelFastAABBTree.h"
 
 VOXEL_CONSOLE_VARIABLE(
 	VOXELCORE_API, bool, GVoxelLogInvalidations, false,
 	"voxel.LogInvalidations",
-	"");
+	"Log whenever an invalidation happen. Useful to track what's causing the voxel terrain to refresh.");
 
 DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelDependencyBase);
 
@@ -332,10 +332,10 @@ void FVoxelDependency3D::Invalidate(const TConstVoxelArrayView<FVoxelBox> Bounds
 		return;
 	}
 
-	Invalidate(FVoxelFastAABBTree::Create(BoundsArray));
+	Invalidate(FVoxelAABBTree::Create(BoundsArray));
 }
 
-void FVoxelDependency3D::Invalidate(const TSharedRef<const FVoxelFastAABBTree>& Tree)
+void FVoxelDependency3D::Invalidate(const TSharedRef<const FVoxelAABBTree>& Tree)
 {
 	VOXEL_FUNCTION_COUNTER();
 	VOXEL_SCOPE_COUNTER_FORMAT("Invalidate %s Tree.Num = %d", *Name, Tree->Num());

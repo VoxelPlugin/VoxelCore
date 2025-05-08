@@ -3,6 +3,7 @@
 #include "VoxelMinimal.h"
 #include "EdGraph/EdGraph.h"
 #include "UObject/MetaData.h"
+#include "UObject/CoreRedirects.h"
 #include "UObject/UObjectThreadContext.h"
 #include "Misc/UObjectToken.h"
 #include "Serialization/BulkDataReader.h"
@@ -32,6 +33,20 @@ TVoxelArray<TVoxelUniqueFunction<bool(const UObject&)>> GVoxelTryFocusObjectFunc
 #endif
 TVoxelArray<TVoxelUniqueFunction<FString(const UObject&)>> GVoxelTryGetObjectNameFunctions;
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+using FVoxelSerializeVoxelVersion = void(*)(FArchive&);
+VOXELCORE_API FVoxelSerializeVoxelVersion SerializeVoxelVersionPtr;
+
+void SerializeVoxelVersion(FArchive& Ar)
+{
+	if (SerializeVoxelVersionPtr)
+	{
+		SerializeVoxelVersionPtr(Ar);
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -555,6 +570,44 @@ bool FVoxelUtilities::ShouldSerializeBulkData(FArchive& Ar)
 		!Ar.IsObjectReferenceCollector() &&
 		!Ar.ShouldSkipBulkData() &&
 		ensure(!Ar.IsTransacting());
+}
+
+void FVoxelUtilities::SerializeStruct(
+	FArchive& Ar,
+	UScriptStruct*& Struct)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	FString StructPath;
+	if (Ar.IsSaving() &&
+		Struct)
+	{
+		StructPath = Struct->GetPathName();
+	}
+
+	Ar << Struct;
+	Ar << StructPath;
+
+	if (!Struct &&
+		!StructPath.IsEmpty())
+	{
+		VOXEL_SCOPE_COUNTER("FindFirstObject");
+
+		// Serializing structs directly doesn't seem to handle redirects properly
+		const FCoreRedirectObjectName RedirectedName = FCoreRedirects::GetRedirectedName(
+			ECoreRedirectFlags::Type_Struct,
+			FCoreRedirectObjectName(StructPath),
+			ECoreRedirectMatchFlags::AllowPartialMatch);
+
+		Struct = FindFirstObject<UScriptStruct>(*RedirectedName.ToString(), EFindFirstObjectOptions::EnsureIfAmbiguous);
+
+		if (!ensureVoxelSlow(Struct))
+		{
+			return;
+		}
+	}
+
+	Ar.Preload(Struct);
 }
 
 void FVoxelUtilities::SerializeBulkData(

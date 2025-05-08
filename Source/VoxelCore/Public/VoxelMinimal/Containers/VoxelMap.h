@@ -520,14 +520,20 @@ public:
 	)
 	FORCEINLINE ValueType& FindOrAdd(InKeyType&& Key)
 	{
+		return this->FindOrAdd(Key, FVoxelUtilities::MakeSafe<ValueType>());
+	}
+	template<typename InValueType>
+	requires std::is_constructible_v<ValueType, InValueType&&>
+	FORCEINLINE ValueType& FindOrAdd(const KeyType& Key, InValueType&& Value)
+	{
 		const uint32 Hash = this->HashValue(Key);
 
-		if (ValueType* Value = this->FindHashed(Hash, Key))
+		if (ValueType* ExistingValue = this->FindHashed(Hash, Key))
 		{
-			return *Value;
+			return *ExistingValue;
 		}
 
-		return this->AddHashed_CheckNew(Hash, Key, FVoxelUtilities::MakeSafe<ValueType>());
+		return this->AddHashed_CheckNew(Hash, Key, Forward<InValueType>(Value));
 	}
 
 public:

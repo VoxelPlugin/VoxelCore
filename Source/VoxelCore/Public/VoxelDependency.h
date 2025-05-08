@@ -5,8 +5,8 @@
 #include "VoxelMinimal.h"
 #include "VoxelChunkedBitArrayTS.h"
 
+class FVoxelAABBTree;
 class FVoxelAABBTree2D;
-class FVoxelFastAABBTree;
 
 class VOXELCORE_API FVoxelDependencyBase : public TSharedFromThis<FVoxelDependencyBase>
 {
@@ -74,5 +74,5 @@ public:
 
 	void Invalidate(const FVoxelBox& Bounds);
 	void Invalidate(TConstVoxelArrayView<FVoxelBox> BoundsArray);
-	void Invalidate(const TSharedRef<const FVoxelFastAABBTree>& Tree);
+	void Invalidate(const TSharedRef<const FVoxelAABBTree>& Tree);
 };

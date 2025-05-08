@@ -34,6 +34,5 @@ VOXEL_INITIALIZE_STYLE(VoxelSegmentedControlStyle)
 		.SetControlStyle(MultiCheckBoxStyle)
 		.SetFirstControlStyle(MultiCheckBoxStyle)
 		.SetLastControlStyle(MultiCheckBoxStyle)
-		.SetBackgroundBrush(*FAppStyle::GetBrush("NoBorder"))
-		.SetUniformPadding(FMargin(4.f, 8.f)));
+		.SetBackgroundBrush(*FAppStyle::GetBrush("NoBorder")));
 }

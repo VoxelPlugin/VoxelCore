@@ -1,6 +1,7 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "Toolkits/VoxelEditorToolkitImpl.h"
+#include "Engine/Blueprint.h"
 #include "AssetEditorModeManager.h"
 #include "Toolkits/ToolkitManager.h"
 #include "WorkflowOrientedApp/SModeWidget.h"

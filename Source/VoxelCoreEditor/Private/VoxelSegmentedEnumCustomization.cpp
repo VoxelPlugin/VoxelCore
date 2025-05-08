@@ -140,7 +140,12 @@ TSharedRef<SWidget> FVoxelSegmentedEnumCustomization::CustomizeEnum(const TShare
 		];
 	}
 
-	return Widget.ToSharedRef();
+	return
+		SNew(SBox)
+		.Padding(2.f)
+		[
+			Widget.ToSharedRef()
+		];
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -213,6 +218,8 @@ TSharedRef<SVoxelSegmentedControl<uint8>> FVoxelSegmentedEnumCustomization::Cust
 	TSharedRef<SVoxelSegmentedControl<uint8>> Widget =
 		SNew(SVoxelSegmentedControl<uint8>)
 		.SupportsMultiSelection(true)
+		.SlotPadding(FMargin(2.f, 1.f))
+		.BorderPadding(FMargin(1.f))
 		.OnValuesChanged_Lambda([WeakHandle = MakeWeakPtr(PropertyHandle)](const TArray<uint8> AddedValues, const TArray<uint8> RemovedValues)
 		{
 			const TSharedPtr<IPropertyHandle> Handle = WeakHandle.Pin();
@@ -300,6 +307,8 @@ TSharedRef<SVoxelSegmentedControl<uint8>> FVoxelSegmentedEnumCustomization::Cust
 
 	TSharedRef<SVoxelSegmentedControl<uint8>> Widget =
 		SNew(SVoxelSegmentedControl<uint8>)
+		.SlotPadding(FMargin(2.f, 1.f))
+		.BorderPadding(FMargin(1.f))
 		.OnValueChanged_Lambda([WeakHandle = MakeWeakPtr(PropertyHandle)](const uint8 NewValue)
 		{
 			const TSharedPtr<IPropertyHandle> Handle = WeakHandle.Pin();

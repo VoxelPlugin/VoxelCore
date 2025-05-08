@@ -110,7 +110,7 @@ namespace Voxel
 	{
 		return FVoxelFuture::Execute(EVoxelFutureThread::RenderThread, [Lambda = MoveTemp(Lambda)]
 		{
-			Lambda(FRHICommandListImmediate::Get());
+			return Lambda(FRHICommandListImmediate::Get());
 		});
 	}
 

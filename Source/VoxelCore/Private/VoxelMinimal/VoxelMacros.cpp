@@ -4,15 +4,6 @@
 #include "Interfaces/IPluginManager.h"
 #include "Serialization/AsyncPackageLoader.h"
 
-VOXEL_CONSOLE_VARIABLE(
-	VOXELCORE_API, bool, GVoxelProfilerInfiniteLoop, false,
-	"voxel.profiler.InfiniteLoop",
-	".");
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
 FVoxelCounter32 GVoxelNumGCScopes;
 
 struct FVoxelGCScopeGuard::FImpl
@@ -91,30 +82,57 @@ VOXELCORE_API bool GIsVoxelCoreModuleLoaded = false;
 VOXELCORE_API FSimpleMulticastDelegate GOnVoxelModuleUnloaded_DoCleanup;
 VOXELCORE_API FSimpleMulticastDelegate GOnVoxelModuleUnloaded;
 
-TArray<TFunction<void()>>& GetVoxelConsoleSinks()
+struct FVoxelConsoleVariable
 {
-	static TArray<TFunction<void()>> Sinks;
-	return Sinks;
+	TFunction<void()> OnChanged;
+	TFunction<void()> Tick;
+};
+TVoxelArray<FVoxelConsoleVariable>& GetVoxelConsoleVariables()
+{
+	static TVoxelArray<FVoxelConsoleVariable> Variables;
+	return Variables;
 }
 
-FVoxelConsoleSinkHelper::FVoxelConsoleSinkHelper(TFunction<void()> Lambda)
+FVoxelConsoleVariableHelper::FVoxelConsoleVariableHelper(
+	TFunction<void()> OnChanged,
+	TFunction<void()> Tick)
 {
-	GetVoxelConsoleSinks().Add(MoveTemp(Lambda));
+	GetVoxelConsoleVariables().Add(FVoxelConsoleVariable
+	{
+		MoveTemp(OnChanged),
+		MoveTemp(Tick)
+	});
 }
 
-VOXEL_RUN_ON_STARTUP_GAME()
+class FVoxelConsoleVariablesSingleton : public FVoxelSingleton
 {
-	IConsoleManager::Get().RegisterConsoleVariableSink_Handle(MakeLambdaDelegate([]
+public:
+	//~ Begin FVoxelSingleton Interface
+	virtual void Initialize() override
+	{
+		IConsoleManager::Get().RegisterConsoleVariableSink_Handle(MakeLambdaDelegate([]
+		{
+			VOXEL_SCOPE_COUNTER("ConsoleVariableSink VoxelConsoleVariables");
+			ensure(IsInGameThread());
+
+			for (const FVoxelConsoleVariable& Variable : GetVoxelConsoleVariables())
+			{
+				Variable.OnChanged();
+			}
+		}));
+	}
+	virtual void Tick() override
 	{
 		VOXEL_FUNCTION_COUNTER();
-		ensure(IsInGameThread());
 
-		for (const TFunction<void()>& Sink : GetVoxelConsoleSinks())
+		for (const FVoxelConsoleVariable& Variable : GetVoxelConsoleVariables())
 		{
-			Sink();
+			Variable.Tick();
 		}
-	}));
-}
+	}
+	//~ End FVoxelSingleton Interface
+};
+FVoxelConsoleVariablesSingleton* GVoxelConsoleVariablesSingleton = new FVoxelConsoleVariablesSingleton();
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

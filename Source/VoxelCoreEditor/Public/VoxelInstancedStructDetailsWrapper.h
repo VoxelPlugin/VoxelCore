@@ -5,6 +5,7 @@
 #include "VoxelCoreEditorMinimal.h"
 
 class FVoxelDetailInterface;
+class FVoxelInstancedStructDataProvider;
 
 class VOXELCOREEDITOR_API FVoxelInstancedStructDetailsWrapper : public TSharedFromThis<FVoxelInstancedStructDetailsWrapper>
 {
@@ -21,21 +22,18 @@ public:
 
 private:
 	const TSharedRef<IPropertyHandle> InstancedStructHandle;
-	const TSharedRef<FStructOnScope> StructOnScope;
+	const TSharedRef<FVoxelInstancedStructDataProvider> DataProvider;
 
-	double LastSyncTime = 0.0;
 	mutable uint64 LastPostChangeFrame = -1;
 
 	FVoxelInstancedStructDetailsWrapper(
 		const TSharedRef<IPropertyHandle>& InstancedStructHandle,
-		const TSharedRef<FStructOnScope>& StructOnScope)
+		const TSharedRef<FVoxelInstancedStructDataProvider>& DataProvider)
 		: InstancedStructHandle(InstancedStructHandle)
-		, StructOnScope(StructOnScope)
+		, DataProvider(DataProvider)
 	{
 	}
 
-	void SyncFromSource() const;
-	void SyncToSource() const;
 	void SetupChildHandle(const TSharedPtr<IPropertyHandle>& Handle) const;
 
 	friend class FVoxelStructCustomizationWrapperTicker;

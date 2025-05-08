@@ -3,6 +3,8 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "Math/TransformCalculus2D.h"
+#include "VoxelMinimal/VoxelInterval.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 #include "VoxelMinimal/Utilities/VoxelHashUtilities.h"
@@ -80,6 +82,8 @@ struct VOXELCORE_API FVoxelBox
 		ensureVoxelSlow(Box.IsValid);
 	}
 
+	static FVoxelBox FromBounds(TConstVoxelArrayView<FVoxelBox> Bounds);
+
 	static FVoxelBox FromPositions(TConstVoxelArrayView<FIntVector> Positions);
 	static FVoxelBox FromPositions(TConstVoxelArrayView<FVector3f> Positions);
 	static FVoxelBox FromPositions(TConstVoxelArrayView<FVector3d> Positions);
@@ -123,15 +127,28 @@ struct VOXELCORE_API FVoxelBox
 		return FBox3f(FVector3f(Min), FVector3f(Max));
 	}
 
+	FORCEINLINE FVoxelInterval GetX() const
+	{
+		return { Min.X, Max.X };
+	}
+	FORCEINLINE FVoxelInterval GetY() const
+	{
+		return { Min.Y, Max.Y };
+	}
+	FORCEINLINE FVoxelInterval GetZ() const
+	{
+		return { Min.Z, Max.Z };
+	}
+
 	FORCEINLINE bool IsValid() const
 	{
 		return
-			ensureVoxelSlow(FMath::IsFinite(Min.X)) &&
-			ensureVoxelSlow(FMath::IsFinite(Min.Y)) &&
-			ensureVoxelSlow(FMath::IsFinite(Min.Z)) &&
-			ensureVoxelSlow(FMath::IsFinite(Max.X)) &&
-			ensureVoxelSlow(FMath::IsFinite(Max.Y)) &&
-			ensureVoxelSlow(FMath::IsFinite(Max.Z)) &&
+			ensureVoxelSlow(FVoxelUtilities::IsFinite(Min.X)) &&
+			ensureVoxelSlow(FVoxelUtilities::IsFinite(Min.Y)) &&
+			ensureVoxelSlow(FVoxelUtilities::IsFinite(Min.Z)) &&
+			ensureVoxelSlow(FVoxelUtilities::IsFinite(Max.X)) &&
+			ensureVoxelSlow(FVoxelUtilities::IsFinite(Max.Y)) &&
+			ensureVoxelSlow(FVoxelUtilities::IsFinite(Max.Z)) &&
 			Min.X <= Max.X &&
 			Min.Y <= Max.Y &&
 			Min.Z <= Max.Z;
@@ -152,7 +169,7 @@ struct VOXELCORE_API FVoxelBox
 	}
 	FORCEINLINE bool IsInfinite() const
 	{
-		return Contains(FVoxelBox(FVector3d(-1e40), FVector3d(1e40)));
+		return Contains(FVoxelBox(FVector3d(-1e20), FVector3d(1e20)));
 	}
 
 	FORCEINLINE bool Contains(const FIntVector& Vector) const
@@ -238,8 +255,11 @@ struct VOXELCORE_API FVoxelBox
 			FVoxelUtilities::ComponentMax(Max, Other.Max));
 	}
 
-	// union(return value, Other) = this
-	TVoxelFixedArray<FVoxelBox, 6> Difference(const FVoxelBox& Other) const;
+	FVoxelBox Remove_Union(const FVoxelBox& Other) const;
+
+	void Remove_Split(
+		const FVoxelBox& Other,
+		TVoxelArray<FVoxelBox>& OutRemainder) const;
 
 	FORCEINLINE double SquaredDistanceToPoint(const FVector3d& Point) const
 	{
@@ -367,6 +387,7 @@ struct VOXELCORE_API FVoxelBox
 
 	FVoxelBox TransformBy(const FMatrix& Transform) const;
 	FVoxelBox TransformBy(const FTransform& Transform) const;
+	FVoxelBox TransformBy(const FTransform2d& Transform) const;
 	FVoxelBox InverseTransformBy(const FTransform& Transform) const;
 
 	FORCEINLINE FVoxelBox& operator*=(const double S)

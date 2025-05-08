@@ -13,12 +13,15 @@
 #define generic
 #define export
 #define foreach(...)
+#define foreach_tiled(...)
+#define foreach_unique(...)
+#define foreach_active(...)
 #define assume(...) (void)!!(__VA_ARGS__)
-#define assert(...) (void)!!(__VA_ARGS__)
 #define VOXEL_DEBUG 1
 #define TARGET_WIDTH 8
 
 #define FOREACH(Var, Start, End) for (int32 Var = Start; Var < End; Var++)
+#define FOREACH_UNIQUE(Var, Array) for (decltype(Array) Var = Array; Var < Array + 1; Var++)
 #define UNROLL
 #define UNROLL_N(N)
 #define IGNORE_PERF_WARNING
@@ -27,6 +30,7 @@
 
 int MakeRegister(int, ...);
 float MakeRegister(float, ...);
+float MakeRegister4_ZeroPadded(float, float, float, float);
 
 template<int>
 struct floatv
@@ -115,9 +119,9 @@ float16 shuffle(float16 value0, float16 value1, int permutation);
 float shuffle(float value0, float value1, int permutation);
 double shuffle(double value0, double value1, int permutation);
 
-bool any(bool v);
-bool all(bool v);
-bool none(bool v);
+bool any(bool);
+bool all(bool);
+bool none(bool);
 
 int16 reduce_add(int8 x);
 uint16 reduce_add(uint8 x);
@@ -184,18 +188,18 @@ uint32 exclusive_scan_or(uint32 v);
 int64 exclusive_scan_or(int64 v);
 uint64 exclusive_scan_or(uint64 v);
 
-uniform bool extract(bool x, uniform int i);
-uniform int8 extract(int8 x, uniform int i);
-uniform int16 extract(int16 x, uniform int i);
-uniform int32 extract(int32 x, uniform int i);
-uniform int64 extract(int64 x, uniform int i);
-uniform uint8 extract(uint8 x, uniform int i);
-uniform uint16 extract(uint16 x, uniform int i);
-uniform uint32 extract(uint32 x, uniform int i);
-uniform uint64 extract(uint64 x, uniform int i);
-uniform float16 extract(float16 x, uniform int i);
-uniform float extract(float x, uniform int i);
-uniform double extract(double x, uniform int i);
+uniform bool extract(bool, uniform int i);
+uniform int8 extract(int8, uniform int i);
+uniform int16 extract(int16, uniform int i);
+uniform int32 extract(int32, uniform int i);
+uniform int64 extract(int64, uniform int i);
+uniform uint8 extract(uint8, uniform int i);
+uniform uint16 extract(uint16, uniform int i);
+uniform uint32 extract(uint32, uniform int i);
+uniform uint64 extract(uint64, uniform int i);
+uniform float16 extract(float16, uniform int i);
+uniform float extract(float, uniform int i);
+uniform double extract(double, uniform int i);
 
 [[nodiscard]] bool insert(bool x, uniform int i, uniform bool v);
 [[nodiscard]] int8 insert(int8 x, uniform int i, uniform int8 v);
@@ -290,6 +294,7 @@ int32 programIndex;
 #else
 #define INTELLISENSE_ONLY(...)
 #define FOREACH(Var, Start, End) foreach (Var = Start ... End)
+#define FOREACH_UNIQUE(Var, Array) foreach_unique (Var in Array)
 #define UNROLL #pragma unroll
 #define UNROLL_N(N) UNROLL N
 #define IGNORE_PERF_WARNING #pragma ignore warning(perf)
@@ -298,12 +303,26 @@ int32 programIndex;
 
 #if TARGET_WIDTH == 8
 #define MakeRegister(A, B, C, D, E, F, G, H) { A, B, C, D, E, F, G, H }
+#define MakeRegister4_ZeroPadded(A, B, C, D) { A, B, C, D, 0.f, 0.f, 0.f, 0.f }
 #elif TARGET_WIDTH == 4
 #define MakeRegister(A, B, C, D) { A, B, C, D }
+#define MakeRegister4_ZeroPadded(A, B, C, D) { A, B, C, D }
 #endif
 
 #define floatv float
 #endif
+
+// See https://ingowald.blog/2018/06/25/ispc-bag-of-tricks-part-2-on-the-calling-back-and-forth-between-ispc-and-c-c/
+// and https://ispc.github.io/ispc.html#re-establishing-the-execution-mask
+#if INTELLISENSE_PARSER
+#define unmasked_unsafe
+int64 lanemask_unsafe();
+#else
+#define unmasked_unsafe unmasked
+#define lanemask_unsafe lanemask
+#endif
+
+ extern "C" void VoxelISPC_Assert(uniform int Line);
 
 #ifndef VOXEL_DEBUG
 // VOXEL_DEBUG seems to not be defined when packaging plugin
@@ -313,25 +332,27 @@ int32 programIndex;
 
 #define FORCEINLINE inline
 
-extern "C" void VoxelISPC_Assert(uniform int Line);
-
 #if VOXEL_DEBUG
-#define check(...) \
-	if (!(__VA_ARGS__)) \
-	{ \
-		VoxelISPC_Assert(__LINE__); \
-	}
+// assert crashes if optimizations are enabled, without breaking the debugger
+ #define check(...) \
+ 	if (!(__VA_ARGS__)) \
+ 	{ \
+ 		VoxelISPC_Assert(__LINE__); \
+ 	}
 
-#define ensure(...) check(__VA_ARGS__)
 #define VOXEL_ASSUME(...) check(__VA_ARGS__)
 #else
 #define check(...)
-#define ensure(...) (__VA_ARGS__)
 #define VOXEL_ASSUME(...) assume((__VA_ARGS__))
 #endif
 
-#define PREPROCESSOR_JOIN_INNER(X, Y) X ## Y
-#define PREPROCESSOR_JOIN(X, Y) PREPROCESSOR_JOIN_INNER(X, Y)
+#define PREPROCESSOR_JOIN_INNER(A, B) A ## B
+#define PREPROCESSOR_JOIN(A, B) PREPROCESSOR_JOIN_INNER(A, B)
+#define PREPROCESSOR_JOIN_3(A, B, C) PREPROCESSOR_JOIN(PREPROCESSOR_JOIN(A, B), C)
+#define PREPROCESSOR_JOIN_4(A, B, C, D) PREPROCESSOR_JOIN(PREPROCESSOR_JOIN_3(A, B, C), D)
+#define PREPROCESSOR_JOIN_5(A, B, C, D, E) PREPROCESSOR_JOIN(PREPROCESSOR_JOIN_4(A, B, C, D), E)
+#define PREPROCESSOR_JOIN_6(A, B, C, D, E, F) PREPROCESSOR_JOIN(PREPROCESSOR_JOIN_5(A, B, C, D, E), F)
+#define PREPROCESSOR_JOIN_7(A, B, C, D, E, F, G) PREPROCESSOR_JOIN(PREPROCESSOR_JOIN_6(A, B, C, D, E, F), G)
 
 #undef PI
 #define PI 3.1415926535897932f

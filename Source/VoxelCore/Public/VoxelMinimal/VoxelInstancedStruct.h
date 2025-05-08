@@ -361,10 +361,17 @@ public:
 public:
 	using FVoxelInstancedStruct::GetScriptStruct;
 	using FVoxelInstancedStruct::IsValid;
-	using FVoxelInstancedStruct::AddStructReferencedObjects;
 	using FVoxelInstancedStruct::Reset;
 	using FVoxelInstancedStruct::MakeStructOnScope;
+	using FVoxelInstancedStruct::NetSerialize;
+	using FVoxelInstancedStruct::Serialize;
+	using FVoxelInstancedStruct::Identical;
+	using FVoxelInstancedStruct::ExportTextItem;
+	using FVoxelInstancedStruct::ImportTextItem;
+	using FVoxelInstancedStruct::AddStructReferencedObjects;
+	using FVoxelInstancedStruct::GetPreloadDependencies;
 
+public:
 	template<typename OtherType = T>
 	requires std::derived_from<OtherType, T>
 	FORCEINLINE TSharedRef<OtherType> ToSharedRef()

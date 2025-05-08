@@ -7,77 +7,6 @@
 #include "VoxelMinimal/Utilities/VoxelMathUtilities.h"
 #include "VoxelMinimal/Containers/VoxelBitArrayUtilities.h"
 
-class FVoxelBitReference
-{
-public:
-	FORCEINLINE FVoxelBitReference(uint32& Data, const uint32 Mask)
-		: Data(Data)
-		, Mask(Mask)
-	{
-	}
-
-	FORCEINLINE operator bool() const
-	{
-		return (Data & Mask) != 0;
-	}
-	FORCEINLINE void operator=(const bool NewValue)
-	{
-		if (NewValue)
-		{
-			Data |= Mask;
-		}
-		else
-		{
-			Data &= ~Mask;
-		}
-	}
-	FORCEINLINE void operator|=(const bool NewValue)
-	{
-		if (NewValue)
-		{
-			Data |= Mask;
-		}
-	}
-	FORCEINLINE void operator&=(const bool NewValue)
-	{
-		if (!NewValue)
-		{
-			Data &= ~Mask;
-		}
-	}
-	FORCEINLINE FVoxelBitReference& operator=(const FVoxelBitReference& Copy)
-	{
-		// As this is emulating a reference, assignment should not rebind,
-		// it should write to the referenced bit.
-		*this = bool(Copy);
-		return *this;
-	}
-
-private:
-	uint32& Data;
-	uint32 Mask;
-};
-
-class FVoxelConstBitReference
-{
-public:
-	FORCEINLINE FVoxelConstBitReference(const uint32& Data, const uint32 Mask)
-		: Data(Data)
-		, Mask(Mask)
-	{
-
-	}
-
-	FORCEINLINE operator bool() const
-	{
-		return (Data & Mask) != 0;
-	}
-
-private:
-	const uint32& Data;
-	uint32 Mask;
-};
-
 // Tricky: we need to ensure the last word is always zero-padded
 template<typename Allocator>
 class TVoxelBitArray
@@ -347,7 +276,7 @@ public:
 	}
 	FORCEINLINE void AtomicSet(const int32 Index, const bool bValue)
 	{
-		AtomicSet_ReturnOld(Index, bValue);
+		(void)AtomicSet_ReturnOld(Index, bValue);
 	}
 
 public:

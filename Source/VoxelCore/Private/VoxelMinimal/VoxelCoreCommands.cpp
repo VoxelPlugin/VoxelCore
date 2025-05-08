@@ -4,7 +4,7 @@
 
 VOXEL_CONSOLE_COMMAND(
 	"voxel.RefreshAll",
-	"")
+	"Refresh everything")
 {
 	Voxel::RefreshAll();
 }

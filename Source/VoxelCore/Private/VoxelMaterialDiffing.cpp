@@ -5,12 +5,12 @@
 #include "Materials/MaterialFunction.h"
 #include "Materials/MaterialExpressionMaterialFunctionCall.h"
 
-#define RECURSE_GUARD() \
-	FGuard Guard(*this); \
-	if (Depth > 256) \
+#define RECURSE_GUARD(Name) \
+	FGuard Guard(*this, Name); \
+	if (Callstack.Num() > 256) \
 	{ \
-		ensure(false); \
-		VOXEL_MESSAGE(Error, "Infinite recursion when diffing materials"); \
+		ensureVoxelSlow(false); \
+		VOXEL_MESSAGE(Error, "Infinite recursion when diffing materials. Callstack: {0}", Callstack); \
 		return false; \
 	}
 
@@ -22,17 +22,25 @@ bool FVoxelMaterialDiffing::Equal(
 	const UMaterial& NewMaterial)
 {
 	VOXEL_FUNCTION_COUNTER();
-	RECURSE_GUARD();
+	RECURSE_GUARD("FVoxelMaterialDiffing::Equal");
 
-	if (OldMaterial.DisplacementScaling != NewMaterial.DisplacementScaling)
+	for (const FProperty& Property : GetClassProperties<UMaterial>())
 	{
-		SET_DIFF("DisplacementScaling %f %f -> %f %f",
-			OldMaterial.DisplacementScaling.Center,
-			OldMaterial.DisplacementScaling.Magnitude,
-			NewMaterial.DisplacementScaling.Center,
-			NewMaterial.DisplacementScaling.Magnitude);
+		if (&Property == &FindFPropertyChecked(UMaterial, StateId) ||
+			&Property == &FindFPropertyChecked(UMaterial, ParameterOverviewExpansion) ||
+			Property.GetFName() == STATIC_FNAME("LightingGuid") ||
+			Property.GetFName() == STATIC_FNAME("ReferencedTextureGuids"))
+		{
+			continue;
+		}
 
-		return false;
+		if (!Equal(
+			Property,
+			Property.ContainerPtrToValuePtr<void>(&OldMaterial),
+			Property.ContainerPtrToValuePtr<void>(&NewMaterial)))
+		{
+			return false;
+		}
 	}
 
 	const TVoxelArray<UMaterialExpression*> OldExpressions = FVoxelUtilities::GetMaterialExpressions(OldMaterial);
@@ -74,11 +82,17 @@ bool FVoxelMaterialDiffing::Equal(
 	const void* OldValue,
 	const void* NewValue)
 {
-	RECURSE_GUARD();
+	RECURSE_GUARD(Property.GetFName());
 
 	if (Property.HasAnyPropertyFlags(CPF_Transient))
 	{
 		// Skip PropertyConnectedMask
+		return true;
+	}
+
+	if (Property.HasAnyPropertyFlags(CPF_InstancedReference))
+	{
+		// EditorOnlyData
 		return true;
 	}
 
@@ -99,6 +113,86 @@ bool FVoxelMaterialDiffing::Equal(
 				*ArrayProperty->Inner,
 				OldArray.GetRawPtr(Index),
 				NewArray.GetRawPtr(Index)))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	if (const FSetProperty* SetProperty = CastField<FSetProperty>(Property))
+	{
+		FScriptSetHelper OldSet(SetProperty, OldValue);
+		FScriptSetHelper NewSet(SetProperty, NewValue);
+
+		if (OldSet.Num() != NewSet.Num())
+		{
+			SET_DIFF("%s changed", *Property.GetPathName());
+			return false;
+		}
+
+		for (int32 Index = 0; Index < OldSet.GetMaxIndex(); Index++)
+		{
+			if (OldSet.IsValidIndex(Index) != NewSet.IsValidIndex(Index))
+			{
+				SET_DIFF("%s changed", *Property.GetPathName());
+				return false;
+			}
+
+			if (!OldSet.IsValidIndex(Index))
+			{
+				continue;
+			}
+
+			if (!Equal(
+				*SetProperty->ElementProp,
+				OldSet.GetElementPtr(Index),
+				NewSet.GetElementPtr(Index)))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	if (const FMapProperty* MapProperty = CastField<FMapProperty>(Property))
+	{
+		FScriptMapHelper OldMap(MapProperty, OldValue);
+		FScriptMapHelper NewMap(MapProperty, NewValue);
+
+		if (OldMap.Num() != NewMap.Num())
+		{
+			SET_DIFF("%s changed", *Property.GetPathName());
+			return false;
+		}
+
+		for (int32 Index = 0; Index < OldMap.GetMaxIndex(); Index++)
+		{
+			if (OldMap.IsValidIndex(Index) != NewMap.IsValidIndex(Index))
+			{
+				SET_DIFF("%s changed", *Property.GetPathName());
+				return false;
+			}
+
+			if (!OldMap.IsValidIndex(Index))
+			{
+				continue;
+			}
+
+			if (!Equal(
+				*MapProperty->KeyProp,
+				OldMap.GetKeyPtr(Index),
+				NewMap.GetKeyPtr(Index)))
+			{
+				return false;
+			}
+
+			if (!Equal(
+				*MapProperty->ValueProp,
+				OldMap.GetValuePtr(Index),
+				NewMap.GetValuePtr(Index)))
 			{
 				return false;
 			}
@@ -171,7 +265,7 @@ bool FVoxelMaterialDiffing::Equal(
 	const UMaterialExpression* OldExpression,
 	const UMaterialExpression* NewExpression)
 {
-	RECURSE_GUARD();
+	RECURSE_GUARD("");
 
 	if (!OldExpression &&
 		!NewExpression)
@@ -202,7 +296,7 @@ bool FVoxelMaterialDiffing::Equal(
 	const UMaterialExpression& OldExpression,
 	const UMaterialExpression& NewExpression)
 {
-	RECURSE_GUARD();
+	RECURSE_GUARD(OldExpression.GetFName());
 
 	if (&OldExpression == &NewExpression)
 	{
@@ -263,7 +357,7 @@ bool FVoxelMaterialDiffing::Equal(
 	const UMaterialFunction* OldFunction,
 	const UMaterialFunction* NewFunction)
 {
-	RECURSE_GUARD();
+	RECURSE_GUARD("");
 
 	if (!OldFunction &&
 		!NewFunction)
@@ -294,7 +388,7 @@ bool FVoxelMaterialDiffing::Equal(
 	const UMaterialFunction& OldFunction,
 	const UMaterialFunction& NewFunction)
 {
-	RECURSE_GUARD();
+	RECURSE_GUARD(OldFunction.GetFName());
 
 	if (&OldFunction == &NewFunction)
 	{

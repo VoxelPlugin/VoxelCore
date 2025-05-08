@@ -5,11 +5,12 @@
 #if !UE_BUILD_SHIPPING
 VOXEL_RUN_ON_STARTUP_GAME()
 {
-	if (!VOXEL_DEBUG &&
-		!FVoxelUtilities::IsDevWorkflow())
+#if !VOXEL_DEBUG
+	if (!FVoxelUtilities::IsDevWorkflow())
 	{
 		return;
 	}
+#endif
 
 	for (const double Value : TVoxelArray<double>
 		{

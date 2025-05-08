@@ -30,7 +30,17 @@ public:
 		Other.ArrayNum = 0;
 		Other.NumChunks = 0;
 	}
-	TVoxelChunkedArray(const TVoxelChunkedArray&) = delete;
+	TVoxelChunkedArray(const TVoxelChunkedArray& Other)
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 1024);
+
+		SetNum(Other.Num());
+
+		for (int32 Index = 0; Index < Num(); Index++)
+		{
+			(*this)[Index] = Other[Index];
+		}
+	}
 
 	FORCEINLINE ~TVoxelChunkedArray()
 	{

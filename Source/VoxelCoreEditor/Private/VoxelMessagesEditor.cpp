@@ -6,6 +6,7 @@
 #include "MessageLogModule.h"
 #include "IMessageLogListing.h"
 #include "Logging/MessageLog.h"
+#include "Framework/Notifications/NotificationManager.h"
 
 class FVoxelMessagesEditor : public FVoxelEditorSingleton
 {

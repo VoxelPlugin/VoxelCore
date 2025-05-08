@@ -41,7 +41,6 @@ public:
 	using FLambdaWrapper = TVoxelUniqueFunction<TVoxelUniqueFunction<void()>(TVoxelUniqueFunction<void()>)>;
 
 	const FName Name;
-	const bool bCanCancelTasks;
 	bool bSynchronous = false;
 	bool bTrackPromisesCallstacks = false;
 	FLambdaWrapper LambdaWrapper;
@@ -58,7 +57,7 @@ public:
 		TVoxelUniqueFunction<void()> Lambda);
 
 	void CancelTasks();
-	void DumpToLog();
+	void DumpToLog() const;
 	void FlushAllTasks() const;
 	void FlushTasksUntil(TFunctionRef<bool()> Condition) const;
 
@@ -137,9 +136,7 @@ private:
 
 	bool bIsProcessingGameTasks = false;
 
-	FVoxelTaskContext(
-		FName Name,
-		bool bCanCancelTasks);
+	explicit FVoxelTaskContext(FName Name);
 
 	void LaunchTasks();
 	void LaunchTask(TVoxelUniqueFunction<void()> Task);
@@ -151,7 +148,7 @@ private:
 private:
 	FVoxelCriticalSection CriticalSection;
 	TVoxelSparseArray<FVoxelStackFrames> StackFrames_RequiresLock;
-	TVoxelChunkedSparseArray<TSharedPtr<FVoxelPromiseState>> PromisesToKeepAlive_RequiresLock;
+	TVoxelChunkedSparseArray<TRefCountPtr<IVoxelPromiseState>> PromisesToKeepAlive_RequiresLock;
 
 	friend FVoxelPromiseState;
 	friend FVoxelTaskContextWeakRef;

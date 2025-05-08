@@ -125,7 +125,67 @@ export uniform bool ArrayUtilities_AllEqual_uint64(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-export uniform float ArrayUtilities_GetMin(
+export uniform uint16 ArrayUtilities_GetMin_uint16(
+	const uniform uint16 Values[],
+	const uniform int32 Num)
+{
+	const uniform int32 AlignedNum = programCount * (Num / programCount);
+
+	uniform int32 Result;
+	if (AlignedNum != 0)
+	{
+		varying int32 Value = Values[0];
+		for (uniform int32 Index = 0; Index < AlignedNum; Index += programCount)
+		{
+			Value = min(Value, (int32)Values[Index + programIndex]);
+		}
+		Result = reduce_min((int32)Value);
+	}
+	else
+	{
+		Result = Values[0];
+	}
+
+	for (uniform int32 Index = AlignedNum; Index < Num; Index++)
+	{
+		Result = min(Result, (uniform int32)Values[Index]);
+	}
+	return Result;
+}
+
+export uniform uint16 ArrayUtilities_GetMax_uint16(
+	const uniform uint16 Values[],
+	const uniform int32 Num)
+{
+	const uniform int32 AlignedNum = programCount * (Num / programCount);
+
+	uniform int32 Result;
+	if (AlignedNum != 0)
+	{
+		varying int32 Value = Values[0];
+		for (uniform int32 Index = 0; Index < AlignedNum; Index += programCount)
+		{
+			Value = max(Value, (int32)Values[Index + programIndex]);
+		}
+		Result = reduce_max((int32)Value);
+	}
+	else
+	{
+		Result = Values[0];
+	}
+
+	for (uniform int32 Index = AlignedNum; Index < Num; Index++)
+	{
+		Result = max(Result, (uniform int32)Values[Index]);
+	}
+	return Result;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+export uniform float ArrayUtilities_GetMin_float(
 	const uniform float Values[],
 	const uniform int32 Num)
 {
@@ -153,7 +213,7 @@ export uniform float ArrayUtilities_GetMin(
 	return Result;
 }
 
-export uniform float ArrayUtilities_GetMax(
+export uniform float ArrayUtilities_GetMax_float(
 	const uniform float Values[],
 	const uniform int32 Num)
 {

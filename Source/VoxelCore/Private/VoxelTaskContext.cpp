@@ -11,12 +11,13 @@ VOXEL_CONSOLE_VARIABLE(
 VOXEL_CONSOLE_VARIABLE(
 	VOXELCORE_API, bool, GVoxelTrackAllPromisesCallstacks, false,
 	"voxel.TrackAllPromisesCallstacks",
-	"");
+	"Enable voxel promise callstack tracking, to debug when promises where created");
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+thread_local int32 GVoxelIsWaitingOnFuture = 0;
 FVoxelTaskContext* GVoxelGlobalTaskContext = nullptr;
 FVoxelTaskContext* GVoxelSynchronousTaskContext = nullptr;
 
@@ -40,13 +41,8 @@ public:
 	//~ Begin FVoxelSingleton Interface
 	virtual void Initialize() override
 	{
-		GVoxelGlobalTaskContext = new FVoxelTaskContext(
-			"GlobalTaskContext",
-			false);
-
-		GVoxelSynchronousTaskContext = new FVoxelTaskContext(
-			"ExecuteSynchronously",
-			false);
+		GVoxelGlobalTaskContext = new FVoxelTaskContext("GlobalTaskContext");
+		GVoxelSynchronousTaskContext = new FVoxelTaskContext("ExecuteSynchronously");
 
 		GVoxelSynchronousTaskContext->bSynchronous = true;
 
@@ -151,11 +147,8 @@ FVoxelTaskContextStrongRef::~FVoxelTaskContextStrongRef()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FVoxelTaskContext::FVoxelTaskContext(
-	const FName Name,
-	const bool bCanCancelTasks)
+FVoxelTaskContext::FVoxelTaskContext(const FName Name)
 	: Name(Name)
-	, bCanCancelTasks(bCanCancelTasks)
 {
 	VOXEL_SCOPE_WRITE_LOCK(GVoxelTaskContextArray->CriticalSection);
 
@@ -165,9 +158,7 @@ FVoxelTaskContext::FVoxelTaskContext(
 
 TSharedRef<FVoxelTaskContext> FVoxelTaskContext::Create(const FName Name)
 {
-	FVoxelTaskContext* Context = new FVoxelTaskContext(
-		Name,
-		true);
+	FVoxelTaskContext* Context = new FVoxelTaskContext(Name);
 
 	if (GVoxelTrackAllPromisesCallstacks)
 	{
@@ -211,10 +202,7 @@ FVoxelTaskContext::~FVoxelTaskContext()
 	// Can't delete within ourselves, would loop forever
 	check(this == GVoxelGlobalTaskContext || &FVoxelTaskScope::GetContext() != this);
 
-	if (bCanCancelTasks)
-	{
-		CancelTasks();
-	}
+	CancelTasks();
 
 	while (true)
 	{
@@ -240,7 +228,7 @@ FVoxelTaskContext::~FVoxelTaskContext()
 			}
 		}
 
-		FPlatformProcess::Yield();
+		FVoxelUtilities::Yield();
 	}
 	check(NumStrongRefs.Get() == 0);
 	check(NumPendingTasks.Get() == 0);
@@ -319,7 +307,8 @@ void FVoxelTaskContext::Dispatch(
 	break;
 	case EVoxelFutureThread::AsyncThread:
 	{
-		if (bSynchronous)
+		if (bSynchronous ||
+			GVoxelIsWaitingOnFuture)
 		{
 			FVoxelTaskScope Scope(*this);
 			Lambda();
@@ -351,7 +340,6 @@ void FVoxelTaskContext::Dispatch(
 void FVoxelTaskContext::CancelTasks()
 {
 	VOXEL_FUNCTION_COUNTER();
-	check(bCanCancelTasks);
 
 	ShouldCancelTasks.Set(true);
 
@@ -370,7 +358,7 @@ void FVoxelTaskContext::CancelTasks()
 	}
 }
 
-void FVoxelTaskContext::DumpToLog()
+void FVoxelTaskContext::DumpToLog() const
 {
 	VOXEL_FUNCTION_COUNTER();
 	VOXEL_SCOPE_LOCK(CriticalSection);
@@ -467,17 +455,12 @@ void FVoxelTaskContext::FlushTasksUntil(const TFunctionRef<bool()> Condition) co
 		{
 			LastLogTime = FPlatformTime::Seconds();
 
-			LOG_VOXEL(Log, "FlushTasks: waiting for %d tasks", NumPendingTasks.Get());
+			LOG_VOXEL(Log, "FlushTasks: waiting for %d tasks (%d promises)",
+				NumPendingTasks.Get(),
+				NumPromises.Get());
 		}
 
-		if (IsInGameThread())
-		{
-			FPlatformProcess::Yield();
-		}
-		else
-		{
-			FPlatformProcess::Sleep(0.001f);
-		}
+		FVoxelUtilities::Yield();
 	}
 }
 

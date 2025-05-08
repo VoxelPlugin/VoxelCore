@@ -99,6 +99,8 @@ bool FVoxelInstancedStruct::Serialize(FArchive& Ar)
 {
 	VOXEL_FUNCTION_COUNTER();
 
+	SerializeVoxelVersion(Ar);
+
 	using FVersion = DECLARE_VOXEL_VERSION
 	(
 		InitialVersion,

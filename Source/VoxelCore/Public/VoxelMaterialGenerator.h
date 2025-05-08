@@ -6,6 +6,7 @@
 #include "MaterialExpressionIO.h"
 
 class UMaterialInstance;
+class UMaterialExpressionMakeMaterialAttributes;
 
 #if WITH_EDITOR
 class VOXELCORE_API FVoxelMaterialGenerator
@@ -28,6 +29,16 @@ public:
 public:
 	UMaterialFunction* DuplicateFunctionIfNeeded(const UMaterialFunction& OldFunction);
 	TVoxelOptional<FMaterialAttributesInput> CopyExpressions(const UMaterial& OldMaterial);
+
+public:
+	template<typename T>
+	requires std::derived_from<T, UMaterialExpression>
+	T& NewExpression()
+	{
+		T& Expression =  FVoxelUtilities::CreateMaterialExpression<T>(NewMaterial);
+		OldToNewExpression.Add_EnsureNew(&Expression, &Expression);
+		return Expression;
+	}
 
 public:
 	FVoxelOptionalIntBox2D GetBounds() const;

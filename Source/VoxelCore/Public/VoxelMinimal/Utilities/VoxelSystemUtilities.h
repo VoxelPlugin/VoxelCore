@@ -3,8 +3,10 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "VoxelMinimal/VoxelFuture.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Utilities/VoxelHashUtilities.h"
+#include "VoxelMinimal/Utilities/VoxelLambdaUtilities.h"
 
 class IPlugin;
 struct FVoxelPluginVersion;
@@ -23,8 +25,31 @@ namespace FVoxelUtilities
 	VOXELCORE_API void SetNumWorkerThreads(int32 NumWorkerThreads);
 	VOXELCORE_API int32 GetNumBackgroundWorkerThreads();
 
-	// Delay until next fire; 0 means "next frame"
+	VOXELCORE_API void Yield();
+	VOXELCORE_API void WaitFor(TFunctionRef<bool()> Condition);
 	VOXELCORE_API void DelayedCall(TFunction<void()> Call, float Delay = 0);
+
+	// Delay until next fire; 0 means "next frame"
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
+	requires LambdaHasSignature_V<LambdaType, ReturnType()>
+	FORCEINLINE TVoxelFutureType<ReturnType> DelayedCall_Future(LambdaType Lambda, float Delay = 0)
+	{
+		TVoxelPromiseType<ReturnType> Promise;
+		FVoxelUtilities::DelayedCall([Lambda = MoveTemp(Lambda), Promise]
+		{
+			if constexpr (std::is_void_v<ReturnType>)
+			{
+				Lambda();
+				Promise.Set();
+			}
+			else
+			{
+				Promise.Set(Lambda());
+			}
+		}, Delay);
+		return Promise;
+	}
+
 	VOXELCORE_API FString Unzip(const TArray<uint8>& Data, TMap<FString, TVoxelArray64<uint8>>& OutFiles);
 
 #if WITH_EDITOR

@@ -28,20 +28,7 @@ FString FVoxelVirtualStruct::Internal_GetMacroName() const
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void FVoxelVirtualStruct::CopyTo(FVoxelVirtualStruct& Other) const
-{
-	check(GetStruct() == Other.GetStruct());
-
-	// Check that we have a copy operator or properties to copy
-	checkVoxelSlow(
-		EnumHasAllFlags(GetStruct()->StructFlags, STRUCT_CopyNative) ||
-		EnumHasAllFlags(GetStruct()->StructFlags, STRUCT_IsPlainOldData) ||
-		GetStruct()->PropertyLink);
-
-	GetStruct()->CopyScriptStruct(&Other, this);
-}
-
-TSharedRef<FVoxelVirtualStruct> FVoxelVirtualStruct::MakeSharedCopy() const
+TSharedRef<FVoxelVirtualStruct> FVoxelVirtualStruct::MakeSharedCopy_Generic() const
 {
 	return MakeSharedStruct(GetStruct(), this);
 }

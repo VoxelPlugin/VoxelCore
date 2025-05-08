@@ -6,14 +6,14 @@
 
 VOXEL_CONSOLE_COMMAND(
 	"voxel.editor.ReinitializeStyle",
-	"")
+	"Reinitialize voxel editor style")
 {
 	FVoxelEditorStyle::ReinitializeStyle();
 }
 
 VOXEL_CONSOLE_COMMAND(
 	"voxel.editor.ReloadTextures",
-	"")
+	"Reload voxel icons")
 {
 	FVoxelEditorStyle::ReloadTextures();
 }

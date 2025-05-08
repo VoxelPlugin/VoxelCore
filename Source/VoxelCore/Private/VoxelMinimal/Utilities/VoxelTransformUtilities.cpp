@@ -56,11 +56,6 @@ FTransform2d FVoxelUtilities::MakeTransform2(const FTransform& Transform)
 		FVector2D(Transform.GetScale3D()));
 }
 
-FTransform2d FVoxelUtilities::MakeTransform2(const FMatrix& Transform)
-{
-	return MakeTransform2(MakeTransformSafe(Transform));
-}
-
 FTransform2f FVoxelUtilities::MakeTransform2f(const FTransform2d& Transform)
 {
 	float A;

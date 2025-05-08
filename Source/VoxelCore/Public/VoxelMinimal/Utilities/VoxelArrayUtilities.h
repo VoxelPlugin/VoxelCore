@@ -517,6 +517,9 @@ namespace FVoxelUtilities
 	VOXELCORE_API bool AllEqual(TConstVoxelArrayView<uint32> Data, uint32 Value);
 	VOXELCORE_API bool AllEqual(TConstVoxelArrayView<uint64> Data, uint64 Value);
 
+	VOXELCORE_API uint16 GetMin(TConstVoxelArrayView<uint16> Data);
+	VOXELCORE_API uint16 GetMax(TConstVoxelArrayView<uint16> Data);
+
 	VOXELCORE_API float GetMin(TConstVoxelArrayView<float> Data);
 	VOXELCORE_API float GetMax(TConstVoxelArrayView<float> Data);
 

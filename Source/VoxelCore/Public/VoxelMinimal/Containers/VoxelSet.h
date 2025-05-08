@@ -545,6 +545,13 @@ public:
 		return this->AddHashed_CheckNew_Impl<false>(Hash, Value);
 	}
 
+	FORCEINLINE bool TryAdd(const Type& Value)
+	{
+		bool bIsInSet = false;
+		this->FindOrAdd(Value, bIsInSet);
+		return !bIsInSet;
+	}
+
 	FORCEINLINE FVoxelSetIndex Add(const Type& Value)
 	{
 		bool bIsInSet = false;

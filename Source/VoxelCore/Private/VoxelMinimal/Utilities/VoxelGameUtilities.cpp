@@ -10,10 +10,37 @@
 #include "EditorViewportClient.h"
 #endif
 
+struct FVoxelCameraCacheEntry
+{
+	FVector Position = FVector(ForceInit);
+	FRotator Rotation = FRotator(ForceInit);
+	float FOV = 0;
+};
+TVoxelMap<TVoxelObjectPtr<const UWorld>, FVoxelCameraCacheEntry> GVoxelWorldToCameraCache;
+
 VOXEL_CONSOLE_VARIABLE(
 	VOXELCORE_API, bool, GVoxelFreezeCamera, false,
 	"voxel.FreezeCamera",
-	"");
+	"Freeze the camera position to the current camera position",
+	Voxel::Void,
+	[]
+	{
+		if (!GVoxelFreezeCamera)
+		{
+			return;
+		}
+
+		const FVoxelCameraCacheEntry Entry = GVoxelWorldToCameraCache.FindRef(GWorld.GetReference());
+
+		GEngine->AddOnScreenDebugMessage(
+			FVoxelUtilities::MurmurHash(&GVoxelFreezeCamera),
+			2 * FApp::GetDeltaTime(),
+			FColor::Red,
+			"Voxel Camera is frozen at " + Entry.Position.ToString());
+
+		FVoxelDebugDrawer()
+		.DrawPoint(Entry.Position);
+	});
 
 FViewport* FVoxelUtilities::GetViewport(const UWorld* World)
 {
@@ -196,17 +223,20 @@ bool FVoxelUtilities::GetCameraView(const UWorld* World, FVector& OutPosition, F
 		return false;
 	}
 
-	struct FCacheEntry
+	if (GVoxelWorldToCameraCache.Num() > 16)
 	{
-		FVector Position;
-		FRotator Rotation;
-		float FOV;
-	};
-	static TMap<TVoxelObjectPtr<const UWorld>, FCacheEntry> Cache;
+		for (auto It = GVoxelWorldToCameraCache.CreateIterator(); It; ++It)
+		{
+			if (!It.Key().IsValid_Slow())
+			{
+				It.RemoveCurrent();
+			}
+		}
+	}
 
 	if (GVoxelFreezeCamera)
 	{
-		if (const FCacheEntry* CacheEntry = Cache.Find(World))
+		if (const FVoxelCameraCacheEntry* CacheEntry = GVoxelWorldToCameraCache.Find(World))
 		{
 			OutPosition = CacheEntry->Position;
 			OutRotation = CacheEntry->Rotation;
@@ -215,7 +245,7 @@ bool FVoxelUtilities::GetCameraView(const UWorld* World, FVector& OutPosition, F
 		}
 	}
 
-	Cache.FindOrAdd(World) = { OutPosition, OutRotation, OutFOV };
+	GVoxelWorldToCameraCache.FindOrAdd(World) = { OutPosition, OutRotation, OutFOV };
 	return true;
 }
 

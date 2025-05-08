@@ -10,6 +10,10 @@
 #include "Materials/MaterialExpressionCustomOutput.h"
 #include "Materials/MaterialExpressionFunctionInput.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
+#include "Materials/MaterialExpressionConstant.h"
+#include "Materials/MaterialExpressionConstant2Vector.h"
+#include "Materials/MaterialExpressionConstant3Vector.h"
+#include "Materials/MaterialExpressionConstant4Vector.h"
 #include "Materials/MaterialExpressionVertexInterpolator.h"
 #include "Materials/MaterialExpressionCollectionParameter.h"
 #include "Materials/MaterialExpressionMaterialFunctionCall.h"
@@ -121,25 +125,27 @@ TVoxelOptional<FMaterialAttributesInput> FVoxelMaterialGenerator::CopyExpression
 	if (OldMaterial.bUseMaterialAttributes)
 	{
 		FMaterialAttributesInput Input = OldMaterial.GetEditorOnlyData()->MaterialAttributes;
-		if (Input.Expression)
+		if (!ensure(Input.Expression))
 		{
-			Input.Expression = OldToNewExpression.FindRef(Input.Expression);
-
-			if (!ensure(Input.Expression))
-			{
-				return {};
-			}
+			return {};
 		}
+
+		UMaterialExpression* Expression = OldToNewExpression.FindRef(Input.Expression);
+		if (!ensure(Expression))
+		{
+			return {};
+		}
+
+		Input.Expression = Expression;
 		return Input;
 	}
 
-	UMaterialExpressionMakeMaterialAttributes& Attributes = FVoxelUtilities::CreateMaterialExpression<UMaterialExpressionMakeMaterialAttributes>(NewMaterial);
+	UMaterialExpressionMakeMaterialAttributes& Attributes = NewExpression<UMaterialExpressionMakeMaterialAttributes>();
 	Attributes.MaterialExpressionEditorX = OldMaterial.EditorX;
 	Attributes.MaterialExpressionEditorY = OldMaterial.EditorY;
 
-	OldToNewExpression.Add_EnsureNew(&Attributes, &Attributes);
-
 	bool bFailed = false;
+	int32 AttributeIndex = 0;
 
 	const auto Traverse = [&]<typename T>(FMaterialInput<T> Input) -> FExpressionInput
 	{
@@ -151,8 +157,64 @@ TVoxelOptional<FMaterialAttributesInput> FVoxelMaterialGenerator::CopyExpression
 			{
 				bFailed = true;
 			}
+
+			return Input;
 		}
-		return Input;
+
+		AttributeIndex++;
+
+		if constexpr (std::is_same_v<T, float>)
+		{
+			UMaterialExpressionConstant& Expression = NewExpression<UMaterialExpressionConstant>();
+			Expression.R = Input.Constant;
+			Expression.MaterialExpressionEditorX = OldMaterial.EditorX - 250;
+			Expression.MaterialExpressionEditorY = OldMaterial.EditorY + AttributeIndex * 50;
+
+			FExpressionInput Result;
+			Result.Expression = &Expression;
+			return Result;
+		}
+		else if constexpr (std::is_same_v<T, FVector2f>)
+		{
+			UMaterialExpressionConstant2Vector& Expression = NewExpression<UMaterialExpressionConstant2Vector>();
+			Expression.R = Input.Constant.X;
+			Expression.G = Input.Constant.Y;
+			Expression.MaterialExpressionEditorX = OldMaterial.EditorX - 250;
+			Expression.MaterialExpressionEditorY = OldMaterial.EditorY + AttributeIndex * 50;
+
+			FExpressionInput Result;
+			Result.Expression = &Expression;
+			return Result;
+		}
+		else if constexpr (std::is_same_v<T, FVector3f>)
+		{
+			UMaterialExpressionConstant3Vector& Expression = NewExpression<UMaterialExpressionConstant3Vector>();
+			Expression.Constant = FLinearColor(Input.Constant);
+			Expression.MaterialExpressionEditorX = OldMaterial.EditorX - 250;
+			Expression.MaterialExpressionEditorY = OldMaterial.EditorY + AttributeIndex * 50;
+
+			FExpressionInput Result;
+			Result.Expression = &Expression;
+			return Result;
+		}
+		else if constexpr (
+			std::is_same_v<T, FColor> ||
+			std::is_same_v<T, FLinearColor>)
+		{
+			UMaterialExpressionConstant4Vector& Expression = NewExpression<UMaterialExpressionConstant4Vector>();
+			Expression.Constant = FLinearColor(Input.Constant);
+			Expression.MaterialExpressionEditorX = OldMaterial.EditorX - 250;
+			Expression.MaterialExpressionEditorY = OldMaterial.EditorY + AttributeIndex * 50;
+
+			FExpressionInput Result;
+			Result.Expression = &Expression;
+			return Result;
+		}
+		else
+		{
+			checkStatic(std::is_void_v<T>);
+			return FExpressionInput();
+		}
 	};
 
 	// Need to add new properties below
@@ -176,6 +238,18 @@ TVoxelOptional<FMaterialAttributesInput> FVoxelMaterialGenerator::CopyExpression
 	Attributes.Refraction = Traverse(OldMaterial.GetEditorOnlyData()->Refraction);
 	Attributes.PixelDepthOffset = Traverse(OldMaterial.GetEditorOnlyData()->PixelDepthOffset);
 	Attributes.Displacement = Traverse(OldMaterial.GetEditorOnlyData()->Displacement);
+
+	if (UMaterialExpression* Expression = OldMaterial.GetEditorOnlyData()->ShadingModelFromMaterialExpression.Expression)
+	{
+		Expression = OldToNewExpression.FindRef(Expression);
+
+		if (!ensure(Expression))
+		{
+			return {};
+		}
+
+		Attributes.ShadingModel.Expression = Expression;
+	}
 
 	for (int32 Index = 0; Index < 8; Index++)
 	{

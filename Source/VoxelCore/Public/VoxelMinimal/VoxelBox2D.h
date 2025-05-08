@@ -4,7 +4,6 @@
 
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelBox.h"
-#include "Math/TransformCalculus2D.h"
 #include "VoxelBox2D.generated.h"
 
 USTRUCT(BlueprintType)
@@ -118,18 +117,31 @@ struct VOXELCORE_API FVoxelBox2D
 			FVector3d(Min.X, Min.Y, MinZ),
 			FVector3d(Max.X, Max.Y, MaxZ));
 	}
+	FORCEINLINE FVoxelBox ToBox3D(const FVoxelInterval& BoundsZ) const
+	{
+		return ToBox3D(BoundsZ.Min, BoundsZ.Max);
+	}
 	FORCEINLINE FVoxelBox ToBox3D_Infinite() const
 	{
-		return ToBox3D(FVoxelBox::Infinite.Min.Z, FVoxelBox::Infinite.Max.Z);
+		return ToBox3D(FVoxelBox::Infinite.GetZ());
+	}
+
+	FORCEINLINE FVoxelInterval GetX() const
+	{
+		return { Min.X, Max.X };
+	}
+	FORCEINLINE FVoxelInterval GetY() const
+	{
+		return { Min.Y, Max.Y };
 	}
 
 	FORCEINLINE bool IsValid() const
 	{
 		return
-			ensureVoxelSlow(FMath::IsFinite(Min.X)) &&
-			ensureVoxelSlow(FMath::IsFinite(Min.Y)) &&
-			ensureVoxelSlow(FMath::IsFinite(Max.X)) &&
-			ensureVoxelSlow(FMath::IsFinite(Max.Y)) &&
+			ensureVoxelSlow(FVoxelUtilities::IsFinite(Min.X)) &&
+			ensureVoxelSlow(FVoxelUtilities::IsFinite(Min.Y)) &&
+			ensureVoxelSlow(FVoxelUtilities::IsFinite(Max.X)) &&
+			ensureVoxelSlow(FVoxelUtilities::IsFinite(Max.Y)) &&
 			Min.X <= Max.X &&
 			Min.Y <= Max.Y;
 	}
@@ -223,8 +235,11 @@ struct VOXELCORE_API FVoxelBox2D
 			FVoxelUtilities::ComponentMax(Max, Other.Max));
 	}
 
-	// union(return value, Other) = this
-	TVoxelFixedArray<FVoxelBox2D, 4> Difference(const FVoxelBox2D& Other) const;
+	FVoxelBox2D Remove_Union(const FVoxelBox2D& Other) const;
+
+	void Remove_Split(
+		const FVoxelBox2D& Other,
+		TVoxelArray<FVoxelBox2D>& OutRemainder) const;
 
 	FORCEINLINE double SquaredDistanceToPoint(const FVector2D& Point) const
 	{

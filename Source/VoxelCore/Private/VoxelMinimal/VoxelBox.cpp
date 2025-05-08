@@ -2,18 +2,35 @@
 
 #include "VoxelMinimal.h"
 
-const FVoxelBox FVoxelBox::Infinite = FVoxelBox(FVector3d(-1e50), FVector3d(1e50));
+const FVoxelBox FVoxelBox::Infinite = FVoxelBox(FVector3d(-1e30), FVector3d(1e30));
 const FVoxelBox FVoxelBox::InvertedInfinite = []
 {
 	FVoxelBox Box;
-	Box.Min = FVector3d(1e50);
-	Box.Max = FVector3d(-1e50);
+	Box.Min = FVector3d(1e30);
+	Box.Max = FVector3d(-1e30);
 	return Box;
 }();
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+
+FVoxelBox FVoxelBox::FromBounds(const TConstVoxelArrayView<FVoxelBox> Bounds)
+{
+	VOXEL_FUNCTION_COUNTER_NUM(Bounds.Num(), 32);
+
+    if (Bounds.Num() == 0)
+    {
+        return {};
+    }
+
+	FVoxelBox Result = Bounds[0];
+    for (int32 Index = 1; Index < Bounds.Num(); Index++)
+    {
+		Result += Bounds[Index];
+    }
+	return Result;
+}
 
 FVoxelBox FVoxelBox::FromPositions(const TConstVoxelArrayView<FIntVector> Positions)
 {
@@ -199,24 +216,24 @@ FString FVoxelBox::ToString() const
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TVoxelFixedArray<FVoxelBox, 6> FVoxelBox::Difference(const FVoxelBox& Other) const
+FVoxelBox FVoxelBox::Remove_Union(const FVoxelBox& Other) const
 {
     if (!Intersects(Other))
     {
-        return { *this };
+        return *this;
     }
 
-    TVoxelFixedArray<FVoxelBox, 6> OutBoxes;
+	FVoxelBox Result = InvertedInfinite;
 
     if (Min.Z < Other.Min.Z)
     {
         // Add bottom
-        OutBoxes.Emplace(Min, FVector(Max.X, Max.Y, Other.Min.Z));
+        Result += FVoxelBox(Min, FVector(Max.X, Max.Y, Other.Min.Z));
     }
     if (Other.Max.Z < Max.Z)
     {
         // Add top
-        OutBoxes.Emplace(FVector(Min.X, Min.Y, Other.Max.Z), Max);
+        Result += FVoxelBox(FVector(Min.X, Min.Y, Other.Max.Z), Max);
     }
 
     const double MinZ = FMath::Max(Min.Z, Other.Min.Z);
@@ -225,12 +242,12 @@ TVoxelFixedArray<FVoxelBox, 6> FVoxelBox::Difference(const FVoxelBox& Other) con
     if (Min.X < Other.Min.X)
     {
         // Add X min
-        OutBoxes.Emplace(FVector(Min.X, Min.Y, MinZ), FVector(Other.Min.X, Max.Y, MaxZ));
+        Result += FVoxelBox(FVector(Min.X, Min.Y, MinZ), FVector(Other.Min.X, Max.Y, MaxZ));
     }
     if (Other.Max.X < Max.X)
     {
         // Add X max
-        OutBoxes.Emplace(FVector(Other.Max.X, Min.Y, MinZ), FVector(Max.X, Max.Y, MaxZ));
+        Result += FVoxelBox(FVector(Other.Max.X, Min.Y, MinZ), FVector(Max.X, Max.Y, MaxZ));
     }
 
     const double MinX = FMath::Max(Min.X, Other.Min.X);
@@ -239,15 +256,70 @@ TVoxelFixedArray<FVoxelBox, 6> FVoxelBox::Difference(const FVoxelBox& Other) con
     if (Min.Y < Other.Min.Y)
     {
         // Add Y min
-        OutBoxes.Emplace(FVector(MinX, Min.Y, MinZ), FVector(MaxX, Other.Min.Y, MaxZ));
+        Result += FVoxelBox(FVector(MinX, Min.Y, MinZ), FVector(MaxX, Other.Min.Y, MaxZ));
     }
     if (Other.Max.Y < Max.Y)
     {
         // Add Y max
-        OutBoxes.Emplace(FVector(MinX, Other.Max.Y, MinZ), FVector(MaxX, Max.Y, MaxZ));
+        Result += FVoxelBox(FVector(MinX, Other.Max.Y, MinZ), FVector(MaxX, Max.Y, MaxZ));
     }
 
-    return OutBoxes;
+	if (!Result.IsValid())
+	{
+		return {};
+	}
+
+    return Result;
+}
+
+void FVoxelBox::Remove_Split(
+	const FVoxelBox& Other,
+	TVoxelArray<FVoxelBox>& OutRemainder) const
+{
+    if (!Intersects(Other))
+    {
+        OutRemainder.Add(*this);
+        return;
+    }
+
+    if (Min.Z < Other.Min.Z)
+    {
+        // Add bottom
+        OutRemainder.Emplace(Min, FVector(Max.X, Max.Y, Other.Min.Z));
+    }
+    if (Other.Max.Z < Max.Z)
+    {
+        // Add top
+        OutRemainder.Emplace(FVector(Min.X, Min.Y, Other.Max.Z), Max);
+    }
+
+    const double MinZ = FMath::Max(Min.Z, Other.Min.Z);
+    const double MaxZ = FMath::Min(Max.Z, Other.Max.Z);
+
+    if (Min.X < Other.Min.X)
+    {
+        // Add X min
+        OutRemainder.Emplace(FVector(Min.X, Min.Y, MinZ), FVector(Other.Min.X, Max.Y, MaxZ));
+    }
+    if (Other.Max.X < Max.X)
+    {
+        // Add X max
+        OutRemainder.Emplace(FVector(Other.Max.X, Min.Y, MinZ), FVector(Max.X, Max.Y, MaxZ));
+    }
+
+    const double MinX = FMath::Max(Min.X, Other.Min.X);
+    const double MaxX = FMath::Min(Max.X, Other.Max.X);
+
+    if (Min.Y < Other.Min.Y)
+    {
+        // Add Y min
+        OutRemainder.Emplace(FVector(MinX, Min.Y, MinZ), FVector(MaxX, Other.Min.Y, MaxZ));
+    }
+    if (Other.Max.Y < Max.Y)
+    {
+        // Add Y max
+        OutRemainder.Emplace(FVector(MinX, Other.Max.Y, MinZ), FVector(MaxX, Max.Y, MaxZ));
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -308,6 +380,31 @@ FVoxelBox FVoxelBox::TransformBy(const FTransform& Transform) const
 	NewBox.Max.X = FMath::Max3(P000.X, P001.X, FMath::Max3(P010.X, P011.X, FMath::Max3(P100.X, P101.X, FMath::Max(P110.X, P111.X))));
 	NewBox.Max.Y = FMath::Max3(P000.Y, P001.Y, FMath::Max3(P010.Y, P011.Y, FMath::Max3(P100.Y, P101.Y, FMath::Max(P110.Y, P111.Y))));
 	NewBox.Max.Z = FMath::Max3(P000.Z, P001.Z, FMath::Max3(P010.Z, P011.Z, FMath::Max3(P100.Z, P101.Z, FMath::Max(P110.Z, P111.Z))));
+
+	return NewBox;
+}
+
+FVoxelBox FVoxelBox::TransformBy(const FTransform2d& Transform) const
+{
+	if (IsInfinite())
+	{
+		return Infinite;
+	}
+
+	const FVector2D P00 = Transform.TransformPoint(FVector2D(Min.X, Min.Y));
+	const FVector2D P01 = Transform.TransformPoint(FVector2D(Max.X, Min.Y));
+	const FVector2D P10 = Transform.TransformPoint(FVector2D(Min.X, Max.Y));
+	const FVector2D P11 = Transform.TransformPoint(FVector2D(Max.X, Max.Y));
+
+	FVoxelBox NewBox;
+
+	NewBox.Min.X = FMath::Min3(P00.X, P01.X, FMath::Min(P10.X, P11.X));
+	NewBox.Min.Y = FMath::Min3(P00.Y, P01.Y, FMath::Min(P10.Y, P11.Y));
+	NewBox.Min.Z = Min.Z;
+
+	NewBox.Max.X = FMath::Max3(P00.X, P01.X, FMath::Max(P10.X, P11.X));
+	NewBox.Max.Y = FMath::Max3(P00.Y, P01.Y, FMath::Max(P10.Y, P11.Y));
+	NewBox.Max.Z = Max.Z;
 
 	return NewBox;
 }

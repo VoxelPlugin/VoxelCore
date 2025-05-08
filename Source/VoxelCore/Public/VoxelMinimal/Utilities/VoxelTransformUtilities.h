@@ -16,8 +16,6 @@ namespace FVoxelUtilities
 		const FVector2D& Scale = FVector2D(1.f));
 
 	VOXELCORE_API FTransform2d MakeTransform2(const FTransform& Transform);
-	VOXELCORE_API FTransform2d MakeTransform2(const FMatrix& Transform);
-
 	VOXELCORE_API FTransform2f MakeTransform2f(const FTransform2d& Transform);
 }
 

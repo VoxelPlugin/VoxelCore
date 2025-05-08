@@ -46,21 +46,22 @@ private:
 		const UMaterialFunction& NewFunction);
 
 private:
-	int32 Depth = 0;
+	TVoxelArray<FName> Callstack;
 
 	struct FGuard
 	{
 		FVoxelMaterialDiffing& This;
 
-		FGuard(FVoxelMaterialDiffing& This)
+		FGuard(
+			FVoxelMaterialDiffing& This,
+			const FName Name)
 			: This(This)
 		{
-			This.Depth++;
+			This.Callstack.Add(Name);
 		}
 		~FGuard()
 		{
-			This.Depth--;
-			ensure(This.Depth >= 0);
+			This.Callstack.Pop();
 		}
 	};
 };

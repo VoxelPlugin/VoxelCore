@@ -389,6 +389,12 @@ void SVoxelEditorViewport::PopulateViewportOverlays(const TSharedRef<SOverlay> O
 {
 	SEditorViewport::PopulateViewportOverlays(Overlay);
 
+	const TSharedPtr<IVoxelViewportInterface> Interface = WeakInterface.Pin();
+	if (!Interface)
+	{
+		return;
+	}
+
 	Overlay->AddSlot()
 	.VAlign(VAlign_Top)
 	.HAlign(HAlign_Left)
@@ -406,6 +412,8 @@ void SVoxelEditorViewport::PopulateViewportOverlays(const TSharedRef<SOverlay> O
 			.Text(StatsText)
 		]
 	];
+
+	Interface->PopulateOverlay(Overlay);
 }
 
 EVisibility SVoxelEditorViewport::GetTransformToolbarVisibility() const

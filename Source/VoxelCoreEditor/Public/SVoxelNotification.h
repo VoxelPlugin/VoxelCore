@@ -5,6 +5,8 @@
 #include "VoxelEditorMinimal.h"
 #include "Widgets/Notifications/INotificationWidget.h"
 
+class IMessageToken;
+
 class VOXELCOREEDITOR_API SVoxelNotification
 	: public SCompoundWidget
 	, public INotificationWidget

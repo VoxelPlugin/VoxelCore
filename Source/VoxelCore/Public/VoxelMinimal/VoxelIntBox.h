@@ -112,7 +112,7 @@ struct VOXELCORE_API FVoxelIntBox
 
 	FORCEINLINE FIntVector Size() const
 	{
-		ensure(SizeIs32Bit());
+		checkVoxelSlow(SizeIs32Bit());
 		return Max - Min;
 	}
 	FORCEINLINE FVector GetCenter() const
@@ -140,7 +140,11 @@ struct VOXELCORE_API FVoxelIntBox
 	FORCEINLINE int32 Count_int32() const
 	{
 		checkVoxelSlow(Count_uint64() <= MAX_int32);
-		return int32(Count_uint64());
+
+		return
+			int32(Max.X - Min.X) *
+			int32(Max.Y - Min.Y) *
+			int32(Max.Z - Min.Z);
 	}
 
 	FORCEINLINE bool SizeIs32Bit() const
@@ -286,8 +290,11 @@ struct VOXELCORE_API FVoxelIntBox
 			FVoxelUtilities::ComponentMax(Max, Other.Max));
 	}
 
-	// union(return value, Other) = this
-	TVoxelFixedArray<FVoxelIntBox, 6> Difference(const FVoxelIntBox& Other) const;
+	FVoxelIntBox Remove_Union(const FVoxelIntBox& Other) const;
+
+	void Remove_Split(
+		const FVoxelIntBox& Other,
+		TVoxelArray<FVoxelIntBox>& OutRemainder) const;
 
 	FORCEINLINE double SquaredDistanceToPoint(const FVector& Point) const
 	{

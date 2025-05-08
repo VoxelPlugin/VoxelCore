@@ -1,13 +1,13 @@
 ﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelChaosTriangleMeshCooker.h"
-#include "VoxelFastAABBTree.h"
+#include "VoxelAABBTree.h"
 #include "Chaos/TriangleMeshImplicitObject.h"
 
 VOXEL_CONSOLE_VARIABLE(
 	VOXELCORE_API, bool, GVoxelCollisionFastCooking, true,
 	"voxel.collision.FastCooking",
-	"");
+	"Custom cooking for Chaos collision meshes");
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -127,9 +127,9 @@ namespace Chaos
 			constexpr static int32 MaxChildrenInLeaf = 22;
 			constexpr static int32 MaxTreeDepth = FBVHType::DefaultMaxTreeDepth;
 
-			FVoxelFastAABBTree Tree(MaxChildrenInLeaf, MaxTreeDepth);
+			FVoxelAABBTree Tree(MaxChildrenInLeaf, MaxTreeDepth);
 			{
-				FVoxelFastAABBTree::FElementArray Elements;
+				FVoxelAABBTree::FElementArray Elements;
 				Elements.SetNum(Triangles.Num());
 				{
 					VOXEL_SCOPE_COUNTER("Build Elements");
@@ -155,8 +155,8 @@ namespace Chaos
 				Tree.Initialize(MoveTemp(Elements));
 			}
 
-			const TConstVoxelArrayView<FVoxelFastAABBTree::FNode> SrcNodes = Tree.GetNodes();
-			const TConstVoxelArrayView<FVoxelFastAABBTree::FLeaf> SrcLeaves = Tree.GetLeaves();
+			const TConstVoxelArrayView<FVoxelAABBTree::FNode> SrcNodes = Tree.GetNodes();
+			const TConstVoxelArrayView<FVoxelAABBTree::FLeaf> SrcLeaves = Tree.GetLeaves();
 
 			FBVHType BVH;
 			FVoxelUtilities::SetNum(ConstCast(BVH.GetNodes()), SrcNodes.Num());
@@ -169,7 +169,7 @@ namespace Chaos
 
 				for (int32 Index = 0; Index < SrcNodes.Num(); Index++)
 				{
-					const FVoxelFastAABBTree::FNode& SrcNode = SrcNodes[Index];
+					const FVoxelAABBTree::FNode& SrcNode = SrcNodes[Index];
 					TAABBTreeNode<float>& DestNode = DestNodes[Index];
 
 					if (SrcNode.bLeaf)
@@ -195,7 +195,7 @@ namespace Chaos
 
 				for (int32 Index = 0; Index < SrcLeaves.Num(); Index++)
 				{
-					const FVoxelFastAABBTree::FLeaf& SrcLeaf = SrcLeaves[Index];
+					const FVoxelAABBTree::FLeaf& SrcLeaf = SrcLeaves[Index];
 					FLeaf& DestLeaf = DestLeaves[Index];
 
 					FVoxelUtilities::SetNumFast(DestLeaf.Elems, SrcLeaf.Num());

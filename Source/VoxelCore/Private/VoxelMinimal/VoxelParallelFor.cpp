@@ -77,7 +77,7 @@ void Voxel::Internal::ParallelFor(
 		return;
 	}
 
-	const int64 NumThreads = FMath::Clamp<int64>(GetMaxNumThreads(), 1, Num);
+	int64 NumThreads = FMath::Clamp<int64>(GetMaxNumThreads(), 1, Num);
 
 	if (NumThreads == 1)
 	{
@@ -87,6 +87,9 @@ void Voxel::Internal::ParallelFor(
 	}
 
 	const int64 ElementsPerThreads = FVoxelUtilities::DivideCeil_Positive(Num, NumThreads);
+
+	// Update NumThreads: if Num = 100 and NumThreads = 49, ElementsPerThreads would be 3 => we only need 34 threads
+	NumThreads = FVoxelUtilities::DivideCeil_Positive(Num, ElementsPerThreads);
 
 	TVoxelOptional<ETaskTag> TaskTag;
 	LowLevelTasks::ETaskPriority Priority;
@@ -107,53 +110,48 @@ void Voxel::Internal::ParallelFor(
 		}
 	};
 
-	FVoxelCounter32 NumThreadsLeft = NumThreads - 1;
+	const TSharedRef<FVoxelCounter32> NumTasksStarted = MakeShared<FVoxelCounter32>();
+	FVoxelCounter32 NumTasksDone;
+
+	const auto TryProcessTask = [NumTasksStarted, NumThreads, ElementsPerThreads, Num, &Lambda, &NumTasksDone]
+	{
+		const int32 TaskIndex = NumTasksStarted->Increment_ReturnOld();
+		if (TaskIndex >= NumThreads)
+		{
+			return false;
+		}
+
+		{
+			const int64 StartIndex = TaskIndex * ElementsPerThreads;
+			const int64 EndIndex = FMath::Min((TaskIndex + 1) * ElementsPerThreads, Num);
+
+			VOXEL_SCOPE_COUNTER_FORMAT("Task %d", TaskIndex);
+			VOXEL_SCOPE_COUNTER_NUM("Voxel::ParallelFor", EndIndex - StartIndex);
+			Lambda(StartIndex, EndIndex);
+		}
+
+		NumTasksDone.Increment();
+		return true;
+	};
 
 	{
 		VOXEL_SCOPE_COUNTER("Start threads");
 
 		for (int32 ThreadIndex = 1; ThreadIndex < NumThreads; ThreadIndex++)
 		{
-			struct FTaskRef
-			{
-				LowLevelTasks::FTask* Task;
-
-				explicit FTaskRef(LowLevelTasks::FTask* Task)
-					: Task(Task)
-				{
-				}
-				FTaskRef(FTaskRef&& Other)
-					: Task(Other.Task)
-				{
-					Other.Task = nullptr;
-				}
-				~FTaskRef()
-				{
-					delete Task;
-				}
-			};
-
 			LowLevelTasks::FTask* Task = new LowLevelTasks::FTask();
 			Task->Init(
 				TEXT("Voxel.ParallelFor"),
 				Priority,
-				[&, ThreadIndex, TaskRef = FTaskRef{ Task }]
+				[TaskTag, TryProcessTask, TaskPtr = TUniquePtr<LowLevelTasks::FTask>{ Task }]
 				{
-					TVoxelOptional<FOptionalTaskTagScope> Scope;
+					TVoxelOptional<UE_506_SWITCH(FOptionalTaskTagScope, FTaskTagScope)> Scope;
 					if (TaskTag.IsSet())
 					{
 						Scope.Emplace(TaskTag.GetValue());
 					}
 
-					{
-						const int64 StartIndex = ThreadIndex * ElementsPerThreads;
-						const int64 EndIndex = FMath::Min((ThreadIndex + 1) * ElementsPerThreads, Num);
-
-						VOXEL_SCOPE_COUNTER_FORMAT("Thread %d", ThreadIndex);
-						VOXEL_SCOPE_COUNTER_NUM("Voxel::ParallelFor", EndIndex - StartIndex);
-						Lambda(StartIndex, EndIndex);
-					}
-					NumThreadsLeft.Decrement();
+					TryProcessTask();
 				});
 
 			const bool bSuccess = LowLevelTasks::TryLaunch(
@@ -164,21 +162,23 @@ void Voxel::Internal::ParallelFor(
 		}
 	}
 
+	// Tricky: process as many tasks as we can inline,
+	// other worker threads could be stuck waiting on this thread
+	while (true)
 	{
-		VOXEL_SCOPE_COUNTER_FORMAT("Thread %d", 0);
-		VOXEL_SCOPE_COUNTER_NUM("Voxel::ParallelFor", ElementsPerThreads);
-		Lambda(0, ElementsPerThreads);
+		if (!TryProcessTask())
+		{
+			break;
+		}
 	}
 
-	if (NumThreadsLeft.Get() == 0)
+	if (NumTasksDone.Get() == NumThreads)
 	{
 		return;
 	}
 
-	VOXEL_SCOPE_COUNTER("Wait");
-
-	while (NumThreadsLeft.Get() > 0)
+	FVoxelUtilities::WaitFor([&]
 	{
-		FPlatformProcess::Yield();
-	}
+		return NumTasksDone.Get() == NumThreads;
+	});
 }

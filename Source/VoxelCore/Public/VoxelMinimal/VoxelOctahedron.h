@@ -4,6 +4,7 @@
 
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/Utilities/VoxelMathUtilities.h"
+#include "VoxelOctahedron.generated.h"
 
 namespace FVoxelUtilities
 {
@@ -52,19 +53,30 @@ namespace ispc
 {
 	struct FVoxelOctahedron
 	{
-		uint8 X;
-		uint8 Y;
+		uint8 X = 0;
+		uint8 Y = 0;
 	};
 }
 
-struct alignas(2) FVoxelOctahedron : ispc::FVoxelOctahedron
+USTRUCT(DisplayName = "Voxel Normal")
+struct alignas(2) FVoxelOctahedron
+#if CPP
+	: ispc::FVoxelOctahedron
+#endif
 {
+	GENERATED_BODY()
+
+public:
+#if !CPP
+	UPROPERTY()
+	uint8 X = 0;
+
+	UPROPERTY()
+	uint8 Y = 0;
+#endif
+
+public:
 	FVoxelOctahedron() = default;
-	FORCEINLINE explicit FVoxelOctahedron(EForceInit)
-	{
-		X = 0;
-		Y = 0;
-	}
 	FORCEINLINE explicit FVoxelOctahedron(const FVector2f& Octahedron)
 	{
 		X = FVoxelUtilities::FloatToUINT8(Octahedron.X);
@@ -78,6 +90,7 @@ struct alignas(2) FVoxelOctahedron : ispc::FVoxelOctahedron
 	{
 	}
 
+public:
 	FORCEINLINE FVector2f GetOctahedron() const
 	{
 		return
@@ -91,6 +104,7 @@ struct alignas(2) FVoxelOctahedron : ispc::FVoxelOctahedron
 		return FVoxelUtilities::OctahedronToUnitVector(GetOctahedron());
 	}
 
+public:
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, FVoxelOctahedron& Octahedron)
 	{
 		Ar << Octahedron.X;
@@ -98,3 +112,4 @@ struct alignas(2) FVoxelOctahedron : ispc::FVoxelOctahedron
 		return Ar;
 	}
 };
+checkStatic(sizeof(FVoxelOctahedron) == 2);

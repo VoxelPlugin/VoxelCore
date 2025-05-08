@@ -6,6 +6,11 @@ bool FVoxelInstancedStructDataProvider::IsValid() const
 {
 	VOXEL_FUNCTION_COUNTER();
 
+	if (!StructProperty->IsValidHandle())
+	{
+		return false;
+	}
+
 	bool bHasValidData = false;
 	FVoxelEditorUtilities::ForeachData<FVoxelInstancedStruct>(StructProperty, [&](FVoxelInstancedStruct&)
 	{
@@ -17,6 +22,11 @@ bool FVoxelInstancedStructDataProvider::IsValid() const
 const UStruct* FVoxelInstancedStructDataProvider::GetBaseStructure() const
 {
 	VOXEL_FUNCTION_COUNTER();
+
+	if (!StructProperty->IsValidHandle())
+	{
+		return nullptr;
+	}
 
 	TVoxelSet<UScriptStruct*> Structs;
 	FVoxelEditorUtilities::ForeachData<FVoxelInstancedStruct>(StructProperty, [&](const FVoxelInstancedStruct& InstancedStruct)
@@ -62,6 +72,11 @@ void FVoxelInstancedStructDataProvider::GetInstances(TArray<TSharedPtr<FStructOn
 	VOXEL_FUNCTION_COUNTER();
 	ensure(OutInstances.Num() == 0);
 
+	if (!StructProperty->IsValidHandle())
+	{
+		return;
+	}
+
 	const UScriptStruct* BaseStructure = Cast<UScriptStruct>(ExpectedBaseStructure);
 
 	// The returned instances need to be compatible with base structure.
@@ -77,7 +92,7 @@ void FVoxelInstancedStructDataProvider::GetInstances(TArray<TSharedPtr<FStructOn
 		}
 
 		OutInstances.Add(MakeShared<FStructOnScope>(
-			InstancedStruct->GetScriptStruct(),
+			BaseStructure,
 			static_cast<uint8*>(InstancedStruct->GetStructMemory())));
 	});
 
@@ -103,7 +118,7 @@ void FVoxelInstancedStructDataProvider::GetInstances(TArray<TSharedPtr<FStructOn
 
 bool FVoxelInstancedStructDataProvider::IsPropertyIndirection() const
 {
-	return true;
+	return bIsPropertyIndirection;
 }
 
 uint8* FVoxelInstancedStructDataProvider::GetValueBaseAddress(uint8* ParentValueAddress, const UStruct* ExpectedBaseStructure) const

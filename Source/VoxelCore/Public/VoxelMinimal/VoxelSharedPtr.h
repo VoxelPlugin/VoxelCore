@@ -44,6 +44,12 @@ FORCEINLINE TWeakPtr<T> MakeWeakPtr(const TSharedRef<T>& Ptr)
 	return TWeakPtr<T>(Ptr);
 }
 
+template<typename T>
+concept CanMakeWeakPtr = requires(T Value)
+{
+	MakeWeakPtr(Value);
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -295,20 +301,38 @@ using FSharedVoidRef = TSharedRef<Voxel::Internal::FVoidPtr>;
 using FWeakVoidPtr = TWeakPtr<Voxel::Internal::FVoidPtr>;
 
 template<typename T>
+FORCEINLINE FWeakVoidPtr&& MakeWeakVoidPtr(TWeakPtr<T>&& Ptr)
+{
+	return ReinterpretCastRef<FWeakVoidPtr>(MoveTemp(Ptr));
+}
+template<typename T>
 FORCEINLINE const FWeakVoidPtr& MakeWeakVoidPtr(const TWeakPtr<T>& Ptr)
 {
 	return ReinterpretCastRef<FWeakVoidPtr>(Ptr);
+}
+
+template<typename T>
+FORCEINLINE FSharedVoidPtr&& MakeSharedVoidPtr(TSharedPtr<T>&& Ptr)
+{
+	return ReinterpretCastRef<FSharedVoidPtr>(MoveTemp(Ptr));
 }
 template<typename T>
 FORCEINLINE const FSharedVoidPtr& MakeSharedVoidPtr(const TSharedPtr<T>& Ptr)
 {
 	return ReinterpretCastRef<FSharedVoidPtr>(Ptr);
 }
+
+template<typename T>
+FORCEINLINE FSharedVoidRef&& MakeSharedVoidRef(TSharedRef<T>&& Ptr)
+{
+	return ReinterpretCastRef<FSharedVoidRef>(MoveTemp(Ptr));
+}
 template<typename T>
 FORCEINLINE const FSharedVoidRef& MakeSharedVoidRef(const TSharedRef<T>& Ptr)
 {
 	return ReinterpretCastRef<FSharedVoidRef>(Ptr);
 }
+
 FORCEINLINE FSharedVoidRef MakeSharedVoid()
 {
 	return MakeSharedVoidRef(MakeShared<int32>());

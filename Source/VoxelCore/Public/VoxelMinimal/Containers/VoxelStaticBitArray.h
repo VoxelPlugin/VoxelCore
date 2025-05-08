@@ -135,7 +135,7 @@ public:
 	}
 	FORCEINLINE void AtomicSet(const int32 Index, const bool bValue)
 	{
-		AtomicSet_ReturnOld(Index, bValue);
+		(void)AtomicSet_ReturnOld(Index, bValue);
 	}
 
 	FORCEINLINE void SetRange(const int32 Index, const int32 Num, const bool bValue)

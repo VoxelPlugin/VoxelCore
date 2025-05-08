@@ -196,6 +196,7 @@ public:
 		return INDEX_NONE;
 	}
 	template<typename ComparisonType>
+	requires std::equality_comparable_with<ElementType, ComparisonType>
 	FORCEINLINE bool Contains(const ComparisonType& Item) const
 	{
 		const ElementType* RESTRICT Start = GetData();

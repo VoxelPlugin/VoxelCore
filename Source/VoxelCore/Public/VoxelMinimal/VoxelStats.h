@@ -540,11 +540,11 @@ private:
 	{ \
 		FORCEINLINE FVoxelStatsRefHelper() \
 		{ \
-			ensureVoxelSlow(VoxelInstanceCount.Increment_ReturnNew() > 0); \
+			VoxelInstanceCount.Increment(); \
 		} \
 		FORCEINLINE ~FVoxelStatsRefHelper() \
 		{ \
-			ensureVoxelSlow(VoxelInstanceCount.Decrement_ReturnNew() >= 0); \
+			VoxelInstanceCount.Decrement(); \
 		} \
 		FORCEINLINE FVoxelStatsRefHelper(FVoxelStatsRefHelper&&) \
 			: FVoxelStatsRefHelper() \
@@ -563,7 +563,7 @@ private:
 			return *this; \
 		} \
 	}; \
-	FVoxelStatsRefHelper VOXEL_APPEND_LINE(__VoxelStatsRefHelper); \
+	UE_NO_UNIQUE_ADDRESS FVoxelStatsRefHelper VOXEL_APPEND_LINE(__VoxelStatsRefHelper); \
 	\
 	template<typename T> \
 	friend auto& GetVoxelInstanceCount();

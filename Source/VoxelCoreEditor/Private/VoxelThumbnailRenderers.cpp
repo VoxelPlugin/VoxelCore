@@ -18,7 +18,15 @@ void UVoxelThumbnailRenderer::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-void UVoxelThumbnailRenderer::Draw(UObject* Object, const int32 X, const int32 Y, const uint32 Width, const uint32 Height, FRenderTarget* RenderTarget, FCanvas* Canvas, const bool bAdditionalViewFamily)
+void UVoxelThumbnailRenderer::Draw(
+	UObject* Object,
+	const int32 X,
+	const int32 Y,
+	const uint32 Width,
+	const uint32 Height,
+	FRenderTarget* RenderTarget,
+	FCanvas* Canvas,
+	const bool bAdditionalViewFamily)
 {
 	if (!ThumbnailScene)
 	{
@@ -88,12 +96,28 @@ void UVoxelStaticMeshThumbnailRenderer::ClearScene(UObject* Object)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void UVoxelTextureThumbnailRenderer::GetThumbnailSize(UObject* Object, const float Zoom, uint32& OutWidth, uint32& OutHeight) const
+void UVoxelTextureThumbnailRenderer::GetThumbnailSize(
+	UObject* Object,
+	const float Zoom,
+	uint32& OutWidth,
+	uint32& OutHeight) const
 {
-	Super::GetThumbnailSize(GetTexture(Object), Zoom, OutWidth, OutHeight);
+	Super::GetThumbnailSize(
+		GetTexture(Object),
+		Zoom,
+		OutWidth,
+		OutHeight);
 }
 
-void UVoxelTextureThumbnailRenderer::Draw(UObject* Object, const int32 X, const int32 Y, const uint32 Width, const uint32 Height, FRenderTarget* Target, FCanvas* Canvas, const bool bAdditionalViewFamily)
+void UVoxelTextureThumbnailRenderer::Draw(
+	UObject* Object,
+	const int32 X,
+	const int32 Y,
+	const uint32 Width,
+	const uint32 Height,
+	FRenderTarget* Target,
+	FCanvas* Canvas,
+	const bool bAdditionalViewFamily)
 {
 	Super::Draw(GetTexture(Object), X, Y, Width, Height, Target, Canvas, bAdditionalViewFamily);
 }
@@ -101,6 +125,11 @@ void UVoxelTextureThumbnailRenderer::Draw(UObject* Object, const int32 X, const 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+
+bool UVoxelTextureWithBackgroundRenderer::CanVisualizeAsset(UObject* Object)
+{
+	return GetAssetIcon(Object).bCustomIcon;
+}
 
 void UVoxelTextureWithBackgroundRenderer::Draw(UObject* Object, int32 X, int32 Y, const uint32 Width, const uint32 Height, FRenderTarget* Target, FCanvas* Canvas, bool bAdditionalViewFamily)
 {
@@ -110,32 +139,46 @@ void UVoxelTextureWithBackgroundRenderer::Draw(UObject* Object, int32 X, int32 Y
 		check(WidgetRenderer);
 	}
 
-	UTexture2D* Texture = nullptr;
-	UTexture2D* BackgroundTexture = nullptr;
-	FSlateColor TextureColor = FLinearColor::White;
-	FSlateColor Color = FStyleColors::Panel;
-	GetTextureWithBackground(Object, BackgroundTexture, Texture, TextureColor, Color);
+	const FVoxelAssetIcon AssetIcon = GetAssetIcon(Object);
+	ensureVoxelSlow(AssetIcon.bCustomIcon);
+
+	UTexture2D* BackgroundTexture = LoadObject<UTexture2D>(nullptr, TEXT("/Voxel/EditorAssets/T_ThumbnailBackground.T_ThumbnailBackground"));
+	ensure(BackgroundTexture);
+
+	{
+		TArray<UTexture*> Textures;
+		if (BackgroundTexture)
+		{
+			Textures.Add(BackgroundTexture);
+		}
+		if (AssetIcon.Icon)
+		{
+			Textures.Add(AssetIcon.Icon);
+		}
+
+		FVoxelTextureUtilities::FullyLoadTextures(Textures);
+	}
 
 	TSharedPtr<SImage> BackgroundImage;
 	if (BackgroundTexture)
 	{
 		FSlateBrush IconBrush;
 		IconBrush.SetResourceObject(BackgroundTexture);
-		IconBrush.ImageSize = FVector2D(Texture->GetSizeX(), Texture->GetSizeY());
+		IconBrush.ImageSize = FVector2D(BackgroundTexture->GetSizeX(), BackgroundTexture->GetSizeY());
 		IconBrush.Tiling = ESlateBrushTileType::NoTile;
 		IconBrush.DrawAs = ESlateBrushDrawType::Image;
 
 		BackgroundImage =
 			SNew(SImage)
 			.Image(&IconBrush)
-			.ColorAndOpacity(Color);
+			.ColorAndOpacity(AssetIcon.Color);
 	}
 	else
 	{
 		BackgroundImage =
 			SNew(SImage)
 			.Image(FAppStyle::GetBrush("Brushes.White"))
-			.ColorAndOpacity(Color);
+			.ColorAndOpacity(AssetIcon.Color);
 	}
 
 	const TSharedRef<SOverlay> Thumbnail =
@@ -145,11 +188,11 @@ void UVoxelTextureWithBackgroundRenderer::Draw(UObject* Object, int32 X, int32 Y
 			BackgroundImage.ToSharedRef()
 		];
 
-	if (Texture)
+	if (AssetIcon.Icon)
 	{
 		FSlateBrush IconBrush;
-		IconBrush.SetResourceObject(Texture);
-		IconBrush.ImageSize = FVector2D(Texture->GetSizeX(), Texture->GetSizeY());
+		IconBrush.SetResourceObject(AssetIcon.Icon);
+		IconBrush.ImageSize = FVector2D(AssetIcon.Icon->GetSizeX(), AssetIcon.Icon->GetSizeY());
 		IconBrush.Tiling = ESlateBrushTileType::NoTile;
 		IconBrush.DrawAs = ESlateBrushDrawType::Image;
 
@@ -160,7 +203,7 @@ void UVoxelTextureWithBackgroundRenderer::Draw(UObject* Object, int32 X, int32 Y
 			SNew(SImage)
 			.Image(&IconBrush)
 			.DesiredSizeOverride(FVector2D(Width / 1.5f, Height / 1.5f))
-			.ColorAndOpacity(TextureColor)
+			.ColorAndOpacity(AssetIcon.IconColor)
 		];
 	}
 	else
@@ -172,7 +215,7 @@ void UVoxelTextureWithBackgroundRenderer::Draw(UObject* Object, int32 X, int32 Y
 			SNew(SImage)
 			.Image(FClassIconFinder::FindThumbnailForClass(Object->GetClass()))
 			.DesiredSizeOverride(FVector2D(Width / 1.5f, Height / 1.5f))
-			.ColorAndOpacity(TextureColor)
+			.ColorAndOpacity(AssetIcon.IconColor)
 		];
 	}
 
@@ -195,7 +238,12 @@ FVoxelThumbnailScene::FVoxelThumbnailScene()
 	bForceAllUsedMipsResident = false;
 }
 
-void FVoxelThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const
+void FVoxelThumbnailScene::GetViewMatrixParameters(
+	const float InFOVDegrees,
+	FVector& OutOrigin,
+	float& OutOrbitPitch,
+	float& OutOrbitYaw,
+	float& OutOrbitZoom) const
 {
 	const FBoxSphereBounds Bounds = GetBounds();
 	const float HalfFOVRadians = FMath::DegreesToRadians<float>(InFOVDegrees) * 0.5f;

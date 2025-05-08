@@ -194,7 +194,11 @@ struct TMakeWeakPtrLambdaHelper<TVoxelTypes<ArgTypes...>>
 };
 
 template<typename T, typename LambdaType>
-requires std::is_void_v<LambdaReturnType_T<LambdaType>>
+requires
+(
+	std::is_void_v<LambdaReturnType_T<LambdaType>> &&
+	CanMakeWeakPtr<T>
+)
 FORCEINLINE auto MakeWeakPtrLambda(const T& Ptr, LambdaType Lambda)
 {
 #if VOXEL_DEBUG
@@ -208,7 +212,8 @@ template<typename T, typename LambdaType, typename ReturnType = LambdaReturnType
 requires
 (
 	!std::is_void_v<ReturnType> &&
-	FVoxelUtilities::CanMakeSafe<ReturnType>
+	FVoxelUtilities::CanMakeSafe<ReturnType> &&
+	CanMakeWeakPtr<T>
 )
 FORCEINLINE auto MakeWeakPtrLambda(const T& Ptr, LambdaType Lambda)
 {

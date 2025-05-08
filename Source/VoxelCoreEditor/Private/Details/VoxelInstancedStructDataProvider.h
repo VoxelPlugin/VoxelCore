@@ -3,12 +3,12 @@
 #pragma once
 
 #include "VoxelEditorMinimal.h"
-#include "IStructureDataProvider.h"
 
 class FVoxelInstancedStructDataProvider : public IStructureDataProvider
 {
 public:
 	const TSharedRef<IPropertyHandle> StructProperty;
+	bool bIsPropertyIndirection = true;
 
 	explicit FVoxelInstancedStructDataProvider(const TSharedRef<IPropertyHandle>& StructProperty)
 		: StructProperty(StructProperty)

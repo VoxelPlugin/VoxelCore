@@ -4,6 +4,7 @@
 
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelBox2D.h"
+#include "VoxelMinimal/VoxelIntBox.h"
 #include "VoxelMinimal/Utilities/VoxelVectorUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelLambdaUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelIntPointUtilities.h"
@@ -68,6 +69,10 @@ struct VOXELCORE_API FVoxelIntBox2D
 		: FVoxelIntBox2D(Position, Position + 1)
 	{
 	}
+	FORCEINLINE explicit FVoxelIntBox2D(const FVoxelIntBox& Box)
+		: FVoxelIntBox2D(FIntPoint(Box.Min.X, Box.Min.Y), FIntPoint(Box.Max.X, Box.Max.Y))
+	{
+	}
 
 	static FVoxelIntBox2D FromPositions(TConstVoxelArrayView<FIntPoint> Positions);
 
@@ -96,7 +101,7 @@ struct VOXELCORE_API FVoxelIntBox2D
 
 	FORCEINLINE FIntPoint Size() const
 	{
-		ensure(SizeIs32Bit());
+		checkVoxelSlow(SizeIs32Bit());
 		return Max - Min;
 	}
 	FORCEINLINE FVector2D GetCenter() const
@@ -125,7 +130,10 @@ struct VOXELCORE_API FVoxelIntBox2D
 	FORCEINLINE int32 Count_int32() const
 	{
 		checkVoxelSlow(Count_uint64() <= MAX_int32);
-		return int32(Count_uint64());
+
+		return
+			int32(Max.X - Min.X) *
+			int32(Max.Y - Min.Y);
 	}
 
 	FORCEINLINE bool SizeIs32Bit() const
@@ -255,6 +263,12 @@ struct VOXELCORE_API FVoxelIntBox2D
 			FVoxelUtilities::ComponentMin(Min, Other.Min),
 			FVoxelUtilities::ComponentMax(Max, Other.Max));
 	}
+
+	FVoxelIntBox2D Remove_Union(const FVoxelIntBox2D& Other) const;
+
+	void Remove_Split(
+		const FVoxelIntBox2D& Other,
+		TVoxelArray<FVoxelIntBox2D>& OutRemainder) const;
 
 	FORCEINLINE double SquaredDistanceToPoint(const FVector2D& Point) const
 	{

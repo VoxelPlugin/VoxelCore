@@ -95,7 +95,7 @@ namespace FVoxelUtilities
 		const TVoxelFuture<int64>& FutureNumBytes = -1);
 
 	template<typename T, typename = std::enable_if_t<std::is_trivially_destructible_v<T>>>
-	TVoxelFuture<TVoxelArray<T>> Readback(
+	TVoxelFuture<TVoxelArray64<T>> Readback(
 		const FBufferRHIRef& SourceBuffer,
 		const TVoxelFuture<int32>& FutureNum = -1)
 	{
@@ -115,10 +115,10 @@ namespace FVoxelUtilities
 
 			if (!ensure(Data.Num() % sizeof(T) == 0))
 			{
-				return MakeShared<TVoxelArray<T>>();
+				return MakeShared<TVoxelArray64<T>>();
 			}
 
-			return MakeShared<TVoxelArray<T>>(MakeVoxelArrayView(Data).ReinterpretAs<T>());
+			return MakeShared<TVoxelArray64<T>>(MakeVoxelArrayView(Data).ReinterpretAs<T>());
 		});
 	}
 

@@ -194,7 +194,7 @@ public:
 
 private:
 	TMap<FString, TSharedPtr<FVoxelShaderFileData>> PathToFileData;
-	mutable TWeakPtr<SNotificationItem> WeakNotification;
+	mutable TWeakPtr<FVoxelNotification> WeakNotification;
 };
 
 #define DECLARE_VOXEL_SHADER_HOOK(Api, Struct) \

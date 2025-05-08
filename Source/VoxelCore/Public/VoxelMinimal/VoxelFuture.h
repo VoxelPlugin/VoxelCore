@@ -6,6 +6,7 @@
 #include "VoxelMinimal/VoxelAtomic.h"
 #include "VoxelMinimal/VoxelSharedPtr.h"
 #include "VoxelMinimal/VoxelUniqueFunction.h"
+#include "VoxelMinimal/Utilities/VoxelTypeUtilities.h"
 
 struct FVoxelFuture;
 class FVoxelPromise;
@@ -88,11 +89,11 @@ enum class EVoxelFutureThread : uint8
 class VOXELCORE_API IVoxelPromiseState
 {
 public:
-	static TSharedRef<IVoxelPromiseState> New(
+	static TRefCountPtr<IVoxelPromiseState> New(
 		FVoxelTaskContext* ContextOverride,
 		bool bWithValue);
 
-	static TSharedRef<IVoxelPromiseState> New(const FSharedVoidRef& Value);
+	static TRefCountPtr<IVoxelPromiseState> New(const FSharedVoidRef& Value);
 
 	UE_NONCOPYABLE(IVoxelPromiseState);
 
@@ -108,6 +109,19 @@ public:
 		checkVoxelSlow(bIsComplete.Get());
 		checkVoxelSlow(Value.IsValid());
 		return ToSharedRefFast(Value);
+	}
+
+public:
+	FORCEINLINE void AddRef()
+	{
+		NumRefs.Increment();
+	}
+	FORCEINLINE void Release()
+	{
+		if (NumRefs.Decrement_ReturnNew() == 0)
+		{
+			Destroy();
+		}
 	}
 
 public:
@@ -132,10 +146,14 @@ public:
 		TVoxelUniqueFunction<void(const FSharedVoidRef&)> Continuation);
 
 protected:
+	VOXEL_COUNT_INSTANCES();
+
 	const bool bHasValue;
 	TVoxelAtomic<bool> bIsComplete;
 	TVoxelAtomic<bool> bIsLocked;
+	int32 StackIndex = -1;
 	int32 KeepAliveIndex = -1;
+	FVoxelCounter32 NumRefs;
 	FSharedVoidPtr Value;
 
 	FORCEINLINE explicit IVoxelPromiseState(const bool bHasValue)
@@ -143,9 +161,11 @@ protected:
 	{
 	}
 
+	void Destroy();
+
 	friend FVoxelPromiseState;
 };
-checkStatic(sizeof(IVoxelPromiseState) == 24);
+checkStatic(sizeof(IVoxelPromiseState) == 32);
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -172,7 +192,7 @@ public:
 
 		PromiseState = IVoxelPromiseState::New(nullptr, false);
 
-		const TSharedRef<FVoxelCounter32> Counter = MakeShared<FVoxelCounter32>(sizeof...(Futures));
+		FVoxelCounter32* Counter = new FVoxelCounter32(sizeof...(Futures));
 
 		const auto AddFuture = [&](const FVoxelFuture& Future)
 		{
@@ -181,6 +201,7 @@ public:
 				if (Counter->Decrement_ReturnNew() == 0)
 				{
 					PromiseState->Set();
+					delete Counter;
 				}
 				return;
 			}
@@ -191,6 +212,7 @@ public:
 				if (Counter->Decrement_ReturnNew() == 0)
 				{
 					LocalPromiseState->Set();
+					delete Counter;
 				}
 			});
 		};
@@ -298,13 +320,15 @@ public:
 	}
 
 protected:
-	TSharedPtr<IVoxelPromiseState> PromiseState;
+	TRefCountPtr<IVoxelPromiseState> PromiseState;
 
-	FORCEINLINE explicit FVoxelFuture(const TSharedRef<IVoxelPromiseState>& PromiseState)
-		: PromiseState(PromiseState)
+	FORCEINLINE explicit FVoxelFuture(TRefCountPtr<IVoxelPromiseState>&& PromiseState)
+		: PromiseState(MoveTemp(PromiseState))
 	{
 	}
 
+	template<typename>
+	friend class TVoxelFuture;
 	template<typename>
 	friend class TVoxelPromise;
 
@@ -326,11 +350,18 @@ public:
 
 	// Futures are always valid
 	TVoxelFuture()
-		: TVoxelFuture(MakeShared<T>())
+		: TVoxelFuture(MakeShared<T>(FVoxelUtilities::MakeSafe<T>()))
 	{
+		checkStatic(FVoxelUtilities::CanMakeSafe<T>);
 	}
 
-	FORCEINLINE TVoxelFuture(const TSharedRef<T>& Value)
+	template<typename ChildType>
+	requires
+	(
+		std::is_same_v<ChildType, T> ||
+		std::derived_from<ChildType, T>
+	)
+	FORCEINLINE TVoxelFuture(const TSharedRef<ChildType>& Value)
 		: FVoxelFuture(IVoxelPromiseState::New(MakeSharedVoidRef(Value)))
 	{
 	}
@@ -497,8 +528,8 @@ public:
 	}
 
 protected:
-	FORCEINLINE explicit TVoxelFuture(const TSharedRef<IVoxelPromiseState>& PromiseState)
-		: FVoxelFuture(PromiseState)
+	FORCEINLINE explicit TVoxelFuture(TRefCountPtr<IVoxelPromiseState>&& PromiseState)
+		: FVoxelFuture(MoveTemp(PromiseState))
 	{
 	}
 };

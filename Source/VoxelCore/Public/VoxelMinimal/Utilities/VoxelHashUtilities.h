@@ -179,6 +179,11 @@ namespace FVoxelUtilities
 			return MurmurHash64(Hash);
 		}
 
+		if constexpr (std::is_same_v<T, FVector3f>)
+		{
+			return MurmurHash(Value);
+		}
+
 		return GetTypeHash(Value);
 	}
 

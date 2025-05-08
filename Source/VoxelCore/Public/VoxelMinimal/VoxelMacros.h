@@ -63,8 +63,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-extern VOXELCORE_API bool GVoxelProfilerInfiniteLoop;
-
 #if VOXEL_DEBUG
 #define checkVoxelSlow(x) check(x)
 #define checkfVoxelSlow(x, ...) checkf(x, ##__VA_ARGS__)
@@ -116,6 +114,12 @@ VOXELCORE_API bool Voxel_CanAccessUObject();
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+
+#if RHI_RAYTRACING
+#define RHI_RAYTRACING_ONLY(...) __VA_ARGS__
+#else
+#define RHI_RAYTRACING_ONLY(...)
+#endif
 
 #if VOXEL_DEBUG
 #define VOXEL_STATIC_HELPER_CHECK() ON_SCOPE_EXIT { ensure(StaticRawValue != 0); }
@@ -198,12 +202,48 @@ FORCEINLINE const FName& VoxelStaticName(const T&)
 #define VOXEL_FWD_DECLARE_CLASS_INTELLISENSE(Name)
 #endif
 
-#define VOXEL_CONSOLE_VARIABLE(Api, Type, Name, Default, Command, Description) \
+FORCEINLINE void VoxelConsoleVariable_CallOnChanged() {}
+FORCEINLINE void VoxelConsoleVariable_CallOnChanged(TFunction<void()> OnChanged) { OnChanged(); }
+FORCEINLINE void VoxelConsoleVariable_CallOnChanged(TFunction<void()> OnChanged, TFunction<void()> Tick) { OnChanged(); }
+
+FORCEINLINE void VoxelConsoleVariable_CallTick() {}
+FORCEINLINE void VoxelConsoleVariable_CallTick(TFunction<void()> OnChanged) {}
+FORCEINLINE void VoxelConsoleVariable_CallTick(TFunction<void()> OnChanged, TFunction<void()> Tick) { Tick(); }
+
+namespace Voxel
+{
+	FORCEINLINE void Void()
+	{
+	}
+}
+
+struct VOXELCORE_API FVoxelConsoleVariableHelper
+{
+	explicit FVoxelConsoleVariableHelper(
+		TFunction<void()> OnChanged,
+		TFunction<void()> Tick);
+};
+
+#define VOXEL_CONSOLE_VARIABLE(Api, Type, Name, Default, Command, Description, ...) \
 	Api Type Name = Default; \
 	static FAutoConsoleVariableRef CVar_ ## Name( \
 		TEXT(Command),  \
 		Name,  \
-		TEXT(Description))
+		TEXT(Description)); \
+	\
+	static const FVoxelConsoleVariableHelper PREPROCESSOR_JOIN(VoxelConsoleVariableHelper, __COUNTER__)([] \
+	{ \
+		static Type LastValue = Default; \
+		if (LastValue != Name) \
+		{ \
+			LastValue = Name; \
+			VoxelConsoleVariable_CallOnChanged(__VA_ARGS__); \
+		} \
+	}, \
+	[] \
+	{ \
+		VoxelConsoleVariable_CallTick(__VA_ARGS__); \
+	});
 
 #define VOXEL_CONSOLE_COMMAND(Command, Description) \
 	static void VoxelConsoleCommand(TVoxelCounterDummy<__COUNTER__>, const TArray<FString>& Args); \
@@ -212,6 +252,7 @@ FORCEINLINE const FName& VoxelStaticName(const T&)
 	    TEXT(Description), \
 		MakeLambdaDelegate([](const TArray<FString>& Args) \
 		{ \
+			static_assert(sizeof(Description) > 1, "Missing description"); \
 			VOXEL_SCOPE_COUNTER(Command); \
 			VoxelConsoleCommand(TVoxelCounterDummy<__COUNTER__ - 2>(), Args); \
 		})); \
@@ -230,19 +271,6 @@ FORCEINLINE const FName& VoxelStaticName(const T&)
 		})); \
 	\
 	static void VoxelConsoleCommand(TVoxelCounterDummy<__COUNTER__ - 3>, const TArray<FString>& Args, UWorld* World)
-
-struct VOXELCORE_API FVoxelConsoleSinkHelper
-{
-	explicit FVoxelConsoleSinkHelper(TFunction<void()> Lambda);
-};
-
-#define VOXEL_CONSOLE_SINK() \
-	static void VoxelConsoleSink(TVoxelCounterDummy<__COUNTER__>); \
-	static const FVoxelConsoleSinkHelper PREPROCESSOR_JOIN(VoxelConsoleSinkHelper, __COUNTER__)([] \
-	{ \
-		VoxelConsoleSink(TVoxelCounterDummy<__COUNTER__ - 2>()); \
-	}); \
-	void VoxelConsoleSink(TVoxelCounterDummy<__COUNTER__ - 3>)
 
 #define VOXEL_EXPAND(X) X
 
@@ -272,19 +300,19 @@ public: \
 		(void)Temp; \
 	}
 
-#if !IS_MONOLITHIC
-#define VOXEL_ISPC_ASSERT() \
-	extern "C" void VoxelISPC_Assert(const int32 Line) \
-	{ \
-		ensureAlwaysMsgf(false, TEXT("ISPC LINE: %d"), Line); \
-	}
-#else
-#define VOXEL_ISPC_ASSERT()
-#endif
+ #if !IS_MONOLITHIC
+ #define VOXEL_ISPC_ASSERT() \
+ 	extern "C" void VoxelISPC_Assert(const int32 Line) \
+ 	{ \
+ 		ensureAlwaysMsgf(false, TEXT("ISPC LINE: %d"), Line); \
+ 	}
+ #else
+ #define VOXEL_ISPC_ASSERT()
+ #endif
 
-#define VOXEL_DEFAULT_MODULE(Name) \
-	IMPLEMENT_MODULE(FDefaultModuleImpl, Name) \
-	VOXEL_ISPC_ASSERT()
+ #define VOXEL_DEFAULT_MODULE(Name) \
+ 	IMPLEMENT_MODULE(FDefaultModuleImpl, Name) \
+ 	VOXEL_ISPC_ASSERT()
 
 #define VOXEL_PURE_VIRTUAL(...) { ensureMsgf(false, TEXT("Pure virtual %s called"), *FString(__FUNCTION__)); return __VA_ARGS__; }
 
