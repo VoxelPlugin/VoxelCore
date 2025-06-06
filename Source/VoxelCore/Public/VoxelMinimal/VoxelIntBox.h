@@ -4,6 +4,7 @@
 
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelBox.h"
+#include "VoxelMinimal/VoxelIntInterval.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Utilities/VoxelVectorUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelLambdaUtilities.h"
@@ -182,6 +183,19 @@ struct VOXELCORE_API FVoxelIntBox
 	FORCEINLINE FBox3f ToFBox3f() const
 	{
 		return FBox3f(FVector3f(Min), FVector3f(Max));
+	}
+
+	FORCEINLINE FVoxelIntInterval GetX() const
+	{
+		return { Min.X, Max.X };
+	}
+	FORCEINLINE FVoxelIntInterval GetY() const
+	{
+		return { Min.Y, Max.Y };
+	}
+	FORCEINLINE FVoxelIntInterval GetZ() const
+	{
+		return { Min.Z, Max.Z };
 	}
 
 	FORCEINLINE bool IsValid() const

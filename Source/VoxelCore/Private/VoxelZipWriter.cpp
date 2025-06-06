@@ -8,7 +8,7 @@ TSharedRef<FVoxelZipWriter> FVoxelZipWriter::Create(const FWriteLambda& WriteLam
 
 	const TSharedRef<FVoxelZipWriter> Result = MakeShareable(new FVoxelZipWriter(WriteLambda));
 	Result->Archive.m_pIO_opaque = &Result.Get();
-	Result->Archive.m_pWrite = [](void *pOpaque, const mz_uint64 file_ofs, const void *pBuf, const size_t n) -> size_t
+	Result->Archive.m_pWrite = [](void *pOpaque, const voxel::mz_uint64 file_ofs, const void *pBuf, const size_t n) -> size_t
 	{
 		static_cast<FVoxelZipWriter*>(pOpaque)->WriteToDisk(
 			file_ofs,
@@ -17,7 +17,7 @@ TSharedRef<FVoxelZipWriter> FVoxelZipWriter::Create(const FWriteLambda& WriteLam
 		return n;
 	};
 
-	ensure(mz_zip_writer_init_v2(&Result->Archive, 0, MZ_ZIP_FLAG_WRITE_ZIP64));
+	ensure(mz_zip_writer_init_v2(&Result->Archive, 0, voxel::MZ_ZIP_FLAG_WRITE_ZIP64));
 	Result->CheckError();
 	return Result;
 }
@@ -62,7 +62,7 @@ void FVoxelZipWriter::Write(
 	const TConstVoxelArrayView64<uint8> Data)
 {
 	VOXEL_SCOPE_COUNTER_FORMAT("FVoxelZipWriter::Write %s %lldB", *Path, Data.Num());
-	WriteImpl(Path, Data, MZ_NO_COMPRESSION);
+	WriteImpl(Path, Data, voxel::MZ_NO_COMPRESSION);
 }
 
 void FVoxelZipWriter::WriteCompressed(
@@ -70,7 +70,7 @@ void FVoxelZipWriter::WriteCompressed(
 	const TConstVoxelArrayView64<uint8> Data)
 {
 	VOXEL_SCOPE_COUNTER_FORMAT("FVoxelZipWriter::WriteCompressed %s %lldB", *Path, Data.Num());
-	WriteImpl(Path, Data, MZ_DEFAULT_COMPRESSION);
+	WriteImpl(Path, Data, voxel::MZ_DEFAULT_COMPRESSION);
 }
 
 void FVoxelZipWriter::WriteCompressed(
@@ -96,7 +96,7 @@ void FVoxelZipWriter::WriteCompressed_Oodle(
 
 	const TVoxelArray64<uint8> CompressedData = FVoxelUtilities::Compress(Data, bAllowParallel, Compressor, CompressionLevel);
 
-	WriteImpl(Path, CompressedData, MZ_NO_COMPRESSION);
+	WriteImpl(Path, CompressedData, voxel::MZ_NO_COMPRESSION);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -149,7 +149,7 @@ void FVoxelZipWriter::WriteImpl(
 				}
 				else
 				{
-					ensure(Compression != MZ_NO_COMPRESSION);
+					ensure(Compression != voxel::MZ_NO_COMPRESSION);
 
 					// Copying the data would be too expensive
 					WriteLambda(Offset, DataToWrite);

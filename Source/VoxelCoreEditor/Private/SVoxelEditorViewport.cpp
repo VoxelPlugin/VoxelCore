@@ -7,6 +7,13 @@
 #include "PreviewProfileController.h"
 #include "SEditorViewportToolBarMenu.h"
 
+#if VOXEL_ENGINE_VERSION >= 506
+#include "ToolMenus.h"
+#include "ToolMenuContext.h"
+#include "AdvancedPreviewSceneMenus.h"
+#include "ViewportToolbar/UnrealEdViewportToolbar.h"
+#endif
+
 FVoxelEditorViewportClient::FVoxelEditorViewportClient(
 	FEditorModeTools* EditorModeTools,
 	const TSharedRef<SVoxelEditorViewport>& Viewport,
@@ -374,6 +381,105 @@ TSharedRef<FEditorViewportClient> SVoxelEditorViewport::MakeEditorViewportClient
 	return ViewportClient;
 }
 
+#if VOXEL_ENGINE_VERSION >= 506
+TSharedPtr<SWidget> SVoxelEditorViewport::BuildViewportToolbar()
+{
+	const TSharedPtr<IVoxelViewportInterface> Interface = WeakInterface.Pin();
+	if (!ensure(Interface))
+	{
+		return SNullWidget::NullWidget;
+	}
+
+	const FName ViewportToolbarName = FName(Interface->GetToolbarName() + ".ViewportToolbar");
+
+	if (!UToolMenus::Get()->IsMenuRegistered(ViewportToolbarName))
+	{
+		UToolMenu* const ViewportToolbarMenu = UToolMenus::Get()->RegisterMenu(ViewportToolbarName, NAME_None, EMultiBoxType::SlimHorizontalToolBar);
+
+		ViewportToolbarMenu->StyleName = "ViewportToolbar";
+
+		FToolMenuSection& LeftSection = ViewportToolbarMenu->AddSection("Left");
+		if (Interface->ShowTransformToolbar())
+		{
+			LeftSection.AddEntry(UE::UnrealEd::CreateTransformsSubmenu());
+			LeftSection.AddEntry(UE::UnrealEd::CreateSnappingSubmenu());
+		}
+
+		{
+			FToolMenuSection& RightSection = ViewportToolbarMenu->AddSection("Right");
+			RightSection.Alignment = EToolMenuSectionAlign::Last;
+
+			RightSection.AddEntry(UE::UnrealEd::CreateCameraSubmenu(UE::UnrealEd::FViewportCameraMenuOptions().ShowAll()));
+
+			{
+				{
+					const FName ParentSubmenuName = "UnrealEd.ViewportToolbar.View";
+					if (!UToolMenus::Get()->IsMenuRegistered(ParentSubmenuName))
+					{
+						UToolMenus::Get()->RegisterMenu(ParentSubmenuName);
+					}
+
+					UToolMenus::Get()->RegisterMenu("StaticMeshEditor.ViewportToolbar.ViewModes", ParentSubmenuName);
+				}
+
+				RightSection.AddEntry(UE::UnrealEd::CreateViewModesSubmenu());
+			}
+
+			RightSection.AddEntry(UE::UnrealEd::CreateDefaultShowSubmenu());
+			RightSection.AddEntry(UE::UnrealEd::CreatePerformanceAndScalabilitySubmenu());
+
+			{
+				const FName PreviewSceneMenuName = "StaticMeshEditor.ViewportToolbar.AssetViewerProfile";
+				RightSection.AddEntry(UE::UnrealEd::CreateAssetViewerProfileSubmenu());
+				UE::AdvancedPreviewScene::Menus::ExtendAdvancedPreviewSceneSettings(PreviewSceneMenuName);
+				UE::UnrealEd::ExtendPreviewSceneSettingsWithTabEntry(PreviewSceneMenuName);
+			}
+		}
+
+		ViewportToolbarMenu->AddDynamicSection("Last", MakeLambdaDelegate([](UToolMenu* NewMenu)
+		{
+			const UVoxelEditorViewportContext* Context = NewMenu->FindContext<UVoxelEditorViewportContext>();
+			if (!Context)
+			{
+				return;
+			}
+
+			const TSharedPtr<IVoxelViewportInterface> PinnedInterface = Context->WeakInterface.Pin();
+			if (!PinnedInterface)
+			{
+				return;
+			}
+
+			PinnedInterface->ExtendToolbar(*NewMenu);
+		}));
+	}
+
+	FToolMenuContext ViewportToolbarContext;
+	{
+		ViewportToolbarContext.AppendCommandList(PreviewScene->GetCommandList());
+		ViewportToolbarContext.AppendCommandList(GetCommandList());
+
+		{
+			UUnrealEdViewportToolbarContext* const ContextObject = UE::UnrealEd::CreateViewportToolbarDefaultContext(SharedThis(this));
+
+			ContextObject->bShowCoordinateSystemControls = false;
+
+			ContextObject->AssetEditorToolkit = Interface->GetEditorToolkit();
+			ContextObject->PreviewSettingsTabId = Interface->GetPreviewSettingsTabId();
+
+			ViewportToolbarContext.AddObject(ContextObject);
+		}
+	}
+	{
+		UVoxelEditorViewportContext* Context = NewObject<UVoxelEditorViewportContext>();
+		Context->WeakInterface = Interface;
+		ViewportToolbarContext.AddObject(Context);
+	}
+
+	return UToolMenus::Get()->GenerateWidget(ViewportToolbarName, ViewportToolbarContext);
+}
+#endif
+
 TSharedPtr<SWidget> SVoxelEditorViewport::MakeViewportToolbar()
 {
 	const TSharedPtr<IVoxelViewportInterface> Interface = WeakInterface.Pin();
@@ -398,7 +504,19 @@ void SVoxelEditorViewport::PopulateViewportOverlays(const TSharedRef<SOverlay> O
 	Overlay->AddSlot()
 	.VAlign(VAlign_Top)
 	.HAlign(HAlign_Left)
+#if VOXEL_ENGINE_VERSION >= 506
+	.Padding(MakeAttributeLambda([]
+	{
+		if (UE::UnrealEd::ShowOldViewportToolbars())
+		{
+			return FMargin(6.f, 36.f, 6.f, 6.f);
+		}
+
+		return FMargin(6.f);
+	}))
+#else
 	.Padding(FMargin(6.f, 36.f, 6.f, 6.f))
+#endif
 	[
 		SNew(SBorder)
 		.Visibility_Lambda([this]

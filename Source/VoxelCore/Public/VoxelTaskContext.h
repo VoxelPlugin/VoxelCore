@@ -4,6 +4,8 @@
 
 #include "VoxelMinimal.h"
 
+extern VOXELCORE_API bool GVoxelNoAsync;
+
 extern VOXELCORE_API FVoxelTaskContext* GVoxelGlobalTaskContext;
 extern FVoxelTaskContext* GVoxelSynchronousTaskContext;
 
@@ -148,7 +150,7 @@ private:
 private:
 	FVoxelCriticalSection CriticalSection;
 	TVoxelSparseArray<FVoxelStackFrames> StackFrames_RequiresLock;
-	TVoxelChunkedSparseArray<TRefCountPtr<IVoxelPromiseState>> PromisesToKeepAlive_RequiresLock;
+	TVoxelChunkedSparseArray<TVoxelRefCountPtr<IVoxelPromiseState>> PromisesToKeepAlive_RequiresLock;
 
 	friend FVoxelPromiseState;
 	friend FVoxelTaskContextWeakRef;

@@ -300,6 +300,7 @@ int32 programIndex;
 #define IGNORE_PERF_WARNING #pragma ignore warning(perf)
 
 #define coherent_if cif
+#define nullptr NULL
 
 #if TARGET_WIDTH == 8
 #define MakeRegister(A, B, C, D, E, F, G, H) { A, B, C, D, E, F, G, H }

@@ -81,13 +81,13 @@ public:
 		{
 			ensureVoxelSlow(Bounds.IsValidAndNotEmpty());
 
-			MinX.Add(FVoxelUtilities::DoubleToFloat_Lower(Bounds.Min.X));
-			MinY.Add(FVoxelUtilities::DoubleToFloat_Lower(Bounds.Min.Y));
-			MinZ.Add(FVoxelUtilities::DoubleToFloat_Lower(Bounds.Min.Z));
-			MaxX.Add(FVoxelUtilities::DoubleToFloat_Higher(Bounds.Max.X));
-			MaxY.Add(FVoxelUtilities::DoubleToFloat_Higher(Bounds.Max.Y));
-			MaxZ.Add(FVoxelUtilities::DoubleToFloat_Higher(Bounds.Max.Z));
-			Payload.Add(PayloadIndex);
+			MinX.Add_EnsureNoGrow(FVoxelUtilities::DoubleToFloat_Lower(Bounds.Min.X));
+			MinY.Add_EnsureNoGrow(FVoxelUtilities::DoubleToFloat_Lower(Bounds.Min.Y));
+			MinZ.Add_EnsureNoGrow(FVoxelUtilities::DoubleToFloat_Lower(Bounds.Min.Z));
+			MaxX.Add_EnsureNoGrow(FVoxelUtilities::DoubleToFloat_Higher(Bounds.Max.X));
+			MaxY.Add_EnsureNoGrow(FVoxelUtilities::DoubleToFloat_Higher(Bounds.Max.Y));
+			MaxZ.Add_EnsureNoGrow(FVoxelUtilities::DoubleToFloat_Higher(Bounds.Max.Z));
+			Payload.Add_EnsureNoGrow(PayloadIndex);
 		}
 	};
 

@@ -16,7 +16,7 @@ UTexture2D* FVoxelTextureUtilities::GetDefaultTexture2D()
 {
 	// Loaded by UVoxelTextureUtilitiesHelper
 	UTexture2D* Texture = FindObject<UTexture2D>(nullptr, TEXT("/Engine/EngineResources/DefaultTexture.DefaultTexture"));
-	ensure(Texture);
+	check(Texture);
 	return Texture;
 }
 
@@ -24,7 +24,7 @@ UTexture2DArray* FVoxelTextureUtilities::GetDefaultTexture2DArray()
 {
 	// Loaded by UVoxelTextureUtilitiesHelper
 	UTexture2DArray* Texture = FindObject<UTexture2DArray>(nullptr, TEXT("/Voxel/Default/DefaultTextureArray.DefaultTextureArray"));
-	ensure(Texture);
+	check(Texture);
 	return Texture;
 }
 

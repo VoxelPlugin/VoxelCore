@@ -325,7 +325,7 @@ public:
 		const T* Value = TryGetStructPropertyValue<T>(Handle);
 		if (!ensure(Value))
 		{
-			static const T Default;
+			static const T Default = FVoxelUtilities::MakeSafe<T>();
 			return Default;
 		}
 		return *Value;

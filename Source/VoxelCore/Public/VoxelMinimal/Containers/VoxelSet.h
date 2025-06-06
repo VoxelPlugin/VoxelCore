@@ -5,6 +5,7 @@
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
+#include "VoxelMinimal/Utilities/VoxelTypeUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelHashUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelArrayUtilities.h"
 
@@ -34,29 +35,29 @@ public:
 	{
 		return Index != -1;
 	}
-	FORCEINLINE operator int32() const
+	FORCEINLINE int32 GetIndex() const
 	{
+		checkVoxelSlow(IsValid());
 		return Index;
 	}
-
-	operator bool() const = delete;
 
 private:
 	int32 Index = -1;
 };
 
-template<typename Type>
-struct TVoxelDefaultSetAllocator
+struct FVoxelDefaultSetAllocator
 {
 	static constexpr int32 MinHashSize = 0;
 
 	using FHashArray = TVoxelArray<int32>;
-	using FElementArray = TVoxelArray<TVoxelSetElement<Type>>;
+
+	template<typename Type>
+	using TElementArray = TVoxelArray<TVoxelSetElement<Type>>;
 };
 
 // Smaller footprint than TSet
 // Much faster to Reserve as no sparse array/free list
-template<typename Type, typename Allocator = TVoxelDefaultSetAllocator<Type>>
+template<typename Type, typename Allocator = FVoxelDefaultSetAllocator>
 class TVoxelSet
 {
 public:
@@ -98,6 +99,26 @@ public:
 	explicit TVoxelSet(const TVoxelSet<OtherType, OtherAllocator>& Other)
 	{
 		this->Append(Other);
+	}
+
+public:
+	template<typename OtherType>
+	requires FVoxelUtilities::CanCastMemory<Type, OtherType>
+	FORCEINLINE operator const TVoxelSet<OtherType, Allocator>&() const &
+	{
+		return ReinterpretCastRef<TVoxelSet<OtherType, Allocator>>(*this);
+	}
+	template<typename OtherType>
+	requires FVoxelUtilities::CanCastMemory<Type, OtherType>
+	FORCEINLINE operator TVoxelSet<OtherType, Allocator>&() &
+	{
+		return ReinterpretCastRef<TVoxelSet<OtherType, Allocator>>(*this);
+	}
+	template<typename OtherType>
+	requires FVoxelUtilities::CanCastMemory<Type, OtherType>
+	FORCEINLINE operator TVoxelSet<OtherType, Allocator>&&() &&
+	{
+		return ReinterpretCastRef<TVoxelSet<OtherType, Allocator>>(MoveTemp(*this));
 	}
 
 public:
@@ -818,7 +839,7 @@ public:
 
 private:
 	typename Allocator::FHashArray HashTable;
-	typename Allocator::FElementArray Elements;
+	typename Allocator::template TElementArray<Type> Elements;
 
 	FORCEINLINE static int32 GetHashSize(const int32 NumElements)
 	{
@@ -886,14 +907,16 @@ private:
 	}
 };
 
-template<typename Type, int32 NumInlineElements>
+template<int32 NumInlineElements>
 struct TVoxelInlineSetAllocator
 {
 	static constexpr int32 MinHashSize = FVoxelUtilities::GetHashTableSize<NumInlineElements>();
 
 	using FHashArray = TVoxelInlineArray<int32, MinHashSize>;
-	using FElementArray = TVoxelInlineArray<TVoxelSetElement<Type>, NumInlineElements>;
+
+	template<typename Type>
+	using TElementArray = TVoxelInlineArray<TVoxelSetElement<Type>, NumInlineElements>;
 };
 
 template<typename Type, int32 NumInlineElements>
-using TVoxelInlineSet = TVoxelSet<Type, TVoxelInlineSetAllocator<Type, NumInlineElements>>;
+using TVoxelInlineSet = TVoxelSet<Type, TVoxelInlineSetAllocator<NumInlineElements>>;

@@ -4,6 +4,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #if WITH_EDITOR
 #include "SourceCodeNavigation.h"
+#include "StructUtils/InstancedStruct.h"
 #endif
 
 #if WITH_EDITOR
@@ -229,6 +230,18 @@ VOXEL_RUN_ON_STARTUP_GAME()
 
 						for (const auto& It : MetadataMap)
 						{
+							if (It.Key == "NativeConst")
+							{
+								continue;
+							}
+
+							if (It.Key == "BaseStruct" &&
+								Property.IsA<FStructProperty>() &&
+								CastFieldChecked<FStructProperty>(Property).Struct == FInstancedStruct::StaticStruct())
+							{
+								continue;
+							}
+
 							if (!Metadata.IsEmpty())
 							{
 								Metadata += ", ";
@@ -244,7 +257,8 @@ VOXEL_RUN_ON_STARTUP_GAME()
 
 						FString UParam;
 
-						if (Property.HasAllPropertyFlags(CPF_OutParm | CPF_ReferenceParm))
+						if (Property.HasAllPropertyFlags(CPF_OutParm | CPF_ReferenceParm) &&
+							!Property.HasAnyPropertyFlags(CPF_ConstParm))
 						{
 							if (!UParam.IsEmpty())
 							{
@@ -305,6 +319,11 @@ VOXEL_RUN_ON_STARTUP_GAME()
 								}
 							}
 
+							if (const FEnumProperty* EnumProperty = CastField<FEnumProperty>(Property))
+							{
+								Default = EnumProperty->GetCPPType(nullptr, 0) + "::" + Default;
+							}
+
 							if (const FStructProperty* StructProperty = CastField<FStructProperty>(Property))
 							{
 								if (StructProperty->Struct == StaticStructFast<FVector>())
@@ -321,6 +340,18 @@ VOXEL_RUN_ON_STARTUP_GAME()
 									{
 										Default = "FVector::UpVector";
 									}
+									if (Default == "0.000000,0.000000,0.000000")
+									{
+										Default = "FVector::ZeroVector";
+									}
+								}
+
+								if (StructProperty->Struct == StaticStructFast<FRotator>())
+								{
+									if (Default.IsEmpty())
+									{
+										Default = "FRotator::ZeroRotator";
+									}
 								}
 
 								if (Default == "()")
@@ -328,6 +359,8 @@ VOXEL_RUN_ON_STARTUP_GAME()
 									Default = StructProperty->Struct->GetStructCPPName() + "()";
 								}
 							}
+
+							ensure(!Default.IsEmpty());
 						}
 
 						if (!Default.IsEmpty())
@@ -337,6 +370,7 @@ VOXEL_RUN_ON_STARTUP_GAME()
 
 						GeneratedFile += "\n\t\t" +
 							UParam +
+							(MetadataMap.Contains("NativeConst") ? "const " : "") +
 							FVoxelUtilities::GetFunctionType(Property) +
 							(Property.HasAnyPropertyFlags(CPF_OutParm) ? "& " : " ") +
 							Property.GetName() + Default + ",";

@@ -36,6 +36,7 @@
 #include "VoxelCoreMinimal.h"
 
 #include "VoxelMinimal/VoxelArchive.h"
+#include "VoxelMinimal/VoxelAsset.h"
 #include "VoxelMinimal/VoxelAtomic.h"
 #include "VoxelMinimal/VoxelAutoFactoryInterface.h"
 #include "VoxelMinimal/VoxelAxis.h"
@@ -62,6 +63,7 @@
 #include "VoxelMinimal/VoxelIntBox.h"
 #include "VoxelMinimal/VoxelIntBox2D.h"
 #include "VoxelMinimal/VoxelInterval.h"
+#include "VoxelMinimal/VoxelIntInterval.h"
 #include "VoxelMinimal/VoxelISPC.h"
 #include "VoxelMinimal/VoxelIterate.h"
 #include "VoxelMinimal/VoxelParallelFor.h"
@@ -74,6 +76,7 @@
 #include "VoxelMinimal/VoxelOctahedron.h"
 #include "VoxelMinimal/VoxelOptional.h"
 #include "VoxelMinimal/VoxelRange.h"
+#include "VoxelMinimal/VoxelRefCountPtr.h"
 #include "VoxelMinimal/VoxelResourceArrayRef.h"
 #include "VoxelMinimal/VoxelSerializationGuard.h"
 #include "VoxelMinimal/VoxelSharedPtr.h"

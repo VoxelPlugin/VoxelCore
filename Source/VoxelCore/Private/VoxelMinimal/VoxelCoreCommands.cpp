@@ -15,5 +15,7 @@ void Voxel::RefreshAll()
 {
 	VOXEL_FUNCTION_COUNTER();
 
+	LOG_VOXEL(Log, "Voxel::RefreshAll");
+
 	Voxel::OnRefreshAll.Broadcast();
 }

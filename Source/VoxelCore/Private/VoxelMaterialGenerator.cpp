@@ -6,6 +6,7 @@
 #include "Engine/TextureCollection.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialFunction.h"
+#include "Materials/MaterialAttributeDefinitionMap.h"
 #include "Materials/MaterialExpressionNamedReroute.h"
 #include "Materials/MaterialExpressionCustomOutput.h"
 #include "Materials/MaterialExpressionFunctionInput.h"
@@ -21,6 +22,16 @@
 #endif
 
 #if WITH_EDITOR
+void FVoxelMaterialGenerator::ForeachExpression(TFunctionRef<void(UMaterialExpression&)> Lambda)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	for (const auto& It : OldToNewExpression)
+	{
+		Lambda(*It.Value);
+	}
+}
+
 UMaterialFunction* FVoxelMaterialGenerator::DuplicateFunctionIfNeeded(const UMaterialFunction& OldFunction)
 {
 	VOXEL_FUNCTION_COUNTER();
@@ -125,9 +136,10 @@ TVoxelOptional<FMaterialAttributesInput> FVoxelMaterialGenerator::CopyExpression
 	if (OldMaterial.bUseMaterialAttributes)
 	{
 		FMaterialAttributesInput Input = OldMaterial.GetEditorOnlyData()->MaterialAttributes;
-		if (!ensure(Input.Expression))
+		if (!Input.Expression)
 		{
-			return {};
+			// Nothing plugged into it
+			return FMaterialAttributesInput();
 		}
 
 		UMaterialExpression* Expression = OldToNewExpression.FindRef(Input.Expression);
@@ -147,8 +159,12 @@ TVoxelOptional<FMaterialAttributesInput> FVoxelMaterialGenerator::CopyExpression
 	bool bFailed = false;
 	int32 AttributeIndex = 0;
 
-	const auto Traverse = [&]<typename T>(FMaterialInput<T> Input) -> FExpressionInput
+	const auto Traverse = [&]<typename T>(const EMaterialProperty Property, FMaterialInput<T> Input) -> FExpressionInput
 	{
+		// Make sure to not connect inputs if they are the default value, otherwise they'll be incorrectly flagged as connected
+		// This is critical, among others, for anisotropy to not be enabled
+		const FVector4f DefaultValue = FMaterialAttributeDefinitionMap::GetDefaultValue(Property);
+
 		if (Input.Expression)
 		{
 			Input.Expression = OldToNewExpression.FindRef(Input.Expression);
@@ -165,6 +181,11 @@ TVoxelOptional<FMaterialAttributesInput> FVoxelMaterialGenerator::CopyExpression
 
 		if constexpr (std::is_same_v<T, float>)
 		{
+			if (Input.Constant == DefaultValue.X)
+			{
+				return {};
+			}
+
 			UMaterialExpressionConstant& Expression = NewExpression<UMaterialExpressionConstant>();
 			Expression.R = Input.Constant;
 			Expression.MaterialExpressionEditorX = OldMaterial.EditorX - 250;
@@ -176,6 +197,12 @@ TVoxelOptional<FMaterialAttributesInput> FVoxelMaterialGenerator::CopyExpression
 		}
 		else if constexpr (std::is_same_v<T, FVector2f>)
 		{
+			if (Input.Constant.X == DefaultValue.X &&
+				Input.Constant.Y == DefaultValue.Y)
+			{
+				return {};
+			}
+
 			UMaterialExpressionConstant2Vector& Expression = NewExpression<UMaterialExpressionConstant2Vector>();
 			Expression.R = Input.Constant.X;
 			Expression.G = Input.Constant.Y;
@@ -188,6 +215,13 @@ TVoxelOptional<FMaterialAttributesInput> FVoxelMaterialGenerator::CopyExpression
 		}
 		else if constexpr (std::is_same_v<T, FVector3f>)
 		{
+			if (Input.Constant.X == DefaultValue.X &&
+				Input.Constant.Y == DefaultValue.Y &&
+				Input.Constant.Z == DefaultValue.Z)
+			{
+				return {};
+			}
+
 			UMaterialExpressionConstant3Vector& Expression = NewExpression<UMaterialExpressionConstant3Vector>();
 			Expression.Constant = FLinearColor(Input.Constant);
 			Expression.MaterialExpressionEditorX = OldMaterial.EditorX - 250;
@@ -201,8 +235,18 @@ TVoxelOptional<FMaterialAttributesInput> FVoxelMaterialGenerator::CopyExpression
 			std::is_same_v<T, FColor> ||
 			std::is_same_v<T, FLinearColor>)
 		{
+			const FLinearColor Constant = FLinearColor(Input.Constant);
+
+			if (Constant.R == DefaultValue.X &&
+				Constant.G == DefaultValue.Y &&
+				Constant.B == DefaultValue.Z &&
+				Constant.A == DefaultValue.W)
+			{
+				return {};
+			}
+
 			UMaterialExpressionConstant4Vector& Expression = NewExpression<UMaterialExpressionConstant4Vector>();
-			Expression.Constant = FLinearColor(Input.Constant);
+			Expression.Constant = Constant;
 			Expression.MaterialExpressionEditorX = OldMaterial.EditorX - 250;
 			Expression.MaterialExpressionEditorY = OldMaterial.EditorY + AttributeIndex * 50;
 
@@ -213,31 +257,31 @@ TVoxelOptional<FMaterialAttributesInput> FVoxelMaterialGenerator::CopyExpression
 		else
 		{
 			checkStatic(std::is_void_v<T>);
-			return FExpressionInput();
+			return {};
 		}
 	};
 
 	// Need to add new properties below
 	checkStatic(MP_MAX == 35);
 
-	Attributes.BaseColor = Traverse(OldMaterial.GetEditorOnlyData()->BaseColor);
-	Attributes.Metallic = Traverse(OldMaterial.GetEditorOnlyData()->Metallic);
-	Attributes.Specular = Traverse(OldMaterial.GetEditorOnlyData()->Specular);
-	Attributes.Roughness = Traverse(OldMaterial.GetEditorOnlyData()->Roughness);
-	Attributes.Anisotropy = Traverse(OldMaterial.GetEditorOnlyData()->Anisotropy);
-	Attributes.EmissiveColor = Traverse(OldMaterial.GetEditorOnlyData()->EmissiveColor);
-	Attributes.Opacity = Traverse(OldMaterial.GetEditorOnlyData()->Opacity);
-	Attributes.OpacityMask = Traverse(OldMaterial.GetEditorOnlyData()->OpacityMask);
-	Attributes.Normal = Traverse(OldMaterial.GetEditorOnlyData()->Normal);
-	Attributes.Tangent = Traverse(OldMaterial.GetEditorOnlyData()->Tangent);
-	Attributes.WorldPositionOffset = Traverse(OldMaterial.GetEditorOnlyData()->WorldPositionOffset);
-	Attributes.SubsurfaceColor = Traverse(OldMaterial.GetEditorOnlyData()->SubsurfaceColor);
-	Attributes.ClearCoat = Traverse(OldMaterial.GetEditorOnlyData()->ClearCoat);
-	Attributes.ClearCoatRoughness = Traverse(OldMaterial.GetEditorOnlyData()->ClearCoatRoughness);
-	Attributes.AmbientOcclusion = Traverse(OldMaterial.GetEditorOnlyData()->AmbientOcclusion);
-	Attributes.Refraction = Traverse(OldMaterial.GetEditorOnlyData()->Refraction);
-	Attributes.PixelDepthOffset = Traverse(OldMaterial.GetEditorOnlyData()->PixelDepthOffset);
-	Attributes.Displacement = Traverse(OldMaterial.GetEditorOnlyData()->Displacement);
+	Attributes.BaseColor = Traverse(MP_BaseColor, OldMaterial.GetEditorOnlyData()->BaseColor);
+	Attributes.Metallic = Traverse(MP_Metallic, OldMaterial.GetEditorOnlyData()->Metallic);
+	Attributes.Specular = Traverse(MP_Specular, OldMaterial.GetEditorOnlyData()->Specular);
+	Attributes.Roughness = Traverse(MP_Roughness, OldMaterial.GetEditorOnlyData()->Roughness);
+	Attributes.Anisotropy = Traverse(MP_Anisotropy, OldMaterial.GetEditorOnlyData()->Anisotropy);
+	Attributes.EmissiveColor = Traverse(MP_EmissiveColor, OldMaterial.GetEditorOnlyData()->EmissiveColor);
+	Attributes.Opacity = Traverse(MP_Opacity, OldMaterial.GetEditorOnlyData()->Opacity);
+	Attributes.OpacityMask = Traverse(MP_OpacityMask, OldMaterial.GetEditorOnlyData()->OpacityMask);
+	Attributes.Normal = Traverse(MP_Normal, OldMaterial.GetEditorOnlyData()->Normal);
+	Attributes.Tangent = Traverse(MP_Tangent, OldMaterial.GetEditorOnlyData()->Tangent);
+	Attributes.WorldPositionOffset = Traverse(MP_WorldPositionOffset, OldMaterial.GetEditorOnlyData()->WorldPositionOffset);
+	Attributes.SubsurfaceColor = Traverse(MP_SubsurfaceColor, OldMaterial.GetEditorOnlyData()->SubsurfaceColor);
+	Attributes.ClearCoat = Traverse(MP_CustomData0, OldMaterial.GetEditorOnlyData()->ClearCoat);
+	Attributes.ClearCoatRoughness = Traverse(MP_CustomData1, OldMaterial.GetEditorOnlyData()->ClearCoatRoughness);
+	Attributes.AmbientOcclusion = Traverse(MP_AmbientOcclusion, OldMaterial.GetEditorOnlyData()->AmbientOcclusion);
+	Attributes.Refraction = Traverse(MP_Refraction, OldMaterial.GetEditorOnlyData()->Refraction);
+	Attributes.PixelDepthOffset = Traverse(MP_PixelDepthOffset, OldMaterial.GetEditorOnlyData()->PixelDepthOffset);
+	Attributes.Displacement = Traverse(MP_Displacement, OldMaterial.GetEditorOnlyData()->Displacement);
 
 	if (UMaterialExpression* Expression = OldMaterial.GetEditorOnlyData()->ShadingModelFromMaterialExpression.Expression)
 	{
@@ -253,7 +297,7 @@ TVoxelOptional<FMaterialAttributesInput> FVoxelMaterialGenerator::CopyExpression
 
 	for (int32 Index = 0; Index < 8; Index++)
 	{
-		Attributes.CustomizedUVs[Index] = Traverse(OldMaterial.GetEditorOnlyData()->CustomizedUVs[Index]);
+		Attributes.CustomizedUVs[Index] = Traverse(EMaterialProperty(MP_CustomizedUVs0 + Index), OldMaterial.GetEditorOnlyData()->CustomizedUVs[Index]);
 	}
 
 	if (bFailed)

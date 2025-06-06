@@ -56,6 +56,20 @@ FORCEINLINE generic double lerp(const generic double A, const generic double B, 
 	return A * (1.f - Alpha) + B * Alpha;
 }
 
+FORCEINLINE generic float lerp_NaN(const generic float A, const generic float B, const generic float Alpha)
+{
+	if (isnan(A))
+	{
+		return B;
+	}
+	if (isnan(B))
+	{
+		return A;
+	}
+
+	return lerp(A, B, Alpha);
+}
+
 FORCEINLINE generic float fmod(const generic float x, const generic float y)
 {
 	return x - trunc(x / y) * y;
@@ -99,6 +113,19 @@ FORCEINLINE generic float SmoothStep(const generic float A, const generic float 
 	const generic float InterpFraction = (Alpha - A) / (B - A);
 	return InterpFraction * InterpFraction * (3.0f - 2.0f * InterpFraction);
 }
+FORCEINLINE generic float SmoothStep_NaN(const generic float A, const generic float B, const generic float Alpha)
+{
+	if (isnan(A))
+	{
+		return B;
+	}
+	if (isnan(B))
+	{
+		return A;
+	}
+
+	return SmoothStep(A, B, Alpha);
+}
 
 FORCEINLINE generic uint32 MurmurHash32(generic uint32 Hash)
 {
@@ -114,6 +141,16 @@ FORCEINLINE generic uint32 MurmurHash32(const generic uint32 Value, const generi
 {
 	generic uint32 H = 1831214719 * (1460481823 + Seed);
 	return MurmurHash32(H ^ Value);
+}
+
+FORCEINLINE generic uint64 MurmurHash64(generic uint64 Hash)
+{
+	Hash ^= Hash >> 33;
+	Hash *= 0xff51afd7ed558ccd;
+	Hash ^= Hash >> 33;
+	Hash *= 0xc4ceb9fe1a85ec53;
+	Hash ^= Hash >> 33;
+	return Hash;
 }
 
 FORCEINLINE generic int32 PositiveMod(const generic int32 Dividend, const generic int32 Divisor)
@@ -465,6 +502,72 @@ FORCEINLINE generic int3 MakeInt3(const generic float3 Value)
 	return Result;
 }
 
+FORCEINLINE generic int2 MakeInt2(const generic double2 Value)
+{
+	generic int2 Result;
+	Result.x = Value.x;
+	Result.y = Value.y;
+	return Result;
+}
+FORCEINLINE generic int3 MakeInt3(const generic double3 Value)
+{
+	generic int3 Result;
+	Result.x = Value.x;
+	Result.y = Value.y;
+	Result.z = Value.z;
+	return Result;
+}
+
+FORCEINLINE generic int2 operator>>(const generic int2 A, const uniform int32 B)
+{
+	generic int2 Result;
+	Result.x = A.x >> B;
+	Result.y = A.y >> B;
+	return Result;
+}
+FORCEINLINE generic int3 operator>>(const generic int3 A, const uniform int32 B)
+{
+	generic int3 Result;
+	Result.x = A.x >> B;
+	Result.y = A.y >> B;
+	Result.z = A.z >> B;
+	return Result;
+}
+FORCEINLINE generic int4 operator>>(const generic int4 A, const uniform int32 B)
+{
+	generic int4 Result;
+	Result.x = A.x >> B;
+	Result.y = A.y >> B;
+	Result.z = A.z >> B;
+	Result.w = A.w >> B;
+	return Result;
+}
+
+FORCEINLINE generic int2 operator<<(const generic int2 A, const uniform int32 B)
+{
+	generic int2 Result;
+	Result.x = A.x >> B;
+	Result.y = A.y >> B;
+	return Result;
+}
+FORCEINLINE generic int3 operator<<(const generic int3 A, const uniform int32 B)
+{
+	generic int3 Result;
+	Result.x = A.x >> B;
+	Result.y = A.y >> B;
+	Result.z = A.z >> B;
+	return Result;
+}
+FORCEINLINE generic int4 operator<<(const generic int4 A, const uniform int32 B)
+{
+	generic int4 Result;
+	Result.x = A.x >> B;
+	Result.y = A.y >> B;
+	Result.z = A.z >> B;
+	Result.w = A.w >> B;
+	return Result;
+}
+
 FORCEINLINE generic float2 floor(const generic float2 Value)
 {
 	return MakeFloat2(
@@ -477,6 +580,48 @@ FORCEINLINE generic float3 floor(const generic float3 Value)
 		floor(Value.x),
 		floor(Value.y),
 		floor(Value.z));
+}
+
+FORCEINLINE generic double2 floor(const generic double2 Value)
+{
+	return MakeDouble2(
+		floor(Value.x),
+		floor(Value.y));
+}
+FORCEINLINE generic double3 floor(const generic double3 Value)
+{
+	return MakeDouble3(
+		floor(Value.x),
+		floor(Value.y),
+		floor(Value.z));
+}
+
+FORCEINLINE generic float2 ceil(const generic float2 Value)
+{
+	return MakeFloat2(
+		ceil(Value.x),
+		ceil(Value.y));
+}
+FORCEINLINE generic float3 ceil(const generic float3 Value)
+{
+	return MakeFloat3(
+		ceil(Value.x),
+		ceil(Value.y),
+		ceil(Value.z));
+}
+
+FORCEINLINE generic double2 ceil(const generic double2 Value)
+{
+	return MakeDouble2(
+		ceil(Value.x),
+		ceil(Value.y));
+}
+FORCEINLINE generic double3 ceil(const generic double3 Value)
+{
+	return MakeDouble3(
+		ceil(Value.x),
+		ceil(Value.y),
+		ceil(Value.z));
 }
 
 FORCEINLINE generic float2 clamp(

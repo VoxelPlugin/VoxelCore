@@ -6,6 +6,7 @@
 
 void FVoxelUtilities::JumpFlood(
 	const FIntVector& Size,
+	const float VoxelSize,
 	const TVoxelArrayView<float> Distances,
 	TVoxelArray<float>& OutClosestX,
 	TVoxelArray<float>& OutClosestY,
@@ -53,6 +54,7 @@ void FVoxelUtilities::JumpFlood(
 
 	JumpFlood_Initialized(
 		Size,
+		VoxelSize,
 		Distances,
 		OutClosestX,
 		OutClosestY,
@@ -61,6 +63,7 @@ void FVoxelUtilities::JumpFlood(
 
 void FVoxelUtilities::JumpFlood_Initialized(
 	const FIntVector& Size,
+	const float VoxelSize,
 	const TVoxelArrayView<float> Distances,
 	TVoxelArray<float>& ClosestX,
 	TVoxelArray<float>& ClosestY,
@@ -176,6 +179,7 @@ void FVoxelUtilities::JumpFlood_Initialized(
 
 				ispc::VoxelDistanceFieldUtilities_JumpFlood_ComputeDistances(
 					Z,
+					VoxelSize,
 					Size.X,
 					Size.Y,
 					Size.Z,
@@ -202,6 +206,7 @@ void FVoxelUtilities::JumpFlood_Initialized(
 
 void FVoxelUtilities::JumpFlood(
 	const FIntVector& Size,
+	const float VoxelSize,
 	const TVoxelArrayView<float> Distances)
 {
 	VOXEL_FUNCTION_COUNTER();
@@ -212,6 +217,7 @@ void FVoxelUtilities::JumpFlood(
 
 	JumpFlood(
 		Size,
+		VoxelSize,
 		Distances,
 		ClosestX,
 		ClosestY,

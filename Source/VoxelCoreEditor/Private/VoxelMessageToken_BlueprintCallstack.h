@@ -14,7 +14,7 @@ struct FVoxelMessageToken_BlueprintCallstack : public FVoxelMessageToken
 
 public:
 	TArray<TWeakObjectPtr<const UEdGraphNode>> Callstack;
-	FString Title;
+	TSharedPtr<const FVoxelMessage> Message;
 
 	//~ Begin FVoxelMessageToken Interface
 	virtual uint32 GetHash() const override;

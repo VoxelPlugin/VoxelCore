@@ -4,14 +4,22 @@
 #include "Async/Async.h"
 
 VOXEL_CONSOLE_VARIABLE(
-	VOXELCORE_API, bool, GVoxelOneThread, false,
-	"voxel.OneThread",
+	VOXELCORE_API, bool, GVoxelNoAsync, false,
+	"voxel.NoAsync",
 	"If true, will run all voxel tasks on the game thread. Useful when debugging.");
 
 VOXEL_CONSOLE_VARIABLE(
 	VOXELCORE_API, bool, GVoxelTrackAllPromisesCallstacks, false,
 	"voxel.TrackAllPromisesCallstacks",
 	"Enable voxel promise callstack tracking, to debug when promises where created");
+
+VOXEL_RUN_ON_STARTUP_GAME()
+{
+	if (FParse::Param(FCommandLine::Get(), TEXT("NoVoxelAsync")))
+	{
+		GVoxelNoAsync = true;
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -506,7 +514,7 @@ void FVoxelTaskContext::LaunchTask(TVoxelUniqueFunction<void()> Task)
 		NumPendingTasks.Decrement();
 	};
 
-	if (GVoxelOneThread)
+	if (GVoxelNoAsync)
 	{
 		AsyncTask(
 			ENamedThreads::GameThread,

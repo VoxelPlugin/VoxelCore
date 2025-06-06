@@ -27,6 +27,7 @@ public:
 	}
 
 public:
+	void ForeachExpression(TFunctionRef<void(UMaterialExpression&)> Lambda);
 	UMaterialFunction* DuplicateFunctionIfNeeded(const UMaterialFunction& OldFunction);
 	TVoxelOptional<FMaterialAttributesInput> CopyExpressions(const UMaterial& OldMaterial);
 
@@ -38,6 +39,10 @@ public:
 		T& Expression =  FVoxelUtilities::CreateMaterialExpression<T>(NewMaterial);
 		OldToNewExpression.Add_EnsureNew(&Expression, &Expression);
 		return Expression;
+	}
+	UMaterialExpression* GetNewExpression(const UMaterialExpression* OldExpression) const
+	{
+		return OldToNewExpression.FindRef(OldExpression);
 	}
 
 public:

@@ -91,13 +91,14 @@ private:
 	friend class TVoxelMap;
 };
 
-template<typename KeyType, typename ValueType>
-struct TVoxelDefaultMapAllocator
+struct FVoxelDefaultMapAllocator
 {
 	static constexpr int32 MinHashSize = 0;
 
 	using FHashArray = TVoxelArray<int32>;
-	using FElementArray = TVoxelArray<TVoxelMapElement<KeyType, ValueType>>;
+
+	template<typename KeyType, typename ValueType>
+	using TElementArray = TVoxelArray<TVoxelMapElement<KeyType, ValueType>>;
 };
 
 // Simple map with an array of elements and a hash table
@@ -109,7 +110,7 @@ struct TVoxelDefaultMapAllocator
 // TVoxelMap::Reserve(1M)  74.4x faster
 // TVoxelMap::FindOrAdd     2.2x faster
 // TVoxelMap::Add_CheckNew  4.0x faster
-template<typename KeyType, typename ValueType, typename Allocator = TVoxelDefaultMapAllocator<KeyType, ValueType>>
+template<typename KeyType, typename ValueType, typename Allocator = FVoxelDefaultMapAllocator>
 class TVoxelMap
 {
 public:
@@ -154,6 +155,38 @@ public:
 		{
 			this->FindOrAdd(Element.Key) = Element.Value;
 		}
+	}
+
+public:
+	template<typename OtherKeyType, typename OtherValueType>
+	requires
+	(
+		FVoxelUtilities::CanCastMemory<KeyType, OtherKeyType> &&
+		FVoxelUtilities::CanCastMemory<ValueType, OtherValueType>
+	)
+	FORCEINLINE operator const TVoxelMap<OtherKeyType, OtherValueType, Allocator>&() const &
+	{
+		return ReinterpretCastRef<TVoxelMap<OtherKeyType, OtherValueType, Allocator>>(*this);
+	}
+	template<typename OtherKeyType, typename OtherValueType>
+	requires
+	(
+		FVoxelUtilities::CanCastMemory<KeyType, OtherKeyType> &&
+		FVoxelUtilities::CanCastMemory<ValueType, OtherValueType>
+	)
+	FORCEINLINE operator TVoxelMap<OtherKeyType, OtherValueType, Allocator>&() &
+	{
+		return ReinterpretCastRef<TVoxelMap<OtherKeyType, OtherValueType, Allocator>>(*this);
+	}
+	template<typename OtherKeyType, typename OtherValueType>
+	requires
+	(
+		FVoxelUtilities::CanCastMemory<KeyType, OtherKeyType> &&
+		FVoxelUtilities::CanCastMemory<ValueType, OtherValueType>
+	)
+	FORCEINLINE operator TVoxelMap<OtherKeyType, OtherValueType, Allocator>&&() &&
+	{
+		return ReinterpretCastRef<TVoxelMap<OtherKeyType, OtherValueType, Allocator>>(MoveTemp(*this));
 	}
 
 public:
@@ -463,13 +496,26 @@ public:
 		}
 		return ValueType();
 	}
-	FORCEINLINE auto* FindSharedPtr(const KeyType& Key) const
+	FORCEINLINE auto* FindSmartPtr(const KeyType& Key) const
 	{
-		if (const ValueType* Value = this->Find(Key))
+		if constexpr (std::is_reference_v<decltype(DeclVal<ValueType>().Get())>)
 		{
-			return Value->Get();
+			if (const ValueType* Value = this->Find(Key))
+			{
+				return &Value->Get();
+			}
+
+			return static_cast<decltype(&DeclVal<ValueType>().Get())>(nullptr);
 		}
-		return nullptr;
+		else
+		{
+			if (const ValueType* Value = this->Find(Key))
+			{
+				return Value->Get();
+			}
+
+			return static_cast<decltype(DeclVal<ValueType>().Get())>(nullptr);
+		}
 	}
 
 	FORCEINLINE ValueType& FindChecked(const KeyType& Key)
@@ -520,11 +566,11 @@ public:
 	)
 	FORCEINLINE ValueType& FindOrAdd(InKeyType&& Key)
 	{
-		return this->FindOrAdd(Key, FVoxelUtilities::MakeSafe<ValueType>());
+		return this->FindOrAdd_WithDefault(Key, FVoxelUtilities::MakeSafe<ValueType>());
 	}
 	template<typename InValueType>
 	requires std::is_constructible_v<ValueType, InValueType&&>
-	FORCEINLINE ValueType& FindOrAdd(const KeyType& Key, InValueType&& Value)
+	FORCEINLINE ValueType& FindOrAdd_WithDefault(const KeyType& Key, InValueType&& DefaultValue)
 	{
 		const uint32 Hash = this->HashValue(Key);
 
@@ -533,7 +579,7 @@ public:
 			return *ExistingValue;
 		}
 
-		return this->AddHashed_CheckNew(Hash, Key, Forward<InValueType>(Value));
+		return this->AddHashed_CheckNew(Hash, Key, Forward<InValueType>(DefaultValue));
 	}
 
 public:
@@ -912,7 +958,7 @@ public:
 
 private:
 	typename Allocator::FHashArray HashTable;
-	typename Allocator::FElementArray Elements;
+	typename Allocator::template TElementArray<KeyType, ValueType> Elements;
 
 	FORCEINLINE static int32 GetHashSize(const int32 NumElements)
 	{
@@ -983,14 +1029,16 @@ private:
 	friend class TVoxelMap;
 };
 
-template<typename KeyType, typename ValueType, int32 NumInlineElements>
+template<int32 NumInlineElements>
 struct TVoxelInlineMapAllocator
 {
 	static constexpr int32 MinHashSize = FVoxelUtilities::GetHashTableSize<NumInlineElements>();
 
 	using FHashArray = TVoxelInlineArray<int32, MinHashSize>;
-	using FElementArray = TVoxelInlineArray<TVoxelMapElement<KeyType, ValueType>, NumInlineElements>;
+
+	template<typename KeyType, typename ValueType>
+	using TElementArray = TVoxelInlineArray<TVoxelMapElement<KeyType, ValueType>, NumInlineElements>;
 };
 
 template<typename KeyType, typename ValueType, int32 NumInlineElements>
-using TVoxelInlineMap = TVoxelMap<KeyType, ValueType, TVoxelInlineMapAllocator<KeyType, ValueType, NumInlineElements>>;
+using TVoxelInlineMap = TVoxelMap<KeyType, ValueType, TVoxelInlineMapAllocator<NumInlineElements>>;

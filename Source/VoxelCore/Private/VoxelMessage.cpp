@@ -81,6 +81,8 @@ uint64 FVoxelMessage::GetHash() const
 
 FString FVoxelMessage::ToString() const
 {
+	ensure(IsInGameThread());
+
 	FString Result;
 	for (const TSharedRef<FVoxelMessageToken>& Token : Tokens)
 	{

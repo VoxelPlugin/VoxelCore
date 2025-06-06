@@ -17,7 +17,7 @@ public:
 	}
 
 protected:
-	mutable mz_zip_archive Archive;
+	mutable voxel::mz_zip_archive Archive;
 
 	void CheckError() const;
 	void RaiseError() const;

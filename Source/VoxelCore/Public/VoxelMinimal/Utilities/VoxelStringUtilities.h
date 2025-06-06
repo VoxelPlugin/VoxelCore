@@ -56,7 +56,8 @@ namespace FVoxelUtilities
 	VOXELCORE_API FString BlobToHex(TConstVoxelArrayView64<uint8> Data);
 	VOXELCORE_API TVoxelArray<uint8> HexToBlob(const FString& Source);
 
-	template<typename BuilderType, typename NumberType, typename = std::enable_if_t<std::is_integral_v<NumberType>>>
+	template<typename BuilderType, typename NumberType>
+	requires std::is_integral_v<NumberType>
 	FORCEINLINE void AppendNumber(BuilderType& Builder, const NumberType Number)
 	{
 		constexpr int32 LocalBufferSize = CeilLog10<TNumericLimits<NumberType>::Max()>();

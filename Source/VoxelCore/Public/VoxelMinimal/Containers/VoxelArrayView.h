@@ -249,7 +249,12 @@ FORCEINLINE auto MakeVoxelArrayView(T&& Other)
 	}
 }
 
-template<typename ElementType, typename SizeType, typename = std::enable_if_t<std::is_same_v<SizeType, int32> || std::is_same_v<SizeType, int64>>>
+template<typename ElementType, typename SizeType>
+requires
+(
+	std::is_same_v<SizeType, int32> ||
+	std::is_same_v<SizeType, int64>
+)
 FORCEINLINE auto MakeVoxelArrayView(ElementType* Pointer, const SizeType Size)
 {
 	return TVoxelArrayView<ElementType, SizeType>(Pointer, Size);

@@ -51,25 +51,30 @@ namespace FVoxelUtilities
 		return FMath::RoundToInt32(Value);
 	}
 
-	template<typename Vector, typename Result = Vector>
-	using TEnableIfAnyVector2 = std::enable_if_t<std::is_same_v<Vector, FIntPoint> || std::is_same_v<Vector, FVector2f> || std::is_same_v<Vector, FVector2d>, Result>;
-	template<typename Vector, typename Result = Vector>
-	using TEnableIfAnyVector3 = std::enable_if_t<std::is_same_v<Vector, FIntVector> || std::is_same_v<Vector, FVector3f> || std::is_same_v<Vector, FVector3d>, Result>;
-
-	template<typename Vector, typename Result = Vector>
-	using TEnableIfFloatVector2 = std::enable_if_t<std::is_same_v<Vector, FVector2f> || std::is_same_v<Vector, FVector2d>, Result>;
-	template<typename Vector, typename Result = Vector>
-	using TEnableIfFloatVector3 = std::enable_if_t<std::is_same_v<Vector, FVector3f> || std::is_same_v<Vector, FVector3d>, Result>;
+	template<typename VectorType>
+	constexpr bool IsFloatingPrecisionVector2 = std::is_same_v<VectorType, FVector2f> || std::is_same_v<VectorType, FVector2d>;
+	template<typename VectorType>
+	constexpr bool IsFloatingPrecisionVector3 = std::is_same_v<VectorType, FVector3f> || std::is_same_v<VectorType, FVector3d>;
 
 	template<typename VectorType>
-	FORCEINLINE TEnableIfFloatVector2<VectorType> RoundToFloat(const VectorType& Vector)
+	constexpr bool IsVector2 = IsFloatingPrecisionVector2<VectorType> || std::is_same_v<VectorType, FIntPoint>;
+	template<typename VectorType>
+	constexpr bool IsVector3 = IsFloatingPrecisionVector3<VectorType> || std::is_same_v<VectorType, FIntVector>;
+
+	template<typename VectorType>
+	constexpr bool IsVector = IsVector2<VectorType> || IsVector3<VectorType>;
+
+	template<typename VectorType>
+	requires IsFloatingPrecisionVector2<VectorType>
+	FORCEINLINE VectorType RoundToFloat(const VectorType& Vector)
 	{
 		return VectorType(
 			FMath::RoundToFloat(Vector.X),
 			FMath::RoundToFloat(Vector.Y));
 	}
 	template<typename VectorType>
-	FORCEINLINE TEnableIfFloatVector3<VectorType> RoundToFloat(const VectorType& Vector)
+	requires IsFloatingPrecisionVector3<VectorType>
+	FORCEINLINE VectorType RoundToFloat(const VectorType& Vector)
 	{
 		return VectorType(
 			FMath::RoundToFloat(Vector.X),
@@ -78,14 +83,16 @@ namespace FVoxelUtilities
 	}
 
 	template<typename VectorType>
-	FORCEINLINE TEnableIfFloatVector2<VectorType> FloorToFloat(const VectorType& Vector)
+	requires IsFloatingPrecisionVector2<VectorType>
+	FORCEINLINE VectorType FloorToFloat(const VectorType& Vector)
 	{
 		return VectorType(
 			FMath::FloorToFloat(Vector.X),
 			FMath::FloorToFloat(Vector.Y));
 	}
 	template<typename VectorType>
-	FORCEINLINE TEnableIfFloatVector3<VectorType> FloorToFloat(const VectorType& Vector)
+	requires IsFloatingPrecisionVector3<VectorType>
+	FORCEINLINE VectorType FloorToFloat(const VectorType& Vector)
 	{
 		return VectorType(
 			FMath::FloorToFloat(Vector.X),
@@ -94,14 +101,16 @@ namespace FVoxelUtilities
 	}
 
 	template<typename VectorType>
-	FORCEINLINE TEnableIfFloatVector2<VectorType> CeilToFloat(const VectorType& Vector)
+	requires IsFloatingPrecisionVector2<VectorType>
+	FORCEINLINE VectorType CeilToFloat(const VectorType& Vector)
 	{
 		return VectorType(
 			FMath::CeilToFloat(Vector.X),
 			FMath::CeilToFloat(Vector.Y));
 	}
 	template<typename VectorType>
-	FORCEINLINE TEnableIfFloatVector3<VectorType> CeilToFloat(const VectorType& Vector)
+	requires IsFloatingPrecisionVector3<VectorType>
+	FORCEINLINE VectorType CeilToFloat(const VectorType& Vector)
 	{
 		return VectorType(
 			FMath::CeilToFloat(Vector.X),
@@ -110,14 +119,16 @@ namespace FVoxelUtilities
 	}
 
 	template<typename VectorType>
-	FORCEINLINE TEnableIfFloatVector2<VectorType, FIntPoint> RoundToInt(const VectorType& Vector)
+	requires IsFloatingPrecisionVector2<VectorType>
+	FORCEINLINE FIntPoint RoundToInt(const VectorType& Vector)
 	{
 		return FIntPoint(
 			RoundToInt32(Vector.X),
 			RoundToInt32(Vector.Y));
 	}
 	template<typename VectorType>
-	FORCEINLINE TEnableIfFloatVector3<VectorType, FIntVector> RoundToInt(const VectorType& Vector)
+	requires IsFloatingPrecisionVector3<VectorType>
+	FORCEINLINE FIntVector RoundToInt(const VectorType& Vector)
 	{
 		return FIntVector(
 			RoundToInt32(Vector.X),
@@ -126,14 +137,16 @@ namespace FVoxelUtilities
 	}
 
 	template<typename VectorType>
-	FORCEINLINE TEnableIfFloatVector2<VectorType, FIntPoint> FloorToInt(const VectorType& Vector)
+	requires IsFloatingPrecisionVector2<VectorType>
+	FORCEINLINE FIntPoint FloorToInt(const VectorType& Vector)
 	{
 		return FIntPoint(
 			FloorToInt32(Vector.X),
 			FloorToInt32(Vector.Y));
 	}
 	template<typename VectorType>
-	FORCEINLINE TEnableIfFloatVector3<VectorType, FIntVector> FloorToInt(const VectorType& Vector)
+	requires IsFloatingPrecisionVector3<VectorType>
+	FORCEINLINE FIntVector FloorToInt(const VectorType& Vector)
 	{
 		return FIntVector(
 			FloorToInt32(Vector.X),
@@ -142,14 +155,16 @@ namespace FVoxelUtilities
 	}
 
 	template<typename VectorType>
-	FORCEINLINE TEnableIfFloatVector2<VectorType, FIntPoint> CeilToInt(const VectorType& Vector)
+	requires IsFloatingPrecisionVector2<VectorType>
+	FORCEINLINE FIntPoint CeilToInt(const VectorType& Vector)
 	{
 		return FIntPoint(
 			CeilToInt32(Vector.X),
 			CeilToInt32(Vector.Y));
 	}
 	template<typename VectorType>
-	FORCEINLINE TEnableIfFloatVector3<VectorType, FIntVector> CeilToInt(const VectorType& Vector)
+	requires IsFloatingPrecisionVector3<VectorType>
+	FORCEINLINE FIntVector CeilToInt(const VectorType& Vector)
 	{
 		return FIntVector(
 			CeilToInt32(Vector.X),
@@ -158,14 +173,16 @@ namespace FVoxelUtilities
 	}
 
 	template<typename VectorType>
-	FORCEINLINE TEnableIfAnyVector2<VectorType> Abs(const VectorType& Vector)
+	requires IsVector2<VectorType>
+	FORCEINLINE VectorType Abs(const VectorType& Vector)
 	{
 		return VectorType(
 			FMath::Abs(Vector.X),
 			FMath::Abs(Vector.Y));
 	}
 	template<typename VectorType>
-	FORCEINLINE TEnableIfAnyVector3<VectorType> Abs(const VectorType& Vector)
+	requires IsVector3<VectorType>
+	FORCEINLINE VectorType Abs(const VectorType& Vector)
 	{
 		return VectorType(
 			FMath::Abs(Vector.X),
@@ -174,14 +191,16 @@ namespace FVoxelUtilities
 	}
 
 	template<typename VectorType>
-	FORCEINLINE TEnableIfAnyVector2<VectorType> ComponentMin(const VectorType& A, const VectorType& B)
+	requires IsVector2<VectorType>
+	FORCEINLINE VectorType ComponentMin(const VectorType& A, const VectorType& B)
 	{
 		return VectorType(
 			FMath::Min(A.X, B.X),
 			FMath::Min(A.Y, B.Y));
 	}
 	template<typename VectorType>
-	FORCEINLINE TEnableIfAnyVector3<VectorType> ComponentMin(const VectorType& A, const VectorType& B)
+	requires IsVector3<VectorType>
+	FORCEINLINE VectorType ComponentMin(const VectorType& A, const VectorType& B)
 	{
 		return VectorType(
 			FMath::Min(A.X, B.X),
@@ -190,14 +209,16 @@ namespace FVoxelUtilities
 	}
 
 	template<typename VectorType>
-	FORCEINLINE TEnableIfAnyVector2<VectorType> ComponentMax(const VectorType& A, const VectorType& B)
+	requires IsVector2<VectorType>
+	FORCEINLINE VectorType ComponentMax(const VectorType& A, const VectorType& B)
 	{
 		return VectorType(
 			FMath::Max(A.X, B.X),
 			FMath::Max(A.Y, B.Y));
 	}
 	template<typename VectorType>
-	FORCEINLINE TEnableIfAnyVector3<VectorType> ComponentMax(const VectorType& A, const VectorType& B)
+	requires IsVector3<VectorType>
+	FORCEINLINE VectorType ComponentMax(const VectorType& A, const VectorType& B)
 	{
 		return VectorType(
 			FMath::Max(A.X, B.X),
@@ -217,14 +238,16 @@ namespace FVoxelUtilities
 	}
 
 	template<typename VectorType>
-	FORCEINLINE TEnableIfAnyVector2<VectorType> Clamp(const VectorType& V, const VectorType& Min, const VectorType& Max)
+	requires IsVector2<VectorType>
+	FORCEINLINE VectorType Clamp(const VectorType& V, const VectorType& Min, const VectorType& Max)
 	{
 		return VectorType(
 			FMath::Clamp(V.X, Min.X, Max.X),
 			FMath::Clamp(V.Y, Min.Y, Max.Y));
 	}
 	template<typename VectorType>
-	FORCEINLINE TEnableIfAnyVector3<VectorType> Clamp(const VectorType& V, const VectorType& Min, const VectorType& Max)
+	requires IsVector3<VectorType>
+	FORCEINLINE VectorType Clamp(const VectorType& V, const VectorType& Min, const VectorType& Max)
 	{
 		return VectorType(
 			FMath::Clamp(V.X, Min.X, Max.X),
@@ -233,29 +256,28 @@ namespace FVoxelUtilities
 	}
 
 	template<typename VectorType, typename ScalarTypeA, typename ScalarTypeB>
-	FORCEINLINE TEnableIfAnyVector2<VectorType> Clamp(const VectorType& V, const ScalarTypeA& Min, const ScalarTypeB& Max)
-	{
-		return FVoxelUtilities::Clamp(V, VectorType(Min), VectorType(Max));
-	}
-	template<typename VectorType, typename ScalarTypeA, typename ScalarTypeB>
-	FORCEINLINE TEnableIfAnyVector3<VectorType> Clamp(const VectorType& V, const ScalarTypeA& Min, const ScalarTypeB& Max)
+	requires IsVector<VectorType>
+	FORCEINLINE VectorType Clamp(const VectorType& V, const ScalarTypeA& Min, const ScalarTypeB& Max)
 	{
 		return FVoxelUtilities::Clamp(V, VectorType(Min), VectorType(Max));
 	}
 
 	template<typename VectorType>
-	FORCEINLINE TEnableIfAnyVector2<VectorType, int32> GetSmallestAxis(const VectorType& Vector)
+	requires IsVector2<VectorType>
+	FORCEINLINE int32 GetSmallestAxis(const VectorType& Vector)
 	{
 		return Vector.X <= Vector.Y ? 0 : 1;
 	}
 	template<typename VectorType>
-	FORCEINLINE TEnableIfAnyVector2<VectorType, int32> GetLargestAxis(const VectorType& Vector)
+	requires IsVector2<VectorType>
+	FORCEINLINE int32 GetLargestAxis(const VectorType& Vector)
 	{
 		return Vector.X >= Vector.Y ? 0 : 1;
 	}
 
 	template<typename VectorType>
-	FORCEINLINE TEnableIfAnyVector3<VectorType, int32> GetSmallestAxis(const VectorType& Vector)
+	requires IsVector3<VectorType>
+	FORCEINLINE int32 GetSmallestAxis(const VectorType& Vector)
 	{
 		if (Vector.X <= Vector.Y &&
 			Vector.X <= Vector.Z)
@@ -273,7 +295,8 @@ namespace FVoxelUtilities
 		}
 	}
 	template<typename VectorType>
-	FORCEINLINE TEnableIfAnyVector3<VectorType, int32> GetLargestAxis(const VectorType& Vector)
+	requires IsVector3<VectorType>
+	FORCEINLINE int32 GetLargestAxis(const VectorType& Vector)
 	{
 		if (Vector.X >= Vector.Y &&
 			Vector.X >= Vector.Z)

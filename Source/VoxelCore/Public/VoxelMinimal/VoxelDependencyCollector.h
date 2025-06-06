@@ -35,6 +35,8 @@ public:
 		const FVoxelDependency3D& Dependency,
 		const FVoxelBox& Bounds);
 
+	void AddDependencies(const FVoxelDependencyCollector& Other);
+
 public:
 	TSharedRef<FVoxelDependencyTracker> Finalize(
 		const FVoxelInvalidationQueue* InvalidationQueue,

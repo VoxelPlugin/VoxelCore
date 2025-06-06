@@ -5,6 +5,7 @@
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelAtomic.h"
 #include "VoxelMinimal/VoxelSharedPtr.h"
+#include "VoxelMinimal/VoxelRefCountPtr.h"
 #include "VoxelMinimal/VoxelUniqueFunction.h"
 #include "VoxelMinimal/Utilities/VoxelTypeUtilities.h"
 
@@ -22,7 +23,7 @@ class TVoxelPromise;
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename T, typename = void>
+template<typename T>
 struct TVoxelFutureTypeImpl
 {
 	using Type = TVoxelFuture<T>;
@@ -89,11 +90,11 @@ enum class EVoxelFutureThread : uint8
 class VOXELCORE_API IVoxelPromiseState
 {
 public:
-	static TRefCountPtr<IVoxelPromiseState> New(
+	static TVoxelRefCountPtr<IVoxelPromiseState> New(
 		FVoxelTaskContext* ContextOverride,
 		bool bWithValue);
 
-	static TRefCountPtr<IVoxelPromiseState> New(const FSharedVoidRef& Value);
+	static TVoxelRefCountPtr<IVoxelPromiseState> New(const FSharedVoidRef& Value);
 
 	UE_NONCOPYABLE(IVoxelPromiseState);
 
@@ -122,6 +123,10 @@ public:
 		{
 			Destroy();
 		}
+	}
+	FORCEINLINE int32 GetRefCount() const
+	{
+		return NumRefs.Get();
 	}
 
 public:
@@ -320,9 +325,9 @@ public:
 	}
 
 protected:
-	TRefCountPtr<IVoxelPromiseState> PromiseState;
+	TVoxelRefCountPtr<IVoxelPromiseState> PromiseState;
 
-	FORCEINLINE explicit FVoxelFuture(TRefCountPtr<IVoxelPromiseState>&& PromiseState)
+	FORCEINLINE explicit FVoxelFuture(TVoxelRefCountPtr<IVoxelPromiseState>&& PromiseState)
 		: PromiseState(MoveTemp(PromiseState))
 	{
 	}
@@ -528,7 +533,7 @@ public:
 	}
 
 protected:
-	FORCEINLINE explicit TVoxelFuture(TRefCountPtr<IVoxelPromiseState>&& PromiseState)
+	FORCEINLINE explicit TVoxelFuture(TVoxelRefCountPtr<IVoxelPromiseState>&& PromiseState)
 		: FVoxelFuture(MoveTemp(PromiseState))
 	{
 	}

@@ -28,6 +28,14 @@ public:
 	virtual void PostEditChange(const FPropertyChangedEvent& PropertyChangedEvent) override;
 	//~ End FVoxelToolkit Interface
 
+	//~ Begin IVoxelViewportInterface Interface
+	virtual TSharedPtr<FAssetEditorToolkit> GetEditorToolkit() const override;
+	virtual FEditorModeTools* GetEditorModeTools() const override;
+#if VOXEL_ENGINE_VERSION >= 506
+	virtual FString GetToolbarName() const override;
+#endif
+	//~ End IVoxelViewportInterface Interface
+
 public:
 	IDetailsView& GetDetailsView() const
 	{

@@ -29,7 +29,7 @@ public:
 			: Thread(EVoxelFutureThread::AnyThread)
 			, Type(EType::Future)
 		{
-			new(&Storage[0]) TRefCountPtr<FVoxelPromiseState>(Future.PromiseState);
+			new(&Storage[0]) TVoxelRefCountPtr<FVoxelPromiseState>(Future.PromiseState);
 		}
 		FORCEINLINE FContinuation(
 			const EVoxelFutureThread Thread,
@@ -52,17 +52,17 @@ public:
 			switch (Type)
 			{
 			default: VOXEL_ASSUME(false);
-			case EType::Future: GetFuture().~TRefCountPtr(); break;
+			case EType::Future: GetFuture().~TVoxelRefCountPtr(); break;
 			case EType::VoidLambda: GetVoidLambda().~TVoxelUniqueFunction(); break;
 			case EType::ValueLambda: GetValueLambda().~TVoxelUniqueFunction(); break;
 			}
 		}
 
 	public:
-		FORCEINLINE TRefCountPtr<FVoxelPromiseState>& GetFuture()
+		FORCEINLINE TVoxelRefCountPtr<FVoxelPromiseState>& GetFuture()
 		{
 			checkVoxelSlow(Type == EType::Future);
-			return ReinterpretCastRef<TRefCountPtr<FVoxelPromiseState>>(Storage[0]);
+			return ReinterpretCastRef<TVoxelRefCountPtr<FVoxelPromiseState>>(Storage[0]);
 		}
 		FORCEINLINE TVoxelUniqueFunction<void()>& GetVoidLambda()
 		{

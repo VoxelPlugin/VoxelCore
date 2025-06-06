@@ -9,7 +9,9 @@
 #include "Materials/MaterialRenderProxy.h"
 
 // Needed to cancel motion blur when reusing proxies
+#pragma warning(disable : 4305)
 #include "ScenePrivate.h"
+#pragma warning(default : 4305)
 
 void RHIUpdateTexture2D_Safe(
 	FRHITexture* Texture,

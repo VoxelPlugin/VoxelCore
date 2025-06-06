@@ -90,6 +90,26 @@ FVoxelMaterialTranslatorNoCodeReuseScope::FVoxelMaterialTranslatorNoCodeReuseSco
 	: Impl(MakePimpl<FImpl>(static_cast<FVoxelHLSLMaterialTranslator&>(Translator)))
 {
 }
+
+void FVoxelMaterialTranslatorNoCodeReuseScope::DisableFutureReuse(FHLSLMaterialTranslator& InTranslator)
+{
+	FVoxelHLSLMaterialTranslator& Translator = static_cast<FVoxelHLSLMaterialTranslator&>(InTranslator);
+
+	// Randomize hashes
+	for (FShaderCodeChunk& Chunk : *Translator.CurrentScopeChunks)
+	{
+		Chunk.Hash = FVoxelUtilities::MurmurHash64(Chunk.Hash);
+	}
+
+	// Clear the vtable cache, code can't be reused across inputs
+	Translator.VTStackHash = {};
+
+	// Forbid custom expression reuse
+	for (FMaterialCustomExpressionEntry& Entry : Translator.CustomExpressions)
+	{
+		Entry.ScopeID = FVoxelUtilities::MurmurHash64(Entry.ScopeID);
+	}
+}
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -367,7 +387,7 @@ bool FVoxelUtilities::CopyParameterValues(
 			const FName NewName = FName(ParameterNamePrefix + ParameterInfo.Name.ToString());
 
 			FMaterialParameterMetadata CurrentValue;
-			if (Target.GetParameterValue(Type, NewName, CurrentValue) &&
+			if (Target.GetParameterValue(Type, NewName, CurrentValue, EMaterialGetParameterValueFlags::CheckInstanceOverrides) &&
 				CurrentValue.Value == Value.Value)
 			{
 				continue;

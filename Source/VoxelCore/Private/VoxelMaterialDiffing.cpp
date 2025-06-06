@@ -3,6 +3,7 @@
 #include "VoxelMaterialDiffing.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialFunction.h"
+#include "Materials/MaterialExpressionNamedReroute.h"
 #include "Materials/MaterialExpressionMaterialFunctionCall.h"
 
 #define RECURSE_GUARD(Name) \
@@ -308,6 +309,17 @@ bool FVoxelMaterialDiffing::Equal(
 		return true;
 	}
 
+	const bool bHasLoop = !EqualExpressions_Started.TryAdd({ &OldExpression, &NewExpression });
+
+	if (bHasLoop &&
+		OldExpression.IsA<UMaterialExpressionNamedRerouteUsage>() &&
+		NewExpression.IsA<UMaterialExpressionNamedRerouteUsage>())
+	{
+		// Reroute nodes can safely loop when used behind static switches
+		// In that case, assume the sub graph is equal - the parent check will fail for us if not
+		return true;
+	}
+
 	if (OldExpression.GetClass() != NewExpression.GetClass())
 	{
 		SET_DIFF("%s is now %s", *OldExpression.GetPathName(), *NewExpression.GetPathName());
@@ -399,6 +411,8 @@ bool FVoxelMaterialDiffing::Equal(
 	{
 		return true;
 	}
+
+	ensureVoxelSlow(EqualFunctions_Started.TryAdd({ &OldFunction, &NewFunction }));
 
 	VOXEL_FUNCTION_COUNTER();
 	VOXEL_SCOPE_COUNTER_FNAME(OldFunction.UserExposedCaption.IsEmpty() ? OldFunction.GetFName() : FName(OldFunction.UserExposedCaption));

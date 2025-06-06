@@ -41,7 +41,13 @@ IDetailPropertyRow* FVoxelInstancedStructDetailsWrapper::AddExternalStructure(
 	// Otherwise FStructurePropertyNode::GetInstancesNum will crash
 	DataProviderCopy->bIsPropertyIndirection = false;
 
-	IDetailPropertyRow* Row = DetailInterface.AddExternalStructure(DataProviderCopy, Params);
+	FAddPropertyParams NewParams = Params;
+#if VOXEL_ENGINE_VERSION >= 506
+	// When creating category nodes, FProperty to new property handle won't be assigned and it will crash
+	NewParams.CreateCategoryNodes(false);
+#endif
+
+	IDetailPropertyRow* Row = DetailInterface.AddExternalStructure(DataProviderCopy, NewParams);
 	if (!ensure(Row))
 	{
 		return nullptr;

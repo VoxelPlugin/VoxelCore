@@ -109,6 +109,9 @@ void FVoxelAABBTree::Initialize(FElementArray&& Elements)
 	check(Nodes.Num() == 0);
 	check(Leaves.Num() == 0);
 
+	// Ensure we have enough padding
+	Elements.Reserve(Elements.Num());
+
 	const int32 NumElements = Elements.Num();
 	const int32 ExpectedNumLeaves = 2 * FVoxelUtilities::DivideCeil(NumElements, MaxChildrenInLeaf);
 	const int32 ExpectedNumNodes = 2 * ExpectedNumLeaves;

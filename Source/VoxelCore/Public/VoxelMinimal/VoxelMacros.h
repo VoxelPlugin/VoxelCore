@@ -150,7 +150,7 @@ inline static FName GVoxelStaticName{ static_cast<T*>(nullptr)->operator()() };
 template<typename T>
 FORCEINLINE const FName& VoxelStaticName(const T&)
 {
-    return GVoxelStaticName<T>;
+	return GVoxelStaticName<T>;
 }
 
 #define STATIC_FNAME(Name) VoxelStaticName([]{ return FName(Name); })
@@ -300,17 +300,17 @@ public: \
 		(void)Temp; \
 	}
 
- #if !IS_MONOLITHIC
- #define VOXEL_ISPC_ASSERT() \
+#if !IS_MONOLITHIC
+#define VOXEL_ISPC_ASSERT() \
  	extern "C" void VoxelISPC_Assert(const int32 Line) \
  	{ \
  		ensureAlwaysMsgf(false, TEXT("ISPC LINE: %d"), Line); \
  	}
- #else
- #define VOXEL_ISPC_ASSERT()
- #endif
+#else
+#define VOXEL_ISPC_ASSERT()
+#endif
 
- #define VOXEL_DEFAULT_MODULE(Name) \
+#define VOXEL_DEFAULT_MODULE(Name) \
  	IMPLEMENT_MODULE(FDefaultModuleImpl, Name) \
  	VOXEL_ISPC_ASSERT()
 
@@ -438,7 +438,7 @@ public:
 
 	FORCEINLINE friend uint32 GetTypeHash(const TVoxelUniqueId UniqueId)
 	{
-	    return uint32(UniqueId.Id);
+		return uint32(UniqueId.Id);
 	}
 
 	FORCEINLINE uint64 GetId() const
@@ -497,7 +497,7 @@ public:
 
 	FORCEINLINE friend uint32 GetTypeHash(const TVoxelIndex InIndex)
 	{
-	    return InIndex.Index;
+		return InIndex.Index;
 	}
 
 protected:
@@ -515,7 +515,7 @@ protected:
 
 	friend T;
 };
- static_assert(sizeof(TVoxelIndex<class FVoxelIndexDummy>) == sizeof(int32), "");
+static_assert(sizeof(TVoxelIndex<class FVoxelIndexDummy>) == sizeof(int32), "");
 
 #define DECLARE_VOXEL_INDEX(Name, FriendClass) using Name = TVoxelIndex<class FriendClass>;
 
@@ -530,25 +530,26 @@ constexpr bool CanReinterpretCast_V =
 	alignof(ToType) <= alignof(FromType);
 
 template<typename ToType, typename FromType>
-using CanReinterpretCast_T = std::enable_if_t<CanReinterpretCast_V<ToType, FromType>>;
-
-template<typename ToType, typename FromType, typename = CanReinterpretCast_T<ToType, FromType>>
+requires CanReinterpretCast_V<ToType, FromType>
 FORCEINLINE ToType* ReinterpretCastPtr(FromType* From)
 {
 	return reinterpret_cast<ToType*>(From);
 }
-template<typename ToType, typename FromType, typename = CanReinterpretCast_T<ToType, FromType>>
+template<typename ToType, typename FromType>
+requires CanReinterpretCast_V<ToType, FromType>
 FORCEINLINE const ToType* ReinterpretCastPtr(const FromType* From)
 {
 	return reinterpret_cast<const ToType*>(From);
 }
 
-template<typename ToType, typename FromType, typename = CanReinterpretCast_T<ToType, FromType>>
+template<typename ToType, typename FromType>
+requires CanReinterpretCast_V<ToType, FromType>
 FORCEINLINE ToType& ReinterpretCastRef(FromType& From)
 {
 	return reinterpret_cast<ToType&>(From);
 }
-template<typename ToType, typename FromType, typename = CanReinterpretCast_T<ToType, FromType>>
+template<typename ToType, typename FromType>
+requires CanReinterpretCast_V<ToType, FromType>
 FORCEINLINE const ToType& ReinterpretCastRef(const FromType& From)
 {
 	return reinterpret_cast<const ToType&>(From);
@@ -633,23 +634,27 @@ FORCEINLINE const TSharedRef<ToType>& ReinterpretCastSharedRef(const TSharedRef<
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename ToType, typename FromType, typename Allocator, typename = CanReinterpretCast_T<ToType, FromType>>
+template<typename ToType, typename FromType, typename Allocator>
+requires CanReinterpretCast_V<ToType, FromType>
 FORCEINLINE TArray<ToType, Allocator>& ReinterpretCastArray(TArray<FromType, Allocator>& Array)
 {
 	return reinterpret_cast<TArray<ToType, Allocator>&>(Array);
 }
-template<typename ToType, typename FromType, typename Allocator, typename = CanReinterpretCast_T<ToType, FromType>>
+template<typename ToType, typename FromType, typename Allocator>
+requires CanReinterpretCast_V<ToType, FromType>
 FORCEINLINE const TArray<ToType, Allocator>& ReinterpretCastArray(const TArray<FromType, Allocator>& Array)
 {
 	return reinterpret_cast<const TArray<ToType, Allocator>&>(Array);
 }
 
-template<typename ToType, typename FromType, typename Allocator, typename = CanReinterpretCast_T<ToType, FromType>>
+template<typename ToType, typename FromType, typename Allocator>
+requires CanReinterpretCast_V<ToType, FromType>
 FORCEINLINE TArray<ToType, Allocator>&& ReinterpretCastArray(TArray<FromType, Allocator>&& Array)
 {
 	return reinterpret_cast<TArray<ToType, Allocator>&&>(Array);
 }
-template<typename ToType, typename FromType, typename Allocator, typename = CanReinterpretCast_T<ToType, FromType>>
+template<typename ToType, typename FromType, typename Allocator>
+requires CanReinterpretCast_V<ToType, FromType>
 FORCEINLINE const TArray<ToType, Allocator>&& ReinterpretCastArray(const TArray<FromType, Allocator>&& Array)
 {
 	return reinterpret_cast<const TArray<ToType, Allocator>&&>(Array);
@@ -659,14 +664,16 @@ FORCEINLINE const TArray<ToType, Allocator>&& ReinterpretCastArray(const TArray<
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename ToType, typename ToAllocator, typename FromType, typename Allocator, typename = std::enable_if_t<sizeof(ToType) != sizeof(FromType)>>
+template<typename ToType, typename ToAllocator, typename FromType, typename Allocator>
+requires (sizeof(FromType) != sizeof(ToType))
 FORCEINLINE TArray<ToType, ToAllocator> ReinterpretCastArray_Copy(const TArray<FromType, Allocator>& Array)
 {
 	const int64 NumBytes = Array.Num() * sizeof(FromType);
 	check(NumBytes % sizeof(ToType) == 0);
 	return TArray<ToType, Allocator>(reinterpret_cast<const ToType*>(Array.GetData()), NumBytes / sizeof(ToType));
 }
-template<typename ToType, typename FromType, typename Allocator, typename = std::enable_if_t<sizeof(FromType) != sizeof(ToType)>>
+template<typename ToType, typename FromType, typename Allocator>
+requires (sizeof(FromType) != sizeof(ToType))
 FORCEINLINE TArray<ToType, Allocator> ReinterpretCastArray_Copy(const TArray<FromType, Allocator>& Array)
 {
 	return ReinterpretCastArray_Copy<ToType, Allocator>(Array);
@@ -676,23 +683,27 @@ FORCEINLINE TArray<ToType, Allocator> ReinterpretCastArray_Copy(const TArray<Fro
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename ToType, typename FromType, typename Allocator, typename = CanReinterpretCast_T<ToType, FromType>>
+template<typename ToType, typename FromType, typename Allocator>
+requires CanReinterpretCast_V<ToType, FromType>
 FORCEINLINE TSet<ToType, DefaultKeyFuncs<ToType>, Allocator>& ReinterpretCastSet(TSet<FromType, DefaultKeyFuncs<FromType>, Allocator>& Set)
 {
 	return reinterpret_cast<TSet<ToType, DefaultKeyFuncs<ToType>, Allocator>&>(Set);
 }
-template<typename ToType, typename FromType, typename Allocator, typename = CanReinterpretCast_T<ToType, FromType>>
+template<typename ToType, typename FromType, typename Allocator>
+requires CanReinterpretCast_V<ToType, FromType>
 FORCEINLINE const TSet<ToType, DefaultKeyFuncs<ToType>, Allocator>& ReinterpretCastSet(const TSet<FromType, DefaultKeyFuncs<FromType>, Allocator>& Set)
 {
 	return reinterpret_cast<const TSet<ToType, DefaultKeyFuncs<ToType>, Allocator>&>(Set);
 }
 
-template<typename ToType, typename FromType, typename Allocator, typename = CanReinterpretCast_T<ToType, FromType>>
+template<typename ToType, typename FromType, typename Allocator>
+requires CanReinterpretCast_V<ToType, FromType>
 FORCEINLINE TSet<ToType, DefaultKeyFuncs<ToType>, Allocator>&& ReinterpretCastSet(TSet<FromType, DefaultKeyFuncs<FromType>, Allocator>&& Set)
 {
 	return reinterpret_cast<TSet<ToType, DefaultKeyFuncs<ToType>, Allocator>&&>(Set);
 }
-template<typename ToType, typename FromType, typename Allocator, typename = CanReinterpretCast_T<ToType, FromType>>
+template<typename ToType, typename FromType, typename Allocator>
+requires CanReinterpretCast_V<ToType, FromType>
 FORCEINLINE const TSet<ToType, DefaultKeyFuncs<ToType>, Allocator>&& ReinterpretCastSet(const TSet<FromType, DefaultKeyFuncs<FromType>, Allocator>&& Set)
 {
 	return reinterpret_cast<const TSet<ToType, DefaultKeyFuncs<ToType>, Allocator>&&>(Set);
@@ -702,7 +713,7 @@ FORCEINLINE const TSet<ToType, DefaultKeyFuncs<ToType>, Allocator>&& Reinterpret
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename T, typename = void>
+template<typename T>
 struct TVoxelConstCast
 {
 	FORCEINLINE static T& ConstCast(T& Value)

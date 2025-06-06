@@ -138,6 +138,7 @@ void FVoxelEditorToolkitImpl::InitVoxelEditor(const TSharedPtr<IToolkitHost>& Ed
 	WeakAsset = ObjectToEdit;
 
 	Toolkit = MakeSharedStruct<FVoxelToolkit>(ToolkitStruct);
+	Toolkit->SetEditorToolkit(SharedThis(this));
 
 	if (!EditorModeManager)
 	{

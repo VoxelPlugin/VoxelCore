@@ -29,10 +29,22 @@ public:
 	{
 		return {};
 	}
+	virtual TSharedPtr<FAssetEditorToolkit> GetEditorToolkit() const
+	{
+		return nullptr;
+	}
 	virtual FEditorModeTools* GetEditorModeTools() const
 	{
 		return nullptr;
 	}
+#if VOXEL_ENGINE_VERSION >= 506
+	virtual FName GetPreviewSettingsTabId() const
+	{
+		return {};
+	}
+	virtual FString GetToolbarName() const VOXEL_PURE_VIRTUAL({})
+	virtual void ExtendToolbar(UToolMenu& ToolMenu) {}
+#endif
 
 public:
 	virtual void PopulateToolBar(

@@ -88,13 +88,16 @@ public:
 	}
 
 public:
-	template<typename LambdaType, typename = std::enable_if_t<
+	template<typename LambdaType>
+	requires
+	(
 		LambdaHasSignature_V<LambdaType, void(Type)> ||
 		LambdaHasSignature_V<LambdaType, void(Type&)> ||
 		LambdaHasSignature_V<LambdaType, void(const Type&)> ||
 		LambdaHasSignature_V<LambdaType, EVoxelIterate(Type)> ||
 		LambdaHasSignature_V<LambdaType, EVoxelIterate(Type&)> ||
-		LambdaHasSignature_V<LambdaType, EVoxelIterate(const Type&)>>>
+		LambdaHasSignature_V<LambdaType, EVoxelIterate(const Type&)>
+	)
 	FORCEINLINE EVoxelIterate Foreach(LambdaType Lambda)
 	{
 		for (const TUniquePtr<FChunk>& Chunk : Chunks)
@@ -112,11 +115,14 @@ public:
 
 		return EVoxelIterate::Continue;
 	}
-	template<typename LambdaType, typename = std::enable_if_t<
+	template<typename LambdaType>
+	requires
+	(
 		LambdaHasSignature_V<LambdaType, void(Type)> ||
 		LambdaHasSignature_V<LambdaType, void(const Type&)> ||
 		LambdaHasSignature_V<LambdaType, EVoxelIterate(Type)> ||
-		LambdaHasSignature_V<LambdaType, EVoxelIterate(const Type&)>>>
+		LambdaHasSignature_V<LambdaType, EVoxelIterate(const Type&)>
+	)
 	FORCEINLINE EVoxelIterate Foreach(LambdaType Lambda) const
 	{
 		return ConstCast(this)->Foreach(MoveTemp(Lambda));
@@ -138,7 +144,8 @@ public:
 		return Index;
 	}
 
-	template<typename... ArgTypes, typename = std::enable_if_t<std::is_constructible_v<Type, ArgTypes...>>>
+	template<typename... ArgTypes>
+	requires std::is_constructible_v<Type, ArgTypes...>
 	FORCEINLINE int32 Emplace(ArgTypes&&... Args)
 	{
 		TVoxelTypeCompatibleBytes<Type>* ValuePtr;
@@ -146,7 +153,8 @@ public:
 		new(*ValuePtr) Type(Forward<ArgTypes>(Args)...);
 		return Index;
 	}
-	template<typename... ArgTypes, typename = std::enable_if_t<std::is_constructible_v<Type, ArgTypes...>>>
+	template<typename... ArgTypes>
+	requires std::is_constructible_v<Type, ArgTypes...>
 	FORCEINLINE Type& Emplace_GetRef(ArgTypes&&... Args)
 	{
 		TVoxelTypeCompatibleBytes<Type>* ValuePtr;

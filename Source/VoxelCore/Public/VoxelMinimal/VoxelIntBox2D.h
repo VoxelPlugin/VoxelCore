@@ -170,6 +170,15 @@ struct VOXELCORE_API FVoxelIntBox2D
 		return FBox2f(FVector2f(Min), FVector2f(Max));
 	}
 
+	FORCEINLINE FVoxelIntInterval GetX() const
+	{
+		return { Min.X, Max.X };
+	}
+	FORCEINLINE FVoxelIntInterval GetY() const
+	{
+		return { Min.Y, Max.Y };
+	}
+
 	FORCEINLINE bool IsValid() const
 	{
 		return

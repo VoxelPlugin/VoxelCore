@@ -104,10 +104,7 @@ template<typename T, int32 Size, int32 Alignment = alignof(T)>
 class alignas(Alignment) TVoxelStaticArray;
 
 template<typename T, int32 Size, int32 Alignment>
-requires
-(
-	std::is_trivially_destructible_v<T>
-)
+requires std::is_trivially_destructible_v<T>
 class alignas(Alignment) TVoxelStaticArray<T, Size, Alignment> : public TVoxelStaticArrayBase<T, Size, Alignment>
 {
 public:
@@ -263,7 +260,8 @@ struct TIsContiguousContainer<TVoxelStaticArray<T, Size, Alignment>>
 };
 
 template<typename T, int32 Size, int32 Alignment>
+requires std::is_trivially_destructible_v<T>
 struct TCanBulkSerialize<TVoxelStaticArray<T, Size, Alignment>>
 {
-	static constexpr bool Value = TVoxelCanBulkSerialize<T>::Value;
+	static constexpr bool Value = TCanBulkSerialize<T>::Value;
 };

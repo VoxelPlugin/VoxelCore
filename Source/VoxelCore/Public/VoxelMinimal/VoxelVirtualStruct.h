@@ -210,13 +210,13 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 
 #define VOXEL_CAST_CHECK \
-	template< \
-		typename To, \
-		typename From, \
-		typename = std::enable_if_t<!std::is_const_v<From>>, \
-		typename = std::enable_if_t<!std::derived_from<From, UObject>>, \
-		typename = std::enable_if_t<std::derived_from<From, FVoxelVirtualStruct>>, \
-		typename = std::enable_if_t<std::derived_from<To, From>>>
+	template<typename To, typename From> \
+	requires \
+	( \
+		!std::is_const_v<From> && \
+		std::derived_from<From, FVoxelVirtualStruct> && \
+		std::derived_from<To, From> \
+	)
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

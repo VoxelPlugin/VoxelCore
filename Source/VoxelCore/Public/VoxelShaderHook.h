@@ -225,7 +225,7 @@ private:
 		Struct::Hook.Hooks.Add(FVoxelShaderHook(VOXEL_GUID(GUID), File, LinesBefore, LinesAfter, LinesExpected, NewLines)); \
 	}
 
-#define ADD_VOXEL_SHADER_HOOK_DEPRECATED(Struct, GUID, File, LinesBefore, LinesAfter, LinesExpected, NewLines) \
+#define ADD_DEPRECATED_VOXEL_SHADER_HOOK(Struct, GUID, File, LinesBefore, LinesAfter, LinesExpected, NewLines) \
 	VOXEL_RUN_ON_STARTUP(EditorCommandlet, -1) \
 	{ \
 		Struct::Hook.Hooks.Add(FVoxelShaderHook(VOXEL_GUID(GUID), File, LinesBefore, LinesAfter, LinesExpected, NewLines).Deprecate()); \

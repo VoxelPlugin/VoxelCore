@@ -9,14 +9,10 @@ template<typename>
 class TVoxelUniqueFunction;
 
 template<typename>
-struct TIsTVoxelUniqueFunction : TIntegralConstant<bool, false>
-{
-};
+constexpr bool IsVoxelUniqueFunction_V = false;
 
 template<typename T>
-struct TIsTVoxelUniqueFunction<TVoxelUniqueFunction<T>> : TIntegralConstant<bool, true>
-{
-};
+constexpr bool IsVoxelUniqueFunction_V<TVoxelUniqueFunction<T>> = true;
 
 template<typename FunctorType, typename ReturnType, typename... ArgTypes>
 ReturnType VoxelCall(void* RawFunctor, ArgTypes&... Args)
@@ -27,26 +23,21 @@ ReturnType VoxelCall(void* RawFunctor, ArgTypes&... Args)
 template<typename ReturnType, typename... ArgTypes>
 class TVoxelUniqueFunction<ReturnType(ArgTypes...)>
 {
-private:
-	template<typename FunctorType>
-	struct HasValidReturnType
-	{
-		using FunctorReturnType = LambdaReturnType_T<FunctorType>;
-
-		static constexpr bool Value =
-			std::is_same_v<ReturnType, FunctorReturnType> ||
-			std::is_constructible_v<ReturnType, FunctorReturnType>;
-	};
-
 public:
 	TVoxelUniqueFunction() = default;
 	TVoxelUniqueFunction(decltype(nullptr)) {}
 
-	template<typename FunctorType, typename = std::enable_if_t<TAnd<
-		TNot<TIsTVoxelUniqueFunction<std::decay_t<FunctorType>>>,
-		TIsInvocable<FunctorType, ArgTypes...>,
-		HasValidReturnType<FunctorType>
-	>::Value>>
+	template<typename FunctorType>
+	requires
+	(
+		!IsVoxelUniqueFunction_V<std::decay_t<FunctorType>> &&
+		std::is_invocable_v<FunctorType, ArgTypes...> &&
+		(
+			std::is_constructible_v<ReturnType, LambdaReturnType_T<FunctorType>> ||
+			// For void
+			std::is_same_v<ReturnType, LambdaReturnType_T<FunctorType>>
+		)
+	)
 	FORCEINLINE TVoxelUniqueFunction(FunctorType&& Functor)
 	{
 		this->Bind(MoveTempIfPossible(Functor));

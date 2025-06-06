@@ -299,7 +299,7 @@ public:
 
 		VOXEL_FUNCTION_COUNTER_NUM(Num, 1024);
 
-		if constexpr (TVoxelCanBulkSerialize<Type>::Value)
+		if constexpr (TCanBulkSerialize<Type>::Value)
 		{
 			if (Ar.IsLoading())
 			{
@@ -368,9 +368,12 @@ public:
 		return this->GetChunkView(FVoxelUtilities::GetChunkIndex<NumPerChunk>(Index)).LeftOf(Count);
 	}
 
-	template<typename LambdaType, typename = std::enable_if_t<
+	template<typename LambdaType>
+	requires
+	(
 		LambdaHasSignature_V<LambdaType, void(int32, TVoxelArrayView<Type>)> ||
-		LambdaHasSignature_V<LambdaType, EVoxelIterate(int32, TVoxelArrayView<Type>)>>>
+		LambdaHasSignature_V<LambdaType, EVoxelIterate(int32, TVoxelArrayView<Type>)>
+	)
 	FORCEINLINE EVoxelIterate ForeachView(
 		const int32 StartIndex,
 		const int32 Count,
@@ -402,9 +405,12 @@ public:
 
 		return EVoxelIterate::Continue;
 	}
-	template<typename LambdaType, typename = std::enable_if_t<
+	template<typename LambdaType>
+	requires
+	(
 		LambdaHasSignature_V<LambdaType, void(int32, TConstVoxelArrayView<Type>)> ||
-		LambdaHasSignature_V<LambdaType, EVoxelIterate(int32, TConstVoxelArrayView<Type>)>>>
+		LambdaHasSignature_V<LambdaType, EVoxelIterate(int32, TConstVoxelArrayView<Type>)>
+	)
 	FORCEINLINE EVoxelIterate ForeachView(
 		const int32 StartIndex,
 		const int32 Count,
@@ -437,16 +443,22 @@ public:
 		return EVoxelIterate::Continue;
 	}
 
-	template<typename LambdaType, typename = std::enable_if_t<
+	template<typename LambdaType>
+	requires
+	(
 		LambdaHasSignature_V<LambdaType, void(int32, TVoxelArrayView<Type>)> ||
-		LambdaHasSignature_V<LambdaType, EVoxelIterate(int32, TVoxelArrayView<Type>)>>>
+		LambdaHasSignature_V<LambdaType, EVoxelIterate(int32, TVoxelArrayView<Type>)>
+	)
 	FORCEINLINE EVoxelIterate ForeachView(LambdaType Lambda)
 	{
 		return this->ForeachView(0, Num(), MoveTemp(Lambda));
 	}
-	template<typename LambdaType, typename = std::enable_if_t<
+	template<typename LambdaType>
+	requires
+	(
 		LambdaHasSignature_V<LambdaType, void(int32, TConstVoxelArrayView<Type>)> ||
-		LambdaHasSignature_V<LambdaType, EVoxelIterate(int32, TConstVoxelArrayView<Type>)>>>
+		LambdaHasSignature_V<LambdaType, EVoxelIterate(int32, TConstVoxelArrayView<Type>)>
+	)
 	FORCEINLINE EVoxelIterate ForeachView(LambdaType Lambda) const
 	{
 		return this->ForeachView(0, Num(), MoveTemp(Lambda));

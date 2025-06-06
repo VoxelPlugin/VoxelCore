@@ -14,7 +14,7 @@ class UEdGraphNode;
 class FVoxelMessage;
 struct FVoxelMessageToken;
 
-template<typename T, typename = void>
+template<typename T>
 struct TVoxelMessageTokenFactory
 {
 	static void CreateToken(const T& Value);
@@ -149,7 +149,8 @@ struct TVoxelMessageTokenFactory<TWeakInterfacePtr<T>>
 };
 
 template<typename T>
-struct TVoxelMessageTokenFactory<T, std::enable_if_t<std::derived_from<T, UObject>>>
+requires std::derived_from<T, UObject>
+struct TVoxelMessageTokenFactory<T>
 {
 	static TSharedRef<FVoxelMessageToken> CreateToken(const T* Object)
 	{
@@ -171,7 +172,12 @@ struct TVoxelMessageTokenFactory<T, std::enable_if_t<std::derived_from<T, UObjec
 };
 
 template<typename T>
-struct TVoxelMessageTokenFactory<T, std::enable_if_t<!std::derived_from<T, UObject> && std::derived_from<T, IInterface>>>
+requires
+(
+	!std::derived_from<T, UObject> &&
+	std::derived_from<T, IInterface>
+)
+struct TVoxelMessageTokenFactory<T>
 {
 	static TSharedRef<FVoxelMessageToken> CreateToken(const T* Interface)
 	{
@@ -193,7 +199,8 @@ struct TVoxelMessageTokenFactory<T, std::enable_if_t<!std::derived_from<T, UObje
 };
 
 template<typename T>
-struct TVoxelMessageTokenFactory<TObjectPtr<T>, std::enable_if_t<std::derived_from<T, UObject>>>
+requires std::derived_from<T, UObject>
+struct TVoxelMessageTokenFactory<TObjectPtr<T>>
 {
 	static TSharedRef<FVoxelMessageToken> CreateToken(const TObjectPtr<T>& Object)
 	{

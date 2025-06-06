@@ -4,6 +4,7 @@
 
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/Utilities/VoxelLambdaUtilities.h"
+#include "VoxelMinimal/VoxelIntInterval.h"
 #include "VoxelMinimal/Containers/VoxelSet.h"
 #include "VoxelMinimal/Containers/VoxelMap.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
@@ -263,16 +264,16 @@ namespace Voxel
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	template<
-		typename Type,
-		typename LambdaType,
-		typename = std::enable_if_t<
-			LambdaHasSignature_V<LambdaType, void(Type&)> ||
-			LambdaHasSignature_V<LambdaType, void(const Type&)> ||
-			LambdaHasSignature_V<LambdaType, void(Type)> ||
-			LambdaHasSignature_V<LambdaType, void(Type&, int32)> ||
-			LambdaHasSignature_V<LambdaType, void(const Type&, int32)> ||
-			LambdaHasSignature_V<LambdaType, void(Type, int32)>>>
+	template<typename Type, typename LambdaType>
+	requires
+	(
+		LambdaHasSignature_V<LambdaType, void(Type&)> ||
+		LambdaHasSignature_V<LambdaType, void(const Type&)> ||
+		LambdaHasSignature_V<LambdaType, void(Type)> ||
+		LambdaHasSignature_V<LambdaType, void(Type&, int32)> ||
+		LambdaHasSignature_V<LambdaType, void(const Type&, int32)> ||
+		LambdaHasSignature_V<LambdaType, void(Type, int32)>
+	)
 	void ParallelFor(
 		TVoxelSparseArray<Type>& Array,
 		LambdaType Lambda)
@@ -316,14 +317,14 @@ namespace Voxel
 		});
 	}
 
-	template<
-		typename Type,
-		typename LambdaType,
-		typename = std::enable_if_t<
-			LambdaHasSignature_V<LambdaType, void(const Type&)> ||
-			LambdaHasSignature_V<LambdaType, void(Type)> ||
-			LambdaHasSignature_V<LambdaType, void(const Type&, int32)> ||
-			LambdaHasSignature_V<LambdaType, void(Type, int32)>>>
+	template<typename Type, typename LambdaType>
+	requires
+	(
+		LambdaHasSignature_V<LambdaType, void(const Type&)> ||
+		LambdaHasSignature_V<LambdaType, void(Type)> ||
+		LambdaHasSignature_V<LambdaType, void(const Type&, int32)> ||
+		LambdaHasSignature_V<LambdaType, void(Type, int32)>
+	)
 	void ParallelFor(
 		const TVoxelSparseArray<Type>& Array,
 		LambdaType Lambda)
@@ -335,17 +336,16 @@ namespace Voxel
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	template<
-		typename Type,
-		int32 MaxBytesPerChunk,
-		typename LambdaType,
-		typename = std::enable_if_t<
-			LambdaHasSignature_V<LambdaType, void(Type&)> ||
-			LambdaHasSignature_V<LambdaType, void(const Type&)> ||
-			LambdaHasSignature_V<LambdaType, void(Type)> ||
-			LambdaHasSignature_V<LambdaType, void(Type&, int32)> ||
-			LambdaHasSignature_V<LambdaType, void(const Type&, int32)> ||
-			LambdaHasSignature_V<LambdaType, void(Type, int32)>>>
+	template<typename Type, int32 MaxBytesPerChunk, typename LambdaType>
+	requires
+	(
+		LambdaHasSignature_V<LambdaType, void(Type&)> ||
+		LambdaHasSignature_V<LambdaType, void(const Type&)> ||
+		LambdaHasSignature_V<LambdaType, void(Type)> ||
+		LambdaHasSignature_V<LambdaType, void(Type&, int32)> ||
+		LambdaHasSignature_V<LambdaType, void(const Type&, int32)> ||
+		LambdaHasSignature_V<LambdaType, void(Type, int32)>
+	)
 	void ParallelFor(
 		TVoxelChunkedArray<Type, MaxBytesPerChunk>& Array,
 		LambdaType Lambda)
@@ -379,15 +379,14 @@ namespace Voxel
 		});
 	}
 
-	template<
-		typename Type,
-		int32 MaxBytesPerChunk,
-		typename LambdaType,
-		typename = std::enable_if_t<
-			LambdaHasSignature_V<LambdaType, void(const Type&)> ||
-			LambdaHasSignature_V<LambdaType, void(Type)> ||
-			LambdaHasSignature_V<LambdaType, void(const Type&, int32)> ||
-			LambdaHasSignature_V<LambdaType, void(Type, int32)>>>
+	template<typename Type, int32 MaxBytesPerChunk, typename LambdaType>
+	requires
+	(
+		LambdaHasSignature_V<LambdaType, void(const Type&)> ||
+		LambdaHasSignature_V<LambdaType, void(Type)> ||
+		LambdaHasSignature_V<LambdaType, void(const Type&, int32)> ||
+		LambdaHasSignature_V<LambdaType, void(Type, int32)>
+	)
 	void ParallelFor(
 		const TVoxelChunkedArray<Type, MaxBytesPerChunk>& Array,
 		LambdaType Lambda)
@@ -399,17 +398,16 @@ namespace Voxel
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	template<
-		typename Type,
-		int32 NumPerChunk,
-		typename LambdaType,
-		typename = std::enable_if_t<
-			LambdaHasSignature_V<LambdaType, void(Type&)> ||
-			LambdaHasSignature_V<LambdaType, void(const Type&)> ||
-			LambdaHasSignature_V<LambdaType, void(Type)> ||
-			LambdaHasSignature_V<LambdaType, void(Type&, int32)> ||
-			LambdaHasSignature_V<LambdaType, void(const Type&, int32)> ||
-			LambdaHasSignature_V<LambdaType, void(Type, int32)>>>
+	template<typename Type, int32 NumPerChunk, typename LambdaType>
+	requires
+	(
+		LambdaHasSignature_V<LambdaType, void(Type&)> ||
+		LambdaHasSignature_V<LambdaType, void(const Type&)> ||
+		LambdaHasSignature_V<LambdaType, void(Type)> ||
+		LambdaHasSignature_V<LambdaType, void(Type&, int32)> ||
+		LambdaHasSignature_V<LambdaType, void(const Type&, int32)> ||
+		LambdaHasSignature_V<LambdaType, void(Type, int32)>
+	)
 	void ParallelFor(
 		TVoxelChunkedSparseArray<Type, NumPerChunk>& Array,
 		LambdaType Lambda)
@@ -453,19 +451,38 @@ namespace Voxel
 		});
 	}
 
-	template<
-		typename Type,
-		int32 NumPerChunk,
-		typename LambdaType,
-		typename = std::enable_if_t<
-			LambdaHasSignature_V<LambdaType, void(const Type&)> ||
-			LambdaHasSignature_V<LambdaType, void(Type)> ||
-			LambdaHasSignature_V<LambdaType, void(const Type&, int32)> ||
-			LambdaHasSignature_V<LambdaType, void(Type, int32)>>>
+	template<typename Type, int32 NumPerChunk, typename LambdaType>
+	requires
+	(
+		LambdaHasSignature_V<LambdaType, void(const Type&)> ||
+		LambdaHasSignature_V<LambdaType, void(Type)> ||
+		LambdaHasSignature_V<LambdaType, void(const Type&, int32)> ||
+		LambdaHasSignature_V<LambdaType, void(Type, int32)>
+	)
 	void ParallelFor(
 		const TVoxelChunkedSparseArray<Type, NumPerChunk>& Array,
 		LambdaType Lambda)
 	{
 		Voxel::ParallelFor(ConstCast(Array), MoveTemp(Lambda));
+	}
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	template<typename LambdaType>
+	requires LambdaHasSignature_V<LambdaType, void(int32)>
+	void ParallelFor(
+		const FVoxelIntInterval& Range,
+		LambdaType Lambda)
+	{
+		Internal::ParallelFor(Range.Size(), [&](const int32 StartIndex, const int32 EndIndex)
+		{
+			for (int32 Index = StartIndex; Index < EndIndex; Index++)
+			{
+				checkVoxelSlow(Range.Contains(Range.Min + Index));
+				Lambda(Range.Min + Index);
+			}
+		});
 	}
 }

@@ -1,6 +1,7 @@
 ﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
+#include "VoxelTaskContext.h"
 #include "Async/ParallelFor.h"
 
 #if 0
@@ -49,6 +50,11 @@ VOXEL_RUN_ON_STARTUP_GAME()
 int32 Voxel::Internal::GetMaxNumThreads()
 {
 	// See ParallelForImpl::GetNumberOfThreadTasks
+
+	if (GVoxelNoAsync)
+	{
+		return 1;
+	}
 
 	int32 Result = 0;
 	if (FApp::ShouldUseThreadingForPerformance() ||

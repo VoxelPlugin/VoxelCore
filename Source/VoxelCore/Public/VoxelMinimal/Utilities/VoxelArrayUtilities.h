@@ -10,19 +10,6 @@
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 
-template<typename T>
-struct TVoxelCanBulkSerialize
-{
-	static constexpr bool Value = TCanBulkSerialize<T>::Value;
-};
-
-template<typename T>
-requires std::is_arithmetic_v<T>
-struct TVoxelCanBulkSerialize<T>
-{
-	static constexpr bool Value = true;
-};
-
 namespace FVoxelUtilities
 {
 	FORCEINLINE bool MemoryEqual(const void* Buf1, const void* Buf2, const SIZE_T Count)
@@ -45,13 +32,24 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 
 	template<typename ArrayType>
-	requires IsMutableArray<ArrayType>
+	requires
+	(
+		IsMutableArray<ArrayType> &&
+		(
+			std::is_trivially_destructible_v<ElementType<ArrayType>> ||
+			bool(TIsZeroConstructType<ElementType<ArrayType>>::Value)
+		)
+	)
 	FORCEINLINE void Memzero(ArrayType&& Array)
 	{
 		FMemory::Memzero(GetData(Array), GetNum(Array) * sizeof(ElementType<ArrayType>));
 	}
 	template<typename ArrayType>
-	requires IsMutableArray<ArrayType>
+	requires
+	(
+		IsMutableArray<ArrayType> &&
+		std::is_trivially_destructible_v<ElementType<ArrayType>>
+	)
 	FORCEINLINE void Memset(ArrayType&& Array, const uint8 Value)
 	{
 		FMemory::Memset(GetData(Array), Value, GetNum(Array) * sizeof(ElementType<ArrayType>));
@@ -61,6 +59,7 @@ namespace FVoxelUtilities
 	requires
 	(
 		IsMutableArray<DstArrayType> &&
+		std::is_trivially_destructible_v<ElementType<DstArrayType>> &&
 		std::is_same_v<ElementType<DstArrayType>, std::remove_const_t<ElementType<SrcArrayType>>>
 	)
 	FORCEINLINE void Memcpy(DstArrayType&& Dest, SrcArrayType&& Src)
@@ -87,15 +86,26 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 
 	template<typename ArrayType>
-	requires IsMutableArray<ArrayType>
-	void LargeMemzero(ArrayType&& Array)
+	requires
+	(
+		IsMutableArray<ArrayType> &&
+		(
+			std::is_trivially_destructible_v<ElementType<ArrayType>> ||
+			bool(TIsZeroConstructType<ElementType<ArrayType>>::Value)
+		)
+	)
+	void Memzero_Stats(ArrayType&& Array)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(GetNum(Array), 4096);
 		FVoxelUtilities::Memzero(Array);
 	}
 	template<typename ArrayType>
-	requires IsMutableArray<ArrayType>
-	void LargeMemset(ArrayType&& Array, const uint8 Value)
+	requires
+	(
+		IsMutableArray<ArrayType> &&
+		std::is_trivially_destructible_v<ElementType<ArrayType>>
+	)
+	void Memset_Stats(ArrayType&& Array, const uint8 Value)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(GetNum(Array), 4096);
 		FVoxelUtilities::Memset(Array, Value);
@@ -105,9 +115,10 @@ namespace FVoxelUtilities
 	requires
 	(
 		IsMutableArray<DstArrayType> &&
+		std::is_trivially_destructible_v<ElementType<DstArrayType>> &&
 		std::is_same_v<ElementType<DstArrayType>, std::remove_const_t<ElementType<SrcArrayType>>>
 	)
-	FORCEINLINE void LargeMemcpy(DstArrayType&& Dest, SrcArrayType&& Src)
+	FORCEINLINE void Memcpy_Stats(DstArrayType&& Dest, SrcArrayType&& Src)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(GetNum(Dest), 4096);
 		FVoxelUtilities::Memcpy(Dest, Src);
@@ -558,6 +569,12 @@ namespace FVoxelUtilities
 
 	// Will re-normalize Vectors
 	VOXELCORE_API TVoxelArray<FVoxelOctahedron> MakeOctahedrons(TConstVoxelArrayView<FVector3f> Vectors);
+
+	// Will re-normalize Vectors
+	VOXELCORE_API TVoxelArray<FVoxelOctahedron> MakeOctahedrons(
+		TConstVoxelArrayView<float> X,
+		TConstVoxelArrayView<float> Y,
+		TConstVoxelArrayView<float> Z);
 
 	// Will replace -0 by +0
 	VOXELCORE_API void FixupSignBit(TVoxelArrayView<float> Data);

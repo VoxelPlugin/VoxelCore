@@ -8,7 +8,7 @@
 UENUM(BlueprintType)
 enum class EVoxelAxis : uint8
 {
-	X,
-	Y,
-	Z
+	X UMETA(Icon = "StaticMeshEditor.ToggleShowTangents"),
+	Y UMETA(Icon = "StaticMeshEditor.SetShowBinormals"),
+	Z UMETA(Icon = "StaticMeshEditor.SetShowNormals")
 };

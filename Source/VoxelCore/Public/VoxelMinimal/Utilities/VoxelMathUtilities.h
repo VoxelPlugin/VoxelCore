@@ -79,7 +79,8 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	template<int32 Base, int32 InValue, typename = std::enable_if_t<(InValue > 0)>>
+	template<int32 Base, int32 InValue>
+	requires (InValue > 0)
 	FORCEINLINE constexpr int32 FloorLog()
 	{
 		int32 Value = InValue;
@@ -106,7 +107,8 @@ namespace FVoxelUtilities
 			return Exponent - 1;
 		}
 	}
-	template<int32 Base, int32 InValue, typename = std::enable_if_t<(InValue > 0)>>
+	template<int32 Base, int32 InValue>
+	requires (InValue > 0)
 	FORCEINLINE constexpr int32 CeilLog()
 	{
 		int32 Value = InValue;
@@ -133,7 +135,12 @@ namespace FVoxelUtilities
 			return Exponent + 1;
 		}
 	}
-	template<int32 Base, int32 InValue, typename = std::enable_if_t<(InValue > 0) && FloorLog<Base, InValue>() == CeilLog<Base, InValue>()>>
+	template<int32 Base, int32 InValue>
+	requires
+	(
+		InValue > 0 &&
+		FloorLog<Base, InValue>() == CeilLog<Base, InValue>()
+	)
 	FORCEINLINE constexpr int32 ExactLog()
 	{
 		int32 Value = InValue;
@@ -150,26 +157,40 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	template<int32 Value, typename = std::enable_if_t<(Value > 0)>>
+	template<int32 Value>
+	requires (Value > 0)
 	constexpr int32 FloorLog2() { return FloorLog<2, Value>(); }
 
-	template<int32 Value, typename = std::enable_if_t<(Value > 0)>>
+	template<int32 Value>
+	requires (Value > 0)
 	constexpr int32 CeilLog2() { return CeilLog<2, Value>(); }
 
-	template<int32 Value, typename = std::enable_if_t<(Value > 0) && FloorLog2<Value>() == CeilLog2<Value>()>>
+	template<int32 Value>
+	requires
+	(
+		Value > 0 &&
+		FloorLog2<Value>() == CeilLog2<Value>()
+	)
 	constexpr int32 ExactLog2() { return ExactLog<2, Value>(); }
 
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	template<int32 Value, typename = std::enable_if_t<(Value > 0)>>
+	template<int32 Value>
+	requires (Value > 0)
 	constexpr int32 FloorLog10() { return FloorLog<10, Value>(); }
 
-	template<int32 Value, typename = std::enable_if_t<(Value > 0)>>
+	template<int32 Value>
+	requires (Value > 0)
 	constexpr int32 CeilLog10() { return CeilLog<10, Value>(); }
 
-	template<int32 Value, typename = std::enable_if_t<(Value > 0) && FloorLog10<Value>() == CeilLog10<Value>()>>
+	template<int32 Value>
+	requires
+	(
+		Value > 0 &&
+		FloorLog10<Value>() == CeilLog10<Value>()
+	)
 	constexpr int32 ExactLog10() { return ExactLog<10, Value>(); }
 
 	//////////////////////////////////////////////////////////////////////////////

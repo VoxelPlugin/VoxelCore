@@ -108,6 +108,23 @@ bool FVoxelUtilities::IsPlayInEditor()
 #endif
 }
 
+bool FVoxelUtilities::IsLevelEditorWorld(const UWorld* World)
+{
+#if WITH_EDITOR
+	if (!ensure(World))
+	{
+		return false;
+	}
+
+	return
+		!World->IsGameWorld() &&
+		// Preview scene
+		!World->GetOutermost()->HasAnyFlags(RF_Transient);
+#else
+	return false;
+#endif
+}
+
 bool FVoxelUtilities::GetCameraView(const UWorld* World, FVector& OutPosition, FRotator& OutRotation, float& OutFOV)
 {
 	VOXEL_FUNCTION_COUNTER();

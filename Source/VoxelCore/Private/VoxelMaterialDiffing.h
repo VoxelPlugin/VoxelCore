@@ -21,6 +21,9 @@ private:
 	TVoxelSet<TPair<const UMaterialExpression*, const UMaterialExpression*>> EqualExpressions;
 	TVoxelSet<TPair<const UMaterialFunction*, const UMaterialFunction*>> EqualFunctions;
 
+	TVoxelSet<TPair<const UMaterialExpression*, const UMaterialExpression*>> EqualExpressions_Started;
+	TVoxelSet<TPair<const UMaterialFunction*, const UMaterialFunction*>> EqualFunctions_Started;
+
 private:
 	bool Equal(
 		const FProperty& Property,

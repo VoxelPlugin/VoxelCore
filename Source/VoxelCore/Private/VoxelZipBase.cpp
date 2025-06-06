@@ -34,8 +34,8 @@ FVoxelZipBase::~FVoxelZipBase()
 
 void FVoxelZipBase::CheckError() const
 {
-	const mz_zip_error ErrorCode = mz_zip_get_last_error(&Archive);
-	if (ErrorCode == MZ_ZIP_NO_ERROR)
+	const voxel::mz_zip_error ErrorCode = mz_zip_get_last_error(&Archive);
+	if (ErrorCode == voxel::MZ_ZIP_NO_ERROR)
 	{
 		return;
 	}

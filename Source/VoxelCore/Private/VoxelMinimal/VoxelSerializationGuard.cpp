@@ -42,7 +42,9 @@ FVoxelSerializationGuard::~FVoxelSerializationGuard()
 
 	if (Ar.IsLoading())
 	{
-		if (!ensure(Ar.Tell() == Offset + SerializedSize))
+		const int64 ActualSerializedSize = Ar.Tell() - Offset;
+
+		if (!ensure(ActualSerializedSize == SerializedSize))
 		{
 			Ar.Seek(Offset + SerializedSize);
 			ensure(Ar.Tell() == Offset + SerializedSize);

@@ -6,6 +6,7 @@
 #include "UObject/CoreRedirects.h"
 #include "UObject/UObjectThreadContext.h"
 #include "Misc/UObjectToken.h"
+#include "StructUtils/InstancedStruct.h"
 #include "Serialization/BulkDataReader.h"
 #include "Serialization/BulkDataWriter.h"
 #include "AssetRegistry/AssetData.h"
@@ -181,6 +182,24 @@ FString FVoxelUtilities::GetPropertyTooltip(const FString& FunctionTooltip, cons
 #if WITH_EDITOR
 FString FVoxelUtilities::GetFunctionType(const FProperty& Property)
 {
+	// TInstancedStruct
+	if (const FStructProperty* StructProperty = CastField<FStructProperty>(Property))
+	{
+		if (StructProperty->Struct == FInstancedStruct::StaticStruct())
+		{
+			if (const FString* BaseStructPath = Property.FindMetaData("BaseStruct"))
+			{
+				const UScriptStruct* Struct = LoadObject<UScriptStruct>(nullptr, **BaseStructPath);
+				if (ensure(Struct))
+				{
+					return "TInstancedStruct<" + Struct->GetStructCPPName() + ">";
+				}
+			}
+
+			return "FInstancedStruct";
+		}
+	}
+
 	// Convert TObjectPtr to raw pointers for UFunctions
 
 	FString ExtendedType;

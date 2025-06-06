@@ -2,6 +2,9 @@
 
 #include "miniz.h"
 
+namespace voxel
+{
+
 /**************************************************************************
  *
  * Copyright 2013-2014 RAD Game Tools and Valve Software
@@ -33,10 +36,6 @@
 typedef unsigned char mz_validate_uint16[sizeof(mz_uint16) == 2 ? 1 : -1];
 typedef unsigned char mz_validate_uint32[sizeof(mz_uint32) == 4 ? 1 : -1];
 typedef unsigned char mz_validate_uint64[sizeof(mz_uint64) == 8 ? 1 : -1];
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /* ------------------- zlib-style API's */
 
@@ -617,10 +616,6 @@ const char *mz_error(int err)
 
 #endif /*MINIZ_NO_ZLIB_APIS */
 
-#ifdef __cplusplus
-}
-#endif
-
 /*
   This is free and unencumbered software released into the public domain.
 
@@ -674,10 +669,6 @@ const char *mz_error(int err)
  **************************************************************************/
 
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /* ------------------- Low-level Compression (independent from all decompression API's) */
 
@@ -2221,9 +2212,6 @@ void tdefl_compressor_free(tdefl_compressor *pComp)
 #pragma warning(pop)
 #endif
 
-#ifdef __cplusplus
-}
-#endif
  /**************************************************************************
  *
  * Copyright 2013-2014 RAD Game Tools and Valve Software
@@ -2251,10 +2239,6 @@ void tdefl_compressor_free(tdefl_compressor *pComp)
  **************************************************************************/
 
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /* ------------------- Low-level Decompression (completely independent from all compression API's) */
 
@@ -2963,9 +2947,6 @@ void tinfl_decompressor_free(tinfl_decompressor *pDecomp)
 }
 #endif
 
-#ifdef __cplusplus
-}
-#endif
  /**************************************************************************
  *
  * Copyright 2013-2014 RAD Game Tools and Valve Software
@@ -2996,9 +2977,6 @@ void tinfl_decompressor_free(tinfl_decompressor *pDecomp)
 
 #ifndef MINIZ_NO_ARCHIVE_APIS
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /* ------------------- .ZIP archive reading */
 
@@ -7757,8 +7735,6 @@ mz_bool mz_zip_end(mz_zip_archive *pZip)
     return MZ_FALSE;
 }
 
-#ifdef __cplusplus
-}
-#endif
-
 #endif /*#ifndef MINIZ_NO_ARCHIVE_APIS*/
+
+}

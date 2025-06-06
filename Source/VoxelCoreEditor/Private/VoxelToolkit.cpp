@@ -30,6 +30,11 @@ void FVoxelToolkit::InitializeInternal(const TSharedRef<FUICommandList>& Command
 	Initialize();
 }
 
+void FVoxelToolkit::SetEditorToolkit(const TSharedPtr<FAssetEditorToolkit>& EditorToolkit)
+{
+	WeakEditorToolkit = EditorToolkit;
+}
+
 void FVoxelToolkit::SetEditorModeManager(const TSharedPtr<FEditorModeTools>& EditorModeManager)
 {
 	WeakEditorModeManager = EditorModeManager;

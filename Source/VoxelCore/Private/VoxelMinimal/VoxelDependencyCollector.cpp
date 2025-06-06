@@ -17,7 +17,6 @@ FVoxelDependencyCollector::FVoxelDependencyCollector(const FName Name)
 	Dependency3DToBounds.Reserve(16);
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -93,6 +92,43 @@ void FVoxelDependencyCollector::AddDependency(
 	SharedDependencies.Add(Dependency.AsShared());
 	Dependency3DToBounds.Add_CheckNew(Dependency.DependencyRef, Bounds);
 }
+
+void FVoxelDependencyCollector::AddDependencies(const FVoxelDependencyCollector& Other)
+{
+	if (bIsNull)
+	{
+		return;
+	}
+
+	VOXEL_FUNCTION_COUNTER();
+
+	TVoxelMap<FVoxelDependencyRef, TSharedPtr<const FVoxelDependencyBase>> DependencyRefToDependency;
+	{
+		DependencyRefToDependency.Reserve(Other.SharedDependencies.Num());
+
+		for (const TSharedRef<const FVoxelDependencyBase>& Dependency : Other.SharedDependencies)
+		{
+			DependencyRefToDependency.Add_EnsureNew(Dependency->DependencyRef, Dependency);
+		}
+	}
+
+	for (const FVoxelDependencyRef& Dependency : Other.Dependencies)
+	{
+		AddDependency(static_cast<const FVoxelDependency&>(*DependencyRefToDependency[Dependency]));
+	}
+	for (const auto& It : Other.Dependency2DToBounds)
+	{
+		AddDependency(static_cast<const FVoxelDependency2D&>(*DependencyRefToDependency[It.Key]), It.Value);
+	}
+	for (const auto& It : Other.Dependency3DToBounds)
+	{
+		AddDependency(static_cast<const FVoxelDependency3D&>(*DependencyRefToDependency[It.Key]), It.Value);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 TSharedRef<FVoxelDependencyTracker> FVoxelDependencyCollector::Finalize(
 	const FVoxelInvalidationQueue* InvalidationQueue,

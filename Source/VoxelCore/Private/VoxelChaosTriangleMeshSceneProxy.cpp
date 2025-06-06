@@ -136,6 +136,8 @@ FVoxelChaosTriangleMeshSceneProxy::FVoxelChaosTriangleMeshSceneProxy(
 {
 	// We create render data on-demand, can't be on a background thread
 	bSupportsParallelGDME = false;
+
+	bAffectDistanceFieldLighting = false;
 }
 
 void FVoxelChaosTriangleMeshSceneProxy::DestroyRenderThreadResources()

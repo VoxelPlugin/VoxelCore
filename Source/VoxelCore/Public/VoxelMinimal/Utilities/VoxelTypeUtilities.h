@@ -6,11 +6,12 @@
 
 namespace FVoxelUtilities
 {
+	// Don't allow converting EForceInit to int32
 	template<typename T>
-	class TConvertibleOnlyTo
+	struct TConvertibleOnlyTo
 	{
-	public:
-		template<typename S, typename = std::enable_if_t<std::is_same_v<T, S>>>
+		template<typename S>
+		requires std::is_same_v<T, S>
 		operator S() const
 		{
 			return S{};
@@ -64,4 +65,91 @@ namespace FVoxelUtilities
 		FMemory::Memzero(Value);
 		return Value;
 	}
+
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	template<typename From, typename To>
+	struct TCanCastMemoryImpl : std::false_type {};
+
+	template<typename From, typename To>
+	static constexpr bool CanCastMemory = TCanCastMemoryImpl<From, To>::value;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template<typename T>
+struct FVoxelUtilities::TCanCastMemoryImpl<T, T> : std::true_type {};
+
+template<typename From, typename To>
+struct FVoxelUtilities::TCanCastMemoryImpl<TSharedRef<From>, TSharedPtr<To>> : TCanCastMemoryImpl<TSharedPtr<From>, TSharedPtr<To>> {};
+
+template<typename From, typename To>
+requires
+(
+	!std::is_const_v<From>
+)
+struct FVoxelUtilities::TCanCastMemoryImpl<From, const To> : TCanCastMemoryImpl<From, To> {};
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template<typename From, typename To>
+requires
+(
+	!std::is_const_v<From>
+)
+struct FVoxelUtilities::TCanCastMemoryImpl<From*, const To*> : TCanCastMemoryImpl<From*, To*> {};
+
+template<typename From, typename To>
+requires
+(
+	!std::is_same_v<From, To> &&
+	std::derived_from<From, To> &&
+	std::is_const_v<From> == std::is_const_v<To>
+)
+struct FVoxelUtilities::TCanCastMemoryImpl<From*, To*> : std::true_type {};
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template<typename From, typename To>
+requires
+(
+	!std::is_const_v<From>
+)
+struct FVoxelUtilities::TCanCastMemoryImpl<TSharedPtr<From>, TSharedPtr<const To>> : TCanCastMemoryImpl<TSharedPtr<From>, TSharedPtr<To>> {};
+
+template<typename From, typename To>
+requires
+(
+	!std::is_same_v<From, To> &&
+	std::derived_from<From, To> &&
+	std::is_const_v<From> == std::is_const_v<To>
+)
+struct FVoxelUtilities::TCanCastMemoryImpl<TSharedPtr<From>, TSharedPtr<To>> : std::true_type {};
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template<typename From, typename To>
+requires
+(
+	!std::is_const_v<From>
+)
+struct FVoxelUtilities::TCanCastMemoryImpl<TSharedRef<From>, TSharedRef<const To>> : TCanCastMemoryImpl<TSharedRef<From>, TSharedRef<To>> {};
+
+template<typename From, typename To>
+requires
+(
+	!std::is_same_v<From, To> &&
+	std::derived_from<From, To> &&
+	std::is_const_v<From> == std::is_const_v<To>
+)
+struct FVoxelUtilities::TCanCastMemoryImpl<TSharedRef<From>, TSharedRef<To>> : std::true_type {};

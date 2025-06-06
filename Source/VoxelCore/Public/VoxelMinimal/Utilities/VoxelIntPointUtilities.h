@@ -19,6 +19,12 @@ namespace FVoxelUtilities
 			DivideCeil(V.X, Divisor),
 			DivideCeil(V.Y, Divisor));
 	}
+	FORCEINLINE FIntPoint DivideFloor_FastLog2(const FIntPoint& Vector, const int32 DivisorLog2)
+	{
+		return FIntPoint(
+			DivideFloor_FastLog2(Vector.X, DivisorLog2),
+			DivideFloor_FastLog2(Vector.Y, DivisorLog2));
+	}
 
 	FORCEINLINE int64 SizeSquared(const FIntPoint& V)
 	{

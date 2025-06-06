@@ -167,6 +167,23 @@ void FVoxelSimpleAssetToolkit::PostEditChange(const FPropertyChangedEvent& Prope
 	CaptureThumbnail();
 }
 
+TSharedPtr<FAssetEditorToolkit> FVoxelSimpleAssetToolkit::GetEditorToolkit() const
+{
+	return GetEditorToolkit_Impl();
+}
+
+FEditorModeTools* FVoxelSimpleAssetToolkit::GetEditorModeTools() const
+{
+	return GetEditorModeTools_Impl().Get();
+}
+
+#if VOXEL_ENGINE_VERSION >= 506
+FString FVoxelSimpleAssetToolkit::GetToolbarName() const
+{
+	return GetStruct()->GetName();
+}
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

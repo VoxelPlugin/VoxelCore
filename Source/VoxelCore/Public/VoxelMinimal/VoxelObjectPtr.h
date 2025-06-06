@@ -3,7 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
-#include "VoxelMinimal/Utilities/VoxelHashUtilities.h"
+#include "VoxelMinimal/VoxelObjectHelpers.h"
 
 class VOXELCORE_API alignas(8) FVoxelObjectPtr
 {
@@ -16,10 +16,6 @@ public:
 	}
 	FORCEINLINE FVoxelObjectPtr(const FObjectPtr Object)
 		: FVoxelObjectPtr(Object.Get())
-	{
-	}
-	FORCEINLINE FVoxelObjectPtr(const FWeakObjectPtr Object)
-		: FVoxelObjectPtr(ReinterpretCastRef_Unaligned<FVoxelObjectPtr>(Object))
 	{
 	}
 	FORCEINLINE FVoxelObjectPtr(decltype(nullptr))
@@ -41,44 +37,57 @@ public:
 	FORCEINLINE bool IsExplicitlyNull() const
 	{
 		checkVoxelSlow((ObjectIndex == 0) == (ObjectSerialNumber == 0));
-		return ObjectSerialNumber == 0;
+		checkVoxelSlow((ObjectIndex == 0) == (Class == nullptr));
+		return ObjectIndex == 0;
+	}
+	FORCEINLINE UClass* GetClass() const
+	{
+		return Class;
 	}
 
 	FORCEINLINE bool operator==(const FVoxelObjectPtr& Other) const
 	{
-		return ReinterpretCastRef<uint64>(*this) == ReinterpretCastRef<uint64>(Other);
+		checkVoxelSlow(RawValue != Other.RawValue || Class == Other.Class);
+		return RawValue == Other.RawValue;
 	}
 	FORCEINLINE bool operator==(const UObject* Other) const
 	{
 		return *this == FVoxelObjectPtr(Other);
 	}
-	FORCEINLINE bool operator==(const FWeakObjectPtr& Other) const
-	{
-		return ReinterpretCastRef<uint64>(*this) == ReinterpretCastRef_Unaligned<uint64>(Other);
-	}
 
 	FORCEINLINE friend uint32 GetTypeHash(const FVoxelObjectPtr& ObjectPtr)
 	{
-		return FVoxelUtilities::MurmurHash64(ReinterpretCastRef<uint64>(ObjectPtr));
+		return ObjectPtr.ObjectIndex;
 	}
 
 public:
-	template<typename T>
-	FORCEINLINE bool CanBeCastedTo_Unsafe() const
+	FORCEINLINE bool CanBeCastedTo(const UClass* OtherClass) const
 	{
-		const UObject* Object = Resolve();
-		return !Object || Object->IsA<T>();
+		if (IsExplicitlyNull())
+		{
+			return true;
+		}
+
+		return Class->IsChildOf(OtherClass);
 	}
 	template<typename T>
 	FORCEINLINE bool CanBeCastedTo() const
 	{
-		checkVoxelSlow(IsInGameThread());
-		return CanBeCastedTo_Unsafe<T>();
+		return this->CanBeCastedTo(StaticClassFast<T>());
 	}
 
 private:
-	int32 ObjectIndex = 0;
-	int32 ObjectSerialNumber = 0;
+	union
+	{
+		struct
+		{
+			int32 ObjectIndex;
+			int32 ObjectSerialNumber;
+		};
+
+		uint64 RawValue = 0;
+	};
+	UClass* Class = nullptr;
 };
 checkStatic(UE::Core::Private::InvalidWeakObjectIndex == 0);
 
@@ -104,16 +113,6 @@ public:
 	)
 	FORCEINLINE TVoxelObjectPtr(const TObjectPtr<ChildType> Object)
 		: FVoxelObjectPtr(Object.Get())
-	{
-	}
-	template<typename ChildType>
-	requires
-	(
-		std::derived_from<ChildType, ObjectType> &&
-		(!std::is_const_v<ChildType> || std::is_const_v<ObjectType>)
-	)
-	FORCEINLINE TVoxelObjectPtr(const TWeakObjectPtr<ChildType> Object)
-		: FVoxelObjectPtr(ReinterpretCastRef_Unaligned<FVoxelObjectPtr>(Object))
 	{
 	}
 	FORCEINLINE TVoxelObjectPtr(decltype(nullptr))
@@ -145,9 +144,9 @@ public:
 		std::derived_from<ChildType, ObjectType> &&
 		(!std::is_const_v<ObjectType> || std::is_const_v<ChildType>)
 	)
-	FORCEINLINE TVoxelObjectPtr<ChildType> CastTo_Unsafe() const
+	FORCEINLINE TVoxelObjectPtr<ChildType> CastTo() const
 	{
-		if (!CanBeCastedTo_Unsafe<ChildType>())
+		if (!CanBeCastedTo<ChildType>())
 		{
 			return {};
 		}
@@ -160,20 +159,9 @@ public:
 		std::derived_from<ChildType, ObjectType> &&
 		(!std::is_const_v<ObjectType> || std::is_const_v<ChildType>)
 	)
-	FORCEINLINE TVoxelObjectPtr<ChildType> CastTo() const
-	{
-		checkVoxelSlow(IsInGameThread());
-		return CastTo_Unsafe<ChildType>();
-	}
-	template<typename ChildType>
-	requires
-	(
-		std::derived_from<ChildType, ObjectType> &&
-		(!std::is_const_v<ObjectType> || std::is_const_v<ChildType>)
-	)
 	FORCEINLINE TVoxelObjectPtr<ChildType> CastToChecked() const
 	{
-		checkVoxelSlow(CanBeCastedTo_Unsafe<ChildType>());
+		checkVoxelSlow(CanBeCastedTo<ChildType>());
 		return ReinterpretCastRef<TVoxelObjectPtr<ChildType>>(*this);
 	}
 
@@ -196,26 +184,26 @@ public:
 public:
 	FORCEINLINE bool operator==(const FVoxelObjectPtr& Other) const
 	{
-		return ReinterpretCastRef<uint64>(*this) == ReinterpretCastRef<uint64>(Other);
+		return FVoxelObjectPtr::operator==(Other);
 	}
-	template<typename OtherType, typename = std::enable_if_t<std::derived_from<OtherType, ObjectType> || std::derived_from<ObjectType, OtherType>>>
+	template<typename OtherType>
+	requires
+	(
+		std::derived_from<OtherType, ObjectType> ||
+		std::derived_from<ObjectType, OtherType>
+	)
 	FORCEINLINE bool operator==(const TVoxelObjectPtr<OtherType>& Other) const
 	{
-		return ReinterpretCastRef<uint64>(*this) == ReinterpretCastRef<uint64>(Other);
-	}
-	template<typename OtherType, typename = std::enable_if_t<std::derived_from<OtherType, ObjectType> || std::derived_from<ObjectType, OtherType>>>
-	FORCEINLINE bool operator==(const TWeakObjectPtr<OtherType>& Other) const
-	{
-		return ReinterpretCastRef<uint64>(*this) == ReinterpretCastRef_Unaligned<uint64>(Other);
+		return FVoxelObjectPtr::operator==(Other);
 	}
 	FORCEINLINE bool operator==(const UObject* Other) const
 	{
-		return *this == FVoxelObjectPtr(Other);
+		return FVoxelObjectPtr::operator==(Other);
 	}
 
 	FORCEINLINE friend uint32 GetTypeHash(const TVoxelObjectPtr& ObjectPtr)
 	{
-		return FVoxelUtilities::MurmurHash64(ReinterpretCastRef<uint64>(ObjectPtr));
+		return GetTypeHash(static_cast<const FVoxelObjectPtr&>(ObjectPtr));
 	}
 };
 
@@ -233,11 +221,6 @@ FORCEINLINE TVoxelObjectPtr<T> MakeVoxelObjectPtr(T& Object)
 }
 template<typename T>
 FORCEINLINE TVoxelObjectPtr<T> MakeVoxelObjectPtr(const TObjectPtr<T>& Object)
-{
-	return TVoxelObjectPtr<T>(Object);
-}
-template<typename T>
-FORCEINLINE TVoxelObjectPtr<T> MakeVoxelObjectPtr(const TWeakObjectPtr<T>& Object)
 {
 	return TVoxelObjectPtr<T>(Object);
 }

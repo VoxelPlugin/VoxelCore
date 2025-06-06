@@ -10,7 +10,7 @@ TSharedPtr<FVoxelZipReader> FVoxelZipReader::Create(
 
 	const TSharedRef<FVoxelZipReader> Result = MakeShareable(new FVoxelZipReader(ReadLambda));
 	Result->Archive.m_pIO_opaque = &Result.Get();
-	Result->Archive.m_pRead = [](void* pOpaque, const mz_uint64 file_ofs, void* pBuf, const size_t n) -> size_t
+	Result->Archive.m_pRead = [](void* pOpaque, const voxel::mz_uint64 file_ofs, void* pBuf, const size_t n) -> size_t
 	{
 		VOXEL_SCOPE_COUNTER_FORMAT("FVoxelZipReader read %lldB", n);
 		if (!ensure(static_cast<FVoxelZipReader*>(pOpaque)->ReadLambda(
@@ -107,7 +107,7 @@ bool FVoxelZipReader::TryLoad(
 		return false;
 	}
 
-	mz_zip_archive_file_stat FileStat;
+	voxel::mz_zip_archive_file_stat FileStat;
 	if (!ensure(mz_zip_reader_file_stat(
 		&Archive,
 		*IndexPtr,

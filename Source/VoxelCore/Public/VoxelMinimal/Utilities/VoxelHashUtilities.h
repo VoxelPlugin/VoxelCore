@@ -55,12 +55,17 @@ namespace FVoxelUtilities
 		return H;
 	}
 
-	template<typename T, typename = std::enable_if_t<
+	template<typename T>
+	requires
+	(
 		std::is_trivially_destructible_v<T> &&
-		!TIsTArrayView<T>::Value && (
-		sizeof(T) == sizeof(uint8) ||
-		sizeof(T) == sizeof(uint16) ||
-		sizeof(T) % sizeof(uint32) == 0)>>
+		!TIsTArrayView<T>::Value &&
+		(
+			sizeof(T) == sizeof(uint8) ||
+			sizeof(T) == sizeof(uint16) ||
+			sizeof(T) % sizeof(uint32) == 0
+		)
+	)
 	FORCEINLINE uint64 MurmurHash(const T& Value, const uint32 Seed = 0)
 	{
 		uint32 H = 1831214719 * (1460481823 + Seed);
@@ -111,16 +116,22 @@ namespace FVoxelUtilities
 
 	VOXELCORE_API uint64 MurmurHashView(TConstVoxelArrayView<uint8> Bytes, uint32 Seed = 0);
 
-	template<typename T, typename = std::enable_if_t<
+	template<typename T>
+	requires
+	(
 		std::is_trivially_destructible_v<T> &&
-		!TIsTArrayView<T>::Value>>
+		!TIsTArrayView<T>::Value
+	)
 	FORCEINLINE uint64 MurmurHashView(const TConstVoxelArrayView<T> Array, const uint32 Seed = 0)
 	{
 		return FVoxelUtilities::MurmurHashView(Array.template ReinterpretAs<uint8>(), Seed);
 	}
-	template<typename T, typename AllocatorType, typename = std::enable_if_t<
+	template<typename T, typename AllocatorType>
+	requires
+	(
 		std::is_trivially_destructible_v<T> &&
-		!TIsTArrayView<T>::Value>>
+		!TIsTArrayView<T>::Value
+	)
 	FORCEINLINE uint64 MurmurHashView(const TVoxelArray<T, AllocatorType>& Array, const uint32 Seed = 0)
 	{
 		return FVoxelUtilities::MurmurHashView(Array.template View<uint8>(), Seed);

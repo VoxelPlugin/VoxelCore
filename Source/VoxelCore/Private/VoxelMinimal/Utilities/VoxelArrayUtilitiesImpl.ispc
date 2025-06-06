@@ -883,7 +883,7 @@ export void ArrayUtilities_GetMinMaxSafe_double(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-export void ArrayUtilities_MakeOctahedrons(
+export void ArrayUtilities_MakeOctahedrons_AOS(
 	const uniform float3 Vectors[],
 	uniform FVoxelOctahedron Octahedrons[],
 	const uniform int32 Num)
@@ -892,6 +892,23 @@ export void ArrayUtilities_MakeOctahedrons(
 	{
 		IGNORE_PERF_WARNING
 		Octahedrons[Index] = MakeOctahedron(UnitVectorToOctahedron(normalize(Vectors[Index])));
+	}
+}
+
+export void ArrayUtilities_MakeOctahedrons_SOA(
+	const uniform float X[],
+	const uniform float Y[],
+	const uniform float Z[],
+	uniform FVoxelOctahedron Octahedrons[],
+	const uniform int32 Num)
+{
+	FOREACH(Index, 0, Num)
+	{
+		IGNORE_PERF_WARNING
+		Octahedrons[Index] = MakeOctahedron(UnitVectorToOctahedron(normalize(MakeFloat3(
+			X[Index],
+			Y[Index],
+			Z[Index]))));
 	}
 }
 

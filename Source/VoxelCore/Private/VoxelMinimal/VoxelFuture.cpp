@@ -6,14 +6,14 @@
 
 DEFINE_VOXEL_INSTANCE_COUNTER(IVoxelPromiseState);
 
-TRefCountPtr<IVoxelPromiseState> IVoxelPromiseState::New(
+TVoxelRefCountPtr<IVoxelPromiseState> IVoxelPromiseState::New(
 	FVoxelTaskContext* ContextOverride,
 	const bool bWithValue)
 {
 	return new FVoxelPromiseState(ContextOverride, bWithValue);
 }
 
-TRefCountPtr<IVoxelPromiseState> IVoxelPromiseState::New(const FSharedVoidRef& Value)
+TVoxelRefCountPtr<IVoxelPromiseState> IVoxelPromiseState::New(const FSharedVoidRef& Value)
 {
 	return new FVoxelPromiseState(Value);
 }

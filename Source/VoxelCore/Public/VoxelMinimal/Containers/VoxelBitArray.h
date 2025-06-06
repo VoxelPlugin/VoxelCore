@@ -186,10 +186,12 @@ public:
 		return FVoxelUtilities::CountSetBits(GetWordView(), Count);
 	}
 
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterate>>>
+	template<typename LambdaType>
+	requires
+	(
+		LambdaHasSignature_V<LambdaType, void(int32)> ||
+		LambdaHasSignature_V<LambdaType, EVoxelIterate(int32)>
+	)
 	FORCEINLINE EVoxelIterate ForAllSetBits(LambdaType Lambda) const
 	{
 		return FVoxelBitArrayUtilities::ForAllSetBits(GetWordView(), Num(), Lambda);

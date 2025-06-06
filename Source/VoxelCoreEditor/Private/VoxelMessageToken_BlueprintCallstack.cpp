@@ -48,7 +48,7 @@ TSharedRef<IMessageToken> FVoxelMessageToken_BlueprintCallstack::GetMessageToken
 	return FActionToken::Create(
 		INVTEXT("View Callstack"),
 		INVTEXT("View callstack"),
-		MakeLambdaDelegate([Callstack = Callstack, Title = Title]
+		MakeLambdaDelegate([Callstack = Callstack, Title = Message->ToString()]
 		{
 			SVoxelCallstack::CreatePopup(
 				Title,

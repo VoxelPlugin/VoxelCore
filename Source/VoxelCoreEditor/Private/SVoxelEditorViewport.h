@@ -5,6 +5,7 @@
 #include "VoxelEditorMinimal.h"
 #include "SEditorViewport.h"
 #include "SCommonEditorViewportToolbarBase.h"
+#include "SVoxelEditorViewport.generated.h"
 
 class SVoxelEditorViewport;
 class FAdvancedPreviewScene;
@@ -90,6 +91,9 @@ protected:
 	//~ Begin SEditorViewport Interface
 	virtual void OnFocusViewportToSelection() override;
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
+#if VOXEL_ENGINE_VERSION >= 506
+	virtual TSharedPtr<SWidget> BuildViewportToolbar() override;
+#endif
 	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
 	virtual void PopulateViewportOverlays(TSharedRef<SOverlay> Overlay) override;
 	virtual EVisibility GetTransformToolbarVisibility() const override;
@@ -107,4 +111,13 @@ private:
 	TWeakPtr<IVoxelViewportInterface> WeakInterface;
 
 	FBox GetComponentBounds() const;
+};
+
+UCLASS()
+class UVoxelEditorViewportContext : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	TWeakPtr<IVoxelViewportInterface> WeakInterface;
 };

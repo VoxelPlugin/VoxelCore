@@ -48,6 +48,8 @@ TSharedRef<FStructOnScope> FVoxelInstancedStruct::MakeStructOnScope()
 
 bool FVoxelInstancedStruct::NetSerialize(FArchive& Ar, UPackageMap& Map)
 {
+	VOXEL_FUNCTION_COUNTER();
+
 	if (Ar.IsSaving())
 	{
 		if (!IsValid())
@@ -60,7 +62,9 @@ bool FVoxelInstancedStruct::NetSerialize(FArchive& Ar, UPackageMap& Map)
 		FString PathName = GetScriptStruct()->GetPathName();
 		Ar << PathName;
 
-		GetScriptStruct()->SerializeItem(Ar, GetStructMemory(), nullptr);
+		const FSharedVoidRef Default = MakeSharedStruct(GetScriptStruct());
+
+		GetScriptStruct()->SerializeItem(Ar, GetStructMemory(), &Default.Get());
 		return true;
 	}
 	else if (Ar.IsLoading())
@@ -80,8 +84,10 @@ bool FVoxelInstancedStruct::NetSerialize(FArchive& Ar, UPackageMap& Map)
 			return false;
 		}
 
+		const FSharedVoidRef Default = MakeSharedStruct(GetScriptStruct());
+
 		*this = FVoxelInstancedStruct(NewScriptStruct);
-		GetScriptStruct()->SerializeItem(Ar, GetStructMemory(), nullptr);
+		GetScriptStruct()->SerializeItem(Ar, GetStructMemory(), &Default.Get());
 		return true;
 	}
 	else
@@ -263,12 +269,15 @@ bool FVoxelInstancedStruct::ExportTextItem(FString& ValueStr, const FVoxelInstan
 
 	ValueStr += GetScriptStruct()->GetPathName();
 
+	// ALWAYS provide a defaults, otherwise FProperty::Identical assumes the default is 0
+	const FSharedVoidRef Defaults = MakeSharedStruct(GetScriptStruct());
+
 	GetScriptStruct()->ExportText(
 		ValueStr,
 		GetStructMemory(),
 		GetScriptStruct() == DefaultValue.GetScriptStruct()
 		? DefaultValue.GetStructMemory()
-		: nullptr,
+		: &Defaults.Get(),
 		Parent,
 		PortFlags,
 		ExportRootScope);

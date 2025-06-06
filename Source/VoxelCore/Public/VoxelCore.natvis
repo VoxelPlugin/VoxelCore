@@ -195,4 +195,9 @@
     <DisplayString>{(Components.Sign*-2+1) * 1.0f + Components.Mantissa/1024.0f}</DisplayString>
   </Type>
 
+  <!-- TVoxelRefCountPtr visualizer -->
+  <Type Name="TVoxelRefCountPtr&lt;*&gt;">
+    <SmartPointer Usage="Minimal">PrivateReference</SmartPointer>
+  </Type>
+
 </AutoVisualizer>

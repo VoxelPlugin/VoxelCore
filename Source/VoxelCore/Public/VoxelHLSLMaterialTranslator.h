@@ -15,6 +15,7 @@ struct FVoxelHLSLMaterialTranslator : FHLSLMaterialTranslator
 	using FHLSLMaterialTranslator::FunctionStacks;
 	using FHLSLMaterialTranslator::CurrentScopeChunks;
 	using FHLSLMaterialTranslator::CurrentScopeID;
+	using FHLSLMaterialTranslator::VTStacks;
 	using FHLSLMaterialTranslator::VTStackHash;
 	using FHLSLMaterialTranslator::CustomExpressions;
 	using FHLSLMaterialTranslator::AddCodeChunk;

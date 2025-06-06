@@ -5,6 +5,7 @@
 #include "VoxelCoreMinimal.h"
 #include "Templates/MakeUnsigned.h"
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
+#include "VoxelMinimal/Utilities/VoxelTypeUtilities.h"
 
 template<typename InElementType, typename InAllocator>
 class TVoxelArray : public TArray<InElementType, InAllocator>
@@ -42,6 +43,46 @@ public:
 	{
 		Super::operator=(Other);
 		return *this;
+	}
+
+public:
+	template<typename OtherType>
+	requires FVoxelUtilities::CanCastMemory<ElementType, OtherType>
+	FORCEINLINE operator const TVoxelArray<OtherType, InAllocator>&() const &
+	{
+		return ReinterpretCastRef<TVoxelArray<OtherType, InAllocator>>(*this);
+	}
+	template<typename OtherType>
+	requires FVoxelUtilities::CanCastMemory<ElementType, OtherType>
+	FORCEINLINE operator TVoxelArray<OtherType, InAllocator>&() &
+	{
+		return ReinterpretCastRef<TVoxelArray<OtherType, InAllocator>>(*this);
+	}
+	template<typename OtherType>
+	requires FVoxelUtilities::CanCastMemory<ElementType, OtherType>
+	FORCEINLINE operator TVoxelArray<OtherType, InAllocator>&&() &&
+	{
+		return ReinterpretCastRef<TVoxelArray<OtherType, InAllocator>>(MoveTemp(*this));
+	}
+
+public:
+	template<typename OtherType>
+	requires FVoxelUtilities::CanCastMemory<ElementType, OtherType>
+	FORCEINLINE operator const TArray<OtherType, InAllocator>&() const &
+	{
+		return ReinterpretCastRef<TArray<OtherType, InAllocator>>(*this);
+	}
+	template<typename OtherType>
+	requires FVoxelUtilities::CanCastMemory<ElementType, OtherType>
+	FORCEINLINE operator TArray<OtherType, InAllocator>&() &
+	{
+		return ReinterpretCastRef<TArray<OtherType, InAllocator>>(*this);
+	}
+	template<typename OtherType>
+	requires FVoxelUtilities::CanCastMemory<ElementType, OtherType>
+	FORCEINLINE operator TArray<OtherType, InAllocator>&&() &&
+	{
+		return ReinterpretCastRef<TArray<OtherType, InAllocator>>(MoveTemp(*this));
 	}
 
 public:

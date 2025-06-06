@@ -34,7 +34,7 @@ int64 FVoxelWriter::FArchiveImpl::TotalSize()
 
 FString FVoxelWriter::FArchiveImpl::GetArchiveName() const
 {
-	return "FVoxelWriter";
+	return "FVoxelArchive";
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -78,5 +78,5 @@ int64 FVoxelReader::FArchiveImpl::TotalSize()
 
 FString FVoxelReader::FArchiveImpl::GetArchiveName() const
 {
-	return "FVoxelReader";
+	return "FVoxelArchive";
 }

@@ -24,6 +24,8 @@ FVoxelObjectPtr::FVoxelObjectPtr(const UObject* Object)
 	checkVoxelSlow(ObjectItem->SerialNumber != 0);
 
 	ObjectSerialNumber = ObjectItem->SerialNumber;
+
+	Class = Object->GetClass();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

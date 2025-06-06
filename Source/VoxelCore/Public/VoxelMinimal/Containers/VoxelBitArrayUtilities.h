@@ -201,10 +201,12 @@ private:
 	}
 
 public:
-	template<
-		typename LambdaType,
-		typename ReturnType = LambdaReturnType_T<LambdaType>,
-		typename = std::enable_if_t<std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterate>>>
+	template<typename LambdaType>
+	requires
+	(
+		LambdaHasSignature_V<LambdaType, void(int32)> ||
+		LambdaHasSignature_V<LambdaType, EVoxelIterate(int32)>
+	)
 	FORCEINLINE static EVoxelIterate ForAllSetBits(
 		const TConstVoxelArrayView<uint32> Words,
 		const int32 Num,

@@ -20,6 +20,8 @@ struct VOXELCORE_API FVoxelMaterialTranslatorNoCodeReuseScope
 public:
 	explicit FVoxelMaterialTranslatorNoCodeReuseScope(FHLSLMaterialTranslator& Translator);
 
+	static void DisableFutureReuse(FHLSLMaterialTranslator& Translator);
+
 private:
 	struct FImpl;
 	TPimplPtr<FImpl> Impl;

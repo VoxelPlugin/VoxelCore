@@ -23,9 +23,12 @@ public:
 		PropertyPtr = &Property;
 	}
 
-	template<typename OtherType, typename = std::enable_if_t<
+	template<typename OtherType>
+	requires
+	(
 		!std::is_same_v<T, OtherType> &&
-		TPointerIsConvertibleFromTo<OtherType, T>::Value>>
+		std::derived_from<OtherType, T>
+	)
 	FORCEINLINE TVoxelWeakPropertyPtr(const TVoxelWeakPropertyPtr<OtherType>& Other)
 	{
 		ObjectType* Object = Other.WeakObject.Get();

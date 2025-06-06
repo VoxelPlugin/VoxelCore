@@ -105,6 +105,12 @@ FVoxelParallelTaskScope::~FVoxelParallelTaskScope()
 
 void FVoxelParallelTaskScope::AddTask(TVoxelUniqueFunction<void()> Lambda)
 {
+	if (GVoxelNoAsync)
+	{
+		Lambda();
+		return;
+	}
+
 	Tasks.Enqueue(UE::Tasks::Launch(
 		TEXT("Voxel Parallel Task"),
 		MoveTemp(Lambda),

@@ -6,7 +6,6 @@
 #include "UObject/UObjectHash.h"
 #include "UObject/WeakInterfacePtr.h"
 #include "VoxelMinimal/VoxelSharedPtr.h"
-#include "VoxelMinimal/VoxelObjectPtr.h"
 #include "VoxelMinimal/VoxelStructView.h"
 #include "VoxelMinimal/VoxelDereferencingIterator.h"
 #include "VoxelMinimal/Containers/VoxelChunkedArray.h"
@@ -28,101 +27,6 @@ struct TIsSoftObjectPtr<TSoftObjectPtr<T>>
 {
 	static constexpr bool Value = true;
 };
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-template<typename, typename = void>
-struct TIsObjectPtr
-{
-	static constexpr bool Value = false;
-};
-
-template<typename T>
-struct TIsObjectPtr<T, std::enable_if_t<std::derived_from<T, UObject>>>
-{
-	static constexpr bool Value = true;
-};
-
-template<typename T>
-struct TIsObjectPtr<T*, std::enable_if_t<std::derived_from<T, UObject>>>
-{
-	static constexpr bool Value = true;
-};
-
-template<typename T>
-struct TIsObjectPtr<TObjectPtr<T>>
-{
-	static constexpr bool Value = true;
-};
-
-template<typename T>
-struct TIsObjectPtr<TObjectKey<T>>
-{
-	static constexpr bool Value = true;
-};
-
-template<typename T>
-struct TIsObjectPtr<TWeakObjectPtr<T>>
-{
-	static constexpr bool Value = true;
-};
-
-template<typename T>
-struct TIsObjectPtr<TVoxelObjectPtr<T>>
-{
-	static constexpr bool Value = true;
-};
-
-template<typename T>
-static constexpr bool IsObjectPtr = TIsObjectPtr<T>::Value;
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-template<typename, typename = void>
-struct TObjectPtrInnerType;
-
-template<typename T>
-struct TObjectPtrInnerType<T, std::enable_if_t<std::derived_from<T, UObject>>>
-{
-	using Type = T;
-};
-
-template<typename T>
-struct TObjectPtrInnerType<T*, std::enable_if_t<std::derived_from<T, UObject>>>
-{
-	using Type = T;
-};
-
-template<typename T>
-struct TObjectPtrInnerType<TObjectPtr<T>>
-{
-	using Type = T;
-};
-
-template<typename T>
-struct TObjectPtrInnerType<TObjectKey<T>>
-{
-	using Type = T;
-};
-
-template<typename T>
-struct TObjectPtrInnerType<TWeakObjectPtr<T>>
-{
-	using Type = T;
-};
-
-template<typename T>
-struct TObjectPtrInnerType<TVoxelObjectPtr<T>>
-{
-	using Type = T;
-};
-
-template<typename T>
-using ObjectPtrInnerType = typename TObjectPtrInnerType<T>::Type;
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -183,9 +87,10 @@ FORCEINLINE To* CastEnsured(const TObjectPtr<From>& Src)
 	return CastEnsured<To>(Src.Get());
 }
 
-template<typename ToType, typename FromType, typename Allocator, typename = std::enable_if_t<std::derived_from<
+template<typename ToType, typename FromType, typename Allocator>
+requires std::derived_from<
 	std::remove_const_t<ToType>,
-	std::remove_const_t<FromType>>>>
+	std::remove_const_t<FromType>>
 FORCEINLINE const TArray<ToType*, Allocator>& CastChecked(const TArray<FromType*, Allocator>& Array)
 {
 #if VOXEL_DEBUG
@@ -198,7 +103,9 @@ FORCEINLINE const TArray<ToType*, Allocator>& CastChecked(const TArray<FromType*
 	return ReinterpretCastArray<ToType*>(Array);
 }
 
-template<typename ToType, typename FromType, typename = std::enable_if_t<
+template<typename ToType, typename FromType>
+requires
+(
 	std::derived_from<
 		std::remove_const_t<ToType>,
 		UObject
@@ -207,7 +114,8 @@ template<typename ToType, typename FromType, typename = std::enable_if_t<
 	std::derived_from<
 		std::remove_const_t<ToType>,
 		std::remove_const_t<FromType>
-	>>>
+	>
+)
 FORCEINLINE std::conditional_t<std::is_const_v<FromType>, const ToType, ToType>& CastChecked(FromType& Object)
 {
 	return *CastChecked<ToType>(&Object);
@@ -308,7 +216,12 @@ void ForEachAssetDataOfClass(TFunctionRef<void(const FAssetData&)> Operation)
 	ForEachAssetDataOfClass(T::StaticClass(), Operation);
 }
 
-template<typename T, typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(std::declval<LambdaType>()(std::declval<T&>()))>>>
+template<typename T, typename LambdaType>
+requires
+(
+	LambdaHasSignature_V<LambdaType, void(T&)> ||
+	LambdaHasSignature_V<LambdaType, void(const T&)>
+)
 void ForEachAssetOfClass(LambdaType&& Operation)
 {
 	ForEachAssetOfClass(T::StaticClass(), [&](UObject* Asset)
@@ -317,7 +230,12 @@ void ForEachAssetOfClass(LambdaType&& Operation)
 	});
 }
 
-template<typename T, typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(std::declval<LambdaType>()(std::declval<T&>()))>>>
+template<typename T, typename LambdaType>
+requires
+(
+	LambdaHasSignature_V<LambdaType, void(T&)> ||
+	LambdaHasSignature_V<LambdaType, void(const T&)>
+)
 void ForEachObjectOfClass(LambdaType&& Operation, bool bIncludeDerivedClasses = true, EObjectFlags ExcludeFlags = RF_ClassDefaultObject | RF_MirroredGarbage, EInternalObjectFlags ExclusionInternalFlags = EInternalObjectFlags::None)
 {
 	ForEachObjectOfClass(T::StaticClass(), [&](UObject* Object)
@@ -327,7 +245,12 @@ void ForEachObjectOfClass(LambdaType&& Operation, bool bIncludeDerivedClasses = 
 	}, bIncludeDerivedClasses, ExcludeFlags, ExclusionInternalFlags);
 }
 
-template<typename T, typename LambdaType, typename = std::enable_if_t<std::is_void_v<decltype(std::declval<LambdaType>()(std::declval<T&>()))>>>
+template<typename T, typename LambdaType>
+requires
+(
+	LambdaHasSignature_V<LambdaType, void(T&)> ||
+	LambdaHasSignature_V<LambdaType, void(const T&)>
+)
 void ForEachObjectOfClass_Copy(LambdaType&& Operation, bool bIncludeDerivedClasses = true, EObjectFlags ExcludeFlags = RF_ClassDefaultObject | RF_MirroredGarbage, EInternalObjectFlags ExclusionInternalFlags = EInternalObjectFlags::None)
 {
 	TVoxelChunkedArray<T*> Objects;
@@ -501,7 +424,8 @@ TSharedRef<T> MakeSharedStruct(const UScriptStruct* Struct, const T* StructToCop
 	return SharedRef;
 }
 
-template<typename T, typename = std::enable_if_t<std::has_virtual_destructor_v<T>>>
+template<typename T>
+requires std::has_virtual_destructor_v<T>
 TUniquePtr<T> MakeUniqueStruct(const UScriptStruct* Struct, const T* StructToCopyFrom = nullptr)
 {
 	checkVoxelSlow(Struct->IsChildOf(StaticStructFast<T>()));
