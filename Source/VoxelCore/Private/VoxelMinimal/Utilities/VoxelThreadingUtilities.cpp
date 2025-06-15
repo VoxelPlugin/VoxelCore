@@ -95,9 +95,6 @@ void Voxel::AsyncTask_ThreadPool_Impl(TVoxelUniqueFunction<void()> Lambda)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-thread_local bool GVoxelAllowParallelTasks = false;
-thread_local TVoxelChunkedArray<TVoxelUniqueFunction<void()>> GVoxelTasks;
-
 FVoxelParallelTaskScope::~FVoxelParallelTaskScope()
 {
 	FlushTasks();

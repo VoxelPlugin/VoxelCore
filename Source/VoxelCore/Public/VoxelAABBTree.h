@@ -37,17 +37,6 @@ public:
 			checkVoxelSlow(Payload.Max() == MaxZ.Max());
 			return Payload.Max();
 		}
-		FORCEINLINE void Reserve(const int32 Number)
-		{
-			// Add some padding to make sure ISPC is safe
-			Payload.Reserve(Number + 16);
-			MinX.Reserve(Number + 16);
-			MinY.Reserve(Number + 16);
-			MinZ.Reserve(Number + 16);
-			MaxX.Reserve(Number + 16);
-			MaxY.Reserve(Number + 16);
-			MaxZ.Reserve(Number + 16);
-		}
 
 		FORCEINLINE void Set(
 			const int32 WriteIndex,
@@ -62,19 +51,6 @@ public:
 			MaxZ[WriteIndex] = FVoxelUtilities::DoubleToFloat_Higher(Bounds.Max.Z);
 			Payload[WriteIndex] = PayloadIndex;
 		}
-		FORCEINLINE void SetNum(const int32 Number)
-		{
-			Reserve(Number);
-
-			Payload.SetNum(Number, EAllowShrinking::No);
-			MinX.SetNum(Number, EAllowShrinking::No);
-			MinY.SetNum(Number, EAllowShrinking::No);
-			MinZ.SetNum(Number, EAllowShrinking::No);
-			MaxX.SetNum(Number, EAllowShrinking::No);
-			MaxY.SetNum(Number, EAllowShrinking::No);
-			MaxZ.SetNum(Number, EAllowShrinking::No);
-		}
-
 		FORCEINLINE void Add(
 			const FVoxelBox& Bounds,
 			const int32 PayloadIndex)
@@ -88,6 +64,32 @@ public:
 			MaxY.Add_EnsureNoGrow(FVoxelUtilities::DoubleToFloat_Higher(Bounds.Max.Y));
 			MaxZ.Add_EnsureNoGrow(FVoxelUtilities::DoubleToFloat_Higher(Bounds.Max.Z));
 			Payload.Add_EnsureNoGrow(PayloadIndex);
+		}
+
+		void Reserve(const int32 Number)
+		{
+			// Add some padding to make sure ISPC is safe
+			Payload.Reserve(Number + 16);
+			MinX.Reserve(Number + 16);
+			MinY.Reserve(Number + 16);
+			MinZ.Reserve(Number + 16);
+			MaxX.Reserve(Number + 16);
+			MaxY.Reserve(Number + 16);
+			MaxZ.Reserve(Number + 16);
+		}
+		void SetNum(const int32 Number)
+		{
+			VOXEL_FUNCTION_COUNTER();
+
+			Reserve(Number);
+
+			Payload.SetNumUninitialized(Number, EAllowShrinking::No);
+			MinX.SetNumUninitialized(Number, EAllowShrinking::No);
+			MinY.SetNumUninitialized(Number, EAllowShrinking::No);
+			MinZ.SetNumUninitialized(Number, EAllowShrinking::No);
+			MaxX.SetNumUninitialized(Number, EAllowShrinking::No);
+			MaxY.SetNumUninitialized(Number, EAllowShrinking::No);
+			MaxZ.SetNumUninitialized(Number, EAllowShrinking::No);
 		}
 	};
 
