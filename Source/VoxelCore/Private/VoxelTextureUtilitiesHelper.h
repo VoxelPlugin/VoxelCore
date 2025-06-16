@@ -5,6 +5,7 @@
 #include "VoxelMinimal.h"
 #include "Engine/Texture2D.h"
 #include "Engine/Texture2DArray.h"
+#include "Interfaces/IPluginManager.h"
 #include "VoxelTextureUtilitiesHelper.generated.h"
 
 UCLASS()
@@ -21,6 +22,7 @@ public:
 			ensure(TextureFinder.Object);
 		}
 
+		if (IPluginManager::Get().FindPlugin("Voxel"))
 		{
 			static ConstructorHelpers::FObjectFinder<UTexture2DArray> TextureFinder(
 				TEXT("/Script/Engine.Texture2DArray'/Voxel/Default/DefaultTextureArray.DefaultTextureArray'"));

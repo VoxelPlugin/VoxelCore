@@ -5,168 +5,73 @@
 #include "VoxelCoreEditorMinimal.h"
 #include "IStructureDataProvider.h"
 
+struct FVoxelDetailsViewCustomData;
+
 class VOXELCOREEDITOR_API FVoxelDetailInterface
 {
 public:
-	FVoxelDetailInterface(IDetailCategoryBuilder& CategoryBuilder)
-		: CategoryBuilder(&CategoryBuilder)
-	{
-	}
-	FVoxelDetailInterface(IDetailChildrenBuilder& ChildrenBuilder)
-		: ChildrenBuilder(&ChildrenBuilder)
-	{
-	}
+	FVoxelDetailInterface(IDetailCategoryBuilder& CategoryBuilder);
+	FVoxelDetailInterface(IDetailChildrenBuilder& ChildrenBuilder);
 
-	bool IsCategoryBuilder() const
-	{
-		if (CategoryBuilder)
-		{
-			check(!ChildrenBuilder);
-			return true;
-		}
-		else
-		{
-			check(ChildrenBuilder);
-			return false;
-		}
-	}
+	bool IsCategoryBuilder() const;
 
-	IDetailCategoryBuilder& GetCategoryBuilder() const
-	{
-		check(IsCategoryBuilder());
-		return *CategoryBuilder;
-	}
-	IDetailChildrenBuilder& GetChildrenBuilder() const
-	{
-		check(!IsCategoryBuilder());
-		return *ChildrenBuilder;
-	}
+	IDetailCategoryBuilder& GetCategoryBuilder() const;
+	IDetailChildrenBuilder& GetChildrenBuilder() const;
 
 public:
-	IDetailPropertyRow& AddProperty(const TSharedRef<IPropertyHandle>& PropertyHandle) const
-	{
-		if (IsCategoryBuilder())
-		{
-			return GetCategoryBuilder().AddProperty(PropertyHandle);
-		}
-		else
-		{
-			return GetChildrenBuilder().AddProperty(PropertyHandle);
-		}
-	}
-	IDetailPropertyRow* AddExternalObjects(const TArray<UObject*>& Objects, const FAddPropertyParams& Params = FAddPropertyParams()) const
-	{
-		if (IsCategoryBuilder())
-		{
-			return GetCategoryBuilder().AddExternalObjects(Objects, EPropertyLocation::Default, Params);
-		}
-		else
-		{
-			return GetChildrenBuilder().AddExternalObjects(Objects, Params);
-		}
-	}
-	IDetailPropertyRow* AddExternalObjectProperty(const TArray<UObject*>& Objects, const FName PropertyName, const FAddPropertyParams& Params = FAddPropertyParams()) const
-	{
-		if (IsCategoryBuilder())
-		{
-			return GetCategoryBuilder().AddExternalObjectProperty(Objects, PropertyName, EPropertyLocation::Default, Params);
-		}
-		else
-		{
-			return GetChildrenBuilder().AddExternalObjectProperty(Objects, PropertyName, Params);
-		}
-	}
-	IDetailPropertyRow* AddExternalStructure(const TSharedRef<FStructOnScope>& StructData, const FAddPropertyParams& Params = FAddPropertyParams()) const
-	{
-		// Both AddExternalStructure impl just call AddExternalStructureProperty with NAME_None
-		return AddExternalStructureProperty(StructData, NAME_None, Params);
-	}
-	IDetailPropertyRow* AddExternalStructure(const TSharedRef<IStructureDataProvider>& StructData, const FAddPropertyParams& Params = FAddPropertyParams()) const
-	{
-		// Both AddExternalStructure impl just call AddExternalStructureProperty with NAME_None
-		return AddExternalStructureProperty(StructData, NAME_None, Params);
-	}
-	IDetailPropertyRow* AddExternalStructureProperty(const TSharedRef<FStructOnScope>& StructData, const FName PropertyName, const FAddPropertyParams& Params = FAddPropertyParams()) const
-	{
-		if (IsCategoryBuilder())
-		{
-			return GetCategoryBuilder().AddExternalStructureProperty(StructData, PropertyName, EPropertyLocation::Default, Params);
-		}
-		else
-		{
-			return GetChildrenBuilder().AddExternalStructureProperty(StructData, PropertyName, Params);
-		}
-	}
-	IDetailPropertyRow* AddExternalStructureProperty(const TSharedRef<IStructureDataProvider>& StructData, const FName PropertyName, const FAddPropertyParams& Params = FAddPropertyParams()) const
-	{
-		if (IsCategoryBuilder())
-		{
-			return GetCategoryBuilder().AddExternalStructureProperty(StructData, PropertyName, EPropertyLocation::Default, Params);
-		}
-		else
-		{
-			// FStructurePropertyNode::GetInstancesNum will crash
-			ensure(!StructData->IsPropertyIndirection());
-			return GetChildrenBuilder().AddExternalStructureProperty(StructData, PropertyName, Params);
-		}
-	}
-	TArray<TSharedPtr<IPropertyHandle>> AddAllExternalStructureProperties(const TSharedRef<FStructOnScope>& StructData) const
-	{
-		if (IsCategoryBuilder())
-		{
-			return GetCategoryBuilder().AddAllExternalStructureProperties(StructData, EPropertyLocation::Default, nullptr);
-		}
-		else
-		{
-			return GetChildrenBuilder().AddAllExternalStructureProperties(StructData);
-		}
-	}
-	FDetailWidgetRow& AddCustomRow(const FText& FilterString) const
-	{
-		if (IsCategoryBuilder())
-		{
-			return GetCategoryBuilder().AddCustomRow(FilterString, false);
-		}
-		else
-		{
-			return GetChildrenBuilder().AddCustomRow(FilterString);
-		}
-	}
-	void AddCustomBuilder(const TSharedRef<IDetailCustomNodeBuilder>& InCustomBuilder) const
-	{
-		if (IsCategoryBuilder())
-		{
-			GetCategoryBuilder().AddCustomBuilder(InCustomBuilder, false);
-		}
-		else
-		{
-			(void)GetChildrenBuilder().AddCustomBuilder(InCustomBuilder);
-		}
-	}
-	IDetailGroup& AddGroup(const FName GroupName, const FText& LocalizedDisplayName) const
-	{
-		if (IsCategoryBuilder())
-		{
-			return GetCategoryBuilder().AddGroup(GroupName, LocalizedDisplayName, false, false);
-		}
-		else
-		{
-			return GetChildrenBuilder().AddGroup(GroupName, LocalizedDisplayName);
-		}
-	}
-	bool IsPropertyEditingEnabled() const
-	{
-		if (IsCategoryBuilder())
-		{
-			return GetCategoryBuilder().GetParentLayout().GetPropertyUtilities()->IsPropertyEditingEnabled();
-		}
-		else
-		{
-			return GetChildrenBuilder().GetParentCategory().GetParentLayout().GetPropertyUtilities()->IsPropertyEditingEnabled();
-		}
-	}
+	IDetailPropertyRow& AddProperty(const TSharedRef<IPropertyHandle>& PropertyHandle) const;
+	IDetailPropertyRow* AddExternalObjects(const TArray<UObject*>& Objects, const FAddPropertyParams& Params = FAddPropertyParams()) const;
+	IDetailPropertyRow* AddExternalObjectProperty(const TArray<UObject*>& Objects, const FName PropertyName, const FAddPropertyParams& Params = FAddPropertyParams()) const;
+	IDetailPropertyRow* AddExternalStructure(const TSharedRef<FStructOnScope>& StructData, const FAddPropertyParams& Params = FAddPropertyParams()) const;
+	IDetailPropertyRow* AddExternalStructure(const TSharedRef<IStructureDataProvider>& StructData, const FAddPropertyParams& Params = FAddPropertyParams()) const;
+	IDetailPropertyRow* AddExternalStructureProperty(const TSharedRef<FStructOnScope>& StructData, const FName PropertyName, const FAddPropertyParams& Params = FAddPropertyParams()) const;
+	IDetailPropertyRow* AddExternalStructureProperty(const TSharedRef<IStructureDataProvider>& StructData, const FName PropertyName, const FAddPropertyParams& Params = FAddPropertyParams()) const;
+	TArray<TSharedPtr<IPropertyHandle>> AddAllExternalStructureProperties(const TSharedRef<FStructOnScope>& StructData) const;
+	FDetailWidgetRow& AddCustomRow(const FText& FilterString) const;
+	void AddCustomBuilder(const TSharedRef<IDetailCustomNodeBuilder>& InCustomBuilder) const;
+	IDetailGroup& AddGroup(const FName GroupName, const FText& LocalizedDisplayName) const;
+	bool IsPropertyEditingEnabled() const;
+	UE_506_SWITCH(IDetailsView*, TSharedPtr<IDetailsView>) GetDetailsView() const;
+
+	FVoxelDetailsViewCustomData* GetCustomData() const;
 
 private:
 	IDetailCategoryBuilder* CategoryBuilder = nullptr;
 	IDetailChildrenBuilder* ChildrenBuilder = nullptr;
+};
+
+struct VOXELCOREEDITOR_API FVoxelDetailsViewCustomData
+{
+	FVoxelDetailsViewCustomData();
+
+public:
+	TAttribute<float> GetValueColumnWidth() const;
+	TAttribute<float> GetToolTipColumnWidth() const;
+	TAttribute<int32> GetHoveredSplitterIndex() const;
+
+	const SSplitter::FOnSlotResized& GetOnValueColumnResized() const;
+
+public:
+	bool HasMetadata(FName Name) const;
+	const FString* GetMetadata(FName Name) const;
+	void SetMetadata(FName Key, const FString& Value = "");
+
+public:
+	static FVoxelDetailsViewCustomData* GetCustomData(const IDetailsView* DetailsView);
+	static FVoxelDetailsViewCustomData* GetCustomData(const TSharedRef<const SWidget>& DetailsView);
+	static FVoxelDetailsViewCustomData* GetCustomData(const TSharedPtr<const SWidget>& DetailsView);
+	static FVoxelDetailsViewCustomData* GetCustomData(const TWeakPtr<const SWidget>& DetailsView);
+
+private:
+	float ValueColumnWidthValue = 0.6f;
+	int32 HoveredSplitterIndexValue = -1;
+
+	TAttribute<float> ValueColumnWidth;
+	TAttribute<float> ToolTipColumnWidth;
+	TAttribute<int32> HoveredSplitterIndex;
+
+	SSplitter::FOnSlotResized OnValueColumnResized;
+	SSplitter::FOnHandleHovered OnSplitterHandleHovered;
+
+	TVoxelMap<FName, FString> Metadata;
 };

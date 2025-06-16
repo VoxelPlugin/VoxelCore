@@ -341,7 +341,36 @@ void SVoxelEditorViewport::Construct(
 
 void SVoxelEditorViewport::OnFocusViewportToSelection()
 {
-	GetViewportClient()->FocusViewportOnBox(GetComponentBounds());
+	const FBox Bounds = INLINE_LAMBDA
+	{
+		FBox Result = GetComponentBounds();
+
+		const TSharedPtr<IVoxelViewportInterface> Interface = WeakInterface.Pin();
+		if (!Interface)
+		{
+			return Result;
+		}
+		if (!Interface->GetMaxFocusDistance().IsSet())
+		{
+			return Result;
+		}
+
+		const float MaxFocusDistance = Interface->GetMaxFocusDistance().GetValue();
+
+		FVector Center;
+		FVector Extents;
+		Result.GetCenterAndExtents(Center, Extents);
+
+		Extents.X = FMath::Min(Extents.X, MaxFocusDistance);
+		Extents.Y = FMath::Min(Extents.Y, MaxFocusDistance);
+		Extents.Z = FMath::Min(Extents.Z, MaxFocusDistance);
+
+		Result = FBox::BuildAABB(Center, Extents);
+
+		return Result;
+	};
+
+	GetViewportClient()->FocusViewportOnBox(Bounds);
 }
 
 TSharedRef<FEditorViewportClient> SVoxelEditorViewport::MakeEditorViewportClient()

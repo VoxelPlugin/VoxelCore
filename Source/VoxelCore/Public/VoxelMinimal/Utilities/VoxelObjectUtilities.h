@@ -45,24 +45,78 @@ namespace FVoxelUtilities
 
 #if WITH_EDITOR
 	// Will let the user rename the asset in the content browser
-	VOXELCORE_API void CreateNewAsset_Deferred(UClass* Class, const FString& BaseName, const FString& Suffix, TFunction<void(UObject*)> SetupObject);
-	VOXELCORE_API UObject* CreateNewAsset_Direct(UClass* Class, const FString& BaseName, const FString& Suffix);
+	VOXELCORE_API void CreateNewAsset_Deferred(
+		UClass* Class,
+		const FString& BaseName,
+		const TArray<FString>& PrefixesToRemove,
+		const FString& NewPrefix,
+		const FString& Suffix,
+		TFunction<void(UObject*)> SetupObject);
+	VOXELCORE_API UObject* CreateNewAsset_Direct(
+		UClass* Class,
+		const FString& BaseName,
+		const TArray<FString>& PrefixesToRemove,
+		const FString& NewPrefix,
+		const FString& Suffix);
 
 	template<typename T>
-	void CreateNewAsset_Deferred(const FString& BaseName, const FString& Suffix, TFunction<void(T*)> SetupObject)
+	void CreateNewAsset_Deferred(
+		const FString& BaseName,
+		const TArray<FString>& PrefixesToRemove,
+		const FString& NewPrefix,
+		const FString& Suffix,
+		TFunction<void(T*)> SetupObject)
 	{
-		FVoxelUtilities::CreateNewAsset_Deferred(T::StaticClass(), BaseName, Suffix, [=](UObject* Object) { SetupObject(CastChecked<T>(Object)); });
+		FVoxelUtilities::CreateNewAsset_Deferred(
+			T::StaticClass(),
+			BaseName,
+			PrefixesToRemove,
+			NewPrefix,
+			Suffix,
+			[=](UObject* Object) { SetupObject(CastChecked<T>(Object)); });
 	}
 	template<typename T>
-	T* CreateNewAsset_Direct(const FString& BaseName, const FString& Suffix)
+	T* CreateNewAsset_Direct(
+		const FString& BaseName,
+		const TArray<FString>& PrefixesToRemove,
+		const FString& NewPrefix,
+		const FString& Suffix)
 	{
-		return CastChecked<T>(FVoxelUtilities::CreateNewAsset_Direct(T::StaticClass(), BaseName, Suffix), ECastCheckedType::NullAllowed);
+		return CastChecked<T>(FVoxelUtilities::CreateNewAsset_Direct(
+			T::StaticClass(),
+			BaseName,
+			PrefixesToRemove,
+			NewPrefix,
+			Suffix), ECastCheckedType::NullAllowed);
 	}
 	template<typename T>
-	T* CreateNewAsset_Direct(const UObject* ObjectWithPath, const FString& Suffix)
+	T* CreateNewAsset_Direct(
+		const UObject* ObjectWithPath,
+		const TArray<FString>& PrefixesToRemove,
+		const FString& NewPrefix,
+		const FString& Suffix)
 	{
-		return CreateNewAsset_Direct<T>(FPackageName::ObjectPathToPackageName(ObjectWithPath->GetPathName()), Suffix);
+		return CreateNewAsset_Direct<T>(
+			FPackageName::ObjectPathToPackageName(ObjectWithPath->GetPathName()),
+			PrefixesToRemove,
+			NewPrefix,
+			Suffix);
 	}
+
+	VOXELCORE_API void CreateUniqueAssetName(
+		const FString& BasePackageName,
+		const TArray<FString>& PrefixesToRemove,
+		const FString& NewPrefix,
+		const FString& Suffix,
+		FString& OutPackageName,
+		FString& OutAssetName);
+	VOXELCORE_API void CreateUniqueAssetName(
+		const UObject* ObjectWithPath,
+		const TArray<FString>& PrefixesToRemove,
+		const FString& NewPrefix,
+		const FString& Suffix,
+		FString& OutPackageName,
+		FString& OutAssetName);
 #endif
 
 	//////////////////////////////////////////////////////////////////////////////

@@ -29,6 +29,10 @@ public:
 	{
 		return {};
 	}
+	virtual TOptional<float> GetMaxFocusDistance() const
+	{
+		return {};
+	}
 	virtual TSharedPtr<FAssetEditorToolkit> GetEditorToolkit() const
 	{
 		return nullptr;

@@ -14,6 +14,8 @@
 
 #if WITH_EDITOR
 #include "LevelEditor.h"
+#include "ObjectTools.h"
+#include "PackageTools.h"
 #include "AssetToolsModule.h"
 #include "Editor/EditorEngine.h"
 #include "Editor/UnrealEdEngine.h"
@@ -302,14 +304,25 @@ bool FVoxelUtilities::IsSubCategory(const FString& Category, const FString& SubC
 ///////////////////////////////////////////////////////////////////////////////
 
 #if WITH_EDITOR
-void FVoxelUtilities::CreateNewAsset_Deferred(UClass* Class, const FString& BaseName, const FString& Suffix, TFunction<void(UObject*)> SetupObject)
+void FVoxelUtilities::CreateNewAsset_Deferred(
+	UClass* Class,
+	const FString& BaseName,
+	const TArray<FString>& PrefixesToRemove,
+	const FString& NewPrefix,
+	const FString& Suffix,
+	TFunction<void(UObject*)> SetupObject)
 {
 	// Create an appropriate and unique name
 	FString AssetName;
 	FString PackageName;
 
-	const FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
-	AssetToolsModule.Get().CreateUniqueAssetName(BaseName, Suffix, PackageName, AssetName);
+	CreateUniqueAssetName(
+		BaseName,
+		PrefixesToRemove,
+		NewPrefix,
+		Suffix,
+		PackageName,
+		AssetName);
 
 	IVoxelFactory* Factory = IVoxelAutoFactoryInterface::GetInterface().MakeFactory(Class);
 	if (!ensure(Factory))
@@ -324,13 +337,23 @@ void FVoxelUtilities::CreateNewAsset_Deferred(UClass* Class, const FString& Base
 	ContentBrowser.CreateNewAsset(AssetName, FPackageName::GetLongPackagePath(PackageName), Class, Factory->GetUFactory());
 }
 
-UObject* FVoxelUtilities::CreateNewAsset_Direct(UClass* Class, const FString& BaseName, const FString& Suffix)
+UObject* FVoxelUtilities::CreateNewAsset_Direct(
+	UClass* Class,
+	const FString& BaseName,
+	const TArray<FString>& PrefixesToRemove,
+	const FString& NewPrefix,
+	const FString& Suffix)
 {
 	FString NewPackageName;
 	FString NewAssetName;
 
-	const FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
-	AssetToolsModule.Get().CreateUniqueAssetName(BaseName, Suffix, NewPackageName, NewAssetName);
+	CreateUniqueAssetName(
+		BaseName,
+		PrefixesToRemove,
+		NewPrefix,
+		Suffix,
+		NewPackageName,
+		NewAssetName);
 
 	UPackage* Package = CreatePackage(*NewPackageName);
 	if (!ensure(Package))
@@ -347,6 +370,52 @@ UObject* FVoxelUtilities::CreateNewAsset_Direct(UClass* Class, const FString& Ba
 	FAssetRegistryModule::AssetCreated(Object);
 	(void)Object->MarkPackageDirty();
 	return Object;
+}
+
+void FVoxelUtilities::CreateUniqueAssetName(
+	const FString& BasePackageName,
+	const TArray<FString>& PrefixesToRemove,
+	const FString& NewPrefix,
+	const FString& Suffix,
+	FString& OutPackageName,
+	FString& OutAssetName)
+{
+	const FString SanitizedBasePackageName = UPackageTools::SanitizePackageName(BasePackageName);
+
+	const FString PackagePath = FPackageName::GetLongPackagePath(SanitizedBasePackageName);
+	FString BaseAssetName = FPackageName::GetLongPackageAssetName(SanitizedBasePackageName);
+	for (const FString& Prefix : PrefixesToRemove)
+	{
+		BaseAssetName.RemoveFromStart(Prefix);
+	}
+	BaseAssetName = NewPrefix + BaseAssetName;
+
+	const FString SanitizedBaseAssetName = ObjectTools::SanitizeObjectName(BaseAssetName);
+
+	const FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+	AssetToolsModule.Get().CreateUniqueAssetName(PackagePath / SanitizedBaseAssetName, Suffix, OutPackageName, OutAssetName);
+}
+
+void FVoxelUtilities::CreateUniqueAssetName(
+	const UObject* ObjectWithPath,
+	const TArray<FString>& PrefixesToRemove,
+	const FString& NewPrefix,
+	const FString& Suffix,
+	FString& OutPackageName,
+	FString& OutAssetName)
+{
+	if (!ensure(ObjectWithPath))
+	{
+		return;
+	}
+
+	CreateUniqueAssetName(
+		ObjectWithPath->GetPackage()->GetName(),
+		PrefixesToRemove,
+		NewPrefix,
+		Suffix,
+		OutPackageName,
+		OutAssetName);
 }
 #endif
 
