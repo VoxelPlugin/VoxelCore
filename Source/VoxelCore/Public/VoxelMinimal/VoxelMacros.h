@@ -1278,37 +1278,6 @@ struct TVoxelUFunctionOverride
 		template<> \
 		struct TClass_ ## Function<Class> \
 		{ \
-			template<typename FunctionType, FunctionType Class::*FunctionPtr> \
-			struct TFunction_ ## Function \
-			{ \
-				friend auto Function(Class& Object) \
-				{ \
-					return [&Object]<typename... ArgTypes>(ArgTypes&&... Args) \
-					{ \
-						return (Object.*FunctionPtr)(Forward<ArgTypes>(Args)...); \
-					}; \
-				} \
-			}; \
-		}; \
-		template struct TClass_ ## Function<Class>::TFunction_ ## Function<decltype(Class::Function), &Class::Function>; \
-		\
-		auto Function(Class& Object); \
-		auto Function(const Class& Object) \
-		{ \
-			return Function(const_cast<Class&>(Object)); \
-		} \
-	}
-
-// Usage: DEFINE_PRIVATE_ACCESS_MEMBER_FUNCTION(FMyClass, MyFunction) in global scope, then PrivateAccess::MyFunction(MyObject)(MyArgs) from anywhere
-#define DEFINE_PRIVATE_ACCESS_MEMBER_FUNCTION(Class, Function) \
-	namespace PrivateAccess \
-	{ \
-		template<typename> \
-		struct TClass_ ## Function; \
-		\
-		template<> \
-		struct TClass_ ## Function<Class> \
-		{ \
 			template<auto FunctionPtr> \
 			struct TFunction_ ## Function \
 			{ \
