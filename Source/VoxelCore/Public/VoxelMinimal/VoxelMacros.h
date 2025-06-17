@@ -1250,22 +1250,23 @@ struct TVoxelUFunctionOverride
 		template<> \
 		struct TClass_ ## Property<Class> \
 		{ \
-			template<typename PropertyType, PropertyType Class::*PropertyPtr> \
+			template<auto PropertyPtr> \
 			struct TProperty_ ## Property \
 			{ \
 				friend auto& Property(Class& Object) \
 				{ \
 					return Object.*PropertyPtr; \
 				} \
+				friend auto& Property(const Class& Object) \
+				{ \
+					return Object.*PropertyPtr; \
+				} \
 			}; \
 		}; \
-		template struct TClass_ ## Property<Class>::TProperty_ ## Property<decltype(Class::Property), &Class::Property>; \
+		template struct TClass_ ## Property<Class>::TProperty_ ## Property<&Class::Property>; \
 		\
 		auto& Property(Class& Object); \
-		auto& Property(const Class& Object) \
-		{ \
-			return Property(const_cast<Class&>(Object)); \
-		} \
+		auto& Property(const Class& Object); \
 	}
 
 // Usage: DEFINE_PRIVATE_ACCESS_FUNCTION(FMyClass, MyFunction) in global scope, then PrivateAccess::MyFunction(MyObject)(MyArgs) from anywhere
