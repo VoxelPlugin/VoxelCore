@@ -5,7 +5,7 @@ It contains a bunch of high performance containers to replace the default Unreal
 
 This plugin is intented to be used in C++: if your project is blueprint-only, this will be of no use to you.
 
-If you have questions or suggestions about the code, feel free to ask in #cpp in the plugin's Discord: [discord.voxelplugin.com](https://discord.voxelplugin.com)
+If you have questions or suggestions about the code, feel free to ask on this discord: [discord.victorcareil.com](https://discord.victorcareil.com)
 
 ## Performance
 
