@@ -1196,7 +1196,7 @@ bool FVoxelShaderHookGroup::ExecuteShaderUpdate(const FVoxelShaderFileData& File
 	FString OriginalContent;
 	FFileHelper::LoadFileToString(OriginalContent, *Path);
 
-	if (!FFileHelper::SaveStringToFile(FileData.GetContent(), *Path))
+	if (!FFileHelper::SaveStringToFile(FileData.GetContent(), *Path, FFileHelper::EEncodingOptions::ForceUTF8))
 	{
 		FMessageDialog::Open(
 			EAppMsgType::Ok,
@@ -1215,7 +1215,8 @@ bool FVoxelShaderHookGroup::ExecuteShaderUpdate(const FVoxelShaderFileData& File
 
 	FFileHelper::SaveStringToFile(
 		OriginalContent,
-		*(FPaths::EngineDir() / "Saved" / "VoxelShaderHooks" / BackupFilename));
+		*(FPaths::EngineDir() / "Saved" / "VoxelShaderHooks" / BackupFilename),
+		FFileHelper::EEncodingOptions::ForceUTF8);
 
 	return true;
 }
