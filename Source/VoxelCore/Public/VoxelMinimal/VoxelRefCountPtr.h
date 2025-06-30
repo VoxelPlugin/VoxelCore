@@ -20,7 +20,7 @@ public:
 		}
 	}
 	FORCEINLINE TVoxelRefCountPtr(const TVoxelRefCountPtr& Other)
-		: PrivateReference(Other.GetReference())
+		: PrivateReference(Other.Get())
 	{
 		if (PrivateReference)
 		{
@@ -28,7 +28,7 @@ public:
 		}
 	}
 	FORCEINLINE TVoxelRefCountPtr(TVoxelRefCountPtr&& Other)
-		: PrivateReference(Other.GetReference())
+		: PrivateReference(Other.Get())
 	{
 		Other.PrivateReference = nullptr;
 	}
@@ -84,7 +84,7 @@ public:
 	}
 	FORCEINLINE TVoxelRefCountPtr& operator=(const TVoxelRefCountPtr& Other)
 	{
-		return this->operator=(Other.GetReference());
+		return this->operator=(Other.Get());
 	}
 	FORCEINLINE TVoxelRefCountPtr& operator=(TVoxelRefCountPtr&& Other)
 	{
@@ -95,7 +95,7 @@ public:
 			PrivateReference->Release();
 		}
 
-		PrivateReference = Other.GetReference();
+		PrivateReference = Other.Get();
 		Other.PrivateReference = nullptr;
 
 		return *this;
@@ -128,7 +128,7 @@ public:
 		}
 		return PrivateReference->GetRefCount();
 	}
-	FORCEINLINE Type* GetReference() const
+	FORCEINLINE Type* Get() const
 	{
 		if (PrivateReference)
 		{
@@ -162,11 +162,11 @@ public:
 
 	FORCEINLINE bool operator==(Type* Other) const
 	{
-		return GetReference() == Other;
+		return Get() == Other;
 	}
 	FORCEINLINE bool operator==(const TVoxelRefCountPtr& Other) const
 	{
-		return GetReference() == Other.GetReference();
+		return Get() == Other.Get();
 	}
 
 private:

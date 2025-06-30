@@ -44,14 +44,12 @@ namespace FVoxelUtilities
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
 
+	VOXELCORE_API FString Internal_GetCppName(FString Name);
+
 	template<typename T>
 	FString GetCppName()
 	{
-		FString Type = GetGeneratedTypeName<T>();
-		Type.RemoveFromStart("class");
-		Type.RemoveFromStart("struct");
-		Type.RemoveFromStart("enum");
-		Type.TrimStartAndEndInline();
+		static const FString Type = FVoxelUtilities::Internal_GetCppName(GetGeneratedTypeName<T>());
 		return Type;
 	}
 

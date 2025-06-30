@@ -240,8 +240,10 @@ FString FVoxelHeaderFunctionArgument::GenerateContent(const bool bFunctionUsesUH
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FVoxelHeaderFunction::FVoxelHeaderFunction(const FString& Name, const bool bUseUHT)
-	: Name(Name)
+FVoxelHeaderFunction::FVoxelHeaderFunction(
+	const FString& FunctionName,
+	const bool bUseUHT)
+	: FunctionName(FunctionName)
 	, bUseUHT(bUseUHT)
 {
 }
@@ -387,7 +389,7 @@ FString FVoxelHeaderFunction::GenerateContent(const bool bObjectUsesUHT) const
 	{
 		Result += "static ";
 	}
-	Result += FunctionReturnType + " " + Name + "(";
+	Result += FunctionReturnType + " " + FunctionName + "(";
 	if (Arguments.Num() == 1)
 	{
 		Result += Arguments[0].GenerateContent(bUHT);

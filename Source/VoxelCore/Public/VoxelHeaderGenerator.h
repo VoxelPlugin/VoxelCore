@@ -98,7 +98,9 @@ public:
 struct VOXELCORE_API FVoxelHeaderFunction
 {
 public:
-	FVoxelHeaderFunction(const FString& Name, bool bUseUHT = true);
+	explicit FVoxelHeaderFunction(
+		const FString& FunctionName,
+		bool bUseUHT = true);
 
 	void ReturnType(const FString& Type)
 	{
@@ -120,7 +122,7 @@ public:
 	template<typename T>
 	FVoxelHeaderFunctionArgument& AddArgument(const FString& Name)
 	{
-		return AddArgument(Name, FVoxelUtilities::GetCppName<T>());
+		return this->AddArgument(Name, FVoxelUtilities::GetCppName<T>());
 	}
 
 	FVoxelHeaderFunctionArgument& AddArgumentWithDefault(const FProperty& Property, const void* ContainerData, const UObject* Owner, const FString& OverrideName = "");
@@ -136,8 +138,8 @@ private:
 	FString GenerateContent(bool bObjectUsesUHT) const;
 
 public:
-	FString Name;
-	bool bUseUHT;
+	const FString FunctionName;
+	const bool bUseUHT;
 	FVoxelHeaderMetadata Metadata = FVoxelHeaderMetadata("UFUNCTION");
 
 	FString FunctionReturnType = "void";
