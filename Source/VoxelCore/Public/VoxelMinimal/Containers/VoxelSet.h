@@ -738,66 +738,63 @@ public:
 	template<bool bConst>
 	struct TIterator
 	{
+	private:
 		template<typename T>
 		using TType = std::conditional_t<bConst, const T, T>;
 
-		TType<TVoxelSet>* SetPtr = nullptr;
-		TType<FElement>* ElementPtr = nullptr;
+		TType<TVoxelSet>& Set;
 		int32 Index = 0;
+#if VOXEL_DEBUG
+		bool bCurrentElementRemoved = false;
+#endif
 
+	public:
 		TIterator() = default;
 		FORCEINLINE explicit TIterator(TType<TVoxelSet>& Set)
-			: SetPtr(&Set)
+			: Set(Set)
 		{
-			if (Set.Elements.Num() > 0)
-			{
-				ElementPtr = &Set.Elements[0];
-			}
 		}
 
 		FORCEINLINE TIterator& operator++()
 		{
 			Index++;
-			if (Index < SetPtr->Elements.Num())
-			{
-				ElementPtr = &SetPtr->Elements[Index];
-			}
-			else
-			{
-				ElementPtr = nullptr;
-			}
+#if VOXEL_DEBUG
+			bCurrentElementRemoved = false;
+#endif
 			return *this;
 		}
 		FORCEINLINE explicit operator bool() const
 		{
-			return ElementPtr != nullptr;
+			return Index < Set.Elements.Num();
 		}
 		FORCEINLINE TType<Type>& operator*() const
 		{
-			checkVoxelSlow(ElementPtr);
-			return ElementPtr->Value;
+			checkVoxelSlow(!bCurrentElementRemoved);
+			return Set.Elements[Index].Value;
 		}
 		FORCEINLINE TType<Type>* operator->() const
 		{
-			checkVoxelSlow(ElementPtr);
-			return &ElementPtr->Value;
+			checkVoxelSlow(!bCurrentElementRemoved);
+			return &Set.Elements[Index].Value;
 		}
-		FORCEINLINE bool operator!=(const TIterator&) const
+		FORCEINLINE bool operator!=(decltype(nullptr)) const
 		{
-			return ElementPtr != nullptr;
+			return Index < Set.Elements.Num();
 		}
 
 		FORCEINLINE TType<Type>& Value() const
 		{
-			checkVoxelSlow(ElementPtr);
-			return ElementPtr->Value;
+			checkVoxelSlow(!bCurrentElementRemoved);
+			return Set.Elements[Index].Value;
 		}
 
 		FORCEINLINE void RemoveCurrent()
 		{
-			SetPtr->Remove_Ensure(MakeCopy(Value()));
+			Set.Remove_Ensure(MakeCopy(Value()));
+#if VOXEL_DEBUG
 			// Check for invalid access
-			ElementPtr = nullptr;
+			bCurrentElementRemoved = true;
+#endif
 			Index--;
 		}
 	};
@@ -817,18 +814,13 @@ public:
 	{
 		return CreateIterator();
 	}
-	FORCEINLINE FIterator end()
-	{
-		return {};
-	}
-
 	FORCEINLINE FConstIterator begin() const
 	{
 		return CreateIterator();
 	}
-	FORCEINLINE FConstIterator end() const
+	FORCEINLINE decltype(nullptr) end() const
 	{
-		return {};
+		return nullptr;
 	}
 
 public:

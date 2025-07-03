@@ -852,71 +852,68 @@ public:
 	template<bool bConst>
 	struct TIterator
 	{
+	private:
 		template<typename T>
 		using TType = std::conditional_t<bConst, const T, T>;
 
-		TType<TVoxelMap>* MapPtr = nullptr;
-		TType<FElement>* ElementPtr = nullptr;
+		TType<TVoxelMap>& Map;
 		int32 Index = 0;
+#if VOXEL_DEBUG
+		bool bCurrentElementRemoved = false;
+#endif
 
+	public:
 		TIterator() = default;
 		FORCEINLINE explicit TIterator(TType<TVoxelMap>& Map)
-			: MapPtr(&Map)
+			: Map(Map)
 		{
-			if (Map.Elements.Num() > 0)
-			{
-				ElementPtr = &Map.Elements[0];
-			}
 		}
 
 		FORCEINLINE TIterator& operator++()
 		{
 			Index++;
-			if (Index < MapPtr->Elements.Num())
-			{
-				ElementPtr = &MapPtr->Elements[Index];
-			}
-			else
-			{
-				ElementPtr = nullptr;
-			}
+#if VOXEL_DEBUG
+			bCurrentElementRemoved = false;
+#endif
 			return *this;
 		}
 		FORCEINLINE explicit operator bool() const
 		{
-			return ElementPtr != nullptr;
+			return Index < Map.Elements.Num();
 		}
 		FORCEINLINE TType<FElement>& operator*() const
 		{
-			checkVoxelSlow(ElementPtr);
-			return *ElementPtr;
+			checkVoxelSlow(!bCurrentElementRemoved);
+			return Map.Elements[Index];
 		}
 		FORCEINLINE TType<FElement>* operator->() const
 		{
-			checkVoxelSlow(ElementPtr);
-			return ElementPtr;
+			checkVoxelSlow(!bCurrentElementRemoved);
+			return &Map.Elements[Index];
 		}
-		FORCEINLINE bool operator!=(const TIterator&) const
+		FORCEINLINE bool operator!=(decltype(nullptr)) const
 		{
-			return ElementPtr != nullptr;
+			return Index < Map.Elements.Num();
 		}
 
 		FORCEINLINE const KeyType& Key() const
 		{
-			checkVoxelSlow(ElementPtr);
-			return ElementPtr->Key;
+			checkVoxelSlow(!bCurrentElementRemoved);
+			return Map.Elements[Index].Key;
 		}
 		FORCEINLINE TType<ValueType>& Value() const
 		{
-			checkVoxelSlow(ElementPtr);
-			return ElementPtr->Value;
+			checkVoxelSlow(!bCurrentElementRemoved);
+			return Map.Elements[Index].Value;
 		}
 
 		FORCEINLINE void RemoveCurrent()
 		{
-			MapPtr->RemoveChecked(MakeCopy(Key()));
+			Map.RemoveChecked(MakeCopy(Key()));
+#if VOXEL_DEBUG
 			// Check for invalid access
-			ElementPtr = nullptr;
+			bCurrentElementRemoved = true;
+#endif
 			Index--;
 		}
 	};
@@ -936,18 +933,13 @@ public:
 	{
 		return CreateIterator();
 	}
-	FORCEINLINE FIterator end()
-	{
-		return {};
-	}
-
 	FORCEINLINE FConstIterator begin() const
 	{
 		return CreateIterator();
 	}
-	FORCEINLINE FConstIterator end() const
+	FORCEINLINE decltype(nullptr) end() const
 	{
-		return {};
+		return nullptr;
 	}
 
 public:

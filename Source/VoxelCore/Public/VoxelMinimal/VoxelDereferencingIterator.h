@@ -32,6 +32,11 @@ struct TVoxelDereferencingIterator
 		checkVoxelSlow(Value);
 		return *Value;
 	}
+	template<typename OtherType>
+	FORCEINLINE bool operator!=(const OtherType& Other) const
+	{
+		return Iterator != Other;
+	}
 	FORCEINLINE bool operator!=(const TVoxelDereferencingIterator& Other) const
 	{
 		return Iterator != Other.Iterator;
@@ -88,7 +93,12 @@ public:
 		}
 		return Result;
 	}
+
 	int32 Num() const
+	{
+		return Range.Num();
+	}
+	int32 Num_Slow() const
 	{
 		int32 Result = 0;
 		for (Type& Value : *this)
@@ -104,7 +114,7 @@ public:
 	}
 	FORCEINLINE auto end() const
 	{
-		return MakeDereferencingIterator(VoxelDereferencingRange_CallEnd(Range));
+		return VoxelDereferencingRange_CallEnd(Range);
 	}
 };
 
@@ -130,6 +140,6 @@ public:
 	}
 	FORCEINLINE auto end() const
 	{
-		return MakeDereferencingIterator(VoxelDereferencingRange_CallEnd(Range));
+		return VoxelDereferencingRange_CallEnd(Range);
 	}
 };
