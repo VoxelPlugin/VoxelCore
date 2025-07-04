@@ -379,11 +379,11 @@ void FVoxelTaskContext::DumpToLog() const
 	LOG_VOXEL(Log, "Num pending tasks: %d", NumPendingTasks.Get());
 
 	TVoxelMap<FVoxelStackFrames, int32> StackFramesToCount;
-	StackFramesToCount.Reserve(StackFrames_RequiresLock.Num());
+	StackFramesToCount.Reserve(PromisesToKeepAlive_RequiresLock.Num());
 
-	for (const FVoxelStackFrames& StackFrames : StackFrames_RequiresLock)
+	for (const auto& It : PromiseStateToStackFrames_RequiresLock)
 	{
-		StackFramesToCount.FindOrAdd(StackFrames)++;
+		StackFramesToCount.FindOrAdd(It.Value)++;
 	}
 
 	StackFramesToCount.ValueSort([](const int32 A, const int32 B)
@@ -572,6 +572,18 @@ void FVoxelTaskContext::ProcessGameTasks(
 	}
 
 	OutGameTasksToDelete = MoveTemp(GameTasks);
+}
+
+void FVoxelTaskContext::TrackPromise(const FVoxelPromiseState& PromiseState)
+{
+	VOXEL_SCOPE_LOCK(CriticalSection);
+	PromiseStateToStackFrames_RequiresLock.Add_EnsureNew(&PromiseState, FVoxelUtilities::GetStackFrames_WithStats(5));
+}
+
+void FVoxelTaskContext::UntrackPromise(const FVoxelPromiseState& PromiseState)
+{
+	VOXEL_SCOPE_LOCK(CriticalSection);
+	ensure(PromiseStateToStackFrames_RequiresLock.Remove(&PromiseState));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

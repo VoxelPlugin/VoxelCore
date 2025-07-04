@@ -8,6 +8,7 @@
 #include "VoxelMinimal/VoxelRefCountPtr.h"
 #include "VoxelMinimal/VoxelUniqueFunction.h"
 #include "VoxelMinimal/Utilities/VoxelTypeUtilities.h"
+#include "VoxelMinimal/Containers/VoxelChunkedArray.h"
 
 struct FVoxelFuture;
 class FVoxelPromise;
@@ -90,11 +91,11 @@ enum class EVoxelFutureThread : uint8
 class VOXELCORE_API IVoxelPromiseState
 {
 public:
-	static TVoxelRefCountPtr<IVoxelPromiseState> New(
-		FVoxelTaskContext* ContextOverride,
-		bool bWithValue);
+	static TVoxelRefCountPtr<IVoxelPromiseState> New_WithValue(FVoxelTaskContext* ContextOverride);
+	static TVoxelRefCountPtr<IVoxelPromiseState> New_WithoutValue(FVoxelTaskContext* ContextOverride);
 
 	static TVoxelRefCountPtr<IVoxelPromiseState> New(const FSharedVoidRef& Value);
+	static TVoxelRefCountPtr<IVoxelPromiseState> NewWithDependencies(int32 NumDependenciesLeft);
 
 	UE_NONCOPYABLE(IVoxelPromiseState);
 
@@ -130,6 +131,15 @@ public:
 	}
 
 public:
+	FORCEINLINE void RemoveDependency()
+	{
+		if (NumDependencies.Decrement_ReturnNew() == 0)
+		{
+			Set();
+		}
+	}
+
+public:
 	void Set();
 	void Set(const FSharedVoidRef& NewValue);
 
@@ -153,18 +163,15 @@ public:
 protected:
 	VOXEL_COUNT_INSTANCES();
 
-	const bool bHasValue;
+	const bool bHasValue = false;
 	TVoxelAtomic<bool> bIsComplete;
 	TVoxelAtomic<bool> bIsLocked;
-	int32 StackIndex = -1;
 	int32 KeepAliveIndex = -1;
 	FVoxelCounter32 NumRefs;
+	FVoxelCounter32 NumDependencies;
 	FSharedVoidPtr Value;
 
-	FORCEINLINE explicit IVoxelPromiseState(const bool bHasValue)
-		: bHasValue(bHasValue)
-	{
-	}
+	IVoxelPromiseState() = default;
 
 	void Destroy();
 
@@ -184,6 +191,7 @@ public:
 
 	FVoxelFuture() = default;
 	explicit FVoxelFuture(TConstVoxelArrayView<FVoxelFuture> Futures);
+	explicit FVoxelFuture(const TVoxelChunkedArray<FVoxelFuture>& Futures);
 
 	template<typename... FutureTypes>
 	requires
@@ -195,33 +203,9 @@ public:
 	{
 		checkStatic(sizeof...(Futures) > 1);
 
-		PromiseState = IVoxelPromiseState::New(nullptr, false);
+		PromiseState = IVoxelPromiseState::NewWithDependencies(sizeof...(Futures));
 
-		FVoxelCounter32* Counter = new FVoxelCounter32(sizeof...(Futures));
-
-		const auto AddFuture = [&](const FVoxelFuture& Future)
-		{
-			if (Future.IsComplete())
-			{
-				if (Counter->Decrement_ReturnNew() == 0)
-				{
-					PromiseState->Set();
-					delete Counter;
-				}
-				return;
-			}
-
-			Future.PromiseState->CheckCanAddContinuation(*this);
-			Future.PromiseState->AddContinuation(EVoxelFutureThread::AnyThread, [Counter, LocalPromiseState = PromiseState]
-			{
-				if (Counter->Decrement_ReturnNew() == 0)
-				{
-					LocalPromiseState->Set();
-					delete Counter;
-				}
-			});
-		};
-		VOXEL_FOLD_EXPRESSION(AddFuture(Futures));
+		VOXEL_FOLD_EXPRESSION(this->Initialize_AddFuture(Futures));
 	}
 
 public:
@@ -330,6 +314,24 @@ protected:
 	FORCEINLINE explicit FVoxelFuture(TVoxelRefCountPtr<IVoxelPromiseState>&& PromiseState)
 		: PromiseState(MoveTemp(PromiseState))
 	{
+	}
+
+	template<typename ArrayType>
+	void Initialize(const ArrayType& Futures);
+
+	FORCEINLINE void Initialize_AddFuture(const FVoxelFuture& Future)
+	{
+		if (Future.IsComplete())
+		{
+			PromiseState->RemoveDependency();
+			return;
+		}
+
+		Future.PromiseState->CheckCanAddContinuation(*this);
+		Future.PromiseState->AddContinuation(EVoxelFutureThread::AnyThread, [LocalPromiseState = PromiseState]
+		{
+			LocalPromiseState->RemoveDependency();
+		});
 	}
 
 	template<typename>
@@ -547,7 +549,7 @@ class VOXELCORE_API FVoxelPromise : public FVoxelFuture
 {
 public:
 	FORCEINLINE FVoxelPromise(FVoxelTaskContext* ContextOverride = nullptr)
-		: FVoxelFuture(IVoxelPromiseState::New(ContextOverride, false))
+		: FVoxelFuture(IVoxelPromiseState::New_WithoutValue(ContextOverride))
 	{
 	}
 
@@ -577,7 +579,7 @@ class TVoxelPromise : public TVoxelFuture<T>
 {
 public:
 	FORCEINLINE TVoxelPromise(FVoxelTaskContext* ContextOverride = nullptr)
-		: TVoxelFuture<T>(IVoxelPromiseState::New(ContextOverride, true))
+		: TVoxelFuture<T>(IVoxelPromiseState::New_WithValue(ContextOverride))
 	{
 	}
 

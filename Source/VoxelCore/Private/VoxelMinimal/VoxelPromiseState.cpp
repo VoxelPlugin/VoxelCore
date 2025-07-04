@@ -42,24 +42,6 @@ FORCEINLINE void FVoxelPromiseState::FContinuation::Execute(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FVoxelPromiseState::FVoxelPromiseState(
-	FVoxelTaskContext* ContextOverride,
-	const bool bHasValue)
-	: IVoxelPromiseState(bHasValue)
-{
-	FVoxelTaskContext& Context = ContextOverride ? *ContextOverride : FVoxelTaskScope::GetContext();
-
-	ConstCast(ContextWeakRef) = Context;
-
-	Context.NumPromises.Increment();
-
-	if (Context.bTrackPromisesCallstacks)
-	{
-		VOXEL_SCOPE_LOCK(Context.CriticalSection);
-		StackIndex = Context.StackFrames_RequiresLock.Add(FVoxelUtilities::GetStackFrames_WithStats(4));
-	}
-}
-
 FVoxelPromiseState::~FVoxelPromiseState()
 {
 #if VOXEL_DEBUG
@@ -67,7 +49,6 @@ FVoxelPromiseState::~FVoxelPromiseState()
 	{
 		checkVoxelSlow(Value.IsValid() == bHasValue);
 		checkVoxelSlow(KeepAliveIndex == -1);
-		checkVoxelSlow(StackIndex == -1);
 		checkVoxelSlow(!Continuation_RequiresLock);
 		return;
 	}
@@ -183,12 +164,9 @@ void FVoxelPromiseState::SetImpl(FVoxelTaskContext& Context)
 			KeepAliveIndex = -1;
 		}
 
-		if (StackIndex != -1)
+		if (Context.bTrackPromisesCallstacks)
 		{
-			VOXEL_SCOPE_LOCK(Context.CriticalSection);
-			Context.StackFrames_RequiresLock.RemoveAt(StackIndex);
-
-			StackIndex = -1;
+			Context.UntrackPromise(*this);
 		}
 	};
 

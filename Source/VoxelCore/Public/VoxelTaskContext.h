@@ -149,8 +149,11 @@ private:
 
 private:
 	FVoxelCriticalSection CriticalSection;
-	TVoxelSparseArray<FVoxelStackFrames> StackFrames_RequiresLock;
+	TVoxelMap<const FVoxelPromiseState*, FVoxelStackFrames> PromiseStateToStackFrames_RequiresLock;
 	TVoxelChunkedSparseArray<TVoxelRefCountPtr<IVoxelPromiseState>> PromisesToKeepAlive_RequiresLock;
+
+	void TrackPromise(const FVoxelPromiseState& PromiseState);
+	void UntrackPromise(const FVoxelPromiseState& PromiseState);
 
 	friend FVoxelPromiseState;
 	friend FVoxelTaskContextWeakRef;

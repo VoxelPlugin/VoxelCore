@@ -368,6 +368,8 @@ void CreatePageData(
 		{
 			const int32 RelativeVertexOffset = VertexOffset - StartVertexOffset;
 			ensure(FVoxelUtilities::IsValidUINT16(RelativeVertexOffset));
+			// We use Cluster.GroupIndex as the offset in the page
+			// Look for VOXEL_GROUP_INDEX
 			PackedCluster.SetGroupIndex(RelativeVertexOffset);
 		}
 		VertexOffset += Cluster.NumVertices();

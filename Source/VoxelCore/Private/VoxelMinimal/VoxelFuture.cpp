@@ -6,16 +6,30 @@
 
 DEFINE_VOXEL_INSTANCE_COUNTER(IVoxelPromiseState);
 
-TVoxelRefCountPtr<IVoxelPromiseState> IVoxelPromiseState::New(
-	FVoxelTaskContext* ContextOverride,
-	const bool bWithValue)
+TVoxelRefCountPtr<IVoxelPromiseState> IVoxelPromiseState::New_WithValue(FVoxelTaskContext* ContextOverride)
 {
-	return new FVoxelPromiseState(ContextOverride, bWithValue);
+	FVoxelPromiseState* Result = new FVoxelPromiseState(ContextOverride);
+	ConstCast(Result->bHasValue) = true;
+	return Result;
+}
+
+TVoxelRefCountPtr<IVoxelPromiseState> IVoxelPromiseState::New_WithoutValue(FVoxelTaskContext* ContextOverride)
+{
+	return new FVoxelPromiseState(ContextOverride);
 }
 
 TVoxelRefCountPtr<IVoxelPromiseState> IVoxelPromiseState::New(const FSharedVoidRef& Value)
 {
 	return new FVoxelPromiseState(Value);
+}
+
+TVoxelRefCountPtr<IVoxelPromiseState> IVoxelPromiseState::NewWithDependencies(const int32 NumDependenciesLeft)
+{
+	checkVoxelSlow(NumDependenciesLeft > 0);
+
+	FVoxelPromiseState* Result = new FVoxelPromiseState(nullptr);
+	Result->NumDependencies.Set(NumDependenciesLeft);
+	return Result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -100,6 +114,17 @@ void IVoxelPromiseState::Destroy()
 
 FVoxelFuture::FVoxelFuture(const TConstVoxelArrayView<FVoxelFuture> Futures)
 {
+	Initialize(Futures);
+}
+
+FVoxelFuture::FVoxelFuture(const TVoxelChunkedArray<FVoxelFuture>& Futures)
+{
+	Initialize(Futures);
+}
+
+template<typename ArrayType>
+void FVoxelFuture::Initialize(const ArrayType& Futures)
+{
 	VOXEL_FUNCTION_COUNTER_NUM(Futures.Num(), 16);
 
 	if (Futures.Num() == 0)
@@ -107,29 +132,12 @@ FVoxelFuture::FVoxelFuture(const TConstVoxelArrayView<FVoxelFuture> Futures)
 		return;
 	}
 
-	PromiseState = IVoxelPromiseState::New(nullptr, false);
-
-	const TSharedRef<FVoxelCounter32> Counter = MakeShared<FVoxelCounter32>(Futures.Num());
+	checkVoxelSlow(!PromiseState);
+	PromiseState = IVoxelPromiseState::NewWithDependencies(Futures.Num());
 
 	for (const FVoxelFuture& Future : Futures)
 	{
-		if (Future.IsComplete())
-		{
-			if (Counter->Decrement_ReturnNew() == 0)
-			{
-				PromiseState->Set();
-			}
-			continue;
-		}
-
-		Future.PromiseState->CheckCanAddContinuation(*this);
-		Future.PromiseState->AddContinuation(EVoxelFutureThread::AnyThread, [Counter, PromiseState = PromiseState]
-		{
-			if (Counter->Decrement_ReturnNew() == 0)
-			{
-				PromiseState->Set();
-			}
-		});
+		Initialize_AddFuture(Future);
 	}
 }
 

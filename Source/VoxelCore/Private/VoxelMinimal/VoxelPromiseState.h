@@ -84,13 +84,22 @@ public:
 public:
 	const FVoxelTaskContextWeakRef ContextWeakRef;
 
-	explicit FVoxelPromiseState(
-		FVoxelTaskContext* ContextOverride,
-		bool bHasValue);
-
-	FORCEINLINE explicit FVoxelPromiseState(const FSharedVoidRef& NewValue)
-		: IVoxelPromiseState(true)
+	FORCEINLINE explicit FVoxelPromiseState(FVoxelTaskContext* ContextOverride)
 	{
+		FVoxelTaskContext& Context = ContextOverride ? *ContextOverride : FVoxelTaskScope::GetContext();
+
+		ConstCast(ContextWeakRef) = Context;
+
+		Context.NumPromises.Increment();
+
+		if (Context.bTrackPromisesCallstacks)
+		{
+			Context.TrackPromise(*this);
+		}
+	}
+	FORCEINLINE explicit FVoxelPromiseState(const FSharedVoidRef& NewValue)
+	{
+		ConstCast(bHasValue) = true;
 		ConstCast(ContextWeakRef) = FVoxelTaskScope::GetContext();
 
 		bIsComplete.Set(true);
