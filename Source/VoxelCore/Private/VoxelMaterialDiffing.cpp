@@ -357,7 +357,8 @@ bool FVoxelMaterialDiffing::Equal(
 		}
 	}
 
-	EqualExpressions.Add_EnsureNew({ &OldExpression, &NewExpression });
+	// No _EnsureNew, we might end up adding this in the calls above
+	EqualExpressions.Add({ &OldExpression, &NewExpression });
 	return true;
 }
 
