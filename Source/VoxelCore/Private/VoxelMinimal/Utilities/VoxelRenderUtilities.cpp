@@ -354,7 +354,7 @@ FRDGBufferRef FVoxelUtilities::FindBuffer(
 			return;
 		}
 
-		ensure(!Result);
+		//ensure(!Result); // Will happen in multi views
 		Result = Buffer;
 	});
 
@@ -377,7 +377,7 @@ FRDGTextureRef FVoxelUtilities::FindTexture(
 			return;
 		}
 
-		ensure(!Result);
+		//ensure(!Result); // Will happen in multi views
 		Result = Texture;
 	});
 

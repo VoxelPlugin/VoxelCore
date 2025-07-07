@@ -1,4 +1,4 @@
-﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #pragma once
 
@@ -36,4 +36,5 @@ private:
 	TOptional<int32> CurrentFrameNumber;
 	// Multiple views in VR
 	TVoxelArray<FSceneView*> CurrentViews;
+	FSceneViewFamily* CurrentViewFamily = nullptr;
 };

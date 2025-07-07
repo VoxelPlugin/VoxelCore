@@ -1,6 +1,7 @@
-﻿// Copyright Voxel Plugin SAS. All Rights Reserved.
+// Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelSingletonSceneViewExtension.h"
+#include "SceneView.h"
 
 void FVoxelSingletonSceneViewExtension::OnBeginFrame_RenderThread()
 {
@@ -98,12 +99,21 @@ void FVoxelSingletonSceneViewExtension::PreRenderViewFamily_RenderThread(FRDGBui
 
 	ensure(CurrentViews.Num() == 0);
 	CurrentViews.Reset();
+
+	ensure(!CurrentViewFamily);
+	CurrentViewFamily = &ViewFamily;
 }
 
 void FVoxelSingletonSceneViewExtension::PreRenderView_RenderThread(FRDGBuilder& GraphBuilder, FSceneView& View)
 {
 	VOXEL_FUNCTION_COUNTER();
 	check(IsInRenderingThread());
+
+	if (View.Family != CurrentViewFamily)
+	{
+		// Not the main view, eg a view queued by the Water plugin
+		return;
+	}
 
 	CurrentViews.Add(&View);
 
@@ -188,6 +198,9 @@ void FVoxelSingletonSceneViewExtension::PostRenderViewFamily_RenderThread(FRDGBu
 {
 	VOXEL_FUNCTION_COUNTER();
 	check(IsInRenderingThread());
+
+	ensure(CurrentViewFamily == &ViewFamily);
+	CurrentViewFamily = nullptr;
 
 	for (FVoxelRenderSingleton* Singleton : Singletons)
 	{
