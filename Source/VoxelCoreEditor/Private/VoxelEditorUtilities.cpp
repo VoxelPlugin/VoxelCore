@@ -507,6 +507,39 @@ TSharedPtr<IPropertyHandle> FVoxelEditorUtilities::FindMapValuePropertyHandle(
 	return PropertyHandle;
 }
 
+FString FVoxelEditorUtilities::GeneratePropertyChain(TSharedPtr<IPropertyHandle> Handle)
+{
+	FString Result;
+	while (Handle)
+	{
+		const FProperty* Property = Handle->GetProperty();
+		if (!Property)
+		{
+			Handle = Handle->GetParentHandle();
+			continue;
+		}
+
+		Result += GeneratePropertyChainPart(Property, Handle->GetArrayIndex()) + ";;";
+
+		Handle = Handle->GetParentHandle();
+	}
+
+	return Result;
+}
+
+FString FVoxelEditorUtilities::GeneratePropertyChainPart(const FProperty* Property, const int32 ArrayIndex)
+{
+	const UStruct* Struct = Property->GetOwnerStruct();
+	FName PropertyName = Property->GetFName();
+
+	if (Struct->GetFName() == "StructOnScope")
+	{
+		return "";
+	}
+
+	return Struct->GetPathName() + "|" + PropertyName.ToString() + "|" + LexToString(ArrayIndex);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

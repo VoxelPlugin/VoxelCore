@@ -418,6 +418,9 @@ public:
 		const IPropertyHandle& MapPropertyHandle,
 		const FGuid& Guid);
 
+	static FString GeneratePropertyChain(TSharedPtr<IPropertyHandle> Handle);
+	static FString GeneratePropertyChainPart(const FProperty* Property, int32 ArrayIndex);
+
 public:
 	static void RegisterClassLayout(const UClass* Class, FOnGetDetailCustomizationInstance Delegate);
 	static void RegisterStructLayout(const UScriptStruct* Struct, FOnGetPropertyTypeCustomizationInstance Delegate, bool bRecursive);
