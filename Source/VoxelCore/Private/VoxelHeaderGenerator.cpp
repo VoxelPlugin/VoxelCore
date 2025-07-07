@@ -206,6 +206,12 @@ FString FVoxelHeaderFunctionArgument::GenerateContent(const bool bFunctionUsesUH
 			}
 		}
 
+		CopiedMetadata.DefaultKeyToValue.Remove("ToolTip");
+		CopiedMetadata.DefaultOrderedKeys.Remove("ToolTip");
+
+		CopiedMetadata.MetaKeyToValue.Remove("ToolTip");
+		CopiedMetadata.MetaOrderedKeys.Remove("ToolTip");
+
 		Result += CopiedMetadata.GenerateContent();
 		if (!Result.IsEmpty())
 		{
@@ -370,10 +376,7 @@ FString FVoxelHeaderFunction::GenerateContent(const bool bObjectUsesUHT) const
 {
 	FString Result;
 
-	for (const FString& CommentLine : Comment)
-	{
-		Result += "\t// " + CommentLine + "\n";
-	}
+	Result += ConstructComment();
 
 	const bool bUHT =
 		bUseUHT &&
@@ -413,6 +416,204 @@ FString FVoxelHeaderFunction::GenerateContent(const bool bObjectUsesUHT) const
 	Result += FunctionBody.GenerateContent(2);
 
 	Result += "\t}\n";
+	return Result;
+}
+
+FString FVoxelHeaderFunction::ConstructComment() const
+{
+	FString FullComment;
+	for (const FString& Line : Comment)
+	{
+		FullComment += Line + "\n";
+	}
+
+	FString BaseComment;
+	FString ReturnComment;
+	TMap<FString, FString> ArgumentToComment;
+
+	FString* CurrentComment = &BaseComment;
+	int32 CurrentIndex = 0;
+	while (CurrentIndex < FullComment.Len())
+	{
+		const int32 TagStartIndex = FullComment.Find("@", ESearchCase::IgnoreCase, ESearchDir::FromStart, CurrentIndex);
+		if (TagStartIndex == -1)
+		{
+			*CurrentComment += FullComment.Mid(CurrentIndex);
+			break;
+		}
+
+		if (CurrentIndex != TagStartIndex)
+		{
+			*CurrentComment += FullComment.Mid(CurrentIndex, TagStartIndex - CurrentIndex);
+		}
+
+		FString Tag;
+		int32 TagEndIndex = -1;
+		for (int32 Index = TagStartIndex + 1; Index < FullComment.Len(); Index++)
+		{
+			TagEndIndex = Index + 1;
+
+			if (FChar::IsWhitespace(FullComment[Index]) ||
+				FChar::IsLinebreak(FullComment[Index]))
+			{
+				if (Tag.IsEmpty())
+				{
+					continue;
+				}
+
+				break;
+			}
+
+			Tag += FullComment[Index];
+		}
+
+		if (Tag == "param")
+		{
+			FString ArgumentName;
+			int32 ArgumentEndIndex = TagEndIndex;
+			for (int32 Index = TagEndIndex; Index < FullComment.Len(); Index++)
+			{
+				ArgumentEndIndex = Index + 1;
+				if (FChar::IsWhitespace(FullComment[Index]) ||
+					FChar::IsLinebreak(FullComment[Index]))
+				{
+					if (!ArgumentName.IsEmpty())
+					{
+						break;
+					}
+
+					continue;
+				}
+
+				ArgumentName += FullComment[Index];
+			}
+
+			if (ArgumentName.IsEmpty())
+			{
+				*CurrentComment += FullComment.Mid(CurrentIndex, ArgumentEndIndex - CurrentIndex);
+				CurrentIndex = ArgumentEndIndex;
+				continue;
+			}
+
+			FString& ArgumentComment = ArgumentToComment.FindOrAdd(ArgumentName);
+			CurrentComment = &ArgumentComment;
+			CurrentIndex = ArgumentEndIndex;
+			continue;
+		}
+
+		if (Tag == "return" ||
+			Tag == "returns")
+		{
+			CurrentIndex = TagEndIndex;
+			CurrentComment = &ReturnComment;
+			continue;
+		}
+
+		*CurrentComment += FullComment[TagStartIndex];
+		CurrentIndex = TagStartIndex + 1;
+	}
+
+	TArray<FString> ParamLines;
+	const auto Parse = [](const FString& Comment, TArray<FString>& OutLines)
+	{
+		if (Comment.IsEmpty())
+		{
+			return;
+		}
+
+		TArray<FString> Lines;
+		Comment.ParseIntoArrayLines(Lines);
+
+		for (FString Line : Lines)
+		{
+			Line = Line.TrimStartAndEnd();
+			if (Line.IsEmpty())
+			{
+				continue;
+			}
+
+			OutLines.Add(Line);
+		}
+	};
+
+	for (const FVoxelHeaderFunctionArgument& Argument : Arguments)
+	{
+		TArray<FString> ToolTipLines;
+
+		FString CommentToolTip;
+		ArgumentToComment.RemoveAndCopyValue(Argument.Name, CommentToolTip);
+		Parse(CommentToolTip, ToolTipLines);
+
+		if (const FString* ToolTipPtr = Argument.Metadata.MetaKeyToValue.Find("ToolTip"))
+		{
+			FString ToolTip = *ToolTipPtr;
+			ToolTip = ToolTip.Replace(TEXT("\\n"), TEXT("\n"));
+			Parse(ToolTip, ToolTipLines);
+		}
+
+		if (ToolTipLines.Num() == 0)
+		{
+			continue;
+		}
+
+		ToolTipLines[0] = "@param " + Argument.Name + " " + ToolTipLines[0];
+		ParamLines.Append(ToolTipLines);
+	}
+
+	for (const auto& It : ArgumentToComment)
+	{
+		TArray<FString> ToolTipLines;
+		Parse(It.Value, ToolTipLines);
+
+		if (ToolTipLines.Num() == 0)
+		{
+			continue;
+		}
+
+		ToolTipLines[0] = "@param " + It.Key + "_DEPRECATED " + ToolTipLines[0];
+		ParamLines.Append(ToolTipLines);
+	}
+
+	{
+		TArray<FString> ToolTipLines;
+		Parse(ReturnComment, ToolTipLines);
+
+		if (ToolTipLines.Num() > 0)
+		{
+			ToolTipLines[0] = "@return " + ToolTipLines[0];
+			ParamLines.Append(ToolTipLines);
+		}
+	}
+
+	bool bMultiLineComment = ParamLines.Num() > 0;
+
+	FString Result;
+
+	if (bMultiLineComment)
+	{
+		Result += "\t/**\n";
+	}
+
+	{
+		TArray<FString> BaseCommentLines;
+		BaseComment.ParseIntoArrayLines(BaseCommentLines);
+
+		for (const FString& Line : BaseCommentLines)
+		{
+			Result += (bMultiLineComment ? "\t * " : "\t// ") + Line.TrimStartAndEnd() + "\n";
+		}
+	}
+
+	for (const FString& Line : ParamLines)
+	{
+		Result += (bMultiLineComment ? "\t * " : "\t// ") + Line + "\n";
+	}
+
+	if (bMultiLineComment)
+	{
+		Result += "\t */\n";
+	}
+
 	return Result;
 }
 

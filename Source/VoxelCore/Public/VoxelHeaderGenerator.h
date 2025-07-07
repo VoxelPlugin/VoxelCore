@@ -136,6 +136,7 @@ public:
 
 private:
 	FString GenerateContent(bool bObjectUsesUHT) const;
+	FString ConstructComment() const;
 
 public:
 	const FString FunctionName;
