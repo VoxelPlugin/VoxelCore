@@ -76,7 +76,12 @@ FVoxelSingletonManager::FVoxelSingletonManager()
 
 	for (FVoxelSingleton* Singleton : Singletons)
 	{
-		Singleton->Initialize();
+		check(!Singleton->bIsInitialized);
+		{
+			Singleton->Initialize();
+		}
+		check(!Singleton->bIsInitialized);
+		Singleton->bIsInitialized = true;
 	}
 
 	FVoxelUtilities::DelayedCall([this]

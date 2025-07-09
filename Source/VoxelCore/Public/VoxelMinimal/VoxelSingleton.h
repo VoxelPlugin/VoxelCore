@@ -12,6 +12,13 @@ public:
 	virtual ~FVoxelSingleton();
 	UE_NONCOPYABLE(FVoxelSingleton);
 
+public:
+	bool IsInitialized() const
+	{
+		return bIsInitialized;
+	}
+
+public:
 	virtual void Initialize() {}
 
 	virtual void Tick() {}
@@ -21,6 +28,7 @@ public:
 	virtual bool IsEditorOnly() const { return false; }
 
 private:
+	bool bIsInitialized = false;
 	bool bIsRenderSingleton = false;
 
 	friend class FVoxelRenderSingleton;
