@@ -107,7 +107,7 @@ VOXEL_RUN_ON_STARTUP_GAME()
 		}
 
 		FVoxelHeaderGenerator& File = HeaderToFile.FindOrAdd_WithDefault(HeaderName, FVoxelHeaderGenerator(HeaderName + "_K2", It.Key));
-		
+
 		File.AddInclude("VoxelLatentAction.h");
 		File.AddInclude(It.Key);
 
@@ -144,17 +144,37 @@ VOXEL_RUN_ON_STARTUP_GAME()
 					Func.AddMetadata(true, MetadataIt.Key.ToString(), MetadataIt.Value);
 				}
 
+				bool bHasWorldContextArgument = true;
+				FString WorldContextArgument;
+				if (Function->HasMetaData("WorldContext"))
+				{
+					WorldContextArgument = Function->GetMetaData("WorldContext");
+				}
+
+				if (WorldContextArgument.IsEmpty())
+				{
+					bHasWorldContextArgument = false;
+					WorldContextArgument = "WorldContextObject";
+				}
+
 				if (bAsync)
 				{
 					Func.AddMetadata(true, "Latent");
 					Func.AddMetadata(true, "LatentInfo", "LatentInfo");
-					Func.AddMetadata(true, "WorldContext", "WorldContextObject");
+					if (!bHasWorldContextArgument)
+					{
+						Func.AddMetadata(true, "WorldContext", "WorldContextObject");
+					}
 					Func.AddMetadata(true, "AdvancedDisplay", "bExecuteIfAlreadyPending");
 				}
 
 				if (bAsync)
 				{
-					Func.AddArgument<UObject*>("WorldContextObject");
+					if (!bHasWorldContextArgument)
+					{
+						Func.AddArgument<UObject*>(WorldContextArgument);
+					}
+
 					Func.AddArgument<FLatentActionInfo>("LatentInfo");
 				}
 
@@ -163,6 +183,22 @@ VOXEL_RUN_ON_STARTUP_GAME()
 					if (Property.HasAnyPropertyFlags(CPF_ReturnParm))
 					{
 						continue;
+					}
+
+					// Do not add UWorld as an argument
+					if (const FObjectPropertyBase* ObjectProperty = CastField<FObjectPropertyBase>(Property))
+					{
+						if (ObjectProperty->PropertyClass &&
+							ObjectProperty->PropertyClass->IsChildOf<UWorld>())
+						{
+							if (!bAsync &&
+								!bHasWorldContextArgument)
+							{
+								Func.AddMetadata(true, "WorldContext", "WorldContextObject");
+								Func.AddArgument<UObject*>(WorldContextArgument);
+							}
+							continue;
+						}
 					}
 
 					FVoxelHeaderFunctionArgument& Argument = Func.AddArgument(Property);
@@ -184,6 +220,11 @@ VOXEL_RUN_ON_STARTUP_GAME()
 						if (MetadataIt.Key == "BaseStruct" &&
 							Property.IsA<FStructProperty>() &&
 							CastFieldChecked<FStructProperty>(Property).Struct == FInstancedStruct::StaticStruct())
+						{
+							continue;
+						}
+
+						if (MetadataIt.Key == "DisplayName")
 						{
 							continue;
 						}
@@ -216,7 +257,8 @@ VOXEL_RUN_ON_STARTUP_GAME()
 							Default = "nullptr";
 						}
 
-						if (FVoxelUtilities::IsFloat(Default))
+						if (FVoxelUtilities::IsFloat(Default) &&
+							!FVoxelUtilities::IsInt(Default))
 						{
 							Default = FString::SanitizeFloat(FVoxelUtilities::StringToFloat(Default));
 
@@ -238,26 +280,6 @@ VOXEL_RUN_ON_STARTUP_GAME()
 
 						if (const FStructProperty* StructProperty = CastField<FStructProperty>(Property))
 						{
-							if (StructProperty->Struct == StaticStructFast<FVector>())
-							{
-								if (Default == "1.000000,0.000000,0.000000")
-								{
-									Default = "FVector::ForwardVector";
-								}
-								if (Default == "0.000000,1.000000,0.000000")
-								{
-									Default = "FVector::RightVector";;
-								}
-								if (Default == "0.000000,0.000000,1.000000")
-								{
-									Default = "FVector::UpVector";
-								}
-								if (Default == "0.000000,0.000000,0.000000")
-								{
-									Default = "FVector::ZeroVector";
-								}
-							}
-
 							if (StructProperty->Struct == StaticStructFast<FRotator>())
 							{
 								if (Default.IsEmpty())
@@ -287,7 +309,7 @@ VOXEL_RUN_ON_STARTUP_GAME()
 				if (bAsync)
 				{
 					Func += "FVoxelLatentAction::Execute(";
-					Func += "	WorldContextObject,";
+					Func += "	" + WorldContextArgument + ",";
 					Func += "	LatentInfo,";
 					Func += "	bExecuteIfAlreadyPending,";
 					Func += "	[&]";
@@ -312,6 +334,17 @@ VOXEL_RUN_ON_STARTUP_GAME()
 					if (Property.HasAnyPropertyFlags(CPF_ReturnParm))
 					{
 						continue;
+					}
+
+					// Do not add UWorld as an argument
+					if (const FObjectPropertyBase* ObjectProperty = CastField<FObjectPropertyBase>(Property))
+					{
+						if (ObjectProperty->PropertyClass &&
+							ObjectProperty->PropertyClass->IsChildOf<UWorld>())
+						{
+							CallArguments += "GEngine->GetWorldFromContextObject(" + WorldContextArgument + ", EGetWorldErrorMode::ReturnNull),\n";
+							continue;
+						}
 					}
 
 					CallArguments += Property.GetName() + ",\n";

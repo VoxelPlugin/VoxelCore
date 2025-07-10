@@ -186,6 +186,37 @@ FVoxelHeaderFunctionArgument& FVoxelHeaderFunctionArgument::AddMetadata(const bo
 FVoxelHeaderFunctionArgument& FVoxelHeaderFunctionArgument::SetDefault(const FString& NewDefault)
 {
 	Default = NewDefault;
+
+	if (Type == "FVector2D")
+	{
+		FVector2D Value = FVector2D(ForceInit);
+
+		if (Value.InitFromString(Default))
+		{
+			Default = "FVector2D(" + FString::SanitizeFloat(Value.X) + ", " + FString::SanitizeFloat(Value.Y) + ")";
+		}
+	}
+
+	if (Type == "FVector")
+	{
+		if (Default == "1.000000,0.000000,0.000000")
+		{
+			Default = "FVector::ForwardVector";
+		}
+		if (Default == "0.000000,1.000000,0.000000")
+		{
+			Default = "FVector::RightVector";;
+		}
+		if (Default == "0.000000,0.000000,1.000000")
+		{
+			Default = "FVector::UpVector";
+		}
+		if (Default == "0.000000,0.000000,0.000000")
+		{
+			Default = "FVector::ZeroVector";
+		}
+	}
+
 	return *this;
 }
 
@@ -326,7 +357,7 @@ FVoxelHeaderFunctionArgument& FVoxelHeaderFunction::AddArgumentWithDefault(const
 				}
 			}
 		}
-		
+
 		if (Value.IsEmpty())
 		{
 			return;
@@ -700,7 +731,7 @@ FString FVoxelHeaderObject::GenerateContent(const FString& API) const
 			}
 			TemplatesContent += Template;
 		}
-		
+
 		Result += "template<" + TemplatesContent + ">\n";
 
 		if (bIsClass)

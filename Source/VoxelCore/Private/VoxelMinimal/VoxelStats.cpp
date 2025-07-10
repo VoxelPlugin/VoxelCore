@@ -4,10 +4,11 @@
 #include "HAL/PlatformStackWalk.h"
 
 UE_TRACE_CHANNEL_DEFINE(VoxelChannel);
+
+#if ENABLE_LOW_LEVEL_MEM_TRACKER
 LLM_DEFINE_TAG(Voxel, "Voxel", NAME_None, GET_STATFNAME(STAT_VoxelLLM));
 DEFINE_STAT(STAT_VoxelLLM);
 
-#if ENABLE_LOW_LEVEL_MEM_TRACKER
 // Enable by default using zero-initialization
 // This way any global calling new will register LLM scopes just in case
 bool GVoxelLLMDisabled = false;

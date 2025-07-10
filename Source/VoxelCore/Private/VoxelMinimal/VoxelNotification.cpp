@@ -9,6 +9,7 @@
 #include "Components/HorizontalBox.h"
 #include "Application/ThrottleManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
+#include "Framework/Application/SlateApplication.h"
 #include "Framework/Notifications/NotificationManager.h"
 #endif
 
@@ -21,7 +22,14 @@ TSharedRef<FVoxelNotification> FVoxelNotification::Create(const FString& Text)
 	Info.bFireAndForget = false;
 	Info.bUseThrobber = true;
 
-	const TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
+	TSharedPtr<SNotificationItem> Notification;
+
+	// FSlateNotificationManager is only valid if slate is initialized
+	// Will fail in commandlets
+	if (FSlateApplication::IsInitialized())
+	{
+		Notification = FSlateNotificationManager::Get().AddNotification(Info);
+	}
 
 	if (Notification)
 	{
@@ -43,7 +51,14 @@ TSharedRef<FVoxelNotification> FVoxelNotification::Create_Failed(const FString& 
 	Info.bFireAndForget = false;
 	Info.bUseSuccessFailIcons = true;
 
-	const TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
+	TSharedPtr<SNotificationItem> Notification;
+
+	// FSlateNotificationManager is only valid if slate is initialized
+	// Will fail in commandlets
+	if (FSlateApplication::IsInitialized())
+	{
+		Notification = FSlateNotificationManager::Get().AddNotification(Info);
+	}
 
 	if (Notification)
 	{

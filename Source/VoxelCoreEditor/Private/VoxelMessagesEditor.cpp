@@ -36,6 +36,12 @@ public:
 public:
 	void LogMessage(const TSharedRef<FVoxelMessage>& Message)
 	{
+		if (!FSlateApplication::IsInitialized())
+		{
+			// Probably in a commandlet, sending a notification would crash
+			return;
+		}
+
 		const uint64 Hash = Message->GetHash();
 		const double Time = FPlatformTime::Seconds();
 

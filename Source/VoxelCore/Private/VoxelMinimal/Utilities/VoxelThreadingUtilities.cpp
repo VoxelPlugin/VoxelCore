@@ -72,7 +72,23 @@ FVoxelFuture Voxel::ExecuteSynchronously_Impl(const TFunctionRef<FVoxelFuture()>
 		return Future.IsComplete();
 	});
 
-	ensure(GVoxelSynchronousTaskContext->IsComplete());
+	{
+		// GVoxelSynchronousTaskContext->IsComplete() might be false due to race conditions
+		// Add a time buffer
+
+		const double Time = FPlatformTime::Seconds();
+
+		while (!GVoxelSynchronousTaskContext->IsComplete())
+		{
+			FPlatformProcess::Yield();
+
+			if (FPlatformTime::Seconds() - Time > 0.001)
+			{
+				ensure(false);
+				break;
+			}
+		}
+	}
 
 	check(Future.IsComplete());
 	return Future;

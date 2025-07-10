@@ -25,7 +25,7 @@ void FVoxelMaterialUsage::CheckMaterial(UMaterialInterface* Material)
 		return;
 	}
 
-	Material->CheckMaterialUsage(MATUSAGE_LidarPointCloud);
+	ensureVoxelSlow(Material->CheckMaterialUsage(MATUSAGE_LidarPointCloud));
 }
 
 bool FVoxelMaterialUsage::ShouldCompilePermutation(const FMaterialShaderParameters& MaterialParameters)
