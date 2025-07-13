@@ -3,7 +3,6 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
-#include <bit>
 
 FORCEINLINE constexpr uint64 operator ""_u64(const uint64 Value)
 {
@@ -584,39 +583,49 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	FORCEINLINE uint32 CountBits(const uint32 Bits)
+	FORCEINLINE uint32 CountBits(const uint32 Word)
 	{
-#if PLATFORM_WINDOWS && !PLATFORM_COMPILER_CLANG
+#if PLATFORM_ALWAYS_HAS_SSE4_2
 		// Force use the intrinsic
-		return _mm_popcnt_u32(Bits);
+		return _mm_popcnt_u32(Word);
 #else
-		return FMath::CountBits(Bits);
+		return FMath::CountBits(Word);
 #endif
 	}
-	FORCEINLINE uint32 CountBits(const uint64 Bits)
+	FORCEINLINE uint32 CountBits(const uint64 Word)
 	{
-#if PLATFORM_WINDOWS && !PLATFORM_COMPILER_CLANG
+#if PLATFORM_ALWAYS_HAS_SSE4_2
 		// Force use the intrinsic
-		return _mm_popcnt_u64(Bits);
+		return _mm_popcnt_u64(Word);
 #else
-		return FMath::CountBits(Bits);
+		return FMath::CountBits(Word);
 #endif
 	}
 
-	FORCEINLINE uint32 FirstBitLow(const uint32 Bits)
+	FORCEINLINE uint32 FirstBitLow(const uint32 Word)
 	{
-#if PLATFORM_WINDOWS && !PLATFORM_COMPILER_CLANG
-		return _tzcnt_u32(Bits);
+		// Not valid if word is 0, as behavior between intrinsics can change (32 or -1)
+		checkVoxelSlow(Word != 0);
+
+#if PLATFORM_ALWAYS_HAS_SSE4_2
+		const uint32 Value = _tzcnt_u32(Word);
+		checkVoxelSlow(Value == FMath::CountTrailingZeros(Word));
+		return Value;
 #else
-		return std::countr_zero(Bits);
+		return FMath::CountTrailingZeros(Word);
 #endif
 	}
-	FORCEINLINE uint32 FirstBitLow(const uint64 Bits)
+	FORCEINLINE uint32 FirstBitLow(const uint64 Word)
 	{
-#if PLATFORM_WINDOWS && !PLATFORM_COMPILER_CLANG
-		return _tzcnt_u64(Bits);
+		// Not valid if word is 0, as behavior between intrinsics can change (64 or -1)
+		checkVoxelSlow(Word != 0);
+
+#if PLATFORM_ALWAYS_HAS_SSE4_2
+		const uint32 Value = _tzcnt_u64(Word);
+		checkVoxelSlow(Value == FMath::CountTrailingZeros64(Word));
+		return Value;
 #else
-		return std::countr_zero(Bits);
+		return FMath::CountTrailingZeros64(Word);
 #endif
 	}
 

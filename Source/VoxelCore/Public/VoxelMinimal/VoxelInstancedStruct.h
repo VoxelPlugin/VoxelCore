@@ -393,7 +393,7 @@ public:
 	}
 	template<typename OtherType = T>
 	requires std::derived_from<OtherType, T>
-	FORCEINLINE TSharedPtr<const OtherType> AsSharedPtr() const
+	FORCEINLINE TSharedPtr<const OtherType> ToSharedPtr() const
 	{
 		return FVoxelInstancedStruct::ToSharedPtr<const OtherType>();
 	}

@@ -1019,10 +1019,23 @@ VOXEL_RUN_ON_STARTUP_GAME()
 }
 #endif
 
+#if WITH_EDITOR
+TVoxelUniqueFunction<void(const UScriptStruct* Struct, void* StructMemory)> GVoxelDestroyStructOverride;
+#endif
+
 void FVoxelUtilities::DestroyStruct_Safe(const UScriptStruct* Struct, void* StructMemory)
 {
 	check(Struct);
 	check(StructMemory);
+
+#if WITH_EDITOR
+	if (GVoxelDestroyStructOverride &&
+		IsInGameThread())
+	{
+		GVoxelDestroyStructOverride(Struct, StructMemory);
+		return;
+	}
+#endif
 
 	if (UObjectInitialized())
 	{

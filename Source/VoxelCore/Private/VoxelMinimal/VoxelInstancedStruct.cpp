@@ -3,6 +3,11 @@
 #include "VoxelMinimal.h"
 #include "UObject/CoreRedirects.h"
 #include "UObject/UObjectThreadContext.h"
+#include "StructUtils/StructUtilsTypes.h"
+#include "StructUtils/UserDefinedStruct.h"
+#include "Serialization/MemoryReader.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/ObjectAndNameAsStringProxyArchive.h"
 
 void FVoxelInstancedStruct::InitializeAs(UScriptStruct* NewScriptStruct, const void* NewStructMemory)
 {
@@ -191,10 +196,28 @@ bool FVoxelInstancedStruct::Serialize(FArchive& Ar)
 		Ar.IsObjectReferenceCollector() ||
 		Ar.IsCountingMemory())
 	{
-		FString StructPath;
-		if (GetScriptStruct())
+		UScriptStruct* ScriptStructToSerialize = GetScriptStruct();
+
+#if WITH_EDITOR
+		if (const UUserDefinedStruct* UserDefinedStruct = Cast<UUserDefinedStruct>(ScriptStructToSerialize))
 		{
-			StructPath = GetScriptStruct()->GetPathName();
+			// See FInstancedStruct::Serialize
+			// See FVoxelInstancedStruct::AddStructReferencedObjects
+
+			if (UserDefinedStruct->Status == UDSS_Duplicate &&
+				UserDefinedStruct->PrimaryStruct.IsValid())
+			{
+				// If saving a duplicated UDS, save the primary type instead, so that the data is loaded with the original struct.
+				// This is used as part of the user defined struct reinstancing logic.
+				ScriptStructToSerialize = UserDefinedStruct->PrimaryStruct.Get();
+			}
+		}
+#endif
+
+		FString StructPath;
+		if (ScriptStructToSerialize)
+		{
+			StructPath = ScriptStructToSerialize->GetPathName();
 		}
 		else
 		{
@@ -202,7 +225,7 @@ bool FVoxelInstancedStruct::Serialize(FArchive& Ar)
 		}
 
 		Ar << StructPath;
-		Ar << PrivateScriptStruct;
+		Ar << ScriptStructToSerialize;
 
 		const int64 SerializedSizePosition = Ar.Tell();
 		{
@@ -344,6 +367,109 @@ void FVoxelInstancedStruct::AddStructReferencedObjects(FReferenceCollector& Coll
 	{
 		return;
 	}
+
+#if WITH_EDITOR
+	// See FInstancedStruct::AddStructReferencedObjects
+
+	// Reference collector is used to visit all instances of instanced structs and replace their contents.
+	if (const UUserDefinedStruct* StructureToReinstance = UE::StructUtils::Private::GetStructureToReinstantiate())
+	{
+		check(IsInGameThread());
+
+		if (const UUserDefinedStruct* UserDefinedStruct = Cast<UUserDefinedStruct>(GetScriptStruct()))
+		{
+			if (StructureToReinstance->Status == UDSS_Duplicate)
+			{
+				// On the first pass we replace the UDS with a duplicate that represents the currently allocated struct.
+				// GStructureToReinstance is the duplicated struct, and StructureToReinstance->PrimaryStruct is the UDS that is being reinstanced.
+
+				if (UserDefinedStruct == StructureToReinstance->PrimaryStruct)
+				{
+					PrivateScriptStruct = ConstCast(StructureToReinstance);
+				}
+			}
+			else
+			{
+				// On the second pass we reinstantiate the data using serialization.
+				// When saving, the UDSs are written using the duplicate which represents current layout, but PrimaryStruct is serialized as the type.
+				// When reading, the data is initialized with the new type, and the serialization will take care of reading from the old data.
+
+				// See FVoxelInstancedStruct::Serialize
+
+				if (UserDefinedStruct->PrimaryStruct == StructureToReinstance)
+				{
+					if (UObject* Outer = UE::StructUtils::Private::GetCurrentReinstantiationOuterObject())
+					{
+						if (!Outer->IsA<UClass>() && !Outer->HasAnyFlags(RF_ClassDefaultObject))
+						{
+							(void)Outer->MarkPackageDirty();
+						}
+					}
+
+					checkVoxelSlow(PrivateScriptStruct == UserDefinedStruct);
+
+					TArray<uint8> Data;
+
+					{
+						FMemoryWriter Writer(Data);
+						FObjectAndNameAsStringProxyArchive WriterProxy(Writer, true);
+						Serialize(WriterProxy);
+					}
+
+					if (ensure(PrivateStructMemory.IsUnique()))
+					{
+						// Force destroy the old struct using the old destructor
+
+						extern TVoxelUniqueFunction<void(const UScriptStruct* Struct, void* StructMemory)> GVoxelDestroyStructOverride;
+
+						check(IsInGameThread());
+						check(!GVoxelDestroyStructOverride);
+
+						bool bCalled = false;
+
+						void* StructMemoryToDestroy = PrivateStructMemory.Get();
+
+						GVoxelDestroyStructOverride = [&](const UScriptStruct* Struct, void* StructMemory)
+						{
+							if (StructMemory != StructMemoryToDestroy)
+							{
+								// Recursive call
+								Struct->DestroyStruct(StructMemory);
+								return;
+							}
+
+							check(Struct == UserDefinedStruct->PrimaryStruct);
+
+							ensure(!bCalled);
+							bCalled = true;
+
+							UserDefinedStruct->DestroyStruct(StructMemory);
+						};
+
+						PrivateStructMemory.Reset();
+
+						ensure(bCalled);
+						GVoxelDestroyStructOverride = {};
+					}
+					else
+					{
+						// Keep this alive forever, as the destructor is unsafe to call
+						(void)MakeUniqueCopy(PrivateStructMemory).Release();
+						PrivateStructMemory.Reset();
+					}
+
+					{
+						FMemoryReader Reader(Data);
+						FObjectAndNameAsStringProxyArchive ReaderProxy(Reader, true);
+						Serialize(ReaderProxy);
+					}
+
+					checkVoxelSlow(PrivateScriptStruct == UserDefinedStruct->PrimaryStruct);
+				}
+			}
+		}
+	}
+#endif
 
 	TObjectPtr<UScriptStruct> ScriptStructObject = GetScriptStruct();
 	Collector.AddReferencedObject(ScriptStructObject);
