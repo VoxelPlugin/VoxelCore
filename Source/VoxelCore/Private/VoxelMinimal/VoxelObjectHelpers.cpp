@@ -67,7 +67,7 @@ TVoxelArray<UScriptStruct*> GetDerivedStructs(const UScriptStruct* BaseStruct, c
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	TVoxelArray<UScriptStruct*> Result;
+	TVoxelChunkedArray<UScriptStruct*> Result;
 	ForEachObjectOfClass<UScriptStruct>([&](UScriptStruct& Struct)
 	{
 		if (!Struct.IsChildOf(BaseStruct))
@@ -82,8 +82,8 @@ TVoxelArray<UScriptStruct*> GetDerivedStructs(const UScriptStruct* BaseStruct, c
 
 		Result.Add(&Struct);
 	});
-	Result.Shrink();
-	return Result;
+
+	return Result.Array();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

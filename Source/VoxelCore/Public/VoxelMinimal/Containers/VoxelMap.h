@@ -336,6 +336,26 @@ public:
 		return true;
 	}
 
+	template<typename OtherValueType, typename OtherAllocator>
+	bool HasSameKeys_Ordered(const TVoxelMap<KeyType, OtherValueType, OtherAllocator>& Other) const
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
+
+		if (Num() != Other.Num())
+		{
+			return false;
+		}
+
+		for (int32 Index = 0; Index < Elements.Num(); Index++)
+		{
+			if (Elements[Index].Key != Other.Elements[Index].Key)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
 	template<typename OtherKeyType, typename OtherValueType, typename OtherAllocator>
 	requires
 	(
