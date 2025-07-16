@@ -152,8 +152,11 @@ TSharedRef<SWidget> FVoxelSegmentedEnumCustomization::CustomizeEnum(const TShare
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TSharedRef<SVoxelSegmentedControl<uint8>> FVoxelSegmentedEnumCustomization::CustomizeBitmaskEnum(const TSharedRef<IPropertyHandle>& PropertyHandle, const UEnum* Enum, const int32 NumObjects)
+TSharedRef<SVoxelSegmentedControl<uint8>> FVoxelSegmentedEnumCustomization::CustomizeBitmaskEnum(const TSharedRef<IPropertyHandle>& PropertyHandle, const UEnum* Enum, int32 NumObjects)
 {
+	// NumObjects is 0 when using StructDetailsView
+	NumObjects = FMath::Max(1, NumObjects);
+
 	const auto GetValues = [Enum, NumObjects, WeakHandle = MakeWeakPtr(PropertyHandle)]() -> TMap<uint8, ECheckBoxState>
 	{
 		VOXEL_SCOPE_COUNTER("SVoxelSegmentedControl::BitMaskValues");
