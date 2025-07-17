@@ -33,6 +33,12 @@ FString FVoxelInvalidationSource_Object::ToString() const
 #if VOXEL_INVALIDATION_TRACKING
 TSharedRef<FVoxelInvalidationCallstack> FVoxelInvalidationCallstack::Create(const FVoxelInvalidationFrame& This)
 {
+	// MakeSharedCopy isn't safe when exiting, as UStruct might have been destroyed already
+	if (IsEngineExitRequested())
+	{
+		return MakeShareable(new FVoxelInvalidationCallstack(MakeShared<FVoxelInvalidationFrame_String>()));
+	}
+
 	const TSharedRef<FVoxelInvalidationCallstack> Result = MakeShareable(new FVoxelInvalidationCallstack(This.MakeSharedCopy()));
 
 	if (const TSharedPtr<const FVoxelInvalidationCallstack> Callstack = FVoxelInvalidationScope::GetThreadCallstack())

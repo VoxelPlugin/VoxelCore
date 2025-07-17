@@ -247,10 +247,10 @@ struct TVoxelMessageTokenFactory<UEdGraphPin>
 	}
 };
 
-template<typename T, typename Allocator>
-struct TVoxelMessageTokenFactory<TArray<T, Allocator>>
+template<typename T, typename SizeType>
+struct TVoxelMessageTokenFactory<TVoxelArrayView<T, SizeType>>
 {
-	static TSharedRef<FVoxelMessageToken> CreateToken(const TArray<T, Allocator>& Array)
+	static TSharedRef<FVoxelMessageToken> CreateToken(const TVoxelArrayView<T, SizeType>& Array)
 	{
 		TVoxelArray<TSharedRef<FVoxelMessageToken>> Tokens;
 		for (const T& Value : Array)
@@ -262,11 +262,20 @@ struct TVoxelMessageTokenFactory<TArray<T, Allocator>>
 };
 
 template<typename T, typename Allocator>
+struct TVoxelMessageTokenFactory<TArray<T, Allocator>>
+{
+	static TSharedRef<FVoxelMessageToken> CreateToken(const TArray<T, Allocator>& Array)
+	{
+		return FVoxelMessageTokenFactory::CreateToken(MakeVoxelArrayView(Array));
+	}
+};
+
+template<typename T, typename Allocator>
 struct TVoxelMessageTokenFactory<TVoxelArray<T, Allocator>>
 {
 	static TSharedRef<FVoxelMessageToken> CreateToken(const TVoxelArray<T, Allocator>& Array)
 	{
-		return TVoxelMessageTokenFactory<TArray<T, Allocator>>::CreateToken(Array);
+		return FVoxelMessageTokenFactory::CreateToken(MakeVoxelArrayView(Array));
 	}
 };
 
