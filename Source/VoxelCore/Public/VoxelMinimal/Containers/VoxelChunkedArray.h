@@ -594,6 +594,7 @@ public:
 		return ValueRef;
 	}
 	template<typename... ArgTypes>
+	requires std::is_constructible_v<Type, ArgTypes&&...>
 	FORCEINLINE Type& Emplace_GetRef(ArgTypes&&... Args)
 	{
 		const int32 Index = AddUninitializedImpl();
@@ -602,17 +603,21 @@ public:
 		return ValueRef;
 	}
 
-	FORCEINLINE Type Pop()
+	[[nodiscard]] FORCEINLINE Type Pop()
 	{
 		Type Value = MoveTemp((*this)[ArrayNum - 1]);
+		Pop_Discard();
+		return Value;
+	}
+	FORCEINLINE void Pop_Discard()
+	{
+		(*this)[ArrayNum - 1].~Type();
 		ArrayNum--;
 
 		if (ArrayNum % NumPerChunk == 0)
 		{
 			NumChunks--;
 		}
-
-		return Value;
 	}
 
 	FORCEINLINE int32 Find(const Type& Item) const

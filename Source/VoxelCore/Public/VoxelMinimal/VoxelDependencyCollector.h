@@ -23,8 +23,17 @@ public:
 	UE_NONCOPYABLE(FVoxelDependencyCollector);
 
 public:
-	bool HasDependencies() const;
+	FORCEINLINE bool HasDependencies() const
+	{
+		ensureVoxelSlow(!bIsNull);
 
+		return
+			Dependencies.Num() > 0 ||
+			Dependency2DToBounds.Num() > 0 ||
+			Dependency3DToBounds.Num() > 0;
+	}
+
+public:
 	void AddDependency(const FVoxelDependency& Dependency);
 
 	void AddDependency(
@@ -46,7 +55,7 @@ private:
 	const FName Name;
 	const bool bIsNull;
 
-	FVoxelCriticalSection CriticalSection;
+	FVoxelCriticalSection_NoPadding CriticalSection;
 	bool bFinalized = false;
 	// Keep dependencies alive until we're finalized
 	TVoxelArray<TSharedRef<const FVoxelDependencyBase>> SharedDependencies;

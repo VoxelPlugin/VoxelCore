@@ -508,8 +508,8 @@ void FVoxelAABBTree::Initialize(FElementArray&& Elements)
 					Parent.EndIndex
 				});
 
-				NewNodesToProcess.Pop();
-				NewNodesToProcess.Pop();
+				NewNodesToProcess.Pop_Discard();
+				NewNodesToProcess.Pop_Discard();
 				continue;
 			}
 

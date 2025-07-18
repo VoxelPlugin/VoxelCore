@@ -403,17 +403,17 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
+	constexpr uint32 NaNf_uint = 0xFFFFFFFF;
+	constexpr uint64 NaNd_uint = 0xFFFFFFFFFFFFFFFF_u64;
+
 	FORCEINLINE float NaNf()
 	{
-		return FloatBits(0xFFFFFFFF);
+		return FloatBits(NaNf_uint);
 	}
 	FORCEINLINE double NaNd()
 	{
-		return FloatBits(0xFFFFFFFFFFFFFFFF_u64);
+		return FloatBits(NaNd_uint);
 	}
-
-	constexpr uint32 NaNf_uint = 0xFFFFFFFF;
-	constexpr uint64 NaNd_uint = 0xFFFFFFFFFFFFFFFF_u64;
 
 	FORCEINLINE float FloatInf()
 	{

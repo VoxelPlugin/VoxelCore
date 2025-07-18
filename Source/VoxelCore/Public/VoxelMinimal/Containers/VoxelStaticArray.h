@@ -126,9 +126,13 @@ public:
 
 	FORCEINLINE explicit TVoxelStaticArray(T Value)
 	{
-		for (int32 Index = 0; Index < Size; Index++)
+		T* RESTRICT Start = this->GetData();
+		T* RESTRICT End = Start + this->Num();
+
+		while (Start != End)
 		{
-			new (this->GetData() + Index) T(Value);
+			*Start = Value;
+			Start++;
 		}
 	}
 	template<typename... ArgTypes>

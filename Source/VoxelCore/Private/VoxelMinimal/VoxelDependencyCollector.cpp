@@ -21,15 +21,6 @@ FVoxelDependencyCollector::FVoxelDependencyCollector(const FName Name)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-bool FVoxelDependencyCollector::HasDependencies() const
-{
-	ensure(!bIsNull);
-	return
-		Dependencies.Num() > 0 ||
-		Dependency2DToBounds.Num() > 0 ||
-		Dependency3DToBounds.Num() > 0;
-}
-
 void FVoxelDependencyCollector::AddDependency(const FVoxelDependency& Dependency)
 {
 	if (bIsNull)
@@ -63,7 +54,7 @@ void FVoxelDependencyCollector::AddDependency(
 
 	if (FVoxelBox2D* ExistingBounds = Dependency2DToBounds.Find(Dependency.DependencyRef))
 	{
-		*ExistingBounds = ExistingBounds->UnionWith(Bounds);
+		*ExistingBounds += Bounds;
 		return;
 	}
 
@@ -85,7 +76,7 @@ void FVoxelDependencyCollector::AddDependency(
 
 	if (FVoxelBox* ExistingBounds = Dependency3DToBounds.Find(Dependency.DependencyRef))
 	{
-		*ExistingBounds = ExistingBounds->UnionWith(Bounds);
+		*ExistingBounds += Bounds;
 		return;
 	}
 
@@ -95,34 +86,48 @@ void FVoxelDependencyCollector::AddDependency(
 
 void FVoxelDependencyCollector::AddDependencies(const FVoxelDependencyCollector& Other)
 {
-	if (bIsNull)
+	if (bIsNull ||
+		!Other.HasDependencies())
 	{
 		return;
 	}
 
 	VOXEL_FUNCTION_COUNTER();
+	VOXEL_SCOPE_LOCK(CriticalSection);
+	VOXEL_SCOPE_LOCK(Other.CriticalSection);
 
-	TVoxelMap<FVoxelDependencyRef, TSharedPtr<const FVoxelDependencyBase>> DependencyRefToDependency;
+	for (const TSharedRef<const FVoxelDependencyBase>& Dependency : Other.SharedDependencies)
 	{
-		DependencyRefToDependency.Reserve(Other.SharedDependencies.Num());
-
-		for (const TSharedRef<const FVoxelDependencyBase>& Dependency : Other.SharedDependencies)
-		{
-			DependencyRefToDependency.Add_EnsureNew(Dependency->DependencyRef, Dependency);
-		}
+		SharedDependencies.AddUnique(Dependency);
 	}
 
 	for (const FVoxelDependencyRef& Dependency : Other.Dependencies)
 	{
-		AddDependency(static_cast<const FVoxelDependency&>(*DependencyRefToDependency[Dependency]));
+		Dependencies.AddUnique(Dependency);
 	}
+
 	for (const auto& It : Other.Dependency2DToBounds)
 	{
-		AddDependency(static_cast<const FVoxelDependency2D&>(*DependencyRefToDependency[It.Key]), It.Value);
+		if (FVoxelBox2D* Bounds = Dependency2DToBounds.Find(It.Key))
+		{
+			*Bounds += It.Value;
+		}
+		else
+		{
+			Dependency2DToBounds.Add_CheckNew(It.Key, It.Value);
+		}
 	}
+
 	for (const auto& It : Other.Dependency3DToBounds)
 	{
-		AddDependency(static_cast<const FVoxelDependency3D&>(*DependencyRefToDependency[It.Key]), It.Value);
+		if (FVoxelBox* Bounds = Dependency3DToBounds.Find(It.Key))
+		{
+			*Bounds += It.Value;
+		}
+		else
+		{
+			Dependency3DToBounds.Add_CheckNew(It.Key, It.Value);
+		}
 	}
 }
 
