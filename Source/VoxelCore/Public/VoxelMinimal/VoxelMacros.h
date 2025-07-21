@@ -1330,3 +1330,28 @@ private:
 };
 
 #define VOXEL_ATOMIC_PADDING FVoxelAtomicPadding VOXEL_APPEND_LINE(_Padding)
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+struct FVoxelRangeIteratorEnd
+{
+};
+
+template<typename Type>
+struct TVoxelRangeIterator
+{
+	FORCEINLINE Type begin() const
+	{
+		return static_cast<const Type&>(*this);
+	}
+	FORCEINLINE static FVoxelRangeIteratorEnd end()
+	{
+		return {};
+	}
+    FORCEINLINE bool operator!=(const FVoxelRangeIteratorEnd&) const
+    {
+        return bool(static_cast<const Type&>(*this));
+    }
+};

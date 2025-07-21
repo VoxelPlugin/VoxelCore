@@ -114,7 +114,9 @@ VOXEL_CONSOLE_COMMAND(
 	"Enable voxel events and start Unreal Insights")
 {
 	GCycleStatsShouldEmitNamedEvents++;
+
 	UE::Trace::ToggleChannel(TEXT("VoxelChannel"), true);
+	UE::Trace::ToggleChannel(TEXT("TaskChannel"), true);
 
 	FTraceAuxiliary::Start(FTraceAuxiliary::EConnectionType::Network, TEXT("localhost"), nullptr);
 

@@ -65,11 +65,10 @@ public:
 		return &Dependency;
 	}
 
-	template<typename LambdaType>
-	void ForeachDependency_RequiresLock(LambdaType Lambda) const
+	const TVoxelChunkedSparseArray<FVoxelDependencyBase>& GetDependencies_RequiresLock() const
 	{
 		checkVoxelSlow(Dependencies_CriticalSection.IsLocked_Read());
-		Dependencies_RequiresLock.Foreach(Lambda);
+		return Dependencies_RequiresLock;
 	}
 
 public:

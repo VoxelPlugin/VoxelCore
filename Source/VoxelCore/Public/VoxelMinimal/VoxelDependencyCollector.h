@@ -25,8 +25,6 @@ public:
 public:
 	FORCEINLINE bool HasDependencies() const
 	{
-		ensureVoxelSlow(!bIsNull);
-
 		return
 			Dependencies.Num() > 0 ||
 			Dependency2DToBounds.Num() > 0 ||

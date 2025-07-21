@@ -29,10 +29,10 @@ void FVoxelDependencyManager::Dump() const
 		TVoxelMap<FName, int32> NameToCount;
 		NameToCount.Reserve(1024);
 
-		Dependencies_RequiresLock.Foreach([&](const FVoxelDependencyBase& Dependency)
+		for (const FVoxelDependencyBase& Dependency : Dependencies_RequiresLock)
 		{
 			NameToCount.FindOrAdd(FName(Dependency.Name))++;
-		});
+		}
 
 		NameToCount.ValueSort([](const int32 A, const int32 B)
 		{
@@ -51,10 +51,10 @@ void FVoxelDependencyManager::Dump() const
 		TVoxelMap<FName, int32> NameToCount;
 		NameToCount.Reserve(1024);
 
-		DependencyTrackers_RequiresLock.Foreach([&](FVoxelDependencyTracker* DependencyTracker)
+		for (const FVoxelDependencyTracker* DependencyTracker : DependencyTrackers_RequiresLock)
 		{
 			NameToCount.FindOrAdd(FName(DependencyTracker->Name))++;
-		});
+		}
 
 		NameToCount.ValueSort([](const int32 A, const int32 B)
 		{
@@ -123,11 +123,11 @@ FVoxelDependencyTracker& FVoxelDependencyManager::AllocateDependencyTracker()
 			VOXEL_SCOPE_COUNTER("SetNumChunks");
 			VOXEL_SCOPE_READ_LOCK(Dependencies_CriticalSection);
 
-			Dependencies_RequiresLock.Foreach([&](FVoxelDependencyBase& Dependency)
+			for (FVoxelDependencyBase& Dependency : Dependencies_RequiresLock)
 			{
 				Dependency.ReferencingTrackers.SetNumChunks(NewNumChunks);
 				Dependency.UpdateStats();
-			});
+			}
 
 			UpdateStats();
 		}

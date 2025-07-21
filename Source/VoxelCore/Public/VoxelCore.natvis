@@ -51,6 +51,17 @@
     </Expand>
   </Type>
 
+  <!-- FConstVoxelBitArrayView visualizer -->
+  <Type Name="FConstVoxelBitArrayView">
+    <DisplayString>Num={NumBits}</DisplayString>
+    <Expand>
+      <IndexListItems>
+        <Size>NumBits</Size>
+        <ValueNode>(Allocation[$i / 32] &gt;&gt; ($i % 32)) &amp; 1,d</ValueNode>
+      </IndexListItems>
+    </Expand>
+  </Type>
+
   <!-- TVoxelSparseArray visualizer -->
   <Type Name="TVoxelSparseArray&lt;*&gt;">
     <DisplayString Condition="ArrayNum == 0">Empty</DisplayString>

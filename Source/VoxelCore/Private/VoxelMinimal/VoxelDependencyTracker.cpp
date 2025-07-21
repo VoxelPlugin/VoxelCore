@@ -37,10 +37,10 @@ void FVoxelDependencyTracker::RegisterToDependencies()
 	VOXEL_SCOPE_READ_LOCK(GVoxelDependencyManager->Dependencies_CriticalSection);
 
 #if VOXEL_DEBUG
-	GVoxelDependencyManager->ForeachDependency_RequiresLock([&](const FVoxelDependencyBase& Dependency)
+	for (const FVoxelDependencyBase& Dependency : GVoxelDependencyManager->GetDependencies_RequiresLock())
 	{
 		check(!Dependency.ReferencingTrackers[TrackerIndex]);
-	});
+	}
 #endif
 
 	for (const FVoxelDependencyRef& DependencyRef : AllDependencies)
@@ -59,10 +59,10 @@ void FVoxelDependencyTracker::UnregisterFromDependencies()
 	{
 		VOXEL_SCOPE_READ_LOCK(GVoxelDependencyManager->Dependencies_CriticalSection);
 
-		GVoxelDependencyManager->ForeachDependency_RequiresLock([&](const FVoxelDependencyBase& Dependency)
+		for (const FVoxelDependencyBase& Dependency : GVoxelDependencyManager->GetDependencies_RequiresLock())
 		{
 			check(!Dependency.ReferencingTrackers[TrackerIndex]);
-		});
+		}
 	};
 #endif
 

@@ -85,10 +85,10 @@ public:
 		{
 			VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
 
-			this->Foreach([&](Type& Value)
+			for (Type& Value : *this)
 			{
 				Value.~Type();
-			});
+			}
 		}
 
 		ArrayNum = 0;
@@ -132,37 +132,6 @@ public:
 	{
 		checkVoxelSlow(AllocationFlags.Num() == Values.Num());
 		return AllocationFlags[Index];
-	}
-
-	template<typename LambdaType>
-	FORCEINLINE EVoxelIterate Foreach(LambdaType Lambda)
-	{
-		return AllocationFlags.ForAllSetBits([&](const int32 Index)
-		{
-			if constexpr (LambdaArgTypes_T<LambdaType>::Num == 1)
-			{
-				return Lambda(ReinterpretCastRef<Type>(Values[Index].Value));
-			}
-			else
-			{
-				return Lambda(ReinterpretCastRef<Type>(Values[Index].Value), Index);
-			}
-		});
-	}
-	template<typename LambdaType>
-	FORCEINLINE EVoxelIterate Foreach(LambdaType Lambda) const
-	{
-		return AllocationFlags.ForAllSetBits([&](const int32 Index)
-		{
-			if constexpr (LambdaArgTypes_T<LambdaType>::Num == 1)
-			{
-				return Lambda(ReinterpretCastRef<Type>(Values[Index].Value));
-			}
-			else
-			{
-				return Lambda(ReinterpretCastRef<Type>(Values[Index].Value), Index);
-			}
-		});
 	}
 
 public:
@@ -233,175 +202,53 @@ public:
 
 public:
 	template<typename InType>
-	struct TIterator
+	struct TIterator : TVoxelRangeIterator<TIterator<InType>>
 	{
 	public:
+		TIterator() = default;
+		FORCEINLINE explicit TIterator(std::conditional_t<std::is_const_v<InType>, const TVoxelSparseArray, TVoxelSparseArray>& Array)
+		{
+			if (Array.Num() == 0)
+			{
+				// No need to iterate the full array
+				return;
+			}
+
+			Values = Array.Values;
+			Iterator = FVoxelSetBitIterator(Array.AllocationFlags.View());
+		}
+
 		FORCEINLINE InType& operator*() const
 		{
-#if VOXEL_DEBUG
-			const int32 Index = ValuePtr - Array->Values.GetData();
-			check(Array->IsAllocated(Index));
-#endif
-			return ReinterpretCastRef<InType>(*ValuePtr);
+			return ReinterpretCastRef<InType>(Values[Iterator.GetIndex()]);
 		}
 		FORCEINLINE void operator++()
 		{
-#if VOXEL_DEBUG
-			{
-				const int32 IndexAccordingToWords = 32 * (WordPtr - Array->AllocationFlags.GetWordData()) + (32 - BitsLeftInWord);
-				const int32 IndexAccordingToValues = ValuePtr - Array->Values.GetData();
-				check(IndexAccordingToWords == IndexAccordingToValues);
-			}
-
-			const int32 FirstIndex = 1 + ValuePtr - Array->Values.GetData();
-			check(FirstIndex == 1 || Array->IsAllocated(FirstIndex - 1));
-			ON_SCOPE_EXIT
-			{
-				if (WordPtr == LastWordPtr)
-				{
-					for (int32 Index = FirstIndex; Index < Array->Values.Num(); Index++)
-					{
-						check(!Array->IsAllocated(Index));
-					}
-					return;
-				}
-
-				{
-					const int32 IndexAccordingToWords = 32 * (WordPtr - Array->AllocationFlags.GetWordData()) + (32 - BitsLeftInWord);
-					const int32 IndexAccordingToValues = ValuePtr - Array->Values.GetData();
-					check(IndexAccordingToWords == IndexAccordingToValues);
-				}
-
-				const int32 LastIndex = ValuePtr - Array->Values.GetData();
-
-				for (int32 Index = FirstIndex; Index < LastIndex; Index++)
-				{
-					check(!Array->IsAllocated(Index));
-				}
-
-				check(LastIndex == Array->Values.Num() || Array->IsAllocated(LastIndex));
-			};
-#endif
-
-			ValuePtr++;
-			Word >>= 1;
-			BitsLeftInWord--;
-
-			FindFirstSetBit();
+			++Iterator;
 		}
-		FORCEINLINE bool operator!=(const int32) const
+		FORCEINLINE operator bool() const
 		{
-			checkVoxelSlow(WordPtr <= LastWordPtr);
-			return WordPtr != LastWordPtr;
+			return bool(Iterator);
 		}
 
 	private:
-		uint32* WordPtr = nullptr;
-		uint32* LastWordPtr = nullptr;
-		FValue* ValuePtr = nullptr;
-		uint32 Word = 0;
-		int32 BitsLeftInWord = 32;
-#if VOXEL_DEBUG
-		TVoxelSparseArray* Array = nullptr;
-#endif
-
-		TIterator() = default;
-
-		FORCEINLINE explicit TIterator(TVoxelSparseArray& Array)
-			: WordPtr(Array.AllocationFlags.GetWordData())
-			, LastWordPtr(WordPtr + Array.AllocationFlags.NumWords())
-			, ValuePtr(Array.Values.GetData())
-#if VOXEL_DEBUG
-			, Array(&Array)
-#endif
-		{
-			checkVoxelSlow(WordPtr);
-			Word = *WordPtr;
-
-			FindFirstSetBit();
-		}
-
-		FORCEINLINE void FindFirstSetBit()
-		{
-		NextBit:
-			checkVoxelSlow(BitsLeftInWord >= 0);
-			checkVoxelSlow(BitsLeftInWord > 0 || !Word);
-
-			if (Word & 0x1)
-			{
-				// Fast path, no need to skip
-				return;
-			}
-
-			if (Word)
-			{
-				// There's still a valid index, skip to that
-
-				const uint32 IndexInShiftedWord = FVoxelUtilities::FirstBitLow(Word);
-				checkVoxelSlow(Word & (1u << IndexInShiftedWord));
-				// If 0 handled by fast path above
-				checkVoxelSlow(IndexInShiftedWord > 0);
-
-				ValuePtr += IndexInShiftedWord;
-				Word >>= IndexInShiftedWord;
-				BitsLeftInWord -= IndexInShiftedWord;
-
-				checkVoxelSlow(Word & 0x1);
-				checkVoxelSlow(BitsLeftInWord > 0);
-				return;
-			}
-
-			// Skip forward
-			WordPtr++;
-			ValuePtr += BitsLeftInWord;
-
-			if (WordPtr == LastWordPtr)
-			{
-				return;
-			}
-			checkVoxelSlow(WordPtr < LastWordPtr);
-
-			Word = *WordPtr;
-			BitsLeftInWord = 32;
-
-			while (!Word)
-			{
-				// Skip forward
-				WordPtr++;
-				ValuePtr += 32;
-
-				if (WordPtr == LastWordPtr)
-				{
-					return;
-				}
-				checkVoxelSlow(WordPtr < LastWordPtr);
-
-				Word = *WordPtr;
-			}
-
-			goto NextBit;
-		}
-
-		friend TVoxelSparseArray;
+		TVoxelArrayView<std::conditional_t<std::is_const_v<InType>, const FValue, FValue>> Values;
+		FVoxelSetBitIterator Iterator;
 	};
+	using FIterator = TIterator<Type>;
+	using FConstIterator = TIterator<const Type>;
 
-	FORCEINLINE TIterator<Type> begin()
+	FORCEINLINE FIterator begin()
 	{
-		if (ArrayNum == 0)
-		{
-			// No need to iterate the full array
-			return {};
-		}
-
-		return TIterator<Type>(*this);
+		return FIterator(*this);
 	}
-	FORCEINLINE TIterator<const Type> begin() const
+	FORCEINLINE FConstIterator begin() const
 	{
-		return ReinterpretCastRef<TIterator<const Type>>(ConstCast(this)->begin());
+		return FConstIterator(*this);
 	}
-	FORCEINLINE int32 end() const
+	FORCEINLINE FVoxelRangeIteratorEnd end() const
 	{
-		return 0;
+		return FIterator::end();
 	}
 
 private:

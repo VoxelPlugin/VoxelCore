@@ -15,7 +15,7 @@ public:
 
 public:
 	int64 GetAllocatedSize() const;
-	void SetNumChunks(const int32 NewNumChunks);
+	void SetNumChunks(int32 NewNumChunks);
 
 	template<typename LambdaType>
 	requires LambdaHasSignature_V<LambdaType, void(int32)>
@@ -27,10 +27,11 @@ public:
 		for (int32 ChunkIndex = 0; ChunkIndex < Chunks.Num(); ChunkIndex++)
 		{
 			checkVoxelSlow(Chunks[ChunkIndex]);
-			Chunks[ChunkIndex]->ForAllSetBits([&](const int32 ChunkOffset)
+
+			for (const int32 ChunkOffset : Chunks[ChunkIndex]->IterateSetBits())
 			{
 				Lambda(ChunkIndex * ChunkSize + ChunkOffset);
-			});
+			}
 		}
 	}
 

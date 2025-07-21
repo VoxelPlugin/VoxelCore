@@ -6,7 +6,6 @@
 #include "VoxelMinimal/VoxelTypeCompatibleBytes.h"
 #include "VoxelMinimal/Containers/VoxelStaticArray.h"
 #include "VoxelMinimal/Containers/VoxelStaticBitArray.h"
-#include "VoxelMinimal/Utilities/VoxelThreadingUtilities.h"
 
 template<typename Type, int32 NumPerChunk = 1024>
 class TVoxelChunkedSparseArray
@@ -42,10 +41,10 @@ public:
 		{
 			VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
 
-			this->Foreach([&](Type& Value)
+			for (Type& Value : *this)
 			{
 				Value.~Type();
-			});
+			}
 		}
 
 		ArrayNum = 0;
@@ -85,47 +84,6 @@ public:
 		return
 			IsValidIndex_RangeOnly(Index) &&
 			IsAllocated_ValidIndex(Index);
-	}
-
-public:
-	template<typename LambdaType>
-	requires
-	(
-		LambdaHasSignature_V<LambdaType, void(Type)> ||
-		LambdaHasSignature_V<LambdaType, void(Type&)> ||
-		LambdaHasSignature_V<LambdaType, void(const Type&)> ||
-		LambdaHasSignature_V<LambdaType, EVoxelIterate(Type)> ||
-		LambdaHasSignature_V<LambdaType, EVoxelIterate(Type&)> ||
-		LambdaHasSignature_V<LambdaType, EVoxelIterate(const Type&)>
-	)
-	FORCEINLINE EVoxelIterate Foreach(LambdaType Lambda)
-	{
-		for (const TUniquePtr<FChunk>& Chunk : Chunks)
-		{
-			const EVoxelIterate Iterate = Chunk->AllocationFlags.ForAllSetBits([&](const int32 Index)
-			{
-				return Lambda(ReinterpretCastRef<Type>(Chunk->Values[Index].Value));
-			});
-
-			if (Iterate == EVoxelIterate::Stop)
-			{
-				return EVoxelIterate::Stop;
-			}
-		}
-
-		return EVoxelIterate::Continue;
-	}
-	template<typename LambdaType>
-	requires
-	(
-		LambdaHasSignature_V<LambdaType, void(Type)> ||
-		LambdaHasSignature_V<LambdaType, void(const Type&)> ||
-		LambdaHasSignature_V<LambdaType, EVoxelIterate(Type)> ||
-		LambdaHasSignature_V<LambdaType, EVoxelIterate(const Type&)>
-	)
-	FORCEINLINE EVoxelIterate Foreach(LambdaType Lambda) const
-	{
-		return ConstCast(this)->Foreach(MoveTemp(Lambda));
 	}
 
 public:
@@ -228,217 +186,80 @@ public:
 
 public:
 	template<typename InType>
-	struct TIterator
+	struct TIterator : TVoxelRangeIterator<TIterator<InType>>
 	{
 	public:
+		TIterator() = default;
+		FORCEINLINE explicit TIterator(std::conditional_t<std::is_const_v<InType>, const TVoxelChunkedSparseArray, TVoxelChunkedSparseArray>& Array)
+		{
+			if (Array.Num() == 0)
+			{
+				// No need to iterate the full array
+				return;
+			}
+
+			Chunks = Array.Chunks;
+			LoadChunk();
+		}
+
 		FORCEINLINE InType& operator*() const
 		{
-#if VOXEL_DEBUG
-			int32 DebugIndex = ValuePtr - (**ChunkPtr).Values.GetData();
-			check((**ChunkPtr).Values.IsValidIndex(DebugIndex));
-
-			const int32 ChunkIndex = ChunkPtr - Array->Chunks.GetData();
-			check(Array->Chunks.IsValidIndex(ChunkIndex));
-			DebugIndex += ChunkIndex * NumPerChunk;
-#endif
-			return ReinterpretCastRef<InType>(*ValuePtr);
+			return ReinterpretCastRef<InType>(Values[Iterator.GetIndex()]);
 		}
 		FORCEINLINE void operator++()
 		{
-#if VOXEL_DEBUG
-			int32 DebugIndex;
-			{
-				DebugIndex = ValuePtr - (**ChunkPtr).Values.GetData();
-				check((**ChunkPtr).Values.IsValidIndex(DebugIndex));
+			++Iterator;
 
-				const int32 ChunkIndex = ChunkPtr - Array->Chunks.GetData();
-				check(Array->Chunks.IsValidIndex(ChunkIndex));
-				DebugIndex += ChunkIndex * NumPerChunk;
+			if (!Iterator)
+			{
+				ChunkIndex++;
+				LoadChunk();
 			}
-
-			check(Array->IsAllocated_ValidIndex(DebugIndex));
-
-			ON_SCOPE_EXIT
-			{
-				if (ChunkPtr == LastChunkPtr)
-				{
-					for (int32 Index = DebugIndex + 1; Index < Array->Max_Unsafe(); Index++)
-					{
-						check(!Array->IsAllocated_ValidIndex(Index));
-					}
-					return;
-				}
-
-				int32 NewDebugIndex = ValuePtr - (**ChunkPtr).Values.GetData();
-				check((**ChunkPtr).Values.IsValidIndex(NewDebugIndex));
-
-				const int32 ChunkIndex = ChunkPtr - Array->Chunks.GetData();
-				check(Array->Chunks.IsValidIndex(ChunkIndex));
-				NewDebugIndex += ChunkIndex * NumPerChunk;
-
-				for (int32 Index = DebugIndex + 1; Index < NewDebugIndex; Index++)
-				{
-					check(!Array->IsAllocated_ValidIndex(Index));
-				}
-				check(Array->IsAllocated_ValidIndex(NewDebugIndex));
-			};
-#endif
-
-			ValuePtr++;
-			Word >>= 1;
-			BitsLeftInWord--;
-
-			FindFirstSetBit();
 		}
-		FORCEINLINE bool operator!=(const int32) const
+		FORCEINLINE operator bool() const
 		{
-			checkVoxelSlow(ChunkPtr <= LastChunkPtr);
-			return ChunkPtr != LastChunkPtr;
+			return ChunkIndex < Chunks.Num();
 		}
 
 	private:
-		TUniquePtr<FChunk>* ChunkPtr = nullptr;
-		TUniquePtr<FChunk>* LastChunkPtr = nullptr;
-		int32 ArrayMax = 0;
+		TConstVoxelArrayView<TUniquePtr<FChunk>> Chunks;
+		int32 ChunkIndex = 0;
 
-		uint32* WordPtr = nullptr;
-		uint32* LastWordPtr = nullptr;
-		FValue* ValuePtr = nullptr;
-		uint32 Word = 0;
-		int32 BitsLeftInWord = 0;
+		TVoxelArrayView<FValue> Values;
+		FVoxelSetBitIterator Iterator;
 
-#if VOXEL_DEBUG
-		TVoxelChunkedSparseArray* Array = nullptr;
-#endif
-
-		TIterator() = default;
-
-		FORCEINLINE explicit TIterator(TVoxelChunkedSparseArray& Array)
-			: ChunkPtr(Array.Chunks.GetData())
-			, LastChunkPtr(ChunkPtr + Array.Chunks.Num())
-			, ArrayMax(Array.ArrayMax)
-#if VOXEL_DEBUG
-			, Array(&Array)
-#endif
+		void LoadChunk()
 		{
-			LoadChunk();
-			FindFirstSetBit();
-		}
-
-		FORCEINLINE void LoadChunk()
-		{
-			checkVoxelSlow(ChunkPtr);
-			FChunk& Chunk = **ChunkPtr;
-
-			WordPtr = Chunk.AllocationFlags.GetWordView().GetData();
-			LastWordPtr = WordPtr + Chunk.AllocationFlags.NumWords();
-			ValuePtr = Chunk.Values.GetData();
-
-			if (ChunkPtr == LastChunkPtr - 1 &&
-				(ArrayMax % NumPerChunk) != 0)
+			while (ChunkIndex != Chunks.Num())
 			{
-				// Last chunk, don't iterate all the empty words at the end of the chunk
-				LastWordPtr = WordPtr + FVoxelUtilities::DivideCeil_Positive(ArrayMax % NumPerChunk, 32);
-			}
+				FChunk& Chunk = *Chunks[ChunkIndex];
 
-			checkVoxelSlow(WordPtr);
+				Values = Chunk.Values;
+				Iterator = FVoxelSetBitIterator(Chunk.AllocationFlags.View());
 
-			Word = *WordPtr;
-			BitsLeftInWord = 32;
-		}
-
-		FORCEINLINE void FindFirstSetBit()
-		{
-		NextBit:
-			checkVoxelSlow(BitsLeftInWord >= 0);
-			checkVoxelSlow(BitsLeftInWord > 0 || !Word);
-
-			if (Word & 0x1)
-			{
-				// Fast path, no need to skip
-				return;
-			}
-
-			if (Word)
-			{
-				// There's still a valid index, skip to that
-
-				const uint32 IndexInShiftedWord = FVoxelUtilities::FirstBitLow(Word);
-				checkVoxelSlow(Word & (1u << IndexInShiftedWord));
-				// If 0 handled by fast path above
-				checkVoxelSlow(IndexInShiftedWord > 0);
-
-				ValuePtr += IndexInShiftedWord;
-				Word >>= IndexInShiftedWord;
-				BitsLeftInWord -= IndexInShiftedWord;
-
-				checkVoxelSlow(Word & 0x1);
-				checkVoxelSlow(BitsLeftInWord > 0);
-				return;
-			}
-
-			// Skip forward
-			WordPtr++;
-			ValuePtr += BitsLeftInWord;
-
-			if (WordPtr == LastWordPtr)
-			{
-				goto LoadNextChunk;
-			}
-			checkVoxelSlow(WordPtr < LastWordPtr);
-
-			Word = *WordPtr;
-			BitsLeftInWord = 32;
-
-			while (!Word)
-			{
-				// Skip forward
-				WordPtr++;
-				ValuePtr += 32;
-
-				if (WordPtr == LastWordPtr)
+				if (Iterator)
 				{
-					goto LoadNextChunk;
+					return;
 				}
-				checkVoxelSlow(WordPtr < LastWordPtr);
 
-				Word = *WordPtr;
+				ChunkIndex++;
 			}
-
-			goto NextBit;
-
-		LoadNextChunk:
-			ChunkPtr++;
-
-			if (ChunkPtr == LastChunkPtr)
-			{
-				return;
-			}
-
-			LoadChunk();
-			goto NextBit;
 		}
-
-		friend TVoxelChunkedSparseArray;
 	};
+	using FIterator = TIterator<Type>;
+	using FConstIterator = TIterator<const Type>;
 
-	FORCEINLINE TIterator<Type> begin()
+	FORCEINLINE FIterator begin()
 	{
-		if (ArrayNum == 0)
-		{
-			// No need to iterate the full array
-			return {};
-		}
-
-		return TIterator<Type>(*this);
+		return FIterator(*this);
 	}
-	FORCEINLINE TIterator<const Type> begin() const
+	FORCEINLINE FConstIterator begin() const
 	{
-		return ReinterpretCastRef<TIterator<const Type>>(ConstCast(this)->begin());
+		return FConstIterator(*this);
 	}
-	FORCEINLINE int32 end() const
+	FORCEINLINE FVoxelRangeIteratorEnd end() const
 	{
-		return 0;
+		return FIterator::end();
 	}
 
 private:

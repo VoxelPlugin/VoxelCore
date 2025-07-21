@@ -450,56 +450,6 @@ void FVoxelUtilities::FixupSignBit(const TVoxelArrayView<float> Data)
 	ispc::ArrayUtilities_FixupSignBit(Data.GetData(), Data.Num());
 }
 
-int32 FVoxelUtilities::CountSetBits(
-	const TConstVoxelArrayView<uint32> Words,
-	const TVoxelOptional<int32> InNumBits)
-{
-	checkVoxelSlow(Words.Num() * int64(32) <= MAX_int32);
-
-	const int32 NumBits = InNumBits.IsSet()
-		? InNumBits.GetValue()
-		: Words.Num() * 32;
-
-	VOXEL_FUNCTION_COUNTER_NUM(NumBits);
-
-	const int32 NumWords = DivideFloor_Positive(NumBits, 32);
-
-	int64 Count = 0;
-	{
-		const TConstVoxelArrayView<uint64> Words64 = Words.LeftOf(2 * DivideFloor_Positive(Words.Num(), 2)).ReinterpretAs<uint64>();
-
-		for (const uint64 Word64 : Words64)
-		{
-			Count += CountBits(Word64);
-		}
-	}
-
-	if (NumWords % 2 == 1)
-	{
-		Count += CountBits(Words[NumWords - 1]);
-	}
-
-	const int32 NumBitsLeft = NumBits & FVoxelBitArrayUtilities::IndexInWordMask;
-	if (NumBitsLeft > 0)
-	{
-		Count += CountBits(Words[NumWords] & ((1u << NumBitsLeft) - 1));
-	}
-
-#if VOXEL_DEBUG
-	int32 DebugCount = 0;
-	for (int32 Index = 0; Index < NumBits; Index++)
-	{
-		if (FVoxelBitArrayUtilities::Get(Words, Index))
-		{
-			DebugCount++;
-		}
-	}
-	check(Count == DebugCount);
-#endif
-
-	return Count;
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
