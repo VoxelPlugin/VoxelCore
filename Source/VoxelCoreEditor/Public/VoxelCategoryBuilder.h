@@ -52,4 +52,5 @@ private:
 
 private:
 	const TSharedRef<FCategory> RootCategory = MakeShared<FCategory>();
+	friend class FVoxelParameterOverridesDetails;
 };
