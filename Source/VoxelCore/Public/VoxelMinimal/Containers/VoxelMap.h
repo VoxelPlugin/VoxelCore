@@ -8,6 +8,7 @@
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Utilities/VoxelTypeUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelHashUtilities.h"
+#include "VoxelMinimal/Utilities/VoxelLambdaUtilities.h"
 
 // Minimize padding by using the best of all possible permutation between Key, Value and NextElementIndex
 // In practice we only need to check two permutations:
@@ -600,6 +601,28 @@ public:
 		}
 
 		return this->AddHashed_CheckNew(Hash, Key, Forward<InValueType>(DefaultValue));
+	}
+	template<typename LambdaType>
+	requires LambdaHasSignature_V<LambdaType, void(ValueType&)>
+	FORCEINLINE ValueType& FindOrAdd(const KeyType& Key, LambdaType InitializeNewValue)
+	{
+		const uint32 Hash = this->HashValue(Key);
+
+		if (ValueType* ExistingValue = this->FindHashed(Hash, Key))
+		{
+			return *ExistingValue;
+		}
+
+		ValueType& Value = this->AddHashed_CheckNew(Hash, Key, FVoxelUtilities::MakeSafe<ValueType>());
+		InitializeNewValue(Value);
+		return Value;
+	}
+	FORCEINLINE ValueType& FindOrAdd_Reserve(const KeyType& Key, const int32 NumToReserve)
+	{
+		return this->FindOrAdd(Key, [&](ValueType& Value)
+		{
+			Value.Reserve(NumToReserve);
+		});
 	}
 
 public:

@@ -131,7 +131,7 @@ namespace FVoxelUtilities
 	template<typename ArrayType, typename NumType>
 	FORCENOINLINE void SetNum(ArrayType& Array, NumType Num)
 	{
-		VOXEL_FUNCTION_COUNTER_NUM(Num, 1024);
+		VOXEL_SCOPE_COUNTER_NUM("FVoxelUtilities::SetNum " + GetCppName<ElementType<ArrayType>>(), Num, 1024);
 
 		Array.Reserve(Num);
 		Array.SetNum(Num);
@@ -141,7 +141,7 @@ namespace FVoxelUtilities
 	requires std::is_trivially_destructible_v<ElementType<ArrayType>>
 	FORCENOINLINE void SetNumFast(ArrayType& Array, NumType Num)
 	{
-		VOXEL_FUNCTION_COUNTER_NUM(Num, 4096);
+		VOXEL_SCOPE_COUNTER_NUM("FVoxelUtilities::SetNumFast " + GetCppName<ElementType<ArrayType>>(), Num, 4096);
 
 		Array.Reserve(Num);
 		Array.SetNumUninitialized(Num, EAllowShrinking::No);
