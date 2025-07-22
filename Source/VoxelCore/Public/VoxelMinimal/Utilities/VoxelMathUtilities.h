@@ -246,7 +246,11 @@ namespace FVoxelUtilities
 
 	FORCEINLINE uint8 FloatToUINT8(const float Float)
 	{
-		return ClampToUINT8(FMath::FloorToInt(Float * 255.999f));
+		return ClampToUINT8(FMath::FloorToInt32(Float * 255.999f));
+	}
+	FORCEINLINE uint8 FloatToUINT8(const double Float)
+	{
+		return ClampToUINT8(FMath::FloorToInt32(Float * 255.999f));
 	}
 	FORCEINLINE constexpr float UINT8ToFloat(const uint8 Int)
 	{
@@ -255,7 +259,11 @@ namespace FVoxelUtilities
 
 	FORCEINLINE uint16 FloatToUINT16(const float Float)
 	{
-		return ClampToUINT16(FMath::FloorToInt(Float * 65535.999f));
+		return ClampToUINT16(FMath::FloorToInt32(Float * 65535.999f));
+	}
+	FORCEINLINE uint16 FloatToUINT16(const double Float)
+	{
+		return ClampToUINT16(FMath::FloorToInt32(Float * 65535.999f));
 	}
 	FORCEINLINE constexpr float UINT16ToFloat(const uint16 Int)
 	{

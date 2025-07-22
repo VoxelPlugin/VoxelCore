@@ -205,7 +205,7 @@ FVoxelHeaderFunctionArgument& FVoxelHeaderFunctionArgument::SetDefault(const FSt
 		}
 		if (Default == "0.000000,1.000000,0.000000")
 		{
-			Default = "FVector::RightVector";;
+			Default = "FVector::RightVector";
 		}
 		if (Default == "0.000000,0.000000,1.000000")
 		{
