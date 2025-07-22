@@ -1008,7 +1008,7 @@ private:
 		VOXEL_SCOPE_COUNTER_FORMAT_COND(
 			HashTable.Num() > 0,
 			"%s::Add Rehash %d -> %d",
-			GetGeneratedTypeName<TVoxelMap>(),
+			*FVoxelUtilities::GetCppName<TVoxelMap>(),
 			HashTable.Num(),
 			GetHashSize(Elements.Num()));
 

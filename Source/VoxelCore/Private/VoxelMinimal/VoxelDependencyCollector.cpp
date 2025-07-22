@@ -92,7 +92,7 @@ void FVoxelDependencyCollector::AddDependencies(const FVoxelDependencyCollector&
 		return;
 	}
 
-	VOXEL_FUNCTION_COUNTER();
+	VOXEL_FUNCTION_COUNTER_COND(Other.SharedDependencies.Num() > 16);
 	VOXEL_SCOPE_LOCK(CriticalSection);
 	VOXEL_SCOPE_LOCK(Other.CriticalSection);
 

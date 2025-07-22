@@ -360,6 +360,13 @@ private:
 	}
 	FORCENOINLINE void AllocatorResizeAllocation(const SizeType CurrentArrayNum, const SizeType NewArrayMax)
 	{
+		VOXEL_SCOPE_COUNTER_FORMAT_COND(
+			CurrentArrayNum > 0,
+			"%s resize %lld -> %lld",
+			*FVoxelUtilities::GetCppName<TVoxelArray>(),
+			int64(CurrentArrayNum),
+			int64(NewArrayMax));
+
 		VOXEL_FUNCTION_COUNTER_NUM(NewArrayMax, 1024);
 
 		if constexpr (TAllocatorTraits<AllocatorType>::SupportsElementAlignment)

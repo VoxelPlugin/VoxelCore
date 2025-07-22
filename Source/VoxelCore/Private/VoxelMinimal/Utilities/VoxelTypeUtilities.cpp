@@ -55,3 +55,20 @@ namespace FVoxelTypeUtilitiesTest
 	checkStatic(FVoxelUtilities::CanCastMemory<TSharedRef<FChild>, TSharedPtr<FBase>>);
 	checkStatic(!FVoxelUtilities::CanCastMemory<TSharedRef<const FChild>, TSharedPtr<FBase>>);
 }
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FString FVoxelUtilities::Internal_GetCppName(FString Name)
+{
+	Name.ReplaceInline(TEXT("class "), TEXT(""));
+	Name.ReplaceInline(TEXT("struct "), TEXT(""));
+	Name.ReplaceInline(TEXT("enum "), TEXT(""));
+	Name.TrimStartAndEndInline();
+
+	// On Mac a space is added before pointers
+	Name.ReplaceInline(TEXT(" *"), TEXT("*"));
+
+	return Name;
+}

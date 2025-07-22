@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelCoreMinimal.h"
+#include "Misc/GeneratedTypeName.h"
 
 namespace FVoxelUtilities
 {
@@ -70,11 +71,30 @@ namespace FVoxelUtilities
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	template<typename From, typename To>
+	template<typename, typename>
 	struct TCanCastMemoryImpl : std::false_type {};
 
 	template<typename From, typename To>
 	static constexpr bool CanCastMemory = TCanCastMemoryImpl<From, To>::value;
+
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+
+	VOXELCORE_API FString Internal_GetCppName(FString Name);
+
+	template<typename T>
+	const FString& GetCppName()
+	{
+		static const FString Result = FVoxelUtilities::Internal_GetCppName(GetGeneratedTypeName<T>());
+		return Result;
+	}
+	template<typename T>
+	FName GetCppFName()
+	{
+		static const FName Result = FName(GetCppName<T>());
+		return Result;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

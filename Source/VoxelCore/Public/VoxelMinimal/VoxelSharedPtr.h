@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "VoxelMacros.h"
-#include "Misc/GeneratedTypeName.h"
+#include "VoxelMinimal/Utilities/VoxelTypeUtilities.h"
 
 template<typename T, typename = decltype(std::declval<T>().AsWeak())>
 FORCEINLINE TWeakPtr<T> MakeWeakPtr(T* Ptr)
@@ -237,7 +237,7 @@ template<typename T>
 		Object,
 		[](T* InObject)
 		{
-			VOXEL_SCOPE_COUNTER(FString::Printf(TEXT("Destroy %s"), GetGeneratedTypeName<T>()));
+			VOXEL_SCOPE_COUNTER("Destroy " + FVoxelUtilities::GetCppName<T>());
 			delete InObject;
 		}));
 }
@@ -246,7 +246,7 @@ template<typename T, typename... ArgTypes>
 requires std::is_constructible_v<T, ArgTypes...>
 [[nodiscard]] FORCEINLINE TSharedRef<T> MakeShared_Stats(ArgTypes&&... Args)
 {
-	VOXEL_SCOPE_COUNTER(FString::Printf(TEXT("Construct %s"), GetGeneratedTypeName<T>()));
+	VOXEL_SCOPE_COUNTER("Construct " + FVoxelUtilities::GetCppName<T>());
 	return MakeShareable_Stats(new T(Forward<ArgTypes>(Args)...));
 }
 
