@@ -95,6 +95,7 @@
 #include "VoxelMinimal/Containers/VoxelBitArrayView.h"
 #include "VoxelMinimal/Containers/VoxelChunkedArray.h"
 #include "VoxelMinimal/Containers/VoxelChunkedSparseArray.h"
+#include "VoxelMinimal/Containers/VoxelLinkedArray.h"
 #include "VoxelMinimal/Containers/VoxelMap.h"
 #include "VoxelMinimal/Containers/VoxelSet.h"
 #include "VoxelMinimal/Containers/VoxelSparseArray.h"
