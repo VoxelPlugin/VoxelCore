@@ -44,8 +44,10 @@ public:
 
 	const FName Name;
 	bool bSynchronous = false;
+	bool bComputeTotalTime = false;
 	bool bTrackPromisesCallstacks = false;
 	FLambdaWrapper LambdaWrapper;
+	TVoxelAtomic<double> TotalTime;
 
 	static TSharedRef<FVoxelTaskContext> Create(FName Name);
 	virtual ~FVoxelTaskContext();

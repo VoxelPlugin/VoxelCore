@@ -275,6 +275,18 @@ void FVoxelTaskContext::Dispatch(
 		Lambda = LambdaWrapper(MoveTemp(Lambda));
 	}
 
+	if (bComputeTotalTime)
+	{
+		Lambda = [Lambda = MoveTemp(Lambda), this]
+		{
+			const double StartTime = FPlatformTime::Seconds();
+			Lambda();
+			const double EndTime = FPlatformTime::Seconds();
+
+			TotalTime.Add(EndTime - StartTime);
+		};
+	}
+
 	switch (Thread)
 	{
 	default: VOXEL_ASSUME(false);
