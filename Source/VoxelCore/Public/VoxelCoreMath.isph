@@ -1681,7 +1681,7 @@ FORCEINLINE void MakeEulerFromQuaternion(
 {
 	const generic float SingularityTest = Quat.z * Quat.x - Quat.w * Quat.y;
 	const generic float YawY = 2.f * (Quat.w * Quat.z + Quat.x * Quat.y);
-	const generic float YawX = (1.f - 2.f * (Quat.y * Quat.y) + (Quat.z * Quat.z));
+	const generic float YawX = (1.f - 2.f * (Quat.y * Quat.y + Quat.z * Quat.z));
 
 	// reference
 	// http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
