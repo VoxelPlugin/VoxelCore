@@ -647,8 +647,10 @@ public:
 		return this->Find(Item) != -1;
 	}
 
+public:
 	FORCEINLINE void CopyFrom(const int32 StartIndex, const TConstVoxelArrayView<Type> Other)
 	{
+		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 128);
 		checkVoxelSlow(IsValidIndex(StartIndex));
 		checkVoxelSlow(IsValidIndex(StartIndex + Other.Num() - 1));
 
@@ -671,6 +673,43 @@ public:
 				(*this)[StartIndex + Index] = Type(Other[Index]);
 			}
 		}
+	}
+	FORCEINLINE void CopyTo(const int32 StartIndex, const TVoxelArrayView<Type> Other) const
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 128);
+		checkVoxelSlow(IsValidIndex(StartIndex));
+		checkVoxelSlow(IsValidIndex(StartIndex + Other.Num() - 1));
+
+		if constexpr (std::is_trivially_destructible_v<Type>)
+		{
+			this->ForeachView(
+				StartIndex,
+				Other.Num(),
+				[&](const int32 ViewIndex, const TConstVoxelArrayView<Type> View)
+				{
+					FVoxelUtilities::Memcpy(
+						Other.Slice(ViewIndex - StartIndex, View.Num()),
+						View);
+				});
+		}
+		else
+		{
+			for (int32 Index = 0; Index < Other.Num(); Index++)
+			{
+				Other[Index] = Type((*this)[StartIndex + Index]);
+			}
+		}
+	}
+
+	FORCEINLINE void CopyFrom(const TConstVoxelArrayView<Type> Other)
+	{
+		checkVoxelSlow(Num() == Other.Num());
+		this->CopyFrom(0, Other);
+	}
+	FORCEINLINE void CopyTo(const TVoxelArrayView<Type> Other) const
+	{
+		checkVoxelSlow(Num() == Other.Num());
+		this->CopyTo(0, Other);
 	}
 
 public:
