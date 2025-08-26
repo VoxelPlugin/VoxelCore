@@ -95,3 +95,13 @@ constexpr bool LambdaHasSignature_V =
 
 template<typename LambdaType, typename Type>
 using LambdaDependentType_T = std::conditional_t<std::is_same_v<LambdaType, void>, void, Type>;
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template<typename FunctorType, typename ReturnType, typename... ArgTypes>
+ReturnType VoxelCall(void* RawFunctor, ArgTypes&... Args)
+{
+	return (*static_cast<FunctorType*>(RawFunctor))(Forward<ArgTypes>(Args)...);
+}

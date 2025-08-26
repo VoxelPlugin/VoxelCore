@@ -55,6 +55,7 @@
 #include "VoxelMinimal/VoxelDereferencingIterator.h"
 #include "VoxelMinimal/VoxelDuplicateTransient.h"
 #include "VoxelMinimal/VoxelFastBox.h"
+#include "VoxelMinimal/VoxelFunctionRef.h"
 #include "VoxelMinimal/VoxelFuture.h"
 #include "VoxelMinimal/VoxelGlobalShader.h"
 #include "VoxelMinimal/VoxelGuid.h"

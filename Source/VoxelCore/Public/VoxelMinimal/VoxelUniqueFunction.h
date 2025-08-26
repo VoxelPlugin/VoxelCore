@@ -14,12 +14,6 @@ constexpr bool IsVoxelUniqueFunction_V = false;
 template<typename T>
 constexpr bool IsVoxelUniqueFunction_V<TVoxelUniqueFunction<T>> = true;
 
-template<typename FunctorType, typename ReturnType, typename... ArgTypes>
-ReturnType VoxelCall(void* RawFunctor, ArgTypes&... Args)
-{
-	return (*static_cast<FunctorType*>(RawFunctor))(Forward<ArgTypes>(Args)...);
-}
-
 template<typename ReturnType, typename... ArgTypes>
 class TVoxelUniqueFunction<ReturnType(ArgTypes...)>
 {
