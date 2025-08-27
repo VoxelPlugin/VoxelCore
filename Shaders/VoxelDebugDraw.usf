@@ -1,0 +1,286 @@
+// Copyright Voxel Plugin SAS. All Rights Reserved.
+
+#include "Common.ush"
+#include "/Engine/Private/DeferredShadingCommon.ush"
+
+// Packed point data structure (16 bytes total)
+// Position: float3 (12 bytes)
+// Size + RGB packed: uint (4 bytes)
+//   - Size: 8 bits (0-255, scaled by SizeScale)
+//   - R: 8 bits (0-255)
+//   - G: 8 bits (0-255)
+//   - B: 8 bits (0-255)
+Buffer<float4> PointDataBuffer;
+
+// Line data structure (32 bytes total, matching FVoxelDebugLine)
+// LineData[0]: Start.xyz + Thickness (float4)
+// LineData[1]: End.xyz + packed RGB (float3 + uint)
+Buffer<float4> LineDataBuffer;
+
+// Frustum planes in view space (Ax + By + Cz + D = 0 format)
+float4 FrustumPlanes[4];
+
+struct FVoxelDebugPointVSToPS
+{
+	float4 Position : SV_POSITION;
+	float3 Color : TEXCOORD0;
+	float2 UV : TEXCOORD1;
+};
+
+// Unpack color and size from uint
+void UnpackColorAndSize(uint PackedData, out float3 Color, out float Size)
+{
+	Size = float(PackedData & 0xFF);
+	Color.r = float((PackedData >> 8) & 0xFF) / 255.0;
+	Color.g = float((PackedData >> 16) & 0xFF) / 255.0;
+	Color.b = float((PackedData >> 24) & 0xFF) / 255.0;
+}
+
+void PointVS(
+	uint VertexId : SV_VertexID,
+	uint InstanceId : SV_InstanceID,
+	out FVoxelDebugPointVSToPS Output)
+{
+	// Load point data from buffer
+	float4 PointData = PointDataBuffer[InstanceId];
+	float3 WorldPosition = PointData.xyz;
+
+	const uint PackedData = asuint(PointData.w);
+
+	const float Size = float(PackedData & 0xFF);
+
+	float3 Color;
+	Color.r = float((PackedData >> 8) & 0xFF) / 255.0;
+	Color.g = float((PackedData >> 16) & 0xFF) / 255.0;
+	Color.b = float((PackedData >> 24) & 0xFF) / 255.0;
+
+	// Generate quad vertices using bit manipulation (4 vertices, indexed)
+	// With index buffer: 0, 1, 2, 2, 1, 3
+	// Vertex 0: (-1, -1)
+	// Vertex 1: ( 1, -1)
+	// Vertex 2: (-1,  1)
+	// Vertex 3: ( 1,  1)
+
+	// Use bit operations to generate vertex positions
+	const float2 QuadVertex = float2(
+		(VertexId & 1) ? 1.0 : -1.0, // X: bit 0 determines left(-1) or right(1)
+		(VertexId & 2) ? 1.0 : -1.0 // Y: bit 1 determines bottom(-1) or top(1)
+	);
+
+	// Transform to translated world space using DF operations for precision
+	const FDFVector3 PreViewTranslation = MakeDFVector3(DFHackToFloat(PrimaryView.PreViewTranslationHigh), DFHackToFloat(PrimaryView.PreViewTranslationLow));
+	const float3 TranslatedWorldPosition = DFFastAddDemote(WorldPosition, PreViewTranslation);
+	const float4 TranslatedWorldPos = float4(TranslatedWorldPosition, 1.0);
+	float4 ViewPos = mul(TranslatedWorldPos, DFHackToFloat(PrimaryView.TranslatedWorldToView));
+
+	// Billboard the quad in view space
+	ViewPos.xy += QuadVertex * Size;
+
+	// Project to screen
+	Output.Position = mul(ViewPos, DFHackToFloat(PrimaryView.ViewToClip));
+
+	// Pass color and UV to pixel shader
+	Output.Color = Color;
+	Output.UV = QuadVertex * 0.5 + 0.5; // Convert from [-1,1] to [0,1]
+}
+
+#define WRITE_TO_SHADING_MODEL (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && !FORWARD_SHADING)
+
+void PointPS(
+	FVoxelDebugPointVSToPS Input,
+	out float4 OutColor : SV_Target0
+#if WRITE_TO_SHADING_MODEL
+	,out float4 OutGBufferB : SV_Target1
+#endif
+)
+{
+	// Create circular points by discarding pixels outside circle
+	const float2 CenteredUV = Input.UV * 2.0 - 1.0;
+	const float DistFromCenter = length(CenteredUV);
+
+	// Discard pixels outside circle (optional, comment out for squares)
+	if (DistFromCenter > 1.0)
+	{
+		discard;
+	}
+
+	// Calculate sphere normal from UV (assuming sphere surface)
+	// Z component calculated to make unit sphere
+	const float ZComponent = sqrt(max(0.0, 1.0 - DistFromCenter * DistFromCenter));
+	const float3 SphereNormal = float3(CenteredUV.x, CenteredUV.y, ZComponent);
+	
+	// Simple directional lighting (light coming from top-right)
+	const float3 LightDir = normalize(float3(0.5, 0.5, 0.8));
+	const float NdotL = max(0.0, dot(SphereNormal, LightDir));
+	
+	// Ambient + diffuse lighting
+	const float Ambient = 0.3;
+	const float Diffuse = 0.7;
+	const float LightIntensity = Ambient + Diffuse * NdotL;
+	
+	// Add subtle rim lighting for better depth perception
+	const float RimFactor = 1.0 - ZComponent;
+	const float RimLight = pow(RimFactor, 2.0) * 0.2;
+	
+	// Apply lighting to color
+	float3 ShadedColor = Input.Color * LightIntensity + RimLight;
+
+	// Output color with shading
+	OutColor = float4(ShadedColor, 1.f);
+
+#if WRITE_TO_SHADING_MODEL
+	SetGBufferForUnlit(OutGBufferB);
+#endif
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+struct FVoxelDebugLineVSToPS
+{
+	float4 Position : SV_POSITION;
+	float3 Color : TEXCOORD0;
+	float2 UV : TEXCOORD1; // U along line, V across line
+};
+
+void LineVS(
+	uint VertexId : SV_VertexID,
+	uint InstanceId : SV_InstanceID,
+	out FVoxelDebugLineVSToPS Output)
+{
+	const float4 LineData0 = LineDataBuffer[InstanceId * 2 + 0];
+	const float4 LineData1 = LineDataBuffer[InstanceId * 2 + 1];
+
+	const float3 StartWorld = LineData0.xyz;
+	const float3 EndWorld = LineData1.xyz;
+
+	float3 Color;
+	{
+		uint PackedColor = asuint(LineData1.w);
+		Color.r = float((PackedColor >> 0) & 0xFF) / 255.0;
+		Color.g = float((PackedColor >> 8) & 0xFF) / 255.0;
+		Color.b = float((PackedColor >> 16) & 0xFF) / 255.0;
+	}
+
+	// Transform endpoints to translated world space
+	const FDFVector3 PreViewTranslation = MakeDFVector3(DFHackToFloat(PrimaryView.PreViewTranslationHigh), DFHackToFloat(PrimaryView.PreViewTranslationLow));
+	const float3 StartTranslated = DFFastAddDemote(StartWorld, PreViewTranslation);
+	const float3 EndTranslated = DFFastAddDemote(EndWorld, PreViewTranslation);
+
+	// Transform to view space
+	float4 StartView = mul(float4(StartTranslated, 1.0), DFHackToFloat(PrimaryView.TranslatedWorldToView));
+	float4 EndView = mul(float4(EndTranslated, 1.0), DFHackToFloat(PrimaryView.TranslatedWorldToView));
+
+	// Clamp line to frustum planes in view space
+	float3 LineStart = StartView.xyz;
+	float3 LineEnd = EndView.xyz;
+
+	// Check each frustum plane and clip the line segment
+	for (int Index = 0; Index < 4; Index++)
+	{
+		const float4 Plane = FrustumPlanes[Index];
+
+		// Calculate signed distances from plane
+		const float DistStart = dot(LineStart, Plane.xyz) - Plane.w;
+		const float DistEnd = dot(LineEnd, Plane.xyz) - Plane.w;
+
+		// If both points are outside, cull the line entirely
+		if (DistStart > 0.0 && DistEnd > 0.0)
+		{
+			// Line is completely outside frustum, output degenerate triangle
+			Output.Position = float4(0, 0, 0, 1);
+			Output.Color = float3(0, 0, 0);
+			Output.UV = float2(0, 0);
+			return;
+		}
+
+		// If line crosses the plane, clip it
+		if (DistStart * DistEnd < 0.0)
+		{
+			// Calculate intersection point
+			float t = DistStart / (DistStart - DistEnd);
+			float3 IntersectionPoint = lerp(LineStart, LineEnd, t);
+
+			// Replace the point that's outside with the intersection
+			if (DistStart > 0.0)
+			{
+				LineStart = IntersectionPoint;
+			}
+			else
+			{
+				LineEnd = IntersectionPoint;
+			}
+		}
+	}
+
+	// Update view space positions with clamped values
+	StartView.xyz = LineStart;
+	EndView.xyz = LineEnd;
+
+	// Calculate adaptive thickness based on distance
+	// Use nearest point distance for consistent thickness along the line
+	float NearestZ = min(abs(StartView.z), abs(EndView.z));
+
+	// Fixed thickness with adaptive scaling based on distance
+	// This creates a "biased perspective" effect
+	const float BaseThickness = 2.0; // Base thickness in pixels
+	const float MinScale = 0.5; // Minimum scale at far distance
+	const float MaxScale = 5.0; // Maximum scale when very close
+	const float DistanceScale = clamp(100.0 / NearestZ, MinScale, MaxScale);
+	const float AdjustedThickness = BaseThickness * DistanceScale;
+
+	// Project to screen space to calculate expansion direction
+	const float4 StartClip = mul(StartView, DFHackToFloat(PrimaryView.ViewToClip));
+	const float4 EndClip = mul(EndView, DFHackToFloat(PrimaryView.ViewToClip));
+
+	// Perspective divide to get NDC
+	const float2 StartNDC = StartClip.xy / StartClip.w;
+	const float2 EndNDC = EndClip.xy / EndClip.w;
+
+	// Calculate line direction in screen space
+	float2 LineDir = EndNDC - StartNDC;
+	const float LineLength = length(LineDir);
+	LineDir = LineLength > 0.0001 ? LineDir / LineLength : float2(1, 0);
+
+	// Perpendicular direction for line expansion
+	const float2 LinePerpendicular = float2(-LineDir.y, LineDir.x);
+
+	// Convert thickness from pixels to NDC
+	// Account for viewport size (approximation using typical 1920x1080)
+	const float2 ThicknessNDC = (AdjustedThickness / PrimaryView.ViewSizeAndInvSize.xy) * 2.0;
+
+	// Generate quad vertices (4 vertices, 2 triangles)
+	const uint Vid = VertexId % 4;
+	const bool bIsEnd = (Vid >= 2);
+	const bool bIsRight = (Vid == 1 || Vid == 3);
+
+	// Select vertex position
+	const float4 ClipPos = bIsEnd ? EndClip : StartClip;
+	float2 NDCPos = bIsEnd ? EndNDC : StartNDC;
+
+	// Expand perpendicular to line in NDC space
+	NDCPos += LinePerpendicular * ThicknessNDC * (bIsRight ? 1.0 : -1.0) * 0.5;
+
+	// Reconstruct clip space position with expanded NDC
+	Output.Position = float4(NDCPos * ClipPos.w, ClipPos.z, ClipPos.w);
+
+	// Pass color and UV to pixel shader
+	Output.Color = Color;
+	Output.UV = float2(bIsEnd ? 1.0 : 0.0, bIsRight ? 1.0 : 0.0);
+}
+
+void LinePS(
+	FVoxelDebugLineVSToPS Input,
+	out float4 OutColor : SV_Target0
+#if WRITE_TO_SHADING_MODEL
+	,out float4 OutGBufferB : SV_Target1
+#endif
+)
+{
+	OutColor = float4(Input.Color, 1.0);
+
+#if WRITE_TO_SHADING_MODEL
+	SetGBufferForUnlit(OutGBufferB);
+#endif
+}
