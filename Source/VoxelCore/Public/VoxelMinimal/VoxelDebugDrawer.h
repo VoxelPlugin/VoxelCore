@@ -34,6 +34,24 @@ struct VOXELCORE_API FVoxelDebugDraw
 	TVoxelChunkedArray<FVoxelDebugLine> Lines;
 };
 
+// Usage: from any thread:
+//
+// FVoxelDebugDrawer()
+// .LifeTime(0.5f) // Optional, can also use OneFrame or nothing. If nothing will be permanent until cleared with voxel.ClearDebugDraws
+// .Color(FLinearColor::Red)
+// .DrawPoint(Position);
+//
+// If you have a lot of points consider batching them in the same drawer.
+// They will be drawn when the drawer is destructed/goes out of scope.
+//
+// FVoxelDebugDrawer Drawer;
+// Drawer.Color(FLinearColor::Red);
+//
+// for (const FVector& Point : Points)
+// {
+//     Drawer.DrawPoint(Point);
+// }
+//
 class VOXELCORE_API FVoxelDebugDrawer
 {
 public:
