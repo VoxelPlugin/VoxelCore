@@ -577,7 +577,7 @@ void FVoxelAABBTree::DrawTree(
 		return;
 	}
 
-	int32 MaxDepth = 0;
+	int32 MaxDepth = 1;
 	const TFunction<void(const FNode&, int32)> FindMaxDepth = [&](const FNode& Node, const int32 Depth)
 	{
 		MaxDepth = FMath::Max(MaxDepth, Depth);

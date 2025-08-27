@@ -1,20 +1,16 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
-#include "DrawDebugHelpers.h"
-
-VOXEL_CONSOLE_VARIABLE(
-	VOXELCORE_API, float, GVoxelDebugThicknessMultiplier, 1.f,
-	"voxel.debug.ThicknessMultiplier",
-	"Thickness multiplier for voxel debug lines");
+#include "VoxelDebugDrawerManager.h"
 
 FVoxelDebugDrawer::FVoxelDebugDrawer()
+	: World(GVoxelDebugDrawerManager->DefaultWorld)
 {
 }
 
 FVoxelDebugDrawer::FVoxelDebugDrawer(const TVoxelObjectPtr<const UWorld> World)
+	: World(World)
 {
-	PrivateState->PrivateWorld = World;
 }
 
 FVoxelDebugDrawer::FVoxelDebugDrawer(const UWorld* World)
@@ -24,38 +20,51 @@ FVoxelDebugDrawer::FVoxelDebugDrawer(const UWorld* World)
 
 FVoxelDebugDrawer::~FVoxelDebugDrawer()
 {
-	Voxel::GameTask([State = PrivateState]
-	{
-		VOXEL_FUNCTION_COUNTER();
+	VOXEL_FUNCTION_COUNTER();
 
-		if (!ensure(State->GetWorld()))
-		{
-			return;
-		}
-
-		for (const TVoxelUniqueFunction<void(const FState&)>& Drawer : State->Drawers)
-		{
-			Drawer(*State);
-		}
-	});
+	FVoxelDebugDrawerWorldManager::Get(World)->AddDraw_AnyThread(
+		bIsOneFrame,
+		PrivateLifeTime == -1 ? MAX_dbl : (FPlatformTime::Seconds() + PrivateLifeTime),
+		Draw);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FVoxelDebugDrawer& FVoxelDebugDrawer::DrawPoint(const FVector& Position)
+FVoxelDebugDrawer& FVoxelDebugDrawer::Color(const FLinearColor& NewColor)
 {
-	PrivateState->Drawers.Add([=](const FState& State)
+	PrivateColor = NewColor.ToFColor(false);
+	return *this;
+}
+
+FVoxelDebugDrawer& FVoxelDebugDrawer::OneFrame()
+{
+	bIsOneFrame = true;
+	return *this;
+}
+
+FVoxelDebugDrawer& FVoxelDebugDrawer::LifeTime(const float NewLifeTime)
+{
+	PrivateLifeTime = NewLifeTime;
+	return *this;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FVoxelDebugDrawer& FVoxelDebugDrawer::DrawPoint(
+	const FVector& Position,
+	const uint8 SizeInCm)
+{
+	Draw->Points.Add(FVoxelDebugPoint
 	{
-		DrawDebugPoint(
-			State.GetWorld(),
-			Position,
-			State.Thickness,
-			State.Color.ToFColor(true),
-			false,
-			State.LifeTime,
-			0);
+		FVector3f(Position),
+		SizeInCm,
+		PrivateColor.R,
+		PrivateColor.G,
+		PrivateColor.B
 	});
 
 	return *this;
@@ -65,17 +74,14 @@ FVoxelDebugDrawer& FVoxelDebugDrawer::DrawLine(
 	const FVector& Start,
 	const FVector& End)
 {
-	PrivateState->Drawers.Add([=](const FState& State)
+	Draw->Lines.Add(FVoxelDebugLine
 	{
-		DrawDebugLine(
-			State.GetWorld(),
-			FVoxelUtilities::Clamp(Start, -1e9, 1e9),
-			FVoxelUtilities::Clamp(End, -1e9, 1e9),
-			State.Color.ToFColor(true),
-			false,
-			State.LifeTime,
-			0,
-			State.Thickness * GVoxelDebugThicknessMultiplier);
+		FVector3f(Start),
+		0.f,
+		FVector3f(End),
+		PrivateColor.R,
+		PrivateColor.G,
+		PrivateColor.B
 	});
 
 	return *this;
@@ -83,19 +89,13 @@ FVoxelDebugDrawer& FVoxelDebugDrawer::DrawLine(
 
 FVoxelDebugDrawer& FVoxelDebugDrawer::DrawBox(
 	const FVoxelBox& Box,
-	const FMatrix& Transform,
-	const bool bScaleBySize)
+	const FMatrix& Transform)
 {
 	VOXEL_FUNCTION_COUNTER();
 
 	if (Box.IsInfinite())
 	{
 		return *this;
-	}
-
-	if (bScaleBySize)
-	{
-		PrivateState->Thickness *= FMath::Clamp(FMath::Sqrt(Box.Size().GetAbsMax()) / 10.f, 0.1f, 100.f);
 	}
 
 	const auto Get = [&](const double X, const double Y, const double Z) -> FVector
@@ -123,27 +123,9 @@ FVoxelDebugDrawer& FVoxelDebugDrawer::DrawBox(
 
 FVoxelDebugDrawer& FVoxelDebugDrawer::DrawBox(
 	const FVoxelBox& Box,
-	const FTransform& Transform,
-	const bool bScaleBySize)
+	const FTransform& Transform)
 {
 	return DrawBox(
 		Box,
-		Transform.ToMatrixWithScale(),
-		bScaleBySize);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-const UWorld* FVoxelDebugDrawer::FState::GetWorld() const
-{
-	ensureVoxelSlow(IsInGameThread());
-
-	if (PrivateWorld.IsExplicitlyNull())
-	{
-		return GWorld;
-	}
-
-	return PrivateWorld.Resolve_Ensured();
+		Transform.ToMatrixWithScale());
 }
