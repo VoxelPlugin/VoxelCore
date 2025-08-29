@@ -45,3 +45,54 @@ private:
 	ReturnType(*Callable)(void*, ArgTypes&...) = nullptr;
 	void* Storage = nullptr;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template<typename>
+class TVoxelFunctionPtr;
+
+template<typename>
+constexpr bool IsVoxelFunctionPtr_V = false;
+
+template<typename T>
+constexpr bool IsVoxelFunctionPtr_V<TVoxelFunctionPtr<T>> = true;
+
+template<typename ReturnType, typename... ArgTypes>
+class TVoxelFunctionPtr<ReturnType(ArgTypes...)>
+{
+public:
+	TVoxelFunctionPtr() = default;
+
+	template<typename FunctorType>
+	requires
+	(
+		!IsVoxelFunctionPtr_V<std::decay_t<FunctorType>> &&
+		std::is_invocable_v<FunctorType, ArgTypes...> &&
+		(
+			std::is_constructible_v<ReturnType, LambdaReturnType_T<FunctorType>> ||
+			// For void
+			std::is_same_v<ReturnType, LambdaReturnType_T<FunctorType>>
+		)
+	)
+	FORCEINLINE TVoxelFunctionPtr(const FunctorType& Functor)
+	{
+		Callable = &VoxelCall<FunctorType, ReturnType, ArgTypes...>;
+		Storage = ConstCast(&Functor);
+	}
+
+	FORCEINLINE operator bool() const
+	{
+		return Callable != nullptr;
+	}
+	FORCEINLINE ReturnType operator()(ArgTypes... Args) const
+	{
+		checkVoxelSlow(Callable && Storage);
+		return (*Callable)(Storage, Args...);
+	}
+
+private:
+	ReturnType(*Callable)(void*, ArgTypes&...) = nullptr;
+	void* Storage = nullptr;
+};

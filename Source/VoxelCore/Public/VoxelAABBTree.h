@@ -307,7 +307,11 @@ public:
 		}
 	}
 	template<typename VisitType>
-	requires LambdaHasSignature_V<VisitType, void(int32)>
+	requires
+	(
+		LambdaHasSignature_V<VisitType, void(int32)> ||
+		LambdaHasSignature_V<VisitType, EVoxelIterate(int32)>
+	)
 	void TraverseBounds(
 		const FVoxelFastBox& Bounds,
 		VisitType&& Visit) const
@@ -336,7 +340,17 @@ public:
 						continue;
 					}
 
-					Visit(Payloads[Index]);
+					if constexpr (std::is_void_v<LambdaReturnType_T<VisitType>>)
+					{
+						Visit(Payloads[Index]);
+					}
+					else
+					{
+						if (Visit(Payloads[Index]) == EVoxelIterate::Stop)
+						{
+							return;
+						}
+					}
 				}
 			}
 			else

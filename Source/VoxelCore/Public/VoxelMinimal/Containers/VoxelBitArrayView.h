@@ -171,6 +171,56 @@ public:
 	bool AllEqual(bool bValue) const;
 	int32 CountSetBits() const;
 
+public:
+	FORCEINLINE bool TestRange(
+		const int32 StartIndex,
+		const int32 NumToClear) const
+	{
+		checkVoxelSlow(NumToClear > 0);
+		checkVoxelSlow(0 <= StartIndex && StartIndex + NumToClear <= Num());
+
+		const int32 EndIndex = StartIndex + NumToClear;
+
+		const int32 FirstWordIndex = FVoxelUtilities::DivideFloor_Positive(StartIndex, NumBitsPerWord);
+		const int32 LastWordIndex = FVoxelUtilities::DivideFloor_Positive(EndIndex - 1, NumBitsPerWord);
+
+		const int32 NumWords = 1 + LastWordIndex - FirstWordIndex;
+		checkVoxelSlow(NumWords >= 1);
+
+		const uint64 StartMask = FullWord << (StartIndex & WordMask);
+		const uint64 EndMask = FullWord >> ((-EndIndex) & WordMask);
+
+		const TConstVoxelArrayView<uint64> Words = GetWordView();
+
+		if (NumWords == 1)
+		{
+			const uint64 Mask = StartMask & EndMask;
+			const uint64 Word = Words[FirstWordIndex];
+
+			return (Word & Mask) == Mask;
+		}
+
+		if ((Words[FirstWordIndex] & StartMask) != StartMask)
+		{
+			return false;
+		}
+
+		for (int32 Index = FirstWordIndex + 1; Index < LastWordIndex; Index++)
+		{
+			if (Words[Index] != FullWord)
+			{
+				return false;
+			}
+		}
+
+		if ((Words[LastWordIndex] & EndMask) != EndMask)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
 protected:
 	const uint64* Allocation = nullptr;
 	int32 NumBits = 0;
@@ -248,6 +298,7 @@ public:
 
 	// Values will be zeroed
 	TVoxelArray<FVoxelIntBox2D> GreedyMeshing2D(const FIntPoint& Size) const;
+	TVoxelArray<FVoxelIntBox> GreedyMeshing3D(const FIntVector& Size) const;
 
 public:
 	FORCEINLINE void SetRange(
