@@ -151,6 +151,32 @@ namespace Voxel
 		return Promise;
 	}
 
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+
+	VOXELCORE_API void AsyncTask_NoQueue_Impl(const ENamedThreads::Type Priority, TVoxelUniqueFunction<void()> Lambda);
+
+	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
+	requires LambdaHasSignature_V<LambdaType, ReturnType()>
+	FORCEINLINE TVoxelFutureType<ReturnType> AsyncTask_NoQueue(const ENamedThreads::Type Priority, LambdaType Lambda)
+	{
+		TVoxelPromiseType<ReturnType> Promise;
+		AsyncTask_NoQueue_Impl(Priority, [Lambda = MoveTemp(Lambda), Promise]
+		{
+			if constexpr (std::is_void_v<ReturnType>)
+			{
+				Lambda();
+				Promise.Set();
+			}
+			else
+			{
+				Promise.Set(Lambda());
+			}
+		});
+		return Promise;
+	}
+
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
