@@ -74,6 +74,35 @@ public:
 			TypedWeakObjects.Add(TypedObject);
 		}
 
+		if (TypedWeakObjects.Num() == 0)
+		{
+			TArray<TSharedPtr<FStructOnScope>> StructOnScopes;
+			DetailLayout.GetStructsBeingCustomized(StructOnScopes);
+
+			for (const TSharedPtr<FStructOnScope>& StructOnScope : StructOnScopes)
+			{
+				if (!StructOnScope)
+				{
+					continue;
+				}
+
+				UPackage* Package = StructOnScope->GetPackage();
+				if (!Package)
+				{
+					continue;
+				}
+
+				ForEachObjectWithPackage(Package, [&](UObject* Object)
+				{
+					if (ObjectType* TypedObject = Cast<ObjectType>(Object))
+					{
+						TypedWeakObjects.Add(TypedObject);
+					}
+					return true;
+				});
+			}
+		}
+
 		return FVoxelStructDetailsWrapper::Make<ObjectType, StructType>(
 			TypedWeakObjects,
 			GetStruct,

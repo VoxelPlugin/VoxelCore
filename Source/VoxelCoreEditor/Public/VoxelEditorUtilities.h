@@ -157,6 +157,11 @@ public:
 		TVoxelArray<TVoxelObjectPtr<T>> Outers;
 		for (const UPackage* Package : OuterPackages)
 		{
+			if (!Package)
+			{
+				continue;
+			}
+
 			ForEachObjectWithPackage(Package, [&](UObject* Object)
 			{
 				if (T* TypedObject = Cast<T>(Object))
