@@ -173,7 +173,36 @@ FString FVoxelUtilities::GetPropertyTooltip(const FString& FunctionTooltip, cons
 		return PropertyTooltip;
 	}
 
-	return FunctionTooltip;
+	return ParseStructTooltip(FunctionTooltip);
+}
+
+FString FVoxelUtilities::GetStructTooltip(const UStruct& Struct)
+{
+	return ParseStructTooltip(Struct.GetToolTipText().ToString());
+}
+
+FString FVoxelUtilities::ParseStructTooltip(FString Tooltip)
+{
+	if (Tooltip.IsEmpty())
+	{
+		return {};
+	}
+
+	static const FString DoxygenParam(TEXT("@param"));
+	static const FString DoxygenReturn(TEXT("@return"));
+	static const FString DoxygenSee(TEXT("@see"));
+	static const FString TooltipSee(TEXT("See:"));
+	static const FString DoxygenNote(TEXT("@note"));
+	static const FString TooltipNote(TEXT("Note:"));
+
+	Tooltip.Split(DoxygenParam, &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+	Tooltip.Split(DoxygenReturn, &Tooltip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+
+	Tooltip.ReplaceInline(*DoxygenSee, *TooltipSee);
+	Tooltip.ReplaceInline(*DoxygenNote, *TooltipNote);
+
+	Tooltip.TrimStartAndEndInline();
+	return Tooltip;
 }
 #endif
 

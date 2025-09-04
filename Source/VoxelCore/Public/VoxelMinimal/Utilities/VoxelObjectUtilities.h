@@ -28,6 +28,8 @@ namespace FVoxelUtilities
 	VOXELCORE_API FString GetClassDisplayName_EditorOnly(const UClass* Class);
 	VOXELCORE_API FString GetPropertyTooltip(const UFunction& Function, const FProperty& Property);
 	VOXELCORE_API FString GetPropertyTooltip(const FString& FunctionTooltip, const FString& PropertyName, bool bIsReturnPin);
+	VOXELCORE_API FString GetStructTooltip(const UStruct& Struct);
+	VOXELCORE_API FString ParseStructTooltip(FString Tooltip);
 
 	VOXELCORE_API FString GetFunctionType(const FProperty& Property);
 	VOXELCORE_API TMap<FName, FString> GetMetadata(const UObject* Object);
