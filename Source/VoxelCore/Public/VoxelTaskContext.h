@@ -48,6 +48,7 @@ public:
 	bool bTrackPromisesCallstacks = false;
 	FLambdaWrapper LambdaWrapper;
 	TVoxelAtomic<double> TotalTime;
+	TSharedPtr<FVoxelDebugDrawGroup> DrawGroup;
 
 	static TSharedRef<FVoxelTaskContext> Create(FName Name);
 	virtual ~FVoxelTaskContext();

@@ -10,7 +10,7 @@ VOXEL_CONSOLE_COMMAND(
 {
 	for (const TSharedRef<FVoxelDebugDrawerWorldManager>& Manager : FVoxelDebugDrawerWorldManager::GetAll())
 	{
-		Manager->Clear_AnyThread();
+		Manager->ClearAll_AnyThread();
 	}
 }
 
@@ -81,28 +81,38 @@ DECLARE_GPU_STAT(VoxelDebugDrawLines);
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void FVoxelDebugDrawerWorldManager::Clear_AnyThread()
+void FVoxelDebugDrawerWorldManager::ClearAll_AnyThread()
 {
 	VOXEL_FUNCTION_COUNTER();
 	VOXEL_SCOPE_LOCK(CriticalSection);
 
-	Draws_RequiresLock.Empty();
+	for (auto It = Groups_RequiresLock.CreateIterator(); It; ++It)
+	{
+		const TSharedPtr<FVoxelDebugDrawGroup> Group = It->Pin();
+		if (!Group)
+		{
+			It.RemoveCurrent();
+			continue;
+		}
+
+		Group->Clear_AnyThread();
+	}
 }
 
-void FVoxelDebugDrawerWorldManager::AddDraw_AnyThread(
-	const bool bIsOneFrame,
-	const double EndTime,
-	const TSharedRef<const FVoxelDebugDraw>& Draw)
+void FVoxelDebugDrawerWorldManager::AddGroup_AnyThread(const TSharedRef<FVoxelDebugDrawGroup>& Group)
 {
 	VOXEL_FUNCTION_COUNTER();
 	VOXEL_SCOPE_LOCK(CriticalSection);
 
-	Draws_RequiresLock.Add(FDraw
-		{
-			bIsOneFrame,
-			EndTime,
-			Draw
-		});
+	Groups_RequiresLock.Add(Group);
+}
+
+void FVoxelDebugDrawerWorldManager::AddGroup_EnsureNew_AnyThread(const TSharedRef<FVoxelDebugDrawGroup>& Group)
+{
+	VOXEL_FUNCTION_COUNTER();
+	VOXEL_SCOPE_LOCK(CriticalSection);
+
+	Groups_RequiresLock.Add_EnsureNew(Group);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -355,29 +365,26 @@ void FVoxelDebugDrawerWorldManager::Tick()
 
 	Future = Voxel::AsyncTask(MakeWeakPtrLambda(this, [this]() -> FVoxelFuture
 	{
-		VOXEL_SCOPE_COUNTER_NUM("FVoxelDebugDrawerManager Cleanup", Draws_RequiresLock.Num());
+		VOXEL_SCOPE_COUNTER_NUM("FVoxelDebugDrawerManager Cleanup", Groups_RequiresLock.Num());
 
 		TVoxelArray<TSharedPtr<const FVoxelDebugDraw>> DrawsToRender;
-		DrawsToRender.Reserve(Draws_RequiresLock.Num());
+		DrawsToRender.Reserve(Groups_RequiresLock.Num());
 
 		{
 			VOXEL_SCOPE_LOCK(CriticalSection);
 
 			const double Time = FPlatformTime::Seconds();
 
-			for (int32 Index = 0; Index < Draws_RequiresLock.Num(); Index++)
+			for (auto It = Groups_RequiresLock.CreateIterator(); It; ++It)
 			{
-				const FDraw& Draw = Draws_RequiresLock[Index];
-
-				// Always render at least once
-				DrawsToRender.Add(Draw.Draw);
-
-				if (Draw.bIsOneFrame ||
-					Draw.EndTime < Time)
+				const TSharedPtr<FVoxelDebugDrawGroup> Group = It->Pin();
+				if (!Group)
 				{
-					Draws_RequiresLock.RemoveAtSwap(Index);
-					Index--;
+					It.RemoveCurrent();
+					continue;
 				}
+
+				Group->IterateDraws(Time, DrawsToRender);
 			}
 		}
 

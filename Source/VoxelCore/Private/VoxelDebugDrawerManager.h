@@ -10,12 +10,16 @@ public:
 	GENERATED_VOXEL_WORLD_SUBSYSTEM_BODY(FVoxelDebugDrawerWorldManager);
 
 public:
-	void Clear_AnyThread();
+	// Clears all global and grouped draws
+	void ClearAll_AnyThread();
 
-	void AddDraw_AnyThread(
-		bool bIsOneFrame,
-		double EndTime,
-		const TSharedRef<const FVoxelDebugDraw>& Draw);
+	FORCEINLINE const TSharedRef<FVoxelDebugDrawGroup>& GetGlobalGroup_AnyThread() const
+	{
+		return GlobalGroup;
+	}
+
+	void AddGroup_AnyThread(const TSharedRef<FVoxelDebugDrawGroup>& Group);
+	void AddGroup_EnsureNew_AnyThread(const TSharedRef<FVoxelDebugDrawGroup>& Group);
 
 public:
 	void RenderPoints_RenderThread(
@@ -37,13 +41,8 @@ private:
 
 	FVoxelCriticalSection CriticalSection;
 
-	struct FDraw
-	{
-		bool bIsOneFrame = false;
-		double EndTime = 0;
-		TSharedPtr<const FVoxelDebugDraw> Draw;
-	};
-	TVoxelArray<FDraw> Draws_RequiresLock;
+	TSharedRef<FVoxelDebugDrawGroup> GlobalGroup = MakeShareable<FVoxelDebugDrawGroup>(new FVoxelDebugDrawGroup());
+	TVoxelSet<TWeakPtr<FVoxelDebugDrawGroup>> Groups_RequiresLock = { GlobalGroup };
 
 	TRefCountPtr<FRDGPooledBuffer> PooledPointBuffer;
 	TWeakPtr<const TVoxelArray<FVoxelDebugPoint>> UploadedPointsToRender;

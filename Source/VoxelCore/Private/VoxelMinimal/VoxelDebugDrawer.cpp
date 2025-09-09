@@ -1,6 +1,7 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
+#include "VoxelTaskContext.h"
 #include "VoxelDebugDrawerManager.h"
 
 FVoxelDebugDrawer::FVoxelDebugDrawer()
@@ -22,10 +23,38 @@ FVoxelDebugDrawer::~FVoxelDebugDrawer()
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	FVoxelDebugDrawerWorldManager::Get(World)->AddDraw_AnyThread(
+	if (PrivateDrawGroup)
+	{
+		PrivateDrawGroup->AddDraw_AnyThread(
+			bIsOneFrame,
+			PrivateLifeTime == -1 ? MAX_dbl : (FPlatformTime::Seconds() + PrivateLifeTime),
+			Draw);
+		return;
+	}
+
+	if (const TSharedPtr<FVoxelDebugDrawGroup>& DrawGroup = FVoxelTaskScope::GetContext().DrawGroup)
+	{
+		DrawGroup->AddDraw_AnyThread(
+			bIsOneFrame,
+			PrivateLifeTime == -1 ? MAX_dbl : (FPlatformTime::Seconds() + PrivateLifeTime),
+			Draw);
+		return;
+	}
+
+	FVoxelDebugDrawerWorldManager::Get(World)->GetGlobalGroup_AnyThread()->AddDraw_AnyThread(
 		bIsOneFrame,
 		PrivateLifeTime == -1 ? MAX_dbl : (FPlatformTime::Seconds() + PrivateLifeTime),
 		Draw);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FVoxelDebugDrawer& FVoxelDebugDrawer::Group(const TSharedPtr<FVoxelDebugDrawGroup>& DrawGroup)
+{
+	PrivateDrawGroup = DrawGroup;
+	return *this;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -128,4 +157,101 @@ FVoxelDebugDrawer& FVoxelDebugDrawer::DrawBox(
 	return DrawBox(
 		Box,
 		Transform.ToMatrixWithScale());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+TSharedRef<FVoxelDebugDrawGroup> FVoxelDebugDrawGroup::Create()
+{
+	return MakeShareable(new FVoxelDebugDrawGroup());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void FVoxelDebugDrawGroup::Clear_AnyThread()
+{
+	VOXEL_FUNCTION_COUNTER();
+	VOXEL_SCOPE_LOCK(CriticalSection);
+
+	Draws_RequiresLock.Empty();
+}
+
+void FVoxelDebugDrawGroup::AddDraw_AnyThread(
+	const bool bIsOneFrame,
+	const double EndTime,
+	const TSharedRef<const FVoxelDebugDraw>& Draw)
+{
+	VOXEL_FUNCTION_COUNTER();
+	VOXEL_SCOPE_LOCK(CriticalSection);
+
+	Draws_RequiresLock.Add(FDraw
+		{
+			bIsOneFrame,
+			EndTime,
+			Draw
+		});
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void FVoxelDebugDrawGroup::PushGroup_AnyThread()
+{
+	FVoxelDebugDrawerWorldManager::Get(GVoxelDebugDrawerManager->DefaultWorld)->AddGroup_AnyThread(AsShared());
+}
+
+void FVoxelDebugDrawGroup::PushGroup_AnyThread(const TVoxelObjectPtr<const UWorld> World)
+{
+	FVoxelDebugDrawerWorldManager::Get(World)->AddGroup_AnyThread(AsShared());
+}
+
+void FVoxelDebugDrawGroup::PushGroup_AnyThread(const UWorld* World)
+{
+	FVoxelDebugDrawerWorldManager::Get(World)->AddGroup_AnyThread(AsShared());
+}
+
+void FVoxelDebugDrawGroup::PushGroup_EnsureNew_AnyThread()
+{
+	FVoxelDebugDrawerWorldManager::Get(GVoxelDebugDrawerManager->DefaultWorld)->AddGroup_EnsureNew_AnyThread(AsShared());
+}
+
+void FVoxelDebugDrawGroup::PushGroup_EnsureNew_AnyThread(const TVoxelObjectPtr<const UWorld> World)
+{
+	FVoxelDebugDrawerWorldManager::Get(World)->AddGroup_EnsureNew_AnyThread(AsShared());
+}
+
+void FVoxelDebugDrawGroup::PushGroup_EnsureNew_AnyThread(const UWorld* World)
+{
+	FVoxelDebugDrawerWorldManager::Get(World)->AddGroup_EnsureNew_AnyThread(AsShared());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+void FVoxelDebugDrawGroup::IterateDraws(
+	const double Time,
+	TVoxelArray<TSharedPtr<const FVoxelDebugDraw>>& OutDraws)
+{
+	VOXEL_SCOPE_LOCK(CriticalSection);
+
+	for (int32 Index = 0; Index < Draws_RequiresLock.Num(); Index++)
+	{
+		const FDraw& Draw = Draws_RequiresLock[Index];
+
+		// Always render at least once
+		OutDraws.Add(Draw.Draw);
+
+		if (Draw.bIsOneFrame ||
+			Draw.EndTime < Time)
+		{
+			Draws_RequiresLock.RemoveAtSwap(Index);
+			Index--;
+		}
+	}
 }

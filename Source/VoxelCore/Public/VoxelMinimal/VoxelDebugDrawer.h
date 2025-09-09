@@ -5,6 +5,9 @@
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelBox.h"
 #include "VoxelMinimal/VoxelObjectPtr.h"
+#include "VoxelMinimal/VoxelCriticalSection.h"
+
+struct FVoxelDebugDrawGroup;
 
 struct VOXELCORE_API FVoxelDebugPoint
 {
@@ -62,6 +65,9 @@ public:
 	UE_NONCOPYABLE(FVoxelDebugDrawer);
 
 public:
+	FVoxelDebugDrawer& Group(const TSharedPtr<FVoxelDebugDrawGroup>& DrawGroup);
+
+public:
 	FVoxelDebugDrawer& Color(const FLinearColor& NewColor);
 	FVoxelDebugDrawer& OneFrame();
 	FVoxelDebugDrawer& LifeTime(float NewLifeTime);
@@ -95,4 +101,48 @@ private:
 	float PrivateLifeTime = -1;
 	FColor PrivateColor = FColor::Red;
 	const TSharedRef<FVoxelDebugDraw> Draw = MakeShared<FVoxelDebugDraw>();
+	TSharedPtr<FVoxelDebugDrawGroup> PrivateDrawGroup;
+};
+
+struct VOXELCORE_API FVoxelDebugDrawGroup : public TSharedFromThis<FVoxelDebugDrawGroup>
+{
+private:
+	FVoxelDebugDrawGroup() = default;
+
+public:
+	static TSharedRef<FVoxelDebugDrawGroup> Create();
+
+public:
+	void Clear_AnyThread();
+	void AddDraw_AnyThread(
+		bool bIsOneFrame,
+		double EndTime,
+		const TSharedRef<const FVoxelDebugDraw>& Draw);
+
+public:
+	void PushGroup_AnyThread();
+	void PushGroup_AnyThread(TVoxelObjectPtr<const UWorld> World);
+	void PushGroup_AnyThread(const UWorld* World);
+
+	void PushGroup_EnsureNew_AnyThread();
+	void PushGroup_EnsureNew_AnyThread(TVoxelObjectPtr<const UWorld> World);
+	void PushGroup_EnsureNew_AnyThread(const UWorld* World);
+
+private:
+	void IterateDraws(
+		double Time,
+		TVoxelArray<TSharedPtr<const FVoxelDebugDraw>>& OutDraws);
+
+private:
+	FVoxelCriticalSection CriticalSection;
+
+	struct FDraw
+	{
+		bool bIsOneFrame = false;
+		double EndTime = 0;
+		TSharedPtr<const FVoxelDebugDraw> Draw;
+	};
+	TVoxelArray<FDraw> Draws_RequiresLock;
+
+	friend class FVoxelDebugDrawerWorldManager;
 };
