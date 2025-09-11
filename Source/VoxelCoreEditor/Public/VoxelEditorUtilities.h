@@ -337,7 +337,7 @@ public:
 	}
 
 	template<typename T>
-	static void SetStructPropertyValue(const TSharedPtr<IPropertyHandle>& Handle, const T& Value)
+	static void SetStructPropertyValue(const TSharedPtr<IPropertyHandle>& Handle, const T& Value, const EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags)
 	{
 		TrackHandle(Handle);
 
@@ -355,7 +355,7 @@ public:
 		}
 
 		const FString StringValue = FVoxelUtilities::PropertyToText_Direct(*Property, static_cast<const void*>(&Value), nullptr);
-		ensure(Handle->SetValueFromFormattedString(StringValue) == FPropertyAccess::Success);
+		ensure(Handle->SetValueFromFormattedString(StringValue, Flags) == FPropertyAccess::Success);
 	}
 
 public:

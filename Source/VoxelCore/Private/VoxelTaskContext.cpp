@@ -164,9 +164,10 @@ FVoxelTaskContext::FVoxelTaskContext(const FName Name)
 	SelfWeakRef.Serial = GVoxelTaskContextArray->SerialCounter.Increment_ReturnNew();
 }
 
-TSharedRef<FVoxelTaskContext> FVoxelTaskContext::Create(const FName Name)
+TSharedRef<FVoxelTaskContext> FVoxelTaskContext::Create(const FName Name, const int32 MaxBackgroundTasks)
 {
 	FVoxelTaskContext* Context = new FVoxelTaskContext(Name);
+	Context->MaxBackgroundTasks = MaxBackgroundTasks;
 
 	if (GVoxelTrackAllPromisesCallstacks)
 	{
@@ -337,7 +338,7 @@ void FVoxelTaskContext::Dispatch(
 
 		NumPendingTasks.Increment();
 
-		if (NumLaunchedTasks.Get() < MaxLaunchedTasks)
+		if (NumLaunchedTasks.Get() < MaxBackgroundTasks)
 		{
 			LaunchTask(MoveTemp(Lambda));
 			return;
@@ -348,7 +349,7 @@ void FVoxelTaskContext::Dispatch(
 			AsyncTasks_RequiresLock.Add(MoveTemp(Lambda));
 		}
 
-		if (NumLaunchedTasks.Get() < MaxLaunchedTasks)
+		if (NumLaunchedTasks.Get() < MaxBackgroundTasks)
 		{
 			LaunchTasks();
 		}
@@ -496,7 +497,7 @@ void FVoxelTaskContext::LaunchTasks()
 
 	while (
 		AsyncTasks_RequiresLock.Num() > 0 &&
-		NumLaunchedTasks.Get() < MaxLaunchedTasks)
+		NumLaunchedTasks.Get() < MaxBackgroundTasks)
 	{
 		for (TVoxelUniqueFunction<void()>& Task : AsyncTasks_RequiresLock.PopFirstChunk())
 		{
@@ -517,7 +518,7 @@ void FVoxelTaskContext::LaunchTask(TVoxelUniqueFunction<void()> Task)
 			Task();
 		}
 
-		if (NumLaunchedTasks.Decrement_ReturnNew() < MaxLaunchedTasks)
+		if (NumLaunchedTasks.Decrement_ReturnNew() < MaxBackgroundTasks)
 		{
 			LaunchTasks();
 		}

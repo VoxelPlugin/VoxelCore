@@ -50,7 +50,11 @@ public:
 	TVoxelAtomic<double> TotalTime;
 	TSharedPtr<FVoxelDebugDrawGroup> DrawGroup;
 
-	static TSharedRef<FVoxelTaskContext> Create(FName Name);
+private:
+	static constexpr int32 MaxLaunchedTasks = 256;
+
+public:
+	static TSharedRef<FVoxelTaskContext> Create(FName Name, int32 MaxBackgroundTasks = MaxLaunchedTasks);
 	virtual ~FVoxelTaskContext();
 	UE_NONCOPYABLE(FVoxelTaskContext);
 
@@ -130,8 +134,9 @@ private:
 	VOXEL_ATOMIC_PADDING;
 
 private:
-	static constexpr int32 MaxLaunchedTasks = 256;
 	using FTaskArray = TVoxelChunkedArray<TVoxelUniqueFunction<void()>, MaxLaunchedTasks * sizeof(TVoxelUniqueFunction<void()>) / 2>;
+
+	int32 MaxBackgroundTasks = MaxLaunchedTasks;
 
 	FVoxelCriticalSection GameTasksCriticalSection;
 	TVoxelChunkedArray<TVoxelUniqueFunction<void()>> GameTasks_RequiresLock;
