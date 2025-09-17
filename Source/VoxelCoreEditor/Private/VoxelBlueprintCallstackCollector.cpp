@@ -122,7 +122,10 @@ void GatherBlueprintCallstack(const TSharedRef<FVoxelMessage>& Message)
 		}
 	}
 
-	Message->AddToken(FVoxelMessageTokenFactory::CreateObjectToken(Callstack.Last().Get()));
+	if (Callstack.Num() > 0)
+	{
+		Message->AddToken(FVoxelMessageTokenFactory::CreateObjectToken(Callstack.Last().Get()));
+	}
 
 	const TSharedRef<FVoxelMessageToken_BlueprintCallstack> Token = MakeShared<FVoxelMessageToken_BlueprintCallstack>();
 	Token->Callstack = Callstack;
