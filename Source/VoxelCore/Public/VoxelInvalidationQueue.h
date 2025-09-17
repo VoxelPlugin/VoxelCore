@@ -6,6 +6,11 @@
 
 class FVoxelDependencyTracker;
 
+namespace Voxel
+{
+	extern VOXELCORE_API FTSSimpleMulticastDelegate OnDependencyFlush;
+}
+
 // Used to replay invalidations that happen between when a state starts computing & when the dependency is actually added
 // This is needed because the data we use to compute chunks is a snapshot of the data when the state is created
 // As such, we need to make sure to add all the invalidations done after state creation
@@ -27,7 +32,7 @@ private:
 	struct FInvalidation
 	{
 		TVoxelUniqueFunction<bool(const FVoxelDependencyTracker&)> ShouldInvalidate;
-		TSharedPtr<const FVoxelInvalidationCallstack> Callstack;
+		TSharedRef<const FVoxelInvalidationCallstack> Callstack;
 	};
 	TVoxelArray<FInvalidation> Invalidations_RequiresLock;
 

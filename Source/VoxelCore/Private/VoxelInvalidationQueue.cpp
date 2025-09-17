@@ -2,11 +2,16 @@
 
 #include "VoxelInvalidationQueue.h"
 #include "VoxelDependencyManager.h"
+#include "VoxelInvalidationCallstack.h"
 
 DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelInvalidationQueue);
 
+FTSSimpleMulticastDelegate Voxel::OnDependencyFlush;
+
 TSharedRef<FVoxelInvalidationQueue> FVoxelInvalidationQueue::Create()
 {
+	Voxel::OnDependencyFlush.Broadcast();
+
 	FVoxelInvalidationQueue* InvalidationQueue = new FVoxelInvalidationQueue();
 
 	const int32 Index = GVoxelDependencyManager->AddInvalidationQueue(InvalidationQueue);
@@ -29,7 +34,9 @@ TSharedPtr<const FVoxelInvalidationCallstack> FVoxelInvalidationQueue::FindInval
 	{
 		if (Invalidation.ShouldInvalidate(Tracker))
 		{
-			return Invalidation.Callstack;
+			TSharedRef<FVoxelInvalidationCallstack> Callstack = FVoxelInvalidationCallstack::Create("Invalidation Queue");
+			Callstack->AddCaller(Invalidation.Callstack);
+			return Callstack;
 		}
 	}
 
