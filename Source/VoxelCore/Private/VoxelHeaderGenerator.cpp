@@ -203,17 +203,40 @@ FVoxelHeaderFunctionArgument& FVoxelHeaderFunctionArgument::SetDefault(const FSt
 		{
 			Default = "FVector::ForwardVector";
 		}
-		if (Default == "0.000000,1.000000,0.000000")
+		else if (Default == "0.000000,1.000000,0.000000")
 		{
 			Default = "FVector::RightVector";
 		}
-		if (Default == "0.000000,0.000000,1.000000")
+		else if (Default == "0.000000,0.000000,1.000000")
 		{
 			Default = "FVector::UpVector";
 		}
-		if (Default == "0.000000,0.000000,0.000000")
+		else if (Default == "0.000000,0.000000,0.000000")
 		{
 			Default = "FVector::ZeroVector";
+		}
+		else
+		{
+			FVector Value = FVector(ForceInit);
+
+			if (Value.InitFromString(Default))
+			{
+				Default = "FVector(" + FString::SanitizeFloat(Value.X) + ", " + FString::SanitizeFloat(Value.Y) + ", " + FString::SanitizeFloat(Value.Z) + ")";
+			}
+			else
+			{
+				TArray<FString> VectorParts;
+				Default.ParseIntoArray(VectorParts, TEXT(","));
+
+				if (VectorParts.Num() == 3)
+				{
+					LexFromString(Value.X, VectorParts[0]);
+					LexFromString(Value.Y, VectorParts[1]);
+					LexFromString(Value.Z, VectorParts[2]);
+
+					Default = "FVector(" + FString::SanitizeFloat(Value.X) + ", " + FString::SanitizeFloat(Value.Y) + ", " + FString::SanitizeFloat(Value.Z) + ")";
+				}
+			}
 		}
 	}
 
