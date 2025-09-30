@@ -90,7 +90,7 @@ public:
 public:
 	void Reset();
 	TSharedRef<FStructOnScope> MakeStructOnScope();
-	bool NetSerialize(FArchive& Ar, UPackageMap& Map);
+	bool NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess);
 
 	//~ Begin TStructOpsTypeTraits Interface
 	bool Serialize(FArchive& Ar);
@@ -243,6 +243,7 @@ struct TStructOpsTypeTraits<FVoxelInstancedStruct> : TStructOpsTypeTraitsBase2<F
 	enum
 	{
 		WithSerializer = true,
+		WithNetSerializer = true,
 		WithIdentical = true,
 		WithExportTextItem = true,
 		WithImportTextItem = true,

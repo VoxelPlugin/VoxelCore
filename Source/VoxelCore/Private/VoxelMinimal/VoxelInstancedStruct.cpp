@@ -1,7 +1,10 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
+#include "Net/RepLayout.h"
+#include "Engine/NetConnection.h"
 #include "UObject/CoreRedirects.h"
+#include "Engine/PackageMapClient.h"
 #include "UObject/UObjectThreadContext.h"
 #include "StructUtils/StructUtilsTypes.h"
 #include "StructUtils/UserDefinedStruct.h"
@@ -51,55 +54,75 @@ TSharedRef<FStructOnScope> FVoxelInstancedStruct::MakeStructOnScope()
 	return Result;
 }
 
-bool FVoxelInstancedStruct::NetSerialize(FArchive& Ar, UPackageMap& Map)
+bool FVoxelInstancedStruct::NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess)
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	if (Ar.IsSaving())
+	uint8 bValidData = Ar.IsSaving() ? IsValid() : 0;
+	Ar.SerializeBits(&bValidData, 1);
+
+	if (!bValidData)
 	{
-		if (!IsValid())
+		if (Ar.IsLoading())
 		{
-			FString PathName;
-			Ar << PathName;
-			return true;
+			Reset();
 		}
-
-		FString PathName = GetScriptStruct()->GetPathName();
-		Ar << PathName;
-
-		const FSharedVoidRef Default = MakeSharedStruct(GetScriptStruct());
-
-		GetScriptStruct()->SerializeItem(Ar, GetStructMemory(), &Default.Get());
+		bOutSuccess = true;
 		return true;
 	}
-	else if (Ar.IsLoading())
+
+	if (Ar.IsLoading())
 	{
-		FString PathName;
-		Ar << PathName;
+		UScriptStruct* NewScriptStruct = nullptr;
+		Ar << NewScriptStruct;
 
-		if (PathName.IsEmpty())
+		if (PrivateScriptStruct != NewScriptStruct)
 		{
-			*this = {};
-			return true;
+			*this = FVoxelInstancedStruct(NewScriptStruct);
 		}
 
-		UScriptStruct* NewScriptStruct = LoadObject<UScriptStruct>(nullptr, *PathName);
-		if (!ensure(NewScriptStruct))
+		if (!IsValid())
 		{
-			return false;
+			UE_LOG(LogCore, Error, TEXT("FInstancedStruct::NetSerialize: Bad script struct serialized, cannot recover."));
+			Ar.SetError();
+			bOutSuccess = false;
 		}
-
-		const FSharedVoidRef Default = MakeSharedStruct(GetScriptStruct());
-
-		*this = FVoxelInstancedStruct(NewScriptStruct);
-		GetScriptStruct()->SerializeItem(Ar, GetStructMemory(), &Default.Get());
-		return true;
 	}
 	else
 	{
-		ensure(false);
-		return false;
+		Ar << PrivateScriptStruct;
 	}
+
+	if (!PrivateScriptStruct)
+	{
+		return true;
+	}
+
+	if (EnumHasAllFlags(PrivateScriptStruct->StructFlags, STRUCT_NetSerializeNative))
+	{
+		PrivateScriptStruct->GetCppStructOps()->NetSerialize(Ar, Map, bOutSuccess, GetStructMemory());
+	}
+	else
+	{
+		bOutSuccess = INLINE_LAMBDA
+		{
+			UPackageMapClient* MapClient = Cast<UPackageMapClient>(Map);
+			check(::IsValid(MapClient));
+
+			UNetConnection* NetConnection = MapClient->GetConnection();
+			check(::IsValid(NetConnection));
+			check(::IsValid(NetConnection->GetDriver()));
+
+			const TSharedPtr<FRepLayout> RepLayout = NetConnection->GetDriver()->GetStructRepLayout(PrivateScriptStruct);
+			check(RepLayout.IsValid());
+
+			bool bHasUnmapped = false;
+			RepLayout->SerializePropertiesForStruct(PrivateScriptStruct, static_cast<FBitArchive&>(Ar), Map, GetStructMemory(), bHasUnmapped);
+			return true;
+		};
+	}
+
+	return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
