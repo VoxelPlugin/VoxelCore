@@ -10,6 +10,9 @@
 #include "Interfaces/IPluginManager.h"
 #include "Runtime/Online/HTTP/Private/HttpThread.h"
 
+DEFINE_PRIVATE_ACCESS(FHttpManager, bUseEventLoop)
+DEFINE_PRIVATE_ACCESS(FLegacyHttpThread, HttpThreadActiveFrameTimeInSeconds)
+
 class FVoxelCoreModule : public IModuleInterface
 {
 public:
@@ -20,34 +23,25 @@ public:
 #if WITH_EDITOR
 		// Increase the HTTP tick rate
 		// Makes downloads much faster
+		INLINE_LAMBDA
 		{
+			FHttpManager& HttpManager = FHttpModule::Get().GetHttpManager();
+			if (PrivateAccess::bUseEventLoop(HttpManager))
+			{
+				return;
+			}
+
 			LOG_VOXEL(Display, "Increasing HTTP Tick Rate");
 
-			FHttpManager& HttpManager = FHttpModule::Get().GetHttpManager();
-
-			struct FHttpThreadHack : FLegacyHttpThread
+			FHttpThreadBase* Thread = HttpManager.GetThread();
+			if (!Thread)
 			{
-				void Fixup()
-				{
-					HttpThreadActiveFrameTimeInSeconds = 1 / 100000.f;
-				}
-			};
+				return;
+			}
 
-			struct FHttpManagerHack : FHttpManager
-			{
-				void Fixup() const
-				{
-					if (!Thread)
-					{
-						return;
-					}
-
-					static_cast<FHttpThreadHack*>(Thread)->Fixup();
-				}
-			};
-
-			static_cast<FHttpManagerHack&>(HttpManager).Fixup();
-		}
+			FLegacyHttpThread* LegacyThread = static_cast<FLegacyHttpThread*>(Thread);
+			PrivateAccess::HttpThreadActiveFrameTimeInSeconds(*LegacyThread) = 1 / 100000.f;
+		};
 #endif
 
 #if ENABLE_LOW_LEVEL_MEM_TRACKER

@@ -12,7 +12,9 @@ namespace EMessageSeverity { enum Type : int32; }
 USTRUCT()
 struct VOXELCORE_API FVoxelMessageToken
 	: public FVoxelVirtualStruct
+#if CPP
 	, public TSharedFromThis<FVoxelMessageToken>
+#endif
 {
 	GENERATED_BODY()
 	GENERATED_VIRTUAL_STRUCT_BODY()

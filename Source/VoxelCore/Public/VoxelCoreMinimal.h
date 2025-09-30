@@ -47,6 +47,14 @@ VOXELCORE_API DECLARE_LOG_CATEGORY_EXTERN(LogVoxel, Log, All);
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+#if VOXEL_ENGINE_VERSION >= 507
+#define UE_507_SWITCH(Before, AfterOrEqual) AfterOrEqual
+#define UE_507_ONLY(...) __VA_ARGS__
+#else
+#define UE_507_SWITCH(Before, AfterOrEqual) Before
+#define UE_507_ONLY(...)
+#endif
+
 #if VOXEL_ENGINE_VERSION >= 506
 #define UE_506_SWITCH(Before, AfterOrEqual) AfterOrEqual
 #define UE_506_ONLY(...) __VA_ARGS__
@@ -56,7 +64,7 @@ VOXELCORE_API DECLARE_LOG_CATEGORY_EXTERN(LogVoxel, Log, All);
 #endif
 
 #define MIN_VOXEL_ENGINE_VERSION 505
-#define MAX_VOXEL_ENGINE_VERSION 506
+#define MAX_VOXEL_ENGINE_VERSION 507
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

@@ -16,7 +16,9 @@ struct FVoxelHLSLMaterialTranslator : FHLSLMaterialTranslator
 	using FHLSLMaterialTranslator::CurrentScopeChunks;
 	using FHLSLMaterialTranslator::CurrentScopeID;
 	using FHLSLMaterialTranslator::VTStacks;
+#if VOXEL_ENGINE_VERSION < 507
 	using FHLSLMaterialTranslator::VTStackHash;
+#endif
 	using FHLSLMaterialTranslator::CustomExpressions;
 	using FHLSLMaterialTranslator::AddCodeChunk;
 	using FHLSLMaterialTranslator::GetParameterCode;

@@ -53,7 +53,8 @@ namespace FVoxelUtilities
 
 	VOXELCORE_API bool UpdateTextureRef(
 		FTextureResource* Resource,
-		FRHITexture* TextureRHI);
+		FRHITexture* TextureRHI,
+		FRHICommandList& RHICmdList);
 
 	VOXELCORE_API FVoxelFuture AsyncCopyTexture(
 		UTexture2D* TargetTexture,

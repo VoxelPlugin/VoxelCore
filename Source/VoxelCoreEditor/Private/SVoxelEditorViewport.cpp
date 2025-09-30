@@ -118,6 +118,7 @@ UE::Widget::EWidgetMode FVoxelEditorViewportClient::GetWidgetMode() const
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+#if VOXEL_ENGINE_VERSION < 507
 void SVoxelEditorViewportToolbar::Construct(
 	const FArguments& Args,
 	const TSharedRef<IVoxelViewportInterface>& Interface,
@@ -322,6 +323,7 @@ TSharedRef<SWidget> SVoxelEditorViewportToolbar::FillCameraSpeedMenu()
 
 	return ReturnWidget;
 }
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -509,6 +511,7 @@ TSharedPtr<SWidget> SVoxelEditorViewport::BuildViewportToolbar()
 }
 #endif
 
+#if VOXEL_ENGINE_VERSION < 507
 TSharedPtr<SWidget> SVoxelEditorViewport::MakeViewportToolbar()
 {
 	const TSharedPtr<IVoxelViewportInterface> Interface = WeakInterface.Pin();
@@ -519,6 +522,7 @@ TSharedPtr<SWidget> SVoxelEditorViewport::MakeViewportToolbar()
 
 	return SNew(SVoxelEditorViewportToolbar, Interface.ToSharedRef(), SharedThis(this));
 }
+#endif
 
 void SVoxelEditorViewport::PopulateViewportOverlays(const TSharedRef<SOverlay> Overlay)
 {
@@ -533,7 +537,7 @@ void SVoxelEditorViewport::PopulateViewportOverlays(const TSharedRef<SOverlay> O
 	Overlay->AddSlot()
 	.VAlign(VAlign_Top)
 	.HAlign(HAlign_Left)
-#if VOXEL_ENGINE_VERSION >= 506
+#if VOXEL_ENGINE_VERSION == 506
 	.Padding(MakeAttributeLambda([]
 	{
 		if (UE::UnrealEd::ShowOldViewportToolbars())

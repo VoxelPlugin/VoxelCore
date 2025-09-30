@@ -563,7 +563,7 @@ private:
 			return *this; \
 		} \
 	}; \
-	UE_NO_UNIQUE_ADDRESS FVoxelStatsRefHelper VOXEL_APPEND_LINE(__VoxelStatsRefHelper); \
+	FVoxelStatsRefHelper VOXEL_APPEND_LINE(__VoxelStatsRefHelper); \
 	\
 	template<typename T> \
 	friend auto& GetVoxelInstanceCount();

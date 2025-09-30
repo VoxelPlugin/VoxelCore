@@ -41,6 +41,7 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+#if VOXEL_ENGINE_VERSION < 507
 class SVoxelEditorViewportToolbar : public SCommonEditorViewportToolbarBase
 {
 public:
@@ -67,6 +68,7 @@ private:
 
 	TSharedRef<SWidget> FillCameraSpeedMenu();
 };
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -94,7 +96,9 @@ protected:
 #if VOXEL_ENGINE_VERSION >= 506
 	virtual TSharedPtr<SWidget> BuildViewportToolbar() override;
 #endif
+#if VOXEL_ENGINE_VERSION < 507
 	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
+#endif
 	virtual void PopulateViewportOverlays(TSharedRef<SOverlay> Overlay) override;
 	virtual EVisibility GetTransformToolbarVisibility() const override;
 	//~ End SEditorViewport Interface

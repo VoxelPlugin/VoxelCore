@@ -25,13 +25,18 @@ struct FPageDiskHeader
 	uint32 NumClusters = 0;
 	uint32 NumRawFloat4s = 0;
 	uint32 NumVertexRefs = 0;
+#if VOXEL_ENGINE_VERSION < 507
 	uint32 DecodeInfoOffset = 0;
+#endif
 	uint32 StripBitmaskOffset = 0;
 	uint32 VertexRefBitmaskOffset = 0;
 };
 
 struct FClusterDiskHeader
 {
+#if VOXEL_ENGINE_VERSION >= 507
+	uint32 DecodeInfoOffset;
+#endif
 	uint32 IndexDataOffset = 0;
 	uint32 PageClusterMapOffset = 0;
 	uint32 VertexRefDataOffset = 0;
@@ -46,8 +51,17 @@ struct FClusterDiskHeader
 struct FPageSections
 {
 	uint32 Cluster = 0;
+#if VOXEL_ENGINE_VERSION >= 507
+	uint32 ClusterBoneInfluence = 0;
+	uint32 VoxelBoneInfluence = 0;
+#endif
 	uint32 MaterialTable = 0;
 	uint32 VertReuseBatchInfo = 0;
+#if VOXEL_ENGINE_VERSION >= 507
+	uint32 BoneInfluence = 0;
+	uint32 BrickData = 0;
+	uint32 ExtendedData = 0;
+#endif
 	uint32 DecodeInfo = 0;
 	uint32 Index = 0;
 	uint32 Position = 0;
@@ -61,11 +75,94 @@ struct FPageSections
 	{
 		return Align(VertReuseBatchInfo, 16);
 	}
+	uint32 GetDecodeInfoSize() const
+	{
+		return Align(DecodeInfo, 16);
+	}
 
 	static uint32 GetClusterOffset()
 	{
 		return NANITE_GPU_PAGE_HEADER_SIZE;
 	}
+
+#if VOXEL_ENGINE_VERSION >= 507
+	uint32 GetClusterBoneInfluenceSize() const
+	{
+		return Align(ClusterBoneInfluence, 16);
+	}
+	uint32 GetVoxelBoneInfluenceSize() const
+	{
+		return Align(VoxelBoneInfluence, 16);
+	}
+	uint32 GetBoneInfluenceSize() const
+	{
+		return Align(BoneInfluence, 16);
+	}
+	uint32 GetBrickDataSize() const
+	{
+		return Align(BrickData, 16);
+	}
+	uint32 GetExtendedDataSize() const
+	{
+		return Align(ExtendedData, 16);
+	}
+
+	uint32 GetClusterBoneInfluenceOffset() const
+	{
+		return GetClusterOffset() + Cluster;
+	}
+	uint32 GetVoxelBoneInfluenceOffset() const
+	{
+		return GetClusterBoneInfluenceOffset() + GetClusterBoneInfluenceSize();
+	}
+	uint32 GetMaterialTableOffset() const
+	{
+		return GetVoxelBoneInfluenceOffset() + GetVoxelBoneInfluenceSize();
+	}
+	uint32 GetVertReuseBatchInfoOffset() const	{ return GetMaterialTableOffset() + GetMaterialTableSize(); }
+	uint32 GetBoneInfluenceOffset() const		{ return GetVertReuseBatchInfoOffset() + GetVertReuseBatchInfoSize(); }
+	uint32 GetBrickDataOffset() const			{ return GetBoneInfluenceOffset() + GetBoneInfluenceSize(); }
+	uint32 GetExtendedDataOffset() const		{ return GetBrickDataOffset() + GetBrickDataSize(); }
+	uint32 GetDecodeInfoOffset() const			{ return GetExtendedDataOffset() + GetExtendedDataSize(); } 
+	uint32 GetIndexOffset() const				{ return GetDecodeInfoOffset() + GetDecodeInfoSize(); }
+	uint32 GetPositionOffset() const			{ return GetIndexOffset() + Index; }
+	uint32 GetAttributeOffset() const			{ return GetPositionOffset() + Position; }
+	uint32 GetTotal() const						{ return GetAttributeOffset() + Attribute; }
+
+	FPageSections GetOffsets() const
+	{
+		return FPageSections
+		{
+			GetClusterOffset(),
+			GetClusterBoneInfluenceOffset(),
+			GetVoxelBoneInfluenceOffset(),
+			GetMaterialTableOffset(),
+			GetVertReuseBatchInfoOffset(),
+			GetBoneInfluenceOffset(),
+			GetBrickDataOffset(),
+			GetExtendedDataOffset(),
+			GetDecodeInfoOffset(),
+			GetIndexOffset(),
+			GetPositionOffset(),
+			GetAttributeOffset()
+		};
+	}
+	void operator+=(const FPageSections& Other)
+	{
+		Cluster				+=	Other.Cluster;
+		ClusterBoneInfluence+=	Other.ClusterBoneInfluence;
+		VoxelBoneInfluence	+=	Other.VoxelBoneInfluence;
+		MaterialTable		+=	Other.MaterialTable;
+		VertReuseBatchInfo	+=	Other.VertReuseBatchInfo;
+		BoneInfluence		+=	Other.BoneInfluence;
+		BrickData			+=	Other.BrickData;
+		ExtendedData		+=	Other.ExtendedData;
+		DecodeInfo			+=	Other.DecodeInfo;
+		Index				+=	Other.Index;
+		Position			+=	Other.Position;
+		Attribute			+=	Other.Attribute;
+	}
+#else
 	uint32 GetMaterialTableOffset() const
 	{
 		return GetClusterOffset() + Cluster;
@@ -118,6 +215,7 @@ struct FPageSections
 		Position += Other.Position;
 		Attribute += Other.Attribute;
 	}
+#endif
 };
 
 struct FUVRange

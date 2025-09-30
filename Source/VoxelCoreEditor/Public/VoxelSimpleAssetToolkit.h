@@ -11,7 +11,9 @@
 USTRUCT()
 struct VOXELCOREEDITOR_API FVoxelSimpleAssetToolkit
 	: public FVoxelToolkit
+#if CPP
 	, public IVoxelViewportInterface
+#endif
 {
 	GENERATED_BODY()
 	GENERATED_VIRTUAL_STRUCT_BODY()

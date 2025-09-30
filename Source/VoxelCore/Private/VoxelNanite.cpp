@@ -418,6 +418,18 @@ void CreatePageData(
 
 		GpuSectionOffsets += Info.GpuSizes;
 	}
+#if VOXEL_ENGINE_VERSION >= 507
+	check(GpuSectionOffsets.Cluster							== PageGpuSizes.GetClusterBoneInfluenceOffset());
+	check(Align(GpuSectionOffsets.MaterialTable, 16)		== PageGpuSizes.GetVertReuseBatchInfoOffset());
+	check(Align(GpuSectionOffsets.VertReuseBatchInfo, 16)	== PageGpuSizes.GetBoneInfluenceOffset());
+	check(Align(GpuSectionOffsets.BoneInfluence, 16)		== PageGpuSizes.GetBrickDataOffset());
+	check(Align(GpuSectionOffsets.BrickData, 16)			== PageGpuSizes.GetExtendedDataOffset());
+	check(Align(GpuSectionOffsets.ExtendedData, 16)			== PageGpuSizes.GetDecodeInfoOffset());
+	check(Align(GpuSectionOffsets.DecodeInfo, 16)			== PageGpuSizes.GetIndexOffset());
+	check(GpuSectionOffsets.Index							== PageGpuSizes.GetPositionOffset());
+	check(GpuSectionOffsets.Position						== PageGpuSizes.GetAttributeOffset());
+	check(GpuSectionOffsets.Attribute						== PageGpuSizes.GetTotal());
+#else
 	checkVoxelSlow(GpuSectionOffsets.Cluster == PageGpuSizes.GetMaterialTableOffset());
 	checkVoxelSlow(Align(GpuSectionOffsets.MaterialTable, 16) == PageGpuSizes.GetVertReuseBatchInfoOffset());
 	checkVoxelSlow(Align(GpuSectionOffsets.VertReuseBatchInfo, 16) == PageGpuSizes.GetDecodeInfoOffset());
@@ -425,6 +437,7 @@ void CreatePageData(
 	checkVoxelSlow(GpuSectionOffsets.Index == PageGpuSizes.GetPositionOffset());
 	checkVoxelSlow(GpuSectionOffsets.Position == PageGpuSizes.GetAttributeOffset());
 	checkVoxelSlow(GpuSectionOffsets.Attribute == PageGpuSizes.GetTotal());
+#endif
 
 	ensure(PageGpuSizes.GetTotal() <= NANITE_ROOT_PAGE_GPU_SIZE);
 
@@ -440,6 +453,7 @@ void CreatePageData(
 		GPUPageHeader->NumClusters = Clusters.Num();
 	}
 
+	// Write clusters in SOA layout
 	{
 		checkStatic(sizeof(FPackedCluster) % 16 == 0);
 		constexpr int32 VectorPerCluster = sizeof(FPackedCluster) / 16;
@@ -454,11 +468,54 @@ void CreatePageData(
 		}
 	}
 
+	// Cluster bone data in SOA layout
 	{
-		PageDiskHeader->DecodeInfoOffset = GetPageOffset();
+		// Do nothing
+	}
+
+	// Voxel bone data in SOA layout
+	{
+		// Do nothingRi
+	}
+
+	// Material table
+	{
+		// Do nothing
+	}
+
+	// Vert reuse batch info
+	{
+		// Do nothing
+	}
+
+	// Bone data
+	{
+		// Do nothing
+	}
+
+	// Brick data
+	{
+		// Do nothing
+	}
+
+	// Extended data
+	{
+		// Do nothing
+	}
+
+	// Decode information
+	{
+		const uint32 DecodeInfoOffset = GetPageOffset();
+#if VOXEL_ENGINE_VERSION < 507
+		PageDiskHeader->DecodeInfoOffset = DecodeInfoOffset;
+#endif
 
 		for (int32 ClusterIndex = 0; ClusterIndex < Clusters.Num(); ClusterIndex++)
 		{
+#if VOXEL_ENGINE_VERSION >= 507
+			ClusterDiskHeaders[ClusterIndex].DecodeInfoOffset = GetPageOffset();
+#endif
+
 			const FEncodingInfo& Info = EncodingInfos[ClusterIndex];
 
 			for (int32 UVIndex = 0; UVIndex < NumUVs; UVIndex++)
@@ -475,7 +532,7 @@ void CreatePageData(
 			}
 		}
 
-		while ((GetPageOffset() - PageDiskHeader->DecodeInfoOffset) % 16 != 0)
+		while ((GetPageOffset() - DecodeInfoOffset) % 16 != 0)
 		{
 			PageData.Add(0);
 		}
@@ -569,6 +626,7 @@ void CreatePageData(
 		ClusterDiskHeader.PageClusterMapOffset = GetPageOffset();
 	}
 
+	// Write Vertex Reference Bitmask
 	{
 		PageDiskHeader->VertexRefBitmaskOffset = GetPageOffset();
 

@@ -76,7 +76,8 @@ FMaterialRenderProxy* FVoxelUtilities::CreateColoredMaterialRenderProxy(
 
 bool FVoxelUtilities::UpdateTextureRef(
 	FTextureResource* Resource,
-	FRHITexture* TextureRHI)
+	FRHITexture* TextureRHI,
+	FRHICommandList& RHICmdList)
 {
 	VOXEL_FUNCTION_COUNTER();
 	ensure(IsInRenderingThread());
@@ -110,7 +111,7 @@ bool FVoxelUtilities::UpdateTextureRef(
 	if (ensure(TextureReferenceRHI.IsValid()))
 	{
 		VOXEL_SCOPE_COUNTER("RHIUpdateTextureReference");
-		RHIUpdateTextureReference(TextureReferenceRHI, Resource->TextureRHI);
+		RHICmdList.UpdateTextureReference(TextureReferenceRHI, Resource->TextureRHI);
 	}
 
 	VOXEL_SCOPE_COUNTER("SafeRelease");
@@ -156,7 +157,7 @@ FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
 			SizeX,
 			SizeY,
 			Format,
-			Resource]
+			Resource](FRHICommandList& RHICmdList)
 		{
 			VOXEL_FUNCTION_COUNTER();
 
@@ -203,7 +204,7 @@ FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
 			if (ensure(TextureReferenceRHI.IsValid()))
 			{
 				VOXEL_SCOPE_COUNTER("RHIUpdateTextureReference");
-				RHIUpdateTextureReference(TextureReferenceRHI, Resource->TextureRHI);
+				RHICmdList.UpdateTextureReference(TextureReferenceRHI, Resource->TextureRHI);
 			}
 		});
 	}
@@ -259,9 +260,9 @@ FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
 				return {};
 			}
 
-			return Voxel::RenderTask([=]
+			return Voxel::RenderTask([=](FRHICommandList& RHICmdList)
 			{
-				UpdateTextureRef(Resource, UploadTextureRHI);
+				UpdateTextureRef(Resource, UploadTextureRHI, RHICmdList);
 			});
 		});
 	});

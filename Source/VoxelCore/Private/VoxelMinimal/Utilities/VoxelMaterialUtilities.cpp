@@ -28,8 +28,10 @@ struct FVoxelMaterialTranslatorNoCodeReuseScope::FImpl
 		CurrentScopeChunks = Translator.CurrentScopeChunks;
 		Translator.CurrentScopeChunks = &LocalChunks;
 
+#if VOXEL_ENGINE_VERSION < 507
 		// Clear the vtable cache, code can't be reused across inputs
 		Translator.VTStackHash = {};
+#endif
 
 		// Forbid custom expression reuse
 		LocalCustomExpressions = Translator.CustomExpressions;
@@ -101,8 +103,10 @@ void FVoxelMaterialTranslatorNoCodeReuseScope::DisableFutureReuse(FHLSLMaterialT
 		Chunk.Hash = FVoxelUtilities::MurmurHash64(Chunk.Hash);
 	}
 
+#if VOXEL_ENGINE_VERSION < 507
 	// Clear the vtable cache, code can't be reused across inputs
 	Translator.VTStackHash = {};
+#endif
 
 	// Forbid custom expression reuse
 	for (FMaterialCustomExpressionEntry& Entry : Translator.CustomExpressions)
