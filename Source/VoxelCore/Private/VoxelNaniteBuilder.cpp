@@ -26,13 +26,13 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData(TVoxelAr
 
 	Nanite::FResources Resources;
 
-	TVoxelArray<FCluster> AllClusters = CreateClusters();
+	TVoxelArray<TUniquePtr<FCluster>> AllClusters = CreateClusters();
 
 	FEncodingSettings EncodingSettings;
 	EncodingSettings.PositionPrecision = PositionPrecision;
 	checkStatic(FEncodingSettings::NormalBits == NormalBits);
 
-	TVoxelArray<TVoxelArray<FCluster>> Pages = CreatePages(AllClusters, EncodingSettings);
+	TVoxelArray<TVoxelArray<TUniquePtr<FCluster>>> Pages = CreatePages(AllClusters, EncodingSettings);
 
 	TVoxelChunkedArray<uint8> RootData;
 
@@ -418,7 +418,7 @@ bool FVoxelNaniteBuilder::Build(FBuildData& BuildData)
 	int32 ClusterIndexOffset = 0;
 	for (int32 PageIndex = 0; PageIndex < BuildData.Pages.Num(); PageIndex++)
 	{
-		TVoxelArray<FCluster>& Clusters = BuildData.Pages[PageIndex];
+		TVoxelArray<TUniquePtr<FCluster>>& Clusters = BuildData.Pages[PageIndex];
 		ON_SCOPE_EXIT
 		{
 			ClusterIndexOffset += Clusters.Num();
@@ -515,11 +515,14 @@ bool FVoxelNaniteBuilder::Build(FBuildData& BuildData)
 }
 #endif
 
-TVoxelArray<Voxel::Nanite::FCluster> FVoxelNaniteBuilder::CreateClusters() const
+TVoxelArray<TUniquePtr<Voxel::Nanite::FCluster>> FVoxelNaniteBuilder::CreateClusters() const
 {
+	VOXEL_FUNCTION_COUNTER();
+
 	using namespace Voxel::Nanite;
 
-	TVoxelArray<FCluster> AllClusters;
+	TVoxelArray<TUniquePtr<FCluster>> AllClusters;
+	AllClusters.Reserve(100);
 
 	int32 NumRefs = 0;
 	struct FVertex
@@ -589,20 +592,16 @@ TVoxelArray<Voxel::Nanite::FCluster> FVoxelNaniteBuilder::CreateClusters() const
 	for (int32 TriangleIndex = 0; TriangleIndex < Mesh.Indices.Num() / 3; TriangleIndex++)
 	{
 		if (AllClusters.Num() == 0 ||
-			AllClusters.Last().NumTriangles() == NANITE_MAX_CLUSTER_TRIANGLES ||
-			AllClusters.Last().Positions.Num() + 3 > NANITE_MAX_CLUSTER_VERTICES)
+			AllClusters.Last()->NumTriangles() == NANITE_MAX_CLUSTER_TRIANGLES ||
+			AllClusters.Last()->Positions.Num() + 3 > NANITE_MAX_CLUSTER_VERTICES)
 		{
+			VOXEL_SCOPE_COUNTER("Allocate cluster");
+
 			NewTriangleIndex = 0;
 
-			FCluster& Cluster = AllClusters.Emplace_GetRef();
+			FCluster& Cluster = *AllClusters.Add_GetRef(MakeUnique<FCluster>());
 			Cluster.TextureCoordinates.SetNum(Mesh.TextureCoordinates.Num());
-			Cluster.StripBitmaskDWords.SetNumZeroed(3 * (NANITE_MAX_CLUSTER_TRIANGLES / 32));
 			Cluster.MeshIndexToClusterIndex.Reserve(NANITE_MAX_CLUSTER_TRIANGLES * 3);
-
-			for (TVoxelArray<FVector2f>& TextureCoordinate : Cluster.TextureCoordinates)
-			{
-				TextureCoordinate.Reserve(128);
-			}
 		}
 
 		const uint32 ClusterTriangleIndex = NewTriangleIndex++;
@@ -610,7 +609,7 @@ TVoxelArray<Voxel::Nanite::FCluster> FVoxelNaniteBuilder::CreateClusters() const
 		const uint32 DWordBucket = ClusterTriangleIndex >> 5;
 		const uint32 DWordBitInBucket = ClusterTriangleIndex & 31;
 
-		FCluster& Cluster = AllClusters.Last();
+		FCluster& Cluster = *AllClusters.Last();
 
 		if (!bCompressVertices)
 		{
@@ -704,26 +703,27 @@ TVoxelArray<Voxel::Nanite::FCluster> FVoxelNaniteBuilder::CreateClusters() const
 	return AllClusters;
 }
 
-TVoxelArray<TVoxelArray<Voxel::Nanite::FCluster>> FVoxelNaniteBuilder::CreatePages(
-	TVoxelArray<Voxel::Nanite::FCluster>& Clusters,
+TVoxelArray<TVoxelArray<TUniquePtr<Voxel::Nanite::FCluster>>> FVoxelNaniteBuilder::CreatePages(
+	TVoxelArray<TUniquePtr<FCluster>>& Clusters,
 	const Voxel::Nanite::FEncodingSettings& EncodingSettings) const
 {
 	using namespace Voxel::Nanite;
-	TVoxelArray<TVoxelArray<FCluster>> Pages;
+
+	TVoxelArray<TVoxelArray<TUniquePtr<FCluster>>> Pages;
 	{
 		int32 ClusterIndex = 0;
 		while (ClusterIndex < Clusters.Num())
 		{
-			TVoxelArray<FCluster>& PageClusters = Pages.Emplace_GetRef();
+			TVoxelArray<TUniquePtr<FCluster>>& PageClusters = Pages.Emplace_GetRef();
 			int32 GpuSize = 0;
 
 			while (
 				ClusterIndex < Clusters.Num() &&
 				PageClusters.Num() < NANITE_ROOT_PAGE_MAX_CLUSTERS)
 			{
-				FCluster& Cluster = Clusters[ClusterIndex];
+				TUniquePtr<FCluster>& Cluster = Clusters[ClusterIndex];
 
-				const int32 ClusterGpuSize = Cluster.GetEncodingInfo(EncodingSettings).GpuSizes.GetTotal();
+				const int32 ClusterGpuSize = Cluster->GetEncodingInfo(EncodingSettings).GpuSizes.GetTotal();
 				if (GpuSize + ClusterGpuSize > NANITE_ROOT_PAGE_GPU_SIZE)
 				{
 					break;

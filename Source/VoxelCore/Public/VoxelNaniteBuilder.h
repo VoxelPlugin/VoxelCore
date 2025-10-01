@@ -44,11 +44,13 @@ public:
 	static UStaticMesh* CreateStaticMesh(TUniquePtr<FStaticMeshRenderData> RenderData);
 
 private:
+	using FCluster = Voxel::Nanite::FCluster;
+
 	struct FBuildData
 	{
 		Nanite::FResources& Resources;
 		const Voxel::Nanite::FEncodingSettings& EncodingSettings;
-		TVoxelArray<TVoxelArray<Voxel::Nanite::FCluster>>& Pages;
+		TVoxelArray<TVoxelArray<TUniquePtr<FCluster>>>& Pages;
 		TVoxelChunkedArray<uint8>& RootData;
 		int32 NumClusters;
 		TVoxelArray<int32>& OutVertexOffsets;
@@ -56,8 +58,10 @@ private:
 	};
 
 	bool Build(FBuildData& BuildData);
-	TVoxelArray<Voxel::Nanite::FCluster> CreateClusters() const;
-	TVoxelArray<TVoxelArray<Voxel::Nanite::FCluster>> CreatePages(
-		TVoxelArray<Voxel::Nanite::FCluster>& Clusters,
+
+	TVoxelArray<TUniquePtr<FCluster>> CreateClusters() const;
+
+	TVoxelArray<TVoxelArray<TUniquePtr<FCluster>>> CreatePages(
+		TVoxelArray<TUniquePtr<FCluster>>& Clusters,
 		const Voxel::Nanite::FEncodingSettings& EncodingSettings) const;
 };

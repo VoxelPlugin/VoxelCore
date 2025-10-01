@@ -317,7 +317,7 @@ FPackedCluster FCluster::Pack(const FEncodingInfo& Info) const
 ///////////////////////////////////////////////////////////////////////////////
 
 void CreatePageData(
-	const TVoxelArrayView<FCluster> Clusters,
+	const TVoxelArrayView<TUniquePtr<FCluster>> Clusters,
 	const FEncodingSettings& EncodingSettings,
 	TVoxelChunkedArray<uint8>& PageData,
 	int32& VertexOffset)
@@ -332,19 +332,19 @@ void CreatePageData(
 	};
 
 	const int32 StartVertexOffset = VertexOffset;
-	const int32 NumUVs = Clusters[0].TextureCoordinates.Num();
+	const int32 NumUVs = Clusters[0]->TextureCoordinates.Num();
 
-	for (FCluster& Cluster : Clusters)
+	for (TUniquePtr<FCluster>& Cluster : Clusters)
 	{
-		check(Cluster.NumTriangles() <= NANITE_MAX_CLUSTER_TRIANGLES);
-		check(Cluster.TextureCoordinates.Num() == NumUVs);
+		check(Cluster->NumTriangles() <= NANITE_MAX_CLUSTER_TRIANGLES);
+		check(Cluster->TextureCoordinates.Num() == NumUVs);
 	}
 
 	TVoxelArray<FEncodingInfo> EncodingInfos;
 	EncodingInfos.Reserve(Clusters.Num());
-	for (const FCluster& Cluster : Clusters)
+	for (const TUniquePtr<FCluster>& Cluster : Clusters)
 	{
-		EncodingInfos.Add(Cluster.GetEncodingInfo(EncodingSettings));
+		EncodingInfos.Add(Cluster->GetEncodingInfo(EncodingSettings));
 	}
 
 	FPageSections PageGpuSizes;
@@ -359,7 +359,7 @@ void CreatePageData(
 	PackedClusters.Reserve(Clusters.Num());
 	for (int32 ClusterIndex = 0; ClusterIndex < Clusters.Num(); ClusterIndex++)
 	{
-		const FCluster& Cluster = Clusters[ClusterIndex];
+		const FCluster& Cluster = *Clusters[ClusterIndex];
 		const FEncodingInfo& Info = EncodingInfos[ClusterIndex];
 
 		FPackedCluster& PackedCluster = PackedClusters.Emplace_GetRef();
@@ -550,7 +550,7 @@ void CreatePageData(
 		TVoxelArray<uint8> DeltaWriter;
 		for (int32 ClusterIndex = 0; ClusterIndex < Clusters.Num(); ClusterIndex++)
 		{
-			FCluster& Cluster = Clusters[ClusterIndex];
+			FCluster& Cluster = *Clusters[ClusterIndex];
 			FClusterDiskHeader& ClusterDiskHeader = ClusterDiskHeaders[ClusterIndex];
 
 			checkVoxelSlow(Cluster.NewInDword[0] < 1024);
@@ -598,7 +598,7 @@ void CreatePageData(
 
 			TVoxelChunkedArrayRef<uint32> Bitmasks = AllocateChunkedArrayRef(PageData, 3 * NumDwords);
 
-			FCluster& Cluster = Clusters[ClusterIndex];
+			FCluster& Cluster = *Clusters[ClusterIndex];
 			// See UnpackStripIndices
 			for (int32 Index = 0; Index < NumDwords; Index++)
 			{
@@ -658,7 +658,7 @@ void CreatePageData(
 
 		for (int32 ClusterIndex = 0; ClusterIndex < Clusters.Num(); ClusterIndex++)
 		{
-			const FCluster& Cluster = Clusters[ClusterIndex];
+			const FCluster& Cluster = *Clusters[ClusterIndex];
 			const FEncodingInfo& Info = EncodingInfos[ClusterIndex];
 
 			const int32 PrevLow = LowByteStream.Num();

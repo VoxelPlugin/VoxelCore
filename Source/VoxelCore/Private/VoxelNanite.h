@@ -123,7 +123,7 @@ struct FPageSections
 	uint32 GetBoneInfluenceOffset() const		{ return GetVertReuseBatchInfoOffset() + GetVertReuseBatchInfoSize(); }
 	uint32 GetBrickDataOffset() const			{ return GetBoneInfluenceOffset() + GetBoneInfluenceSize(); }
 	uint32 GetExtendedDataOffset() const		{ return GetBrickDataOffset() + GetBrickDataSize(); }
-	uint32 GetDecodeInfoOffset() const			{ return GetExtendedDataOffset() + GetExtendedDataSize(); } 
+	uint32 GetDecodeInfoOffset() const			{ return GetExtendedDataOffset() + GetExtendedDataSize(); }
 	uint32 GetIndexOffset() const				{ return GetDecodeInfoOffset() + GetDecodeInfoSize(); }
 	uint32 GetPositionOffset() const			{ return GetIndexOffset() + Index; }
 	uint32 GetAttributeOffset() const			{ return GetPositionOffset() + Position; }
@@ -266,13 +266,13 @@ struct FEncodingInfo
 class FCluster
 {
 public:
-	TVoxelArray<FVector3f> Positions;
-	TVoxelArray<FVoxelOctahedron> Normals;
-	TVoxelArray<FColor> Colors;
-	TVoxelFixedArray<TVoxelArray<FVector2f>, NANITE_MAX_UVS> TextureCoordinates;
+	TVoxelFixedArray<FVector3f, NANITE_MAX_CLUSTER_VERTICES> Positions;
+	TVoxelFixedArray<FVoxelOctahedron, NANITE_MAX_CLUSTER_VERTICES> Normals;
+	TVoxelFixedArray<FColor, NANITE_MAX_CLUSTER_VERTICES> Colors;
+	TVoxelArray<TVoxelFixedArray<FVector2f, NANITE_MAX_CLUSTER_VERTICES>> TextureCoordinates;
 
-	TVoxelArray<uint8> Indices;
-	TVoxelArray<uint32> StripBitmaskDWords;
+	TVoxelFixedArray<uint8, NANITE_MAX_CLUSTER_TRIANGLES * 3> Indices;
+	TVoxelStaticArray<uint32, 3 * (NANITE_MAX_CLUSTER_TRIANGLES / 32)> StripBitmaskDWords{ ForceInit };
 
 	FVoxelBitWriter DeltaWriter;
 	TVoxelStaticArray<uint32, 4> NewInDword { 0, 0, 0, 0 };
@@ -317,7 +317,7 @@ private:
 };
 
 void CreatePageData(
-	TVoxelArrayView<FCluster> Clusters,
+	TVoxelArrayView<TUniquePtr<FCluster>> Clusters,
 	const FEncodingSettings& EncodingSettings,
 	TVoxelChunkedArray<uint8>& PageData,
 	int32& VertexOffset);
