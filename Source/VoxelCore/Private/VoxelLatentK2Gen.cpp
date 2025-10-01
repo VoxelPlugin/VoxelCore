@@ -111,14 +111,17 @@ VOXEL_RUN_ON_STARTUP_GAME()
 		File.AddInclude("VoxelLatentAction.h");
 		File.AddInclude(It.Key);
 
-		FVoxelHeaderObject& Object = File.AddClass(It.Key->GetName() + "_K2", true);
+		FVoxelHeaderObject& Object = File.AddClass(It.Key->GetName() + "_BlueprintOnly", true);
 		Object.AddParent<UBlueprintFunctionLibrary>();
 
 		for (const UFunction* Function : It.Value)
 		{
 			for (const bool bAsync : TVoxelArray<bool>{ false, true })
 			{
-				FVoxelHeaderFunction& Func = Object.AddFunction(Function->GetName() + (bAsync ? "Async" : ""));
+				FString FunctionName = Function->GetName();
+				FunctionName.RemoveFromStart("K2_");
+
+				FVoxelHeaderFunction& Func = Object.AddFunction(FunctionName + (bAsync ? "Async" : ""));
 
 				Func.AddComment(Function->GetToolTipText().ToString());
 
