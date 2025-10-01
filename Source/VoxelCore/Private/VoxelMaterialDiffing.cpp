@@ -251,7 +251,11 @@ bool FVoxelMaterialDiffing::Equal(
 
 	if (!Property.Identical(OldValue, NewValue))
 	{
-		SET_DIFF("%s changed", *Property.GetPathName());
+		SET_DIFF("%s changed: %s -> %s",
+			*Property.GetPathName(),
+			*FVoxelUtilities::PropertyToText_Direct(Property, OldValue, nullptr),
+			*FVoxelUtilities::PropertyToText_Direct(Property, NewValue, nullptr));
+
 		return false;
 	}
 
