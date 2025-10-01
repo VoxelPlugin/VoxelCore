@@ -123,7 +123,11 @@ VOXEL_RUN_ON_STARTUP_GAME()
 
 				FVoxelHeaderFunction& Func = Object.AddFunction(FunctionName + (bAsync ? "Async" : ""));
 
-				Func.AddComment(Function->GetToolTipText().ToString());
+				{
+					FString Tooltip = Function->GetToolTipText().ToString();
+					Tooltip.RemoveFromStart("K2 ");
+					Func.AddComment(Tooltip);
+				}
 
 				if (bAsync)
 				{
