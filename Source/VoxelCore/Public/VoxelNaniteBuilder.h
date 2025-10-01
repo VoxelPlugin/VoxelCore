@@ -33,7 +33,11 @@ public:
 
 	bool bCompressVertices = false;
 
-	TUniquePtr<FStaticMeshRenderData> CreateRenderData(TVoxelArray<int32>& OutVertexOffsets);
+	// OutClusteredIndices will be filled only when compressing vertices;
+	// In other case, original indices array does represent clustered indices
+	TUniquePtr<FStaticMeshRenderData> CreateRenderData(
+		TVoxelArray<int32>& OutVertexOffsets,
+		TVoxelArray<int32>& OutClusteredIndices);
 	UStaticMesh* CreateStaticMesh();
 
 public:
@@ -59,7 +63,7 @@ private:
 
 	bool Build(FBuildData& BuildData);
 
-	TVoxelArray<TUniquePtr<FCluster>> CreateClusters() const;
+	TVoxelArray<TUniquePtr<FCluster>> CreateClusters(TVoxelArray<int32>& OutClusteredIndices) const;
 
 	TVoxelArray<TVoxelArray<TUniquePtr<FCluster>>> CreatePages(
 		TVoxelArray<TUniquePtr<FCluster>>& Clusters,

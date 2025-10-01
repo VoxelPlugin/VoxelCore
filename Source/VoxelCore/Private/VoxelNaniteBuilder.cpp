@@ -9,7 +9,9 @@
 #include "Nanite/NaniteFixupChunk.h"
 #endif
 
-TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData(TVoxelArray<int32>& OutVertexOffsets)
+TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData(
+	TVoxelArray<int32>& OutVertexOffsets,
+	TVoxelArray<int32>& OutClusteredIndices)
 {
 	VOXEL_FUNCTION_COUNTER();
 	check(Mesh.Positions.Num() == Mesh.Normals.Num());
@@ -26,7 +28,7 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData(TVoxelAr
 
 	Nanite::FResources Resources;
 
-	TVoxelArray<TUniquePtr<FCluster>> AllClusters = CreateClusters();
+	TVoxelArray<TUniquePtr<FCluster>> AllClusters = CreateClusters(OutClusteredIndices);
 
 	FEncodingSettings EncodingSettings;
 	EncodingSettings.PositionPrecision = PositionPrecision;
@@ -98,7 +100,8 @@ UStaticMesh* FVoxelNaniteBuilder::CreateStaticMesh()
 	VOXEL_FUNCTION_COUNTER();
 
 	TVoxelArray<int32> VertexOffsets;
-	return CreateStaticMesh(CreateRenderData(VertexOffsets));
+	TVoxelArray<int32> ClusteredIndices;
+	return CreateStaticMesh(CreateRenderData(VertexOffsets, ClusteredIndices));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -233,7 +236,7 @@ bool FVoxelNaniteBuilder::Build(FBuildData& BuildData)
 	int32 ClusterIndexOffset = 0;
 	for (int32 PageIndex = 0; PageIndex < BuildData.Pages.Num(); PageIndex++)
 	{
-		TVoxelArray<FCluster>& PageClusters = BuildData.Pages[PageIndex];
+		TVoxelArray<TUniquePtr<FCluster>>& PageClusters = BuildData.Pages[PageIndex];
 		ON_SCOPE_EXIT
 		{
 			ClusterIndexOffset += PageClusters.Num();
@@ -241,7 +244,7 @@ bool FVoxelNaniteBuilder::Build(FBuildData& BuildData)
 
 		for (int32 ClusterIndex = 0; ClusterIndex < PageClusters.Num(); ClusterIndex++)
 		{
-			FCluster& Cluster = PageClusters[ClusterIndex];
+			FCluster& Cluster = *PageClusters[ClusterIndex];
 
 			const FClusterHierarchyNode& LeafNodeData = ClusterIndexToLeafNode[ClusterIndexOffset + ClusterIndex];
 			Nanite::FPackedHierarchyNode& HierarchyNode = BuildData.Resources.HierarchyNodes[LeafNodeData.HierarchyNodeIndex];
@@ -515,7 +518,7 @@ bool FVoxelNaniteBuilder::Build(FBuildData& BuildData)
 }
 #endif
 
-TVoxelArray<TUniquePtr<Voxel::Nanite::FCluster>> FVoxelNaniteBuilder::CreateClusters() const
+TVoxelArray<TUniquePtr<Voxel::Nanite::FCluster>> FVoxelNaniteBuilder::CreateClusters(TVoxelArray<int32>& OutClusteredIndices) const
 {
 	VOXEL_FUNCTION_COUNTER();
 
@@ -587,6 +590,11 @@ TVoxelArray<TUniquePtr<Voxel::Nanite::FCluster>> FVoxelNaniteBuilder::CreateClus
 		default: ensure(false); break;
 		}
 	};
+
+	if (bCompressVertices)
+	{
+		OutClusteredIndices.Reserve(Mesh.Positions.Num() * 2);
+	}
 
 	int32 NewTriangleIndex = 0;
 	for (int32 TriangleIndex = 0; TriangleIndex < Mesh.Indices.Num() / 3; TriangleIndex++)
@@ -686,6 +694,7 @@ TVoxelArray<TUniquePtr<Voxel::Nanite::FCluster>> FVoxelNaniteBuilder::CreateClus
 
 			Cluster.MeshIndexToClusterIndex.FindOrAdd(Vertex.MeshVertex) = NewClusterVertex;
 			Cluster.NewInDword[DWordBucket]++;
+			OutClusteredIndices.Add(Vertex.MeshVertex);
 		};
 
 		AddVertex(VertexA);
