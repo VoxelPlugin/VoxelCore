@@ -17,6 +17,7 @@ public:
 	// Triangle list
 	struct FMesh
 	{
+		TConstVoxelArrayView<int32> Indices;
 		TConstVoxelArrayView<FVector3f> Positions;
 		TConstVoxelArrayView<FVoxelOctahedron> Normals;
 		// Optional
@@ -29,6 +30,8 @@ public:
 	// Step is 2^(-PositionPrecision)
 	int32 PositionPrecision = 4;
 	static constexpr int32 NormalBits = 8;
+
+	bool bCompressVertices = false;
 
 	TUniquePtr<FStaticMeshRenderData> CreateRenderData(TVoxelArray<int32>& OutVertexOffsets);
 	UStaticMesh* CreateStaticMesh();

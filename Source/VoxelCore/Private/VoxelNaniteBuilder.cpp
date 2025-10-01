@@ -13,7 +13,7 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData(TVoxelAr
 {
 	VOXEL_FUNCTION_COUNTER();
 	check(Mesh.Positions.Num() == Mesh.Normals.Num());
-	check(Mesh.Positions.Num() % 3 == 0);
+	check(Mesh.Positions.Num() % 3 == 0 || (Mesh.Indices.Num() > 0 && Mesh.Indices.Num() % 3 == 0));
 
 	if (!ensure(Mesh.Positions.Num() > 0))
 	{
@@ -51,9 +51,9 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData(TVoxelAr
 	}
 
 	Resources.RootData = RootData.Array();
-	Resources.PositionPrecision = -1;
-	Resources.NormalPrecision = -1;
-	Resources.NumInputTriangles = 0;
+	Resources.PositionPrecision = PositionPrecision;
+	Resources.NormalPrecision = NormalBits;
+	Resources.NumInputTriangles = Mesh.Indices.Num() / 3;
 	Resources.NumInputVertices = Mesh.Positions.Num();
 #if VOXEL_ENGINE_VERSION < 506
 	Resources.NumInputMeshes = 1;
@@ -520,14 +520,84 @@ TVoxelArray<Voxel::Nanite::FCluster> FVoxelNaniteBuilder::CreateClusters() const
 	using namespace Voxel::Nanite;
 
 	TVoxelArray<FCluster> AllClusters;
-	for (int32 TriangleIndex = 0; TriangleIndex < Mesh.Positions.Num() / 3; TriangleIndex++)
+
+	int32 NumRefs = 0;
+	struct FVertex
+	{
+		int32 MeshVertex = 0;
+		bool bNew = false;
+	};
+	const auto RotateTriangle = [&](
+		FVertex& MeshVertexA,
+		FVertex& MeshVertexB,
+		FVertex& MeshVertexC)
+	{
+		switch (MeshVertexA.bNew + MeshVertexB.bNew + MeshVertexC.bNew)
+		{
+			// Need RRN
+		case 1:
+		{
+			// N1 R2 R3 -> R2 R3 N1
+			if (MeshVertexA.bNew)
+			{
+				// N1 R2 R3 -> R2 N1 R3
+				Swap(MeshVertexA, MeshVertexB);
+				// R2 N1 R3 -> R2 R3 N1
+				Swap(MeshVertexB, MeshVertexC);
+			}
+			// R1 N2 R3 -> R3 R1 N2
+			else if (MeshVertexB.bNew)
+			{
+				// R1 N2 R3 -> N2 R1 R3
+				Swap(MeshVertexA, MeshVertexB);
+				// N2 R1 R3 -> R3 R1 N2
+				Swap(MeshVertexA, MeshVertexC);
+			}
+			break;
+		}
+			// Need RNN
+		case 2:
+		{
+			// N1 N2 R3 -> R3 N1 N2
+			if (MeshVertexA.bNew &&
+				MeshVertexB.bNew)
+			{
+				// N1 N2 R3 -> N2 N1 R3
+				Swap(MeshVertexA, MeshVertexB);
+				// N2 N1 R3 -> R3 N1 N2
+				Swap(MeshVertexA, MeshVertexC);
+			}
+			// N1 R2 N3 -> R2 N3 N1
+			else if (
+				MeshVertexA.bNew &&
+				MeshVertexC.bNew)
+			{
+				// N1 R2 N3 -> R2 N1 N3
+				Swap(MeshVertexA, MeshVertexB);
+				// R2 N1 N3 -> R2 N3 N1
+				Swap(MeshVertexB, MeshVertexC);
+			}
+			break;
+		}
+		case 0: break;
+		case 3: break;
+		default: ensure(false); break;
+		}
+	};
+
+	int32 NewTriangleIndex = 0;
+	for (int32 TriangleIndex = 0; TriangleIndex < Mesh.Indices.Num() / 3; TriangleIndex++)
 	{
 		if (AllClusters.Num() == 0 ||
 			AllClusters.Last().NumTriangles() == NANITE_MAX_CLUSTER_TRIANGLES ||
 			AllClusters.Last().Positions.Num() + 3 > NANITE_MAX_CLUSTER_VERTICES)
 		{
+			NewTriangleIndex = 0;
+
 			FCluster& Cluster = AllClusters.Emplace_GetRef();
 			Cluster.TextureCoordinates.SetNum(Mesh.TextureCoordinates.Num());
+			Cluster.StripBitmaskDWords.SetNumZeroed(3 * (NANITE_MAX_CLUSTER_TRIANGLES / 32));
+			Cluster.MeshIndexToClusterIndex.Reserve(NANITE_MAX_CLUSTER_TRIANGLES * 3);
 
 			for (TVoxelArray<FVector2f>& TextureCoordinate : Cluster.TextureCoordinates)
 			{
@@ -535,33 +605,101 @@ TVoxelArray<Voxel::Nanite::FCluster> FVoxelNaniteBuilder::CreateClusters() const
 			}
 		}
 
+		const uint32 ClusterTriangleIndex = NewTriangleIndex++;
+
+		const uint32 DWordBucket = ClusterTriangleIndex >> 5;
+		const uint32 DWordBitInBucket = ClusterTriangleIndex & 31;
+
 		FCluster& Cluster = AllClusters.Last();
 
-		const int32 IndexA = 3 * TriangleIndex + 0;
-		const int32 IndexB = 3 * TriangleIndex + 1;
-		const int32 IndexC = 3 * TriangleIndex + 2;
-
-		Cluster.Positions.Add(Mesh.Positions[IndexA]);
-		Cluster.Positions.Add(Mesh.Positions[IndexB]);
-		Cluster.Positions.Add(Mesh.Positions[IndexC]);
-
-		Cluster.Normals.Add(Mesh.Normals[IndexA]);
-		Cluster.Normals.Add(Mesh.Normals[IndexB]);
-		Cluster.Normals.Add(Mesh.Normals[IndexC]);
-
-		if (Mesh.Colors.Num() > 0)
+		if (!bCompressVertices)
 		{
-			Cluster.Colors.Add(Mesh.Colors[IndexA]);
-			Cluster.Colors.Add(Mesh.Colors[IndexB]);
-			Cluster.Colors.Add(Mesh.Colors[IndexC]);
+			const auto AddVertex = [&](int32 MeshVertexIndex)
+			{
+				const uint8 NewClusterVertex = Cluster.Positions.Add(Mesh.Positions[MeshVertexIndex]);
+				Cluster.Indices.Add(NewClusterVertex);
+				Cluster.Normals.Add(Mesh.Normals[MeshVertexIndex]);
+
+				if (Mesh.Colors.Num() > 0)
+				{
+					Cluster.Colors.Add(Mesh.Colors[MeshVertexIndex]);
+				}
+
+				for (int32 UVIndex = 0; UVIndex < Cluster.TextureCoordinates.Num(); UVIndex++)
+				{
+					Cluster.TextureCoordinates[UVIndex].Add(Mesh.TextureCoordinates[UVIndex][MeshVertexIndex]);
+				}
+
+				Cluster.MeshIndexToClusterIndex.FindOrAdd(MeshVertexIndex) = NewClusterVertex;
+				Cluster.NewInDword[DWordBucket]++;
+			};
+
+			AddVertex(Mesh.Indices[3 * TriangleIndex + 0]);
+			AddVertex(Mesh.Indices[3 * TriangleIndex + 1]);
+			AddVertex(Mesh.Indices[3 * TriangleIndex + 2]);
+
+			Cluster.StripBitmaskDWords[3 * DWordBucket + 0] |= 1 << DWordBitInBucket;
+			continue;
 		}
 
-		for (int32 UVIndex = 0; UVIndex < Cluster.TextureCoordinates.Num(); UVIndex++)
+		const auto MakeVertex = [&](const int32 MeshVertexIndex) -> FVertex
 		{
-			Cluster.TextureCoordinates[UVIndex].Add(Mesh.TextureCoordinates[UVIndex][IndexA]);
-			Cluster.TextureCoordinates[UVIndex].Add(Mesh.TextureCoordinates[UVIndex][IndexB]);
-			Cluster.TextureCoordinates[UVIndex].Add(Mesh.TextureCoordinates[UVIndex][IndexC]);
-		}
+			if (const uint8* ClusterVertexIndex = Cluster.MeshIndexToClusterIndex.Find(MeshVertexIndex))
+			{
+				return FVertex(MeshVertexIndex, uint32((Cluster.Positions.Num() - 1) - (*ClusterVertexIndex)) >= 30);
+			}
+			return FVertex(MeshVertexIndex, true);
+		};
+
+		FVertex VertexA = MakeVertex(Mesh.Indices[3 * TriangleIndex + 0]);
+		FVertex VertexB = MakeVertex(Mesh.Indices[3 * TriangleIndex + 1]);
+		FVertex VertexC = MakeVertex(Mesh.Indices[3 * TriangleIndex + 2]);
+
+		RotateTriangle(VertexA, VertexB, VertexC);
+
+		const auto AddVertex = [&](FVertex& Vertex)
+		{
+			if (!Vertex.bNew)
+			{
+				NumRefs++;
+				const uint32 Delta = (Cluster.Positions.Num() - 1) - Cluster.MeshIndexToClusterIndex[Vertex.MeshVertex];
+				ensure(Delta < 32);
+
+				Cluster.DeltaWriter.Append(Delta, 5);
+				Cluster.Indices.Add(Cluster.MeshIndexToClusterIndex[Vertex.MeshVertex]);
+				Cluster.RefInDword[DWordBucket]++;
+				return;
+			}
+
+			const uint8 NewClusterVertex = Cluster.Positions.Add(Mesh.Positions[Vertex.MeshVertex]);
+			Cluster.Indices.Add(NewClusterVertex);
+			Cluster.Normals.Add(Mesh.Normals[Vertex.MeshVertex]);
+
+			if (Mesh.Colors.Num() > 0)
+			{
+				Cluster.Colors.Add(Mesh.Colors[Vertex.MeshVertex]);
+			}
+
+			for (int32 UVIndex = 0; UVIndex < Cluster.TextureCoordinates.Num(); UVIndex++)
+			{
+				Cluster.TextureCoordinates[UVIndex].Add(Mesh.TextureCoordinates[UVIndex][Vertex.MeshVertex]);
+			}
+
+			Cluster.MeshIndexToClusterIndex.FindOrAdd(Vertex.MeshVertex) = NewClusterVertex;
+			Cluster.NewInDword[DWordBucket]++;
+		};
+
+		AddVertex(VertexA);
+		AddVertex(VertexB);
+		AddVertex(VertexC);
+
+		const uint32 NumWrittenIndices = 3u - (VertexA.bNew + VertexB.bNew + VertexC.bNew);
+		const uint32 LowBit = NumWrittenIndices & 1u;
+		const uint32 HighBit = (NumWrittenIndices >> 1) & 1u;
+
+		Cluster.StripBitmaskDWords[3 * DWordBucket + 0] |= 1 << DWordBitInBucket;
+		Cluster.StripBitmaskDWords[3 * DWordBucket + 1] |= HighBit << DWordBitInBucket;
+		Cluster.StripBitmaskDWords[3 * DWordBucket + 2] |= LowBit << DWordBitInBucket;
 	}
 	return AllClusters;
 }

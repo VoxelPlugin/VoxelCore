@@ -223,9 +223,9 @@ FPackedCluster FCluster::Pack(const FEncodingInfo& Info) const
 		float MaxEdgeLengthSquared = 0;
 		for (int32 TriangleIndex = 0; TriangleIndex < NumTriangles(); TriangleIndex++)
 		{
-			const FVector3f A = Positions[3 * TriangleIndex + 0];
-			const FVector3f B = Positions[3 * TriangleIndex + 1];
-			const FVector3f C = Positions[3 * TriangleIndex + 2];
+			const FVector3f A = Positions[Indices[3 * TriangleIndex + 0]];
+			const FVector3f B = Positions[Indices[3 * TriangleIndex + 1]];
+			const FVector3f C = Positions[Indices[3 * TriangleIndex + 2]];
 
 			MaxEdgeLengthSquared = FMath::Max(MaxEdgeLengthSquared, FVector3f::DistSquared(A, B));
 			MaxEdgeLengthSquared = FMath::Max(MaxEdgeLengthSquared, FVector3f::DistSquared(B, C));
@@ -547,51 +547,41 @@ void CreatePageData(
 	{
 		checkStatic(NANITE_USE_STRIP_INDICES);
 
+		TVoxelArray<uint8> DeltaWriter;
 		for (int32 ClusterIndex = 0; ClusterIndex < Clusters.Num(); ClusterIndex++)
 		{
-			const FCluster& Cluster = Clusters[ClusterIndex];
+			FCluster& Cluster = Clusters[ClusterIndex];
 			FClusterDiskHeader& ClusterDiskHeader = ClusterDiskHeaders[ClusterIndex];
 
-			TVoxelStaticArray<uint32, 4> NumNewVerticesInDword{ ForceInit };
-			TVoxelStaticArray<uint32, 4> NumRefVerticesInDword{ ForceInit };
-			for (int32 TriangleIndex = 0; TriangleIndex < Cluster.NumTriangles(); TriangleIndex++)
-			{
-				NumNewVerticesInDword[TriangleIndex >> 5] += 3;
-			}
+			checkVoxelSlow(Cluster.NewInDword[0] < 1024);
+			checkVoxelSlow(Cluster.NewInDword[1] < 1024);
+			checkVoxelSlow(Cluster.NewInDword[2] < 1024);
 
-			{
-				uint32 NumBeforeDwords1 = NumNewVerticesInDword[0];
-				uint32 NumBeforeDwords2 = NumNewVerticesInDword[1] + NumBeforeDwords1;
-				uint32 NumBeforeDwords3 = NumNewVerticesInDword[2] + NumBeforeDwords2;
+			uint32 NewVertices1 = Cluster.NewInDword[0];
+			uint32 NewVertices2 = Cluster.NewInDword[1] + NewVertices1;
+			uint32 NewVertices3 = Cluster.NewInDword[2] + NewVertices2;
+			ClusterDiskHeader.NumPrevNewVerticesBeforeDwords =
+				(NewVertices3 << 20) |
+				(NewVertices2 << 10) |
+				(NewVertices1 << 0);
 
-				checkVoxelSlow(NumBeforeDwords1 < 1024);
-				checkVoxelSlow(NumBeforeDwords2 < 1024);
-				checkVoxelSlow(NumBeforeDwords3 < 1024);
+			checkVoxelSlow(Cluster.RefInDword[0] < 1024);
+			checkVoxelSlow(Cluster.RefInDword[1] < 1024);
+			checkVoxelSlow(Cluster.RefInDword[2] < 1024);
 
-				ClusterDiskHeader.NumPrevNewVerticesBeforeDwords =
-					(NumBeforeDwords3 << 20) |
-					(NumBeforeDwords2 << 10) |
-					(NumBeforeDwords1 << 0);
-			}
-
-			{
-				uint32 NumBeforeDwords1 = NumRefVerticesInDword[0];
-				uint32 NumBeforeDwords2 = NumRefVerticesInDword[1] + NumBeforeDwords1;
-				uint32 NumBeforeDwords3 = NumRefVerticesInDword[2] + NumBeforeDwords2;
-
-				checkVoxelSlow(NumBeforeDwords1 < 1024);
-				checkVoxelSlow(NumBeforeDwords2 < 1024);
-				checkVoxelSlow(NumBeforeDwords3 < 1024);
-
-				ClusterDiskHeader.NumPrevRefVerticesBeforeDwords =
-					(NumBeforeDwords3 << 20) |
-					(NumBeforeDwords2 << 10) |
-					(NumBeforeDwords1 << 0);
-			}
+			uint32 RefVertices1 = Cluster.RefInDword[0];
+			uint32 RefVertices2 = Cluster.RefInDword[1] + RefVertices1;
+			uint32 RefVertices3 = Cluster.RefInDword[2] + RefVertices2;
+			ClusterDiskHeader.NumPrevRefVerticesBeforeDwords =
+				(RefVertices3 << 20) |
+				(RefVertices2 << 10) |
+				(RefVertices1 << 0);
 
 			ClusterDiskHeader.IndexDataOffset = GetPageOffset();
-			// No vertex reuse PagePointer.Append(Cluster.StripIndexData);
+			Cluster.DeltaWriter.Flush(sizeof(uint32));
+			PageData.Append(Cluster.DeltaWriter.GetByteData());
 		}
+
 		while (PageData.Num() % sizeof(uint32) != 0)
 		{
 			PageData.Add(0);
@@ -608,14 +598,13 @@ void CreatePageData(
 
 			TVoxelChunkedArrayRef<uint32> Bitmasks = AllocateChunkedArrayRef(PageData, 3 * NumDwords);
 
+			FCluster& Cluster = Clusters[ClusterIndex];
 			// See UnpackStripIndices
 			for (int32 Index = 0; Index < NumDwords; Index++)
 			{
-				// Always start of new strip
-				Bitmasks[3 * Index + 0] = 0xFFFFFFFF;
-				// Never reuse vertices
-				Bitmasks[3 * Index + 1] = 0;
-				Bitmasks[3 * Index + 2] = 0;
+				Bitmasks[3 * Index + 0] = Cluster.StripBitmaskDWords[3 * Index + 0];
+				Bitmasks[3 * Index + 1] = Cluster.StripBitmaskDWords[3 * Index + 1];
+				Bitmasks[3 * Index + 2] = Cluster.StripBitmaskDWords[3 * Index + 2];
 			}
 		}
 	}

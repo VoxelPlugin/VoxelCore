@@ -271,6 +271,15 @@ public:
 	TVoxelArray<FColor> Colors;
 	TVoxelFixedArray<TVoxelArray<FVector2f>, NANITE_MAX_UVS> TextureCoordinates;
 
+	TVoxelArray<uint8> Indices;
+	TVoxelArray<uint32> StripBitmaskDWords;
+
+	FVoxelBitWriter DeltaWriter;
+	TVoxelStaticArray<uint32, 4> NewInDword { 0, 0, 0, 0 };
+	TVoxelStaticArray<uint32, 4> RefInDword { 0, 0, 0, 0 };
+
+	TVoxelMap<uint32, uint8> MeshIndexToClusterIndex;
+
 	FCluster();
 
 	FVoxelBox GetBounds() const;
@@ -285,6 +294,12 @@ public:
 	}
 	FORCEINLINE int32 NumTriangles() const
 	{
+		if (Indices.Num() > 0)
+		{
+			checkVoxelSlow(Indices.Num() % 3 == 0);
+			return Indices.Num() / 3;
+		}
+
 		checkVoxelSlow(Positions.Num() % 3 == 0);
 		return Positions.Num() / 3;
 	}
