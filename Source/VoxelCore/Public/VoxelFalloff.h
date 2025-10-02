@@ -32,7 +32,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Config")
 	EVoxelFalloffType Type = EVoxelFalloffType::Smooth;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Config", meta = (EditCondition = "Type != EVoxelFalloffType::None", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Config", meta = (ClampMin = "0", ClampMax = "1", EditCondition = "Type != EVoxelFalloffType::None", EditConditionHides))
 	float Amount = 0.5f;
 
 public:
