@@ -9,9 +9,7 @@
 #include "Nanite/NaniteFixupChunk.h"
 #endif
 
-TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData(
-	TVoxelArray<int32>& OutVertexOffsets,
-	TVoxelArray<int32>& OutClusteredIndices)
+TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData()
 {
 	VOXEL_FUNCTION_COUNTER();
 	check(Mesh.Positions.Num() == Mesh.Normals.Num());
@@ -28,7 +26,7 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData(
 
 	Nanite::FResources Resources;
 
-	TVoxelArray<TUniquePtr<FCluster>> AllClusters = CreateClusters(OutClusteredIndices);
+	TVoxelArray<TUniquePtr<FCluster>> AllClusters = CreateClusters();
 
 	FEncodingSettings EncodingSettings;
 	EncodingSettings.PositionPrecision = PositionPrecision;
@@ -44,8 +42,8 @@ TUniquePtr<FStaticMeshRenderData> FVoxelNaniteBuilder::CreateRenderData(
 		Pages,
 		RootData,
 		AllClusters.Num(),
-		OutVertexOffsets,
-		Bounds
+		Bounds,
+		FMath::FloorLog2(Mesh.Positions.Num()) + 1
 	};
 	if (!Build(BuildData))
 	{
@@ -99,9 +97,7 @@ UStaticMesh* FVoxelNaniteBuilder::CreateStaticMesh()
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	TVoxelArray<int32> VertexOffsets;
-	TVoxelArray<int32> ClusteredIndices;
-	return CreateStaticMesh(CreateRenderData(VertexOffsets, ClusteredIndices));
+	return CreateStaticMesh(CreateRenderData());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -232,7 +228,6 @@ bool FVoxelNaniteBuilder::Build(FBuildData& BuildData)
 		return false;
 	}
 
-	int32 VertexOffset = 0;
 	int32 ClusterIndexOffset = 0;
 	for (int32 PageIndex = 0; PageIndex < BuildData.Pages.Num(); PageIndex++)
 	{
@@ -326,13 +321,10 @@ bool FVoxelNaniteBuilder::Build(FBuildData& BuildData)
 
 		const int32 PageStartIndex = BuildData.RootData.Num();
 
-		BuildData.OutVertexOffsets.Add(VertexOffset);
-
 		CreatePageData(
 			PageClusters,
 			BuildData.EncodingSettings,
-			BuildData.RootData,
-			VertexOffset);
+			BuildData.RootData);
 
 		PageStreamingState.DependenciesStart = 0;
 		PageStreamingState.DependenciesNum = 0;
@@ -478,13 +470,10 @@ bool FVoxelNaniteBuilder::Build(FBuildData& BuildData)
 
 		const int32 PageStartIndex = BuildData.RootData.Num();
 
-		BuildData.OutVertexOffsets.Add(VertexOffset);
-
 		CreatePageData(
 			Clusters,
 			BuildData.EncodingSettings,
-			BuildData.RootData,
-			VertexOffset);
+			BuildData.RootData);
 
 		PageStreamingState.BulkSize = BuildData.RootData.Num() - PageStreamingState.BulkOffset;
 		PageStreamingState.PageSize = BuildData.RootData.Num() - PageStartIndex;
@@ -518,7 +507,7 @@ bool FVoxelNaniteBuilder::Build(FBuildData& BuildData)
 }
 #endif
 
-TVoxelArray<TUniquePtr<Voxel::Nanite::FCluster>> FVoxelNaniteBuilder::CreateClusters(TVoxelArray<int32>& OutClusteredIndices) const
+TVoxelArray<TUniquePtr<Voxel::Nanite::FCluster>> FVoxelNaniteBuilder::CreateClusters() const
 {
 	VOXEL_FUNCTION_COUNTER();
 
@@ -591,11 +580,7 @@ TVoxelArray<TUniquePtr<Voxel::Nanite::FCluster>> FVoxelNaniteBuilder::CreateClus
 		}
 	};
 
-	if (bCompressVertices)
-	{
-		OutClusteredIndices.Reserve(Mesh.Positions.Num() * 2);
-	}
-
+	const uint8 IndexSize = FMath::FloorLog2(Mesh.Positions.Num()) + 1;
 	int32 NewTriangleIndex = 0;
 	for (int32 TriangleIndex = 0; TriangleIndex < Mesh.Indices.Num() / 3; TriangleIndex++)
 	{
@@ -610,6 +595,9 @@ TVoxelArray<TUniquePtr<Voxel::Nanite::FCluster>> FVoxelNaniteBuilder::CreateClus
 			FCluster& Cluster = *AllClusters.Add_GetRef(MakeUnique<FCluster>());
 			Cluster.TextureCoordinates.SetNum(Mesh.TextureCoordinates.Num());
 			Cluster.MeshIndexToClusterIndex.Reserve(NANITE_MAX_CLUSTER_TRIANGLES * 3);
+			Cluster.ExtendedData.Append(0x2F66ED8E, 32);
+			Cluster.ExtendedData.Append(ChunkIndex, 32);
+			Cluster.ExtendedData.Append(IndexSize, 6);
 		}
 
 		const uint32 ClusterTriangleIndex = NewTriangleIndex++;
@@ -639,6 +627,7 @@ TVoxelArray<TUniquePtr<Voxel::Nanite::FCluster>> FVoxelNaniteBuilder::CreateClus
 
 				Cluster.MeshIndexToClusterIndex.FindOrAdd(MeshVertexIndex) = NewClusterVertex;
 				Cluster.NewInDword[DWordBucket]++;
+				Cluster.ExtendedData.Append(MeshVertexIndex, IndexSize);
 			};
 
 			AddVertex(Mesh.Indices[3 * TriangleIndex + 0]);
@@ -694,7 +683,7 @@ TVoxelArray<TUniquePtr<Voxel::Nanite::FCluster>> FVoxelNaniteBuilder::CreateClus
 
 			Cluster.MeshIndexToClusterIndex.FindOrAdd(Vertex.MeshVertex) = NewClusterVertex;
 			Cluster.NewInDword[DWordBucket]++;
-			OutClusteredIndices.Add(Vertex.MeshVertex);
+			Cluster.ExtendedData.Append(Vertex.MeshVertex, IndexSize);
 		};
 
 		AddVertex(VertexA);

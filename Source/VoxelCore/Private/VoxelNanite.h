@@ -51,17 +51,13 @@ struct FClusterDiskHeader
 struct FPageSections
 {
 	uint32 Cluster = 0;
-#if VOXEL_ENGINE_VERSION >= 507
 	uint32 ClusterBoneInfluence = 0;
 	uint32 VoxelBoneInfluence = 0;
-#endif
 	uint32 MaterialTable = 0;
 	uint32 VertReuseBatchInfo = 0;
-#if VOXEL_ENGINE_VERSION >= 507
 	uint32 BoneInfluence = 0;
 	uint32 BrickData = 0;
 	uint32 ExtendedData = 0;
-#endif
 	uint32 DecodeInfo = 0;
 	uint32 Index = 0;
 	uint32 Position = 0;
@@ -85,7 +81,6 @@ struct FPageSections
 		return NANITE_GPU_PAGE_HEADER_SIZE;
 	}
 
-#if VOXEL_ENGINE_VERSION >= 507
 	uint32 GetClusterBoneInfluenceSize() const
 	{
 		return Align(ClusterBoneInfluence, 16);
@@ -162,60 +157,6 @@ struct FPageSections
 		Position			+=	Other.Position;
 		Attribute			+=	Other.Attribute;
 	}
-#else
-	uint32 GetMaterialTableOffset() const
-	{
-		return GetClusterOffset() + Cluster;
-	}
-	uint32 GetVertReuseBatchInfoOffset() const
-	{
-		return GetMaterialTableOffset() + GetMaterialTableSize();
-	}
-	uint32 GetDecodeInfoOffset() const
-	{
-		return GetVertReuseBatchInfoOffset() + GetVertReuseBatchInfoSize();
-	}
-	uint32 GetIndexOffset() const
-	{
-		return GetDecodeInfoOffset() + DecodeInfo;
-	}
-	uint32 GetPositionOffset() const
-	{
-		return GetIndexOffset() + Index;
-	}
-	uint32 GetAttributeOffset() const
-	{
-		return GetPositionOffset() + Position;
-	}
-	uint32 GetTotal() const
-	{
-		return GetAttributeOffset() + Attribute;
-	}
-
-	FPageSections GetOffsets() const
-	{
-		return FPageSections
-		{
-			GetClusterOffset(),
-			GetMaterialTableOffset(),
-			GetVertReuseBatchInfoOffset(),
-			GetDecodeInfoOffset(),
-			GetIndexOffset(),
-			GetPositionOffset(),
-			GetAttributeOffset()
-		};
-	}
-	void operator+=(const FPageSections& Other)
-	{
-		Cluster += Other.Cluster;
-		MaterialTable += Other.MaterialTable;
-		VertReuseBatchInfo += Other.VertReuseBatchInfo;
-		DecodeInfo += Other.DecodeInfo;
-		Index += Other.Index;
-		Position += Other.Position;
-		Attribute += Other.Attribute;
-	}
-#endif
 };
 
 struct FUVRange
@@ -279,11 +220,12 @@ public:
 	TVoxelStaticArray<uint32, 4> RefInDword { 0, 0, 0, 0 };
 
 	TVoxelMap<uint32, uint8> MeshIndexToClusterIndex;
+	FVoxelBitWriter ExtendedData;
 
 	FCluster();
 
 	FVoxelBox GetBounds() const;
-	const FEncodingInfo& GetEncodingInfo(const FEncodingSettings& Settings) const;
+	const FEncodingInfo& GetEncodingInfo(const FEncodingSettings& Settings);
 
 	FPackedCluster Pack(const FEncodingInfo& Info) const;
 
@@ -319,6 +261,5 @@ private:
 void CreatePageData(
 	TVoxelArrayView<TUniquePtr<FCluster>> Clusters,
 	const FEncodingSettings& EncodingSettings,
-	TVoxelChunkedArray<uint8>& PageData,
-	int32& VertexOffset);
+	TVoxelChunkedArray<uint8>& PageData);
 }

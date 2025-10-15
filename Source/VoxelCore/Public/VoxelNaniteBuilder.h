@@ -32,12 +32,11 @@ public:
 	static constexpr int32 NormalBits = 8;
 
 	bool bCompressVertices = false;
+	int32 ChunkIndex = -1;
 
 	// OutClusteredIndices will be filled only when compressing vertices;
 	// In other case, original indices array does represent clustered indices
-	TUniquePtr<FStaticMeshRenderData> CreateRenderData(
-		TVoxelArray<int32>& OutVertexOffsets,
-		TVoxelArray<int32>& OutClusteredIndices);
+	TUniquePtr<FStaticMeshRenderData> CreateRenderData();
 	UStaticMesh* CreateStaticMesh();
 
 public:
@@ -57,13 +56,13 @@ private:
 		TVoxelArray<TVoxelArray<TUniquePtr<FCluster>>>& Pages;
 		TVoxelChunkedArray<uint8>& RootData;
 		int32 NumClusters;
-		TVoxelArray<int32>& OutVertexOffsets;
 		const FVoxelBox& Bounds;
+		const uint8 NumBitsPerIndex;
 	};
 
 	bool Build(FBuildData& BuildData);
 
-	TVoxelArray<TUniquePtr<FCluster>> CreateClusters(TVoxelArray<int32>& OutClusteredIndices) const;
+	TVoxelArray<TUniquePtr<FCluster>> CreateClusters() const;
 
 	TVoxelArray<TVoxelArray<TUniquePtr<FCluster>>> CreatePages(
 		TVoxelArray<TUniquePtr<FCluster>>& Clusters,

@@ -97,7 +97,7 @@ FVoxelBox FCluster::GetBounds() const
 	return CachedBounds.GetValue();
 }
 
-const FEncodingInfo& FCluster::GetEncodingInfo(const FEncodingSettings& Settings) const
+const FEncodingInfo& FCluster::GetEncodingInfo(const FEncodingSettings& Settings)
 {
 	if (CachedEncodingInfo.IsSet())
 	{
@@ -200,6 +200,9 @@ const FEncodingInfo& FCluster::GetEncodingInfo(const FEncodingSettings& Settings
 
 	GpuSizes.Position = FMath::DivideAndRoundUp(NumVertices() * PositionBitsPerVertex, 32) * sizeof(uint32);
 	GpuSizes.Attribute = FMath::DivideAndRoundUp(NumVertices() * Info.BitsPerAttribute, 32) * sizeof(uint32);
+
+	ExtendedData.Flush(sizeof(uint32));
+	GpuSizes.ExtendedData = ExtendedData.GetByteData().Num();
 
 	CachedEncodingInfo = Info;
 
@@ -319,11 +322,9 @@ FPackedCluster FCluster::Pack(const FEncodingInfo& Info) const
 void CreatePageData(
 	const TVoxelArrayView<TUniquePtr<FCluster>> Clusters,
 	const FEncodingSettings& EncodingSettings,
-	TVoxelChunkedArray<uint8>& PageData,
-	int32& VertexOffset)
+	TVoxelChunkedArray<uint8>& PageData)
 {
 	VOXEL_FUNCTION_COUNTER();
-	ensure(PageData.Num() % sizeof(uint32) == 0);
 
 	const int32 PageStartIndex = PageData.Num();
 	const auto GetPageOffset = [&]
@@ -331,7 +332,6 @@ void CreatePageData(
 		return PageData.Num() - PageStartIndex;
 	};
 
-	const int32 StartVertexOffset = VertexOffset;
 	const int32 NumUVs = Clusters[0]->TextureCoordinates.Num();
 
 	for (TUniquePtr<FCluster>& Cluster : Clusters)
@@ -342,7 +342,7 @@ void CreatePageData(
 
 	TVoxelArray<FEncodingInfo> EncodingInfos;
 	EncodingInfos.Reserve(Clusters.Num());
-	for (const TUniquePtr<FCluster>& Cluster : Clusters)
+	for (TUniquePtr<FCluster>& Cluster : Clusters)
 	{
 		EncodingInfos.Add(Cluster->GetEncodingInfo(EncodingSettings));
 	}
@@ -364,15 +364,6 @@ void CreatePageData(
 
 		FPackedCluster& PackedCluster = PackedClusters.Emplace_GetRef();
 		PackedCluster = Cluster.Pack(Info);
-
-		{
-			const int32 RelativeVertexOffset = VertexOffset - StartVertexOffset;
-			ensure(FVoxelUtilities::IsValidUINT16(RelativeVertexOffset));
-			// We use Cluster.GroupIndex as the offset in the page
-			// Look for VOXEL_GROUP_INDEX
-			PackedCluster.SetGroupIndex(RelativeVertexOffset);
-		}
-		VertexOffset += Cluster.NumVertices();
 
 		constexpr int32 NumBits_BatchCount = 4;
 		const int32 NumBatches = Cluster.NumMaterialBatches();
@@ -416,9 +407,23 @@ void CreatePageData(
 			GpuSectionOffsets.VertReuseBatchInfo,
 			1);
 
+#if VOXEL_ENGINE_VERSION >= 506
+		PackedCluster.SetExtendedDataOffset(GpuSectionOffsets.ExtendedData);
+		PackedCluster.SetExtendedDataNum(1023);
+#else
+		const auto SetBits = [](uint32& Value, uint32 Bits, uint32 NumBits, uint32 Offset)
+		{
+			uint32 Mask = (1u << NumBits) - 1u;
+			check(Bits <= Mask);
+			Mask <<= Offset;
+			Value = (Value & ~Mask) | (Bits << Offset);
+		};
+		SetBits(PackedCluster.ExtendedDataOffset_Num, GpuSectionOffsets.ExtendedData, 22, 0);
+		SetBits(PackedCluster.ExtendedDataOffset_Num, 1023, 10, 22);
+#endif
+
 		GpuSectionOffsets += Info.GpuSizes;
 	}
-#if VOXEL_ENGINE_VERSION >= 507
 	check(GpuSectionOffsets.Cluster							== PageGpuSizes.GetClusterBoneInfluenceOffset());
 	check(Align(GpuSectionOffsets.MaterialTable, 16)		== PageGpuSizes.GetVertReuseBatchInfoOffset());
 	check(Align(GpuSectionOffsets.VertReuseBatchInfo, 16)	== PageGpuSizes.GetBoneInfluenceOffset());
@@ -429,15 +434,6 @@ void CreatePageData(
 	check(GpuSectionOffsets.Index							== PageGpuSizes.GetPositionOffset());
 	check(GpuSectionOffsets.Position						== PageGpuSizes.GetAttributeOffset());
 	check(GpuSectionOffsets.Attribute						== PageGpuSizes.GetTotal());
-#else
-	checkVoxelSlow(GpuSectionOffsets.Cluster == PageGpuSizes.GetMaterialTableOffset());
-	checkVoxelSlow(Align(GpuSectionOffsets.MaterialTable, 16) == PageGpuSizes.GetVertReuseBatchInfoOffset());
-	checkVoxelSlow(Align(GpuSectionOffsets.VertReuseBatchInfo, 16) == PageGpuSizes.GetDecodeInfoOffset());
-	checkVoxelSlow(GpuSectionOffsets.DecodeInfo == PageGpuSizes.GetIndexOffset());
-	checkVoxelSlow(GpuSectionOffsets.Index == PageGpuSizes.GetPositionOffset());
-	checkVoxelSlow(GpuSectionOffsets.Position == PageGpuSizes.GetAttributeOffset());
-	checkVoxelSlow(GpuSectionOffsets.Attribute == PageGpuSizes.GetTotal());
-#endif
 
 	ensure(PageGpuSizes.GetTotal() <= NANITE_ROOT_PAGE_GPU_SIZE);
 
@@ -500,7 +496,16 @@ void CreatePageData(
 
 	// Extended data
 	{
-		// Do nothing
+		const uint32 DecodeInfoOffset = GetPageOffset();
+		for (int32 ClusterIndex = 0; ClusterIndex < Clusters.Num(); ClusterIndex++)
+		{
+			FCluster& Cluster = *Clusters[ClusterIndex];
+			PageData.Append(Cluster.ExtendedData.GetByteData());
+		}
+		while ((GetPageOffset() - DecodeInfoOffset) % 16 != 0)
+		{
+			PageData.Add(0);
+		}
 	}
 
 	// Decode information
@@ -582,7 +587,7 @@ void CreatePageData(
 			PageData.Append(Cluster.DeltaWriter.GetByteData());
 		}
 
-		while (PageData.Num() % sizeof(uint32) != 0)
+		while (GetPageOffset() % sizeof(uint32) != 0)
 		{
 			PageData.Add(0);
 		}
@@ -634,7 +639,7 @@ void CreatePageData(
 			ClusterDiskHeader.VertexRefDataOffset = GetPageOffset();
 			ClusterDiskHeader.NumVertexRefs = 0;
 		}
-		while (PageData.Num() % sizeof(uint32) != 0)
+		while (GetPageOffset() % sizeof(uint32) != 0)
 		{
 			PageData.Add(0);
 		}
@@ -835,7 +840,7 @@ void CreatePageData(
 			ensure(ClusterDiskHeaders[Clusters.Num() - 1].MidBytesOffset + ByteStreamCounters[Clusters.Num() - 1].Mid == ClusterDiskHeaders[0].HighBytesOffset);
 			ensure(ClusterDiskHeaders[Clusters.Num() - 1].HighBytesOffset + ByteStreamCounters[Clusters.Num() - 1].High == GetPageOffset());
 
-			while (PageData.Num() % sizeof(uint32) != 0)
+			while (GetPageOffset() % sizeof(uint32) != 0)
 			{
 				PageData.Add(0);
 			}
