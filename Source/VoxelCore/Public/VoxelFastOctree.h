@@ -155,7 +155,7 @@ public:
 	}
 
 public:
-	void CreateChild(const FNodeRef NodeRef, const int32 Child)
+	FORCENOINLINE int32 CreateChild(const FNodeRef NodeRef, const int32 Child)
 	{
 		checkVoxelSlow(NodeRef.Height > 0);
 		checkVoxelSlow(0 <= Child && Child < 8);
@@ -170,6 +170,7 @@ public:
 		int32& ChildIndex = IndexToChildren[NodeRef.Index][Child];
 		checkVoxelSlow(ChildIndex == -1);
 		ChildIndex = NewChildIndex;
+		return ChildIndex;
 	}
 	FORCENOINLINE void DestroyChild(const FNodeRef NodeRef, const int32 Child)
 	{
@@ -215,41 +216,20 @@ public:
 		return true;
 	}
 
-public:
-	FORCEINLINE bool HasAnyChildren(const FNodeRef NodeRef) const
+	template<typename VectorType>
+	FORCEINLINE FNodeRef FindOrAddChild(const FNodeRef NodeRef, const VectorType Position)
 	{
-		const FChildren& Children = IndexToChildren[NodeRef.Index];
-		return
-			Children[0] != -1 ||
-			Children[1] != -1 ||
-			Children[2] != -1 ||
-			Children[3] != -1 ||
-			Children[4] != -1 ||
-			Children[5] != -1 ||
-			Children[6] != -1 ||
-			Children[7] != -1;
-	}
-	void CreateAllChildren(const FNodeRef NodeRef)
-	{
-		const FChildren Children = IndexToChildren[NodeRef.Index];
-		for (int32 Index = 0; Index < 8; Index++)
+		const int32 Child =
+			1 * (Position.X >= NodeRef.Center.X) +
+			2 * (Position.Y >= NodeRef.Center.Y) +
+			4 * (Position.Z >= NodeRef.Center.Z);
+
+		int32 ChildIndex = IndexToChildren[NodeRef.Index][Child];
+		if (ChildIndex == -1)
 		{
-			if (Children[Index] == -1)
-			{
-				this->CreateChild(NodeRef, Index);
-			}
+			ChildIndex = this->CreateChild(NodeRef, Child);
 		}
-	}
-	void DestroyAllChildren(const FNodeRef NodeRef)
-	{
-		const FChildren Children = IndexToChildren[NodeRef.Index];
-		for (int32 Index = 0; Index < 8; Index++)
-		{
-			if (Children[Index] != -1)
-			{
-				this->DestroyChild(NodeRef, Index);
-			}
-		}
+		return FNodeRef(ChildIndex, NodeRef.Height - 1, NodeRef.GetChildCenter(Child));
 	}
 
 public:
@@ -320,26 +300,6 @@ public:
 		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterateTree>) &&
 		LambdaHasSignature_V<LambdaType, ReturnType(const FNodeRef&)>
 	)
-	FORCEINLINE void TraverseChildren(const FNodeRef& NodeRef, LambdaType Lambda) const
-	{
-		const FChildren Children = IndexToChildren[NodeRef.Index];
-
-		if (Children[0] != -1) { this->Traverse(FNodeRef(Children[0], NodeRef.Height - 1, NodeRef.GetChildCenter(0)), Lambda); }
-		if (Children[1] != -1) { this->Traverse(FNodeRef(Children[1], NodeRef.Height - 1, NodeRef.GetChildCenter(1)), Lambda); }
-		if (Children[2] != -1) { this->Traverse(FNodeRef(Children[2], NodeRef.Height - 1, NodeRef.GetChildCenter(2)), Lambda); }
-		if (Children[3] != -1) { this->Traverse(FNodeRef(Children[3], NodeRef.Height - 1, NodeRef.GetChildCenter(3)), Lambda); }
-		if (Children[4] != -1) { this->Traverse(FNodeRef(Children[4], NodeRef.Height - 1, NodeRef.GetChildCenter(4)), Lambda); }
-		if (Children[5] != -1) { this->Traverse(FNodeRef(Children[5], NodeRef.Height - 1, NodeRef.GetChildCenter(5)), Lambda); }
-		if (Children[6] != -1) { this->Traverse(FNodeRef(Children[6], NodeRef.Height - 1, NodeRef.GetChildCenter(6)), Lambda); }
-		if (Children[7] != -1) { this->Traverse(FNodeRef(Children[7], NodeRef.Height - 1, NodeRef.GetChildCenter(7)), Lambda); }
-	}
-
-	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
-	requires
-	(
-		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterateTree>) &&
-		LambdaHasSignature_V<LambdaType, ReturnType(const FNodeRef&)>
-	)
 	FORCENOINLINE void TraverseBounds(const FVoxelIntBox& Bounds, LambdaType Lambda) const
 	{
 		TVoxelStaticArray<FNodeRef, 8 * MaxDepth> NodesToTraverse{ NoInit };
@@ -388,58 +348,20 @@ public:
 		}
 	}
 
-public:
-	template<typename PredicateType, typename AddNodeType, typename RemoveNodeType>
-	void Update(
-		const FNodeRef NodeRef,
-		const PredicateType& Predicate,
-		const AddNodeType& AddNode,
-		const RemoveNodeType& RemoveNode)
+	FORCENOINLINE FNodeRef FindOrAddLeaf(const FIntVector& Position)
 	{
-		if (NodeRef.Height == 0)
+		FNodeRef NodeRef = Root();
+
+		while (NodeRef.GetHeight() > 0)
 		{
-			return;
+			checkVoxelSlow(NodeRef.GetBounds().Contains(Position));
+
+			NodeRef = this->FindOrAddChild(NodeRef, Position);
 		}
+		checkVoxelSlow(NodeRef.GetHeight() == 0);
+		checkVoxelSlow(NodeRef.GetMin() == Position);
 
-		for (int32 Child = 0; Child < 8; Child++)
-		{
-			if (IndexToChildren[NodeRef.Index][Child] == -1)
-			{
-				const FNodeRef DummyChildNodeRef(FNodeRef::InvalidIndex, NodeRef.Height - 1, NodeRef.GetChildCenter(Child));
-				if (!Predicate(DummyChildNodeRef))
-				{
-					continue;
-				}
-
-				this->CreateChild(NodeRef, Child);
-
-				const FNodeRef ChildNodeRef(IndexToChildren[NodeRef.Index][Child], NodeRef.Height - 1, NodeRef.GetChildCenter(Child));
-				AddNode(ChildNodeRef);
-				this->Update(ChildNodeRef, Predicate, AddNode, RemoveNode);
-			}
-			else
-			{
-				const FNodeRef ChildNodeRef(IndexToChildren[NodeRef.Index][Child], NodeRef.Height - 1, NodeRef.GetChildCenter(Child));
-				this->Update(ChildNodeRef, Predicate, AddNode, RemoveNode);
-
-				if (Predicate(ChildNodeRef))
-				{
-					continue;
-				}
-
-				ensureVoxelSlowNoSideEffects(!this->HasAnyChildren(ChildNodeRef));
-				RemoveNode(ChildNodeRef);
-				this->DestroyChild(NodeRef, Child);
-			}
-		}
-	}
-	template<typename PredicateType, typename AddNodeType, typename RemoveNodeType>
-	void Update(
-		const PredicateType& Predicate,
-		const AddNodeType& AddNode,
-		const RemoveNodeType& RemoveNode)
-	{
-		this->Update(Root(), Predicate, AddNode, RemoveNode);
+		return NodeRef;
 	}
 
 private:

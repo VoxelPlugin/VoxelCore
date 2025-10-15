@@ -4,6 +4,15 @@
 #include "VoxelTaskContext.h"
 #include "VoxelDebugDrawerManager.h"
 
+VOXEL_CONSOLE_VARIABLE(
+	VOXELCORE_API, bool, GVoxelFreezeDebugDraws, false,
+	"voxel.FreezeDebugDraws",
+	"Freeze timed debug draws so they never expire");
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 FVoxelDebugDrawer::FVoxelDebugDrawer()
 	: World(GVoxelDebugDrawerManager->DefaultWorld)
 {
@@ -248,7 +257,7 @@ void FVoxelDebugDrawGroup::IterateDraws(
 		OutDraws.Add(Draw.Draw);
 
 		if (Draw.bIsOneFrame ||
-			Draw.EndTime < Time)
+			(!GVoxelFreezeDebugDraws && Draw.EndTime < Time))
 		{
 			Draws_RequiresLock.RemoveAtSwap(Index);
 			Index--;
