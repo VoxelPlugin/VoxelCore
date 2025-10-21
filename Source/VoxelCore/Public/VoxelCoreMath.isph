@@ -633,6 +633,15 @@ FORCEINLINE generic float2 clamp(
 		clamp(Value.x, A.x, B.x),
 		clamp(Value.y, A.y, B.y));
 }
+FORCEINLINE generic float2 clamp(
+	const generic float2 Value,
+	const generic float A,
+	const generic float B)
+{
+	return MakeFloat2(
+		clamp(Value.x, A, B),
+		clamp(Value.y, A, B));
+}
 FORCEINLINE generic float3 clamp(
 	const generic float3 Value,
 	const generic float3 A,

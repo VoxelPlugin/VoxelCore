@@ -20,19 +20,24 @@ void FVoxelDistanceFieldWrapper::FMip::Initialize(const FVoxelDistanceFieldWrapp
 	DistanceFieldToVolumeScaleBias = FVector2D(2.0f * MaxDistanceForEncoding, -MaxDistanceForEncoding);
 }
 
-FVoxelDistanceFieldWrapper::FBrick* FVoxelDistanceFieldWrapper::FMip::FindBrick(const FIntVector& Position)
+bool FVoxelDistanceFieldWrapper::FMip::IsValidPosition(const FIntVector& Position) const
 {
-	return Bricks[FVoxelUtilities::Get3DIndex<int32>(IndirectionSize, Position)].Get();
+	return Bricks.IsValidIndex(FVoxelUtilities::Get3DIndex<int32>(IndirectionSize, Position));
 }
 
-FVoxelDistanceFieldWrapper::FBrick& FVoxelDistanceFieldWrapper::FMip::FindOrAddBrick(const FIntVector& Position)
+TSharedPtr<FVoxelDistanceFieldWrapper::FBrick> FVoxelDistanceFieldWrapper::FMip::FindBrick(const FIntVector& Position)
+{
+	return Bricks[FVoxelUtilities::Get3DIndex<int32>(IndirectionSize, Position)];
+}
+
+TSharedRef<FVoxelDistanceFieldWrapper::FBrick> FVoxelDistanceFieldWrapper::FMip::FindOrAddBrick(const FIntVector& Position)
 {
 	TSharedPtr<FBrick>& Ptr = Bricks[FVoxelUtilities::Get3DIndex<int32>(IndirectionSize, Position)];
 	if (!Ptr)
 	{
-		Ptr = MakeShared<FBrick>(NoInit);
+		Ptr = MakeShared<FBrick>(255);
 	}
-	return *Ptr;
+	return Ptr.ToSharedRef();
 }
 
 void FVoxelDistanceFieldWrapper::FMip::AddBrick(

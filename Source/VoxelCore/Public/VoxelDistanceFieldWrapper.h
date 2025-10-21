@@ -15,12 +15,17 @@ public:
 	public:
 		void Initialize(const FVoxelDistanceFieldWrapper& Wrapper);
 
-		FBrick* FindBrick(const FIntVector& Position);
-		FBrick& FindOrAddBrick(const FIntVector& Position);
+		bool IsValidPosition(const FIntVector& Position) const;
+		TSharedPtr<FBrick> FindBrick(const FIntVector& Position);
+		TSharedRef<FBrick> FindOrAddBrick(const FIntVector& Position);
 
 		void AddBrick(
 			const FIntVector& Position,
 			const TSharedRef<FBrick>& Brick);
+		TVoxelArrayView<TSharedPtr<FBrick>> GetBricks()
+		{
+			return Bricks;
+		}
 
 		FORCEINLINE uint8 QuantizeDistance(const float Distance) const
 		{
@@ -31,6 +36,21 @@ public:
 			checkVoxelSlow(DistanceField::DistanceFieldFormat == PF_G8);
 
 			return FMath::Clamp<int32>(FMath::FloorToInt(RescaledDistance * 255.0f + .5f), 0, 255);
+		}
+
+		float GetLocalToVolumeScale() const
+		{
+			return LocalToVolumeScale;
+		}
+
+		const FVector2D& GetDistanceFieldToVolumeScaleBias() const
+		{
+			return DistanceFieldToVolumeScaleBias;
+		}
+
+		const FIntVector& GetIndirectionSize() const
+		{
+			return IndirectionSize;
 		}
 
 	private:
