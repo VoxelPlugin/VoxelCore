@@ -2,14 +2,16 @@
 
 #include "VoxelMinimal.h"
 
-FVoxelWriter::FVoxelWriter()
+FVoxelWriterArchive::FVoxelWriterArchive()
 {
-	Impl.SetIsSaving(true);
-	Impl.SetIsPersistent(true);
+	SetIsSaving(true);
+	SetIsPersistent(true);
 }
 
-void FVoxelWriter::FArchiveImpl::Serialize(void* Data, const int64 NumToSerialize)
+void FVoxelWriterArchive::Serialize(void* Data, const int64 NumToSerialize)
 {
+	VOXEL_FUNCTION_COUNTER_NUM(NumToSerialize, 128);
+
 	if (NumToSerialize == 0)
 	{
 		return;
@@ -27,12 +29,12 @@ void FVoxelWriter::FArchiveImpl::Serialize(void* Data, const int64 NumToSerializ
 	Offset += NumToSerialize;
 }
 
-int64 FVoxelWriter::FArchiveImpl::TotalSize()
+int64 FVoxelWriterArchive::TotalSize()
 {
 	return Bytes.Num();
 }
 
-FString FVoxelWriter::FArchiveImpl::GetArchiveName() const
+FString FVoxelWriterArchive::GetArchiveName() const
 {
 	return "FVoxelArchive";
 }
@@ -41,15 +43,16 @@ FString FVoxelWriter::FArchiveImpl::GetArchiveName() const
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FVoxelReader::FVoxelReader(const TConstVoxelArrayView64<uint8> Bytes)
-	: Impl(Bytes)
+FVoxelReaderArchive::FVoxelReaderArchive(const TConstVoxelArrayView64<uint8>& Bytes): Bytes(Bytes)
 {
-	Impl.SetIsLoading(true);
-	Impl.SetIsPersistent(true);
+	SetIsLoading(true);
+	SetIsPersistent(true);
 }
 
-void FVoxelReader::FArchiveImpl::Serialize(void* Data, const int64 NumToSerialize)
+void FVoxelReaderArchive::Serialize(void* Data, const int64 NumToSerialize)
 {
+	VOXEL_FUNCTION_COUNTER_NUM(NumToSerialize, 128);
+
 	if (IsError() ||
 		NumToSerialize == 0)
 	{
@@ -71,12 +74,12 @@ void FVoxelReader::FArchiveImpl::Serialize(void* Data, const int64 NumToSerializ
 	Offset += NumToSerialize;
 }
 
-int64 FVoxelReader::FArchiveImpl::TotalSize()
+int64 FVoxelReaderArchive::TotalSize()
 {
 	return Bytes.Num();
 }
 
-FString FVoxelReader::FArchiveImpl::GetArchiveName() const
+FString FVoxelReaderArchive::GetArchiveName() const
 {
 	return "FVoxelArchive";
 }

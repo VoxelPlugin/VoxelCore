@@ -565,10 +565,9 @@ void FVoxelAABBTree::Shrink()
 }
 
 void FVoxelAABBTree::DrawTree(
-	const TVoxelObjectPtr<UWorld> World,
-	const FLinearColor& Color,
-	const FTransform& Transform,
-	int32 Index) const
+	FVoxelDebugDrawer& Drawer,
+	const FMatrix& Transform,
+	int32 FrameIndex) const
 {
 	VOXEL_FUNCTION_COUNTER();
 
@@ -597,7 +596,7 @@ void FVoxelAABBTree::DrawTree(
 		return;
 	}
 
-	Index = Index % MaxDepth;
+	FrameIndex = FrameIndex % MaxDepth;
 
 	const TFunction<void(const FNode&, int32)> Iterate = [&](const FNode& Node, const int32 Depth)
 	{
@@ -606,10 +605,10 @@ void FVoxelAABBTree::DrawTree(
 			return;
 		}
 
-		if (Depth == Index)
+		if (Depth == FrameIndex)
 		{
-			FVoxelDebugDrawer(World).Color(Color).OneFrame().DrawBox(Node.ChildBounds0.GetBox(), Transform);
-			FVoxelDebugDrawer(World).Color(Color).OneFrame().DrawBox(Node.ChildBounds1.GetBox(), Transform);
+			Drawer.DrawBox(Node.ChildBounds0.GetBox(), Transform);
+			Drawer.DrawBox(Node.ChildBounds1.GetBox(), Transform);
 			return;
 		}
 
@@ -617,6 +616,18 @@ void FVoxelAABBTree::DrawTree(
 		Iterate(Nodes[Node.ChildIndex1], Depth + 1);
 	};
 	Iterate(Nodes[0], 0);
+}
+
+void FVoxelAABBTree::DrawLeaves(
+	FVoxelDebugDrawer& Drawer,
+	const FMatrix& Transform) const
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	TraverseAllLeaves([&](const FVoxelFastBox& Bounds, int32)
+	{
+		Drawer.DrawBox(Bounds.GetBox(), Transform);
+	});
 }
 
 TSharedRef<FVoxelAABBTree> FVoxelAABBTree::Create(FElementArray&& Elements)
@@ -643,6 +654,52 @@ TSharedRef<FVoxelAABBTree> FVoxelAABBTree::Create(const TConstVoxelArrayView<FVo
 		Elements.MaxX[Index] = FVoxelUtilities::DoubleToFloat_Higher(Box.Max.X);
 		Elements.MaxY[Index] = FVoxelUtilities::DoubleToFloat_Higher(Box.Max.Y);
 		Elements.MaxZ[Index] = FVoxelUtilities::DoubleToFloat_Higher(Box.Max.Z);
+		Elements.Payload[Index] = Index;
+	}
+
+	return Create(MoveTemp(Elements));
+}
+
+TSharedRef<FVoxelAABBTree> FVoxelAABBTree::Create(const TVoxelChunkedArray<FVoxelBox>& Bounds)
+{
+	VOXEL_FUNCTION_COUNTER_NUM(Bounds.Num());
+
+	FElementArray Elements;
+	Elements.SetNum(Bounds.Num());
+
+	for (int32 Index = 0; Index < Bounds.Num(); Index++)
+	{
+		const FVoxelBox& Box = Bounds[Index];
+
+		Elements.MinX[Index] = FVoxelUtilities::DoubleToFloat_Lower(Box.Min.X);
+		Elements.MinY[Index] = FVoxelUtilities::DoubleToFloat_Lower(Box.Min.Y);
+		Elements.MinZ[Index] = FVoxelUtilities::DoubleToFloat_Lower(Box.Min.Z);
+		Elements.MaxX[Index] = FVoxelUtilities::DoubleToFloat_Higher(Box.Max.X);
+		Elements.MaxY[Index] = FVoxelUtilities::DoubleToFloat_Higher(Box.Max.Y);
+		Elements.MaxZ[Index] = FVoxelUtilities::DoubleToFloat_Higher(Box.Max.Z);
+		Elements.Payload[Index] = Index;
+	}
+
+	return Create(MoveTemp(Elements));
+}
+
+TSharedRef<FVoxelAABBTree> FVoxelAABBTree::Create(const TVoxelChunkedArray<FVoxelIntBox>& Bounds)
+{
+	VOXEL_FUNCTION_COUNTER_NUM(Bounds.Num());
+
+	FElementArray Elements;
+	Elements.SetNum(Bounds.Num());
+
+	for (int32 Index = 0; Index < Bounds.Num(); Index++)
+	{
+		const FVoxelIntBox& Box = Bounds[Index];
+
+		Elements.MinX[Index] = Box.Min.X;
+		Elements.MinY[Index] = Box.Min.Y;
+		Elements.MinZ[Index] = Box.Min.Z;
+		Elements.MaxX[Index] = Box.Max.X;
+		Elements.MaxY[Index] = Box.Max.Y;
+		Elements.MaxZ[Index] = Box.Max.Z;
 		Elements.Payload[Index] = Index;
 	}
 

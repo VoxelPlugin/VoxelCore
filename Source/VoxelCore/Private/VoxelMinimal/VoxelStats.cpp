@@ -331,6 +331,10 @@ public:
 	//~ End FVoxelTicker Interface
 };
 
+#if VOXEL_DEBUG
+FVoxelCounter32 GNumVoxelRefCountThis;
+#endif
+
 VOXEL_RUN_ON_STARTUP_GAME()
 {
 	new FVoxelInstanceCounterTicker();
@@ -356,6 +360,13 @@ VOXEL_RUN_ON_STARTUP_GAME()
 
 			Leaks.Add(Name, It.Value->Get());
 		}
+
+#if VOXEL_DEBUG
+		if (GNumVoxelRefCountThis.Get() > 0)
+		{
+			Leaks.Add("TVoxelRefCountThis", GNumVoxelRefCountThis.Get());
+		}
+#endif
 
 		if (Leaks.Num() == 0)
 		{

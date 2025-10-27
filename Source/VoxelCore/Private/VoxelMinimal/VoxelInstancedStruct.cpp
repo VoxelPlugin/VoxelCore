@@ -201,11 +201,6 @@ bool FVoxelInstancedStruct::Serialize(FArchive& Ar)
 			GetScriptStruct()->SerializeItem(Ar, GetStructMemory(), nullptr);
 			ensure(Ar.Tell() - Start == SerializedSize);
 
-			if (GetScriptStruct()->IsChildOf(StaticStructFast<FVoxelVirtualStruct>()))
-			{
-				static_cast<FVoxelVirtualStruct*>(GetStructMemory())->PostSerialize();
-			}
-
 			if (GetScriptStruct() == StaticStructFast<FBodyInstance>())
 			{
 				static_cast<FBodyInstance*>(GetStructMemory())->LoadProfileData(false);

@@ -4,6 +4,7 @@
 
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelSharedPtr.h"
+#include "VoxelMinimal/VoxelRefCountPtr.h"
 #include "VoxelMinimal/Containers/VoxelSet.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Utilities/VoxelTypeUtilities.h"
@@ -24,8 +25,6 @@ private:
 		ValueType Value;
 		int32 NextElementIndex VOXEL_DEBUG_ONLY(= -16);
 
-		FElementKeyValue() = default;
-
 		template<typename InValueType>
 		FORCEINLINE FElementKeyValue(
 			const KeyType& Key,
@@ -40,8 +39,6 @@ private:
 		ValueType Value;
 		const KeyType Key;
 		int32 NextElementIndex VOXEL_DEBUG_ONLY(= -16);
-
-		FElementValueKey() = default;
 
 		template<typename InValueType>
 		FORCEINLINE FElementValueKey(
@@ -79,13 +76,6 @@ private:
 		const_cast<KeyType&>(Key) = MoveTemp(const_cast<KeyType&>(Other.Key));
 		Value = MoveTemp(Other.Value);
 		NextElementIndex = Other.NextElementIndex;
-	}
-
-	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, TVoxelMapElement& Element)
-	{
-		Ar << const_cast<KeyType&>(Element.Key);
-		Ar << Element.Value;
-		return Ar;
 	}
 
 	template<typename, typename, typename>
@@ -143,6 +133,16 @@ public:
 		std::is_constructible_v<ValueType, OtherValueType>
 	)
 	explicit TVoxelMap(const TVoxelMap<OtherKeyType, OtherValueType, OtherAllocator>& Other)
+	{
+		this->Append(Other);
+	}
+	template<typename OtherKeyType, typename OtherValueType>
+	requires
+	(
+		std::is_constructible_v<KeyType, OtherKeyType> &&
+		std::is_constructible_v<ValueType, OtherValueType>
+	)
+	explicit TVoxelMap(const TMap<OtherKeyType, OtherValueType>& Other)
 	{
 		this->Append(Other);
 	}
@@ -401,6 +401,35 @@ public:
 			}
 		}
 	}
+
+	template<typename OtherKeyType, typename OtherValueType>
+	requires
+	(
+		std::is_constructible_v<KeyType, OtherKeyType> &&
+		std::is_constructible_v<ValueType, OtherValueType>
+	)
+	void Append(const TMap<OtherKeyType, OtherValueType>& Other)
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Other.Num(), 1024);
+
+		this->ReserveGrow(Other.Num());
+
+		for (const auto& It : Other)
+		{
+			const KeyType Key = KeyType(It.Key);
+			const uint32 Hash = this->HashValue(Key);
+
+			if (ValueType* Value = this->FindHashed(Hash, Key))
+			{
+				*Value = ValueType(It.Value);
+			}
+			else
+			{
+				this->AddHashed_CheckNew_EnsureNoGrow(Hash, Key, It.Value);
+			}
+		}
+	}
+
 	TVoxelArray<KeyType> KeyArray() const
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
@@ -453,11 +482,36 @@ public:
 
 	friend FArchive& operator<<(FArchive& Ar, TVoxelMap& Map)
 	{
-		Ar << Map.Elements;
+		int32 NumElements = Map.Elements.Num();
+		Ar << NumElements;
 
 		if (Ar.IsLoading())
 		{
+			Map.Elements.Reset();
+			Map.Elements.Reserve(NumElements);
+
+			for (int32 Index = 0; Index < NumElements; Index++)
+			{
+				KeyType Key;
+				Ar << Key;
+
+				ValueType Value;
+				Ar << Value;
+
+				Map.Elements.Emplace(
+					MoveTemp(Key),
+					MoveTemp(Value));
+			}
+
 			Map.Rehash();
+		}
+		else
+		{
+			for (FElement& Element : Map.Elements)
+			{
+				Ar << ConstCast(Element.Key);
+				Ar << Element.Value;
+			}
 		}
 
 		Map.CheckInvariants();
@@ -508,8 +562,11 @@ public:
 			std::is_trivially_destructible_v<ValueType> ||
 			TIsTWeakPtr_V<ValueType> ||
 			TIsTSharedPtr_V<ValueType> ||
-			// Hack to detect TSharedPtr wrappers like FVoxelFuture
-			sizeof(ValueType) == sizeof(FSharedVoidPtr));
+			TIsTVoxelRefCountPtr_V<ValueType> ||
+			// Hack to detect TSharedPtr wrappers
+			sizeof(ValueType) == sizeof(FSharedVoidPtr) ||
+			// Hack to detect TVoxelRefCountPtr wrappers like FVoxelFuture
+			sizeof(ValueType) == sizeof(void*));
 
 		if (const ValueType* Value = this->Find(Key))
 		{

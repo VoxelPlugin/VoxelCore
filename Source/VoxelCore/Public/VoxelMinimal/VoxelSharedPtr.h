@@ -17,22 +17,6 @@ FORCEINLINE TWeakPtr<T> MakeWeakPtr(T& Ptr)
 	return StaticCastWeakPtr<T>(Ptr.AsWeak());
 }
 
-template<typename T, typename = decltype(std::declval<T>().AsShared())>
-FORCEINLINE TSharedRef<T> MakeSharedRef(T* Ptr)
-{
-	return StaticCastSharedRef<T>(Ptr->AsShared());
-}
-template<typename T, typename = decltype(std::declval<T>().AsShared())>
-FORCEINLINE TSharedRef<T> MakeSharedRef(T& Ptr)
-{
-	return StaticCastSharedRef<T>(Ptr.AsShared());
-}
-template<typename T>
-FORCEINLINE TSharedRef<T> MakeSharedRef(const TSharedRef<T>& Ref)
-{
-	return Ref;
-}
-
 template<typename T>
 FORCEINLINE TWeakPtr<T> MakeWeakPtr(const TSharedPtr<T>& Ptr)
 {

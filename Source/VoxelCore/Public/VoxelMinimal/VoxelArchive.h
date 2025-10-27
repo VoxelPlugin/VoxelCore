@@ -8,10 +8,60 @@
 #include "VoxelMinimal/Containers/VoxelArrayView.h"
 #include "VoxelMinimal/Utilities/VoxelArrayUtilities.h"
 
+class VOXELCORE_API FVoxelWriterArchive : public FMemoryArchive
+{
+public:
+	TVoxelArray64<uint8> Bytes;
+
+	FVoxelWriterArchive();
+
+public:
+	//~ Begin FMemoryArchive Interface
+	virtual void Serialize(void* Data, int64 NumToSerialize) override;
+	virtual int64 TotalSize() override;
+	virtual FString GetArchiveName() const override;
+	//~ End FMemoryArchive Interface
+};
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+class VOXELCORE_API FVoxelReaderArchive : public FMemoryArchive
+{
+public:
+	const TConstVoxelArrayView64<uint8> Bytes;
+
+	explicit FVoxelReaderArchive(const TConstVoxelArrayView64<uint8>& Bytes);
+
+public:
+	FORCEINLINE bool HasError() const
+	{
+		return GetError();
+	}
+	FORCEINLINE bool IsAtEndWithoutError() const
+	{
+		return
+			Offset == Bytes.Num() &&
+			!HasError();
+	}
+
+public:
+	//~ Begin FMemoryArchive Interface
+	virtual void Serialize(void* Data, int64 NumToSerialize) override;
+	virtual int64 TotalSize() override;
+	virtual FString GetArchiveName() const override;
+	//~ End FMemoryArchive Interface
+};
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 class VOXELCORE_API FVoxelWriter
 {
 public:
-	FVoxelWriter();
+	FVoxelWriter() = default;
 
 	FORCEINLINE FArchive& Ar()
 	{
@@ -54,24 +104,20 @@ public:
 	}
 
 private:
-	class VOXELCORE_API FArchiveImpl final : public FMemoryArchive
-	{
-	public:
-		TVoxelArray64<uint8> Bytes;
-
-		//~ Begin FMemoryArchive Interface
-		virtual void Serialize(void* Data, int64 NumToSerialize) override;
-		virtual int64 TotalSize() override;
-		virtual FString GetArchiveName() const override;
-		//~ End FMemoryArchive Interface
-	};
-	FArchiveImpl Impl;
+	FVoxelWriterArchive Impl;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 class VOXELCORE_API FVoxelReader
 {
 public:
-	explicit FVoxelReader(TConstVoxelArrayView64<uint8> Bytes);
+	FORCEINLINE explicit FVoxelReader(TConstVoxelArrayView64<uint8> Bytes)
+		: Impl(Bytes)
+	{
+	}
 
 	FORCEINLINE bool HasError() const
 	{
@@ -79,9 +125,7 @@ public:
 	}
 	FORCEINLINE bool IsAtEndWithoutError() const
 	{
-		return
-			Impl.Offset == Impl.Bytes.Num() &&
-			!HasError();
+		return Impl.IsAtEndWithoutError();
 	}
 
 	FORCEINLINE FArchive& Ar()
@@ -113,22 +157,5 @@ public:
 	}
 
 private:
-	class VOXELCORE_API FArchiveImpl final : public FMemoryArchive
-	{
-	public:
-		const TConstVoxelArrayView64<uint8> Bytes;
-		using FMemoryArchive::Offset;
-
-		explicit FArchiveImpl(const TConstVoxelArrayView64<uint8>& Bytes)
-			: Bytes(Bytes)
-		{
-		}
-
-		//~ Begin FMemoryArchive Interface
-		virtual void Serialize(void* Data, int64 NumToSerialize) override;
-		virtual int64 TotalSize() override;
-		virtual FString GetArchiveName() const override;
-		//~ End FMemoryArchive Interface
-	};
-	FArchiveImpl Impl;
+	FVoxelReaderArchive Impl;
 };

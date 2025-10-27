@@ -9,6 +9,9 @@ template<typename Type>
 struct TVoxelRefCountPtr
 {
 public:
+	using ElementType = Type;
+
+public:
 	FORCEINLINE TVoxelRefCountPtr() = default;
 
 	FORCEINLINE TVoxelRefCountPtr(Type* Reference)
@@ -34,26 +37,26 @@ public:
 	}
 
 	template<typename OtherType>
-	requires std::is_convertible_v<OtherType, Type>
+	requires std::is_convertible_v<OtherType*, Type*>
 	FORCEINLINE TVoxelRefCountPtr(const TVoxelRefCountPtr<OtherType>& Other)
 		: TVoxelRefCountPtr(ReinterpretCastRef<TVoxelRefCountPtr>(Other))
 	{
 	}
 	template<typename OtherType>
-	requires std::derived_from<Type, OtherType>
+	requires (std::derived_from<Type, OtherType> && !std::is_convertible_v<OtherType*, Type*>)
 	FORCEINLINE explicit TVoxelRefCountPtr(const TVoxelRefCountPtr<OtherType>& Other)
 		: TVoxelRefCountPtr(ReinterpretCastRef<TVoxelRefCountPtr>(Other))
 	{
 	}
 
 	template<typename OtherType>
-	requires std::is_convertible_v<OtherType, Type>
+	requires std::is_convertible_v<OtherType*, Type*>
 	FORCEINLINE TVoxelRefCountPtr(TVoxelRefCountPtr<OtherType>&& Other)
 		: TVoxelRefCountPtr(ReinterpretCastRef<TVoxelRefCountPtr>(MoveTemp(Other)))
 	{
 	}
 	template<typename OtherType>
-	requires std::derived_from<Type, OtherType>
+	requires (std::derived_from<Type, OtherType> && !std::is_convertible_v<OtherType*, Type*>)
 	FORCEINLINE explicit TVoxelRefCountPtr(TVoxelRefCountPtr<OtherType>&& Other)
 		: TVoxelRefCountPtr(ReinterpretCastRef<TVoxelRefCountPtr>(MoveTemp(Other)))
 	{
@@ -180,11 +183,30 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+template<typename T>
+constexpr bool TIsTVoxelRefCountPtr_V = false;
+
+template<typename T>
+constexpr bool TIsTVoxelRefCountPtr_V<TVoxelRefCountPtr<T>> = true;
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+#if VOXEL_DEBUG
+extern VOXELCORE_API FVoxelCounter32 GNumVoxelRefCountThis;
+#endif
+
 template<typename Type>
 class TVoxelRefCountThis
 {
 public:
-	TVoxelRefCountThis() = default;
+	FORCEINLINE TVoxelRefCountThis()
+	{
+#if VOXEL_DEBUG
+		GNumVoxelRefCountThis.Increment();
+#endif
+	}
 
 	TVoxelRefCountThis(const TVoxelRefCountThis&) = delete;
 	TVoxelRefCountThis& operator=(const TVoxelRefCountThis&) = delete;
@@ -195,6 +217,8 @@ public:
 		CheckHasValidRefCount();
 
 		ReinterpretCastRef<int32>(RefCount) = -1;
+
+		GNumVoxelRefCountThis.Decrement();
 	}
 #endif
 

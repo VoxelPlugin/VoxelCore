@@ -159,8 +159,10 @@ void FVoxelInvalidationCallstack::ComputeHash() const
 		Hashes.Add(Caller->GetHash());
 	}
 
-	ensure(!CachedHash);
-	CachedHash = FVoxelUtilities::MurmurHashView(Hashes);
+	const uint64 NewHash = FVoxelUtilities::MurmurHashView(Hashes);
+
+	ensure(!CachedHash || CachedHash == NewHash);
+	CachedHash = NewHash;
 }
 
 void FVoxelInvalidationCallstack::ForeachFrameImpl(

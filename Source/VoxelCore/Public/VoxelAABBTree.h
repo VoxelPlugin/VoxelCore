@@ -140,13 +140,18 @@ public:
 	void Shrink();
 
 	void DrawTree(
-		TVoxelObjectPtr<UWorld> World,
-		const FLinearColor& Color,
-		const FTransform& Transform,
-		int32 Index) const;
+		FVoxelDebugDrawer& Drawer,
+		const FMatrix& Transform,
+		int32 FrameIndex) const;
+
+	void DrawLeaves(
+		FVoxelDebugDrawer& Drawer,
+		const FMatrix& Transform) const;
 
 	static TSharedRef<FVoxelAABBTree> Create(FElementArray&& Elements);
 	static TSharedRef<FVoxelAABBTree> Create(TConstVoxelArrayView<FVoxelBox> Bounds);
+	static TSharedRef<FVoxelAABBTree> Create(const TVoxelChunkedArray<FVoxelBox>& Bounds);
+	static TSharedRef<FVoxelAABBTree> Create(const TVoxelChunkedArray<FVoxelIntBox>& Bounds);
 
 public:
 	FORCEINLINE int32 Num() const
@@ -362,6 +367,52 @@ public:
 				if (Bounds.Intersects(Node.ChildBounds1))
 				{
 					QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex1);
+				}
+			}
+		}
+	}
+	template<typename VisitType>
+	requires
+	(
+		LambdaHasSignature_V<VisitType, void(const FVoxelFastBox&, int32)> ||
+		LambdaHasSignature_V<VisitType, EVoxelIterate(const FVoxelFastBox&, int32)>
+	)
+	void TraverseAllLeaves(VisitType&& Visit) const
+	{
+		if (Nodes.Num() == 0)
+		{
+			return;
+		}
+
+		TVoxelInlineArray<int32, 64> QueuedNodes;
+		QueuedNodes.Add_EnsureNoGrow(0);
+
+		while (QueuedNodes.Num() > 0)
+		{
+			const int32 NodeIndex = QueuedNodes.Pop();
+
+			const FNode& Node = Nodes[NodeIndex];
+			if (!Node.bLeaf)
+			{
+				QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex0);
+				QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex1);
+				continue;
+			}
+
+			const FLeaf& Leaf = Leaves[Node.LeafIndex];
+
+			for (int32 Index = Leaf.StartIndex; Index < Leaf.EndIndex; Index++)
+			{
+				if constexpr (std::is_void_v<LambdaReturnType_T<VisitType>>)
+				{
+					Visit(ElementBounds[Index], Payloads[Index]);
+				}
+				else
+				{
+					if (Visit(ElementBounds[Index], Payloads[Index]) == EVoxelIterate::Stop)
+					{
+						return;
+					}
 				}
 			}
 		}

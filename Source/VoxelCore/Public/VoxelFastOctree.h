@@ -127,10 +127,16 @@ public:
 		IndexToChildren = Other.IndexToChildren;
 		Nodes = Other.Nodes;
 	}
+	void Reserve(const int32 NumNodes)
+	{
+		IndexToChildren.Reserve(NumNodes);
+		Nodes.Reserve(NumNodes);
+	}
 
 public:
 	FORCEINLINE int32 NumNodes() const
 	{
+		checkVoxelSlow(!bHasNodes || Nodes.Num() == IndexToChildren.Num());
 		return IndexToChildren.Num();
 	}
 	FORCEINLINE int64 GetAllocatedSize() const
@@ -159,6 +165,7 @@ public:
 	{
 		checkVoxelSlow(NodeRef.Height > 0);
 		checkVoxelSlow(0 <= Child && Child < 8);
+		checkVoxelSlow(!bHasNodes || Nodes.Num() == IndexToChildren.Num());
 
 		const int32 NewChildIndex = IndexToChildren.Add(FChildren(-1));
 

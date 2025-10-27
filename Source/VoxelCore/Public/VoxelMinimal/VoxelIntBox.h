@@ -4,6 +4,7 @@
 
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelBox.h"
+#include "VoxelMinimal/VoxelIterate.h"
 #include "VoxelMinimal/VoxelIntInterval.h"
 #include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Utilities/VoxelVectorUtilities.h"
@@ -485,16 +486,16 @@ struct VOXELCORE_API FVoxelIntBox
 	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
 	requires
 	(
-		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, bool>) &&
+		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterate>) &&
 		LambdaHasSignature_V<LambdaType, ReturnType(const FIntVector&)>
 	)
 	FORCEINLINE void Iterate(LambdaType&& Lambda) const
 	{
-		for (int32 X = Min.X; X < Max.X; X++)
+		for (int32 Z = Min.Z; Z < Max.Z; Z++)
 		{
 			for (int32 Y = Min.Y; Y < Max.Y; Y++)
 			{
-				for (int32 Z = Min.Z; Z < Max.Z; Z++)
+				for (int32 X = Min.X; X < Max.X; X++)
 				{
 					if constexpr (std::is_void_v<ReturnType>)
 					{
@@ -502,7 +503,7 @@ struct VOXELCORE_API FVoxelIntBox
 					}
 					else
 					{
-						if (!Lambda(FIntVector(X, Y, Z)))
+						if (Lambda(FIntVector(X, Y, Z)) == EVoxelIterate::Stop)
 						{
 							return;
 						}

@@ -161,6 +161,25 @@ public:
 		return Slice(Index, Num() - Index);
 	}
 
+	FORCEINLINE TVoxelArrayView GetRow3D(
+		const FIntVector& Size,
+		const int32 Y,
+		const int32 Z) const
+	{
+		checkVoxelSlow(0 <= Y && Y < Size.Y);
+		checkVoxelSlow(0 <= Z && Z < Size.Z);
+		checkVoxelSlow(this->Num() == Size.X * Size.Y * Size.Z);
+
+		return this->Slice(Y * Size.X + Z * Size.X * Size.Y, Size.X);
+	}
+	FORCEINLINE TVoxelArrayView GetRow3D(
+		const int32 Size,
+		const int32 Y,
+		const int32 Z) const
+	{
+		return this->GetRow3D(FIntVector(Size), Y, Z);
+	}
+
 	FORCEINLINE ElementType& operator[](InSizeType Index) const
 	{
 		RangeCheck(Index);

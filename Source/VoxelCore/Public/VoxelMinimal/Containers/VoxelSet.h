@@ -100,6 +100,12 @@ public:
 	{
 		this->Append(Other);
 	}
+	template<typename OtherType>
+	requires std::is_constructible_v<Type, OtherType>
+	explicit TVoxelSet(const TSet<OtherType>& Other)
+	{
+		this->Append(Other);
+	}
 
 public:
 	template<typename OtherType>
@@ -230,6 +236,19 @@ public:
 	template<typename OtherType, typename OtherAllocator>
 	requires std::is_constructible_v<Type, OtherType>
 	void Append(const TVoxelSet<OtherType, OtherAllocator>& Set)
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Set.Num(), 1024);
+
+		this->ReserveGrow(Set.Num());
+
+		for (const OtherType& Value : Set)
+		{
+			this->Add(Type(Value));
+		}
+	}
+	template<typename OtherType>
+	requires std::is_constructible_v<Type, OtherType>
+	void Append(const TSet<OtherType>& Set)
 	{
 		VOXEL_FUNCTION_COUNTER_NUM(Set.Num(), 1024);
 

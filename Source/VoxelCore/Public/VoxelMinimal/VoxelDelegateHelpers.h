@@ -5,6 +5,7 @@
 #include "VoxelCoreMinimal.h"
 #include "Delegates/IDelegateInstance.h"
 #include "VoxelMinimal/VoxelSharedPtr.h"
+#include "VoxelMinimal/VoxelRefCountPtr.h"
 #include "VoxelMinimal/Utilities/VoxelTypeUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelLambdaUtilities.h"
 
@@ -320,6 +321,39 @@ FORCEINLINE auto MakeWeakObjectPtrDelegate(T* Ptr, LambdaType Lambda)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+namespace Voxel::Internal
+{
+
+template<typename T, typename = decltype(std::declval<T>().AsShared())>
+FORCEINLINE TSharedRef<T> MakeStrongPtr(T* Ptr)
+{
+	return StaticCastSharedRef<T>(Ptr->AsShared());
+}
+template<typename T, typename = decltype(std::declval<T>().AsShared())>
+FORCEINLINE TSharedRef<T> MakeStrongPtr(T& Ptr)
+{
+	return StaticCastSharedRef<T>(Ptr.AsShared());
+}
+template<typename T>
+FORCEINLINE TSharedRef<T> MakeStrongPtr(const TSharedRef<T>& Ref)
+{
+	return Ref;
+}
+
+template<typename T>
+requires std::derived_from<T, TVoxelRefCountThis<T>>
+FORCEINLINE TVoxelRefCountPtr<T> MakeStrongPtr(T* Ptr)
+{
+	checkVoxelSlow(Ptr);
+	return Ptr;
+}
+template<typename T>
+FORCEINLINE TVoxelRefCountPtr<T> MakeStrongPtr(const TVoxelRefCountPtr<T>& Ptr)
+{
+	checkVoxelSlow(Ptr);
+	return Ptr;
+}
+
 template<typename, typename>
 struct TMakeStrongPtrLambdaHelper;
 
@@ -329,7 +363,7 @@ struct TMakeStrongPtrLambdaHelper<TVoxelTypes<ArgTypes...>, ReturnType>
 	template<typename T, typename LambdaType>
 	FORCEINLINE static auto Make(const T& Ptr, LambdaType&& Lambda)
 	{
-		return [StrongPtr = MakeSharedRef(Ptr), Lambda = MoveTemp(Lambda)](ArgTypes... Args) -> ReturnType
+		return [StrongPtr = MakeStrongPtr(Ptr), Lambda = MoveTemp(Lambda)](ArgTypes... Args) -> ReturnType
 		{
 			(void)StrongPtr;
 			return Lambda(Forward<ArgTypes>(Args)...);
@@ -337,14 +371,16 @@ struct TMakeStrongPtrLambdaHelper<TVoxelTypes<ArgTypes...>, ReturnType>
 	}
 };
 
+}
+
 template<typename T, typename LambdaType>
 requires
 (
-	sizeof(decltype(MakeSharedRef(DeclVal<const T&>()))) != 0
+	sizeof(decltype(Voxel::Internal::MakeStrongPtr(DeclVal<const T&>()))) != 0
 )
 FORCEINLINE auto MakeStrongPtrLambda(const T& Ptr, LambdaType Lambda)
 {
-	return TMakeStrongPtrLambdaHelper<LambdaArgTypes_T<LambdaType>, LambdaReturnType_T<LambdaType>>::Make(Ptr, MoveTemp(Lambda));
+	return Voxel::Internal::TMakeStrongPtrLambdaHelper<LambdaArgTypes_T<LambdaType>, LambdaReturnType_T<LambdaType>>::Make(Ptr, MoveTemp(Lambda));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

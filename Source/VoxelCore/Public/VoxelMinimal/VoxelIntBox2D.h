@@ -395,7 +395,7 @@ struct VOXELCORE_API FVoxelIntBox2D
 	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
 	requires
 	(
-		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, bool>) &&
+		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterate>) &&
 		LambdaHasSignature_V<LambdaType, ReturnType(const FVoxelIntBox2D&)>
 	)
 	void IterateChunks(const int32 ChunkSize, LambdaType&& Lambda) const
@@ -403,9 +403,9 @@ struct VOXELCORE_API FVoxelIntBox2D
 		const FIntPoint KeyMin = FVoxelUtilities::DivideFloor(Min, ChunkSize);
 		const FIntPoint KeyMax = FVoxelUtilities::DivideCeil(Max, ChunkSize);
 
-		for (int32 X = KeyMin.X; X < KeyMax.X; X++)
+		for (int32 Y = KeyMin.Y; Y < KeyMax.Y; Y++)
 		{
-			for (int32 Y = KeyMin.Y; Y < KeyMax.Y; Y++)
+			for (int32 X = KeyMin.X; X < KeyMax.X; X++)
 			{
 				FVoxelIntBox2D Chunk(
 					FIntPoint(ChunkSize * (X + 0), ChunkSize * (Y + 0)),
@@ -419,7 +419,7 @@ struct VOXELCORE_API FVoxelIntBox2D
 				}
 				else
 				{
-					if (!Lambda(Chunk))
+					if (Lambda(Chunk) == EVoxelIterate::Stop)
 					{
 						return;
 					}
@@ -472,14 +472,14 @@ struct VOXELCORE_API FVoxelIntBox2D
 	template<typename LambdaType, typename ReturnType = LambdaReturnType_T<LambdaType>>
 	requires
 	(
-		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, bool>) &&
+		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterate>) &&
 		LambdaHasSignature_V<LambdaType, ReturnType(const FIntPoint&)>
 	)
 	FORCEINLINE void Iterate(LambdaType&& Lambda) const
 	{
-		for (int32 X = Min.X; X < Max.X; X++)
+		for (int32 Y = Min.Y; Y < Max.Y; Y++)
 		{
-			for (int32 Y = Min.Y; Y < Max.Y; Y++)
+			for (int32 X = Min.X; X < Max.X; X++)
 			{
 				if constexpr (std::is_void_v<ReturnType>)
 				{
@@ -487,7 +487,7 @@ struct VOXELCORE_API FVoxelIntBox2D
 				}
 				else
 				{
-					if (!Lambda(FIntPoint(X, Y)))
+					if (Lambda(FIntPoint(X, Y)) == EVoxelIterate::Stop)
 					{
 						return;
 					}

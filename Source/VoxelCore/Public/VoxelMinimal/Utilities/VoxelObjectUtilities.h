@@ -6,6 +6,7 @@
 #include "Templates/Casts.h"
 #include "Templates/SubclassOf.h"
 #include "Serialization/BulkData.h"
+#include "VoxelMinimal/VoxelFuture.h"
 #include "VoxelMinimal/VoxelStructView.h"
 #include "VoxelMinimal/VoxelObjectHelpers.h"
 #include "VoxelMinimal/VoxelUniqueFunction.h"
@@ -181,33 +182,11 @@ namespace FVoxelUtilities
 		});
 	}
 
-	template<typename T>
-	TSharedPtr<const TConstVoxelArrayView64<T>> LockBulkData_ReadOnly(const FBulkData& BulkData)
-	{
-		if (!ensure(BulkData.GetBulkDataSize() % sizeof(T) == 0))
-		{
-			return nullptr;
-		}
-
-		const void* Data = BulkData.LockReadOnly();
-		if (!ensure(Data))
-		{
-			BulkData.Unlock();
-			return nullptr;
-		}
-
-		TConstVoxelArrayView64<T>* ArrayView = new TConstVoxelArrayView64<T>(
-			static_cast<const T*>(Data),
-			BulkData.GetBulkDataSize() / sizeof(T));
-
-		return MakeShareable_CustomDestructor(
-			ArrayView,
-			[&BulkData, ArrayView]
-			{
-				BulkData.Unlock();
-				delete ArrayView;
-			});
-	}
+	VOXELCORE_API TVoxelFuture<TSharedPtr<TVoxelArray64<uint8>>> ReadBulkDataAsync(
+		const FBulkData& BulkData,
+		int64 Offset,
+		int64 Length,
+		EAsyncIOPriorityAndFlags Priority = AIOP_Normal);
 
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////

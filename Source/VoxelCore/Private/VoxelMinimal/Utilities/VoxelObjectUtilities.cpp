@@ -810,6 +810,103 @@ void FVoxelUtilities::SerializeBulkData(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+struct FVoxelReadBulkDataAsyncState
+{
+public:
+	const TVoxelPromise<TSharedPtr<TVoxelArray64<uint8>>> Promise;
+	FBulkDataIORequestCallBack Callback;
+	TVoxelArray64<uint8> Result;
+
+	FVoxelReadBulkDataAsyncState()
+		: Callback([this](const bool bWasCancelled, IBulkDataIORequest* Request)
+		{
+			Promise.Set(ProcessResult(bWasCancelled, Request));
+			delete this;
+		})
+	{
+	}
+	UE_NONCOPYABLE(FVoxelReadBulkDataAsyncState);
+
+	VOXEL_COUNT_INSTANCES();
+
+private:
+	TSharedPtr<TVoxelArray64<uint8>> ProcessResult(const bool bWasCancelled, IBulkDataIORequest* Request)
+	{
+		if (!ensure(!bWasCancelled))
+		{
+			LOG_VOXEL(Error, "Bulk data read was cancelled");
+			return {};
+		}
+
+		if (!ensure(Request))
+		{
+			LOG_VOXEL(Error, "Bulk data IO request is null");
+			return {};
+		}
+
+		const uint8* ReadResult = Request->GetReadResults();
+		if (!ensure(ReadResult == Result.GetData()))
+		{
+			LOG_VOXEL(Error, "Read result pointer mismatch: Expected=%p, Actual=%p", Result.GetData(), ReadResult);
+			return {};
+		}
+
+		const int64 ReadSize = Request->GetSize();
+		if (!ensure(ReadSize == Result.Num()))
+		{
+			LOG_VOXEL(Error, "Read size mismatch: Expected=%lld, Actual=%lld", ReadSize, Result.Num());
+			return {};
+		}
+
+		return MakeSharedCopy(MoveTemp(Result));
+	}
+};
+
+DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelReadBulkDataAsyncState);
+
+TVoxelFuture<TSharedPtr<TVoxelArray64<uint8>>> FVoxelUtilities::ReadBulkDataAsync(
+	const FBulkData& BulkData,
+	const int64 Offset,
+	const int64 Length,
+	const EAsyncIOPriorityAndFlags Priority)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	if (!ensure(Length <= MAX_int32))
+	{
+		LOG_VOXEL(Error, "Length exceeds MAX_int32: Length=%lld", Length);
+		return {};
+	}
+
+	const int64 BulkDataSize = BulkData.GetBulkDataSize();
+
+	if (!ensure(0 <= Offset && Offset + Length <= BulkDataSize))
+	{
+		LOG_VOXEL(Error, "Invalid bulk data access: Offset=%lld, Length=%lld, BulkDataSize=%lld", Offset, Length, BulkDataSize);
+		return {};
+	}
+
+	FVoxelReadBulkDataAsyncState* State = new FVoxelReadBulkDataAsyncState();
+	SetNumFast(State->Result, Length);
+
+	TVoxelPromise<TSharedPtr<TVoxelArray64<uint8>>> Promise = State->Promise;
+
+	BulkData.CreateStreamingRequest(
+		Offset,
+		Length,
+		Priority,
+		&State->Callback,
+		State->Result.GetData());
+
+	// TRICKY: State might be deleted here
+
+	return Promise;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 UObject* FVoxelUtilities::NewObject_Safe(UObject* Outer, const UClass* Class, const FName Name)
 {
 	const FName SafeName = MakeUniqueObjectName(Outer, Class, Name);

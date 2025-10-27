@@ -108,20 +108,20 @@ void PointPS(
 	// Z component calculated to make unit sphere
 	const float ZComponent = sqrt(max(0.0, 1.0 - DistFromCenter * DistFromCenter));
 	const float3 SphereNormal = float3(CenteredUV.x, CenteredUV.y, ZComponent);
-	
+
 	// Simple directional lighting (light coming from top-right)
 	const float3 LightDir = normalize(float3(0.5, 0.5, 0.8));
 	const float NdotL = max(0.0, dot(SphereNormal, LightDir));
-	
+
 	// Ambient + diffuse lighting
 	const float Ambient = 0.3;
 	const float Diffuse = 0.7;
 	const float LightIntensity = Ambient + Diffuse * NdotL;
-	
+
 	// Add subtle rim lighting for better depth perception
 	const float RimFactor = 1.0 - ZComponent;
 	const float RimLight = pow(RimFactor, 2.0) * 0.2;
-	
+
 	// Apply lighting to color
 	float3 ShadedColor = Input.Color * LightIntensity + RimLight;
 
@@ -224,7 +224,7 @@ void LineVS(
 
 	// Fixed thickness with adaptive scaling based on distance
 	// This creates a "biased perspective" effect
-	const float BaseThickness = 2.0; // Base thickness in pixels
+	const float BaseThickness = 4.0; // Base thickness in pixels
 	const float MinScale = 0.5; // Minimum scale at far distance
 	const float MaxScale = 5.0; // Maximum scale when very close
 	const float DistanceScale = clamp(100.0 / NearestZ, MinScale, MaxScale);

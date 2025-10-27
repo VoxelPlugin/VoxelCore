@@ -46,6 +46,7 @@ public:
 	bool bSynchronous = false;
 	bool bComputeTotalTime = false;
 	bool bTrackPromisesCallstacks = false;
+	int64 BulkDataTimestamp = MAX_int64;
 	FLambdaWrapper LambdaWrapper;
 	TVoxelAtomic<double> TotalTime;
 	TSharedPtr<FVoxelDebugDrawGroup> DrawGroup;

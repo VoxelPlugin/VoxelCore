@@ -40,6 +40,9 @@
 		FString::Printf(Format, ##__VA_ARGS__); \
 	}
 
+#undef ensureMsgf
+#define ensureMsgf(InExpression, InFormat, ...) ((!!InExpression) || [&]{ FString::Printf(InFormat, ##__VA_ARGS__); }())
+
 // Syntax highlighting is wrong otherwise
 #undef TEXTVIEW
 #define TEXTVIEW(String) FStringView(TEXT(String))

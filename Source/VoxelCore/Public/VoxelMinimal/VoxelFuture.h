@@ -394,6 +394,28 @@ public:
 		: TVoxelFuture(MakeSharedCopy(MoveTemp(Value)))
 	{
 	}
+	template<typename OtherType>
+	requires std::is_convertible_v<OtherType*, Type*>
+	FORCEINLINE TVoxelFuture(const TVoxelFuture<OtherType>& Other)
+		: FVoxelFuture(static_cast<FVoxelFuture>(Other))
+	{
+	}
+	template<typename OtherType>
+	requires
+	(
+		(
+			(TIsTVoxelRefCountPtr_V<Type> && TIsTVoxelRefCountPtr_V<OtherType>) ||
+			(TIsTSharedPtr_V<Type> && TIsTSharedPtr_V<OtherType>) ||
+			(TIsTSharedPtr_V<Type> && TIsTSharedRef_V<OtherType>) ||
+			(TIsTSharedRef_V<Type> && TIsTSharedRef_V<OtherType>)
+		)
+		&&
+		std::is_convertible_v<typename OtherType::ElementType*, typename Type::ElementType*>
+	)
+	FORCEINLINE TVoxelFuture(const TVoxelFuture<OtherType>& Other)
+		: FVoxelFuture(static_cast<FVoxelFuture>(Other))
+	{
+	}
 
 	FORCEINLINE const TSharedRef<T>& GetSharedValueChecked() const
 	{
@@ -402,11 +424,6 @@ public:
 	FORCEINLINE T& GetValueChecked() const
 	{
 		return *GetSharedValueChecked();
-	}
-
-	FORCEINLINE operator const TVoxelFuture<const T>&() const
-	{
-		return ReinterpretCastRef<TVoxelFuture<const T>>(*this);
 	}
 
 public:
@@ -617,4 +634,63 @@ public:
 			Future.PromiseState->AddContinuation(*this);
 		}
 	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template<typename T>
+class TVoxelNullableFuture
+{
+public:
+	TVoxelNullableFuture() = default;
+
+	template<typename OtherType>
+	requires std::is_convertible_v<OtherType*, T*>
+	FORCEINLINE TVoxelNullableFuture(const TVoxelFuture<OtherType>& Other)
+		: PromiseState(ReinterpretCastRef<TVoxelRefCountPtr<IVoxelPromiseState>>(Other))
+	{
+	}
+	template<typename ChildType>
+	requires
+	(
+		std::is_same_v<ChildType, T> ||
+		std::derived_from<ChildType, T>
+	)
+	FORCEINLINE TVoxelNullableFuture(const TSharedRef<ChildType>& Value)
+		: PromiseState(IVoxelPromiseState::New(MakeSharedVoidRef(Value)))
+	{
+	}
+
+	FORCEINLINE bool IsSet() const
+	{
+		return PromiseState.IsValid();
+	}
+	FORCEINLINE operator bool() const
+	{
+		return IsSet();
+	}
+
+	FORCEINLINE TVoxelFuture<T>& GetFuture()
+	{
+		checkVoxelSlow(PromiseState);
+		return ReinterpretCastRef<TVoxelFuture<T>>(PromiseState);
+	}
+	FORCEINLINE const TVoxelFuture<T>& GetFuture() const
+	{
+		return ConstCast(this)->GetFuture();
+	}
+
+	FORCEINLINE TVoxelFuture<T>* operator->()
+	{
+		return &GetFuture();
+	}
+	FORCEINLINE const TVoxelFuture<T>* operator->() const
+	{
+		return &GetFuture();
+	}
+
+private:
+	TVoxelRefCountPtr<IVoxelPromiseState> PromiseState;
 };

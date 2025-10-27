@@ -31,7 +31,6 @@ public:
 
 	// Only called if this is stored in an instanced struct
 	virtual void PreSerialize() {}
-	virtual void PostSerialize() {}
 
 	FORCEINLINE UScriptStruct* GetStruct() const
 	{
