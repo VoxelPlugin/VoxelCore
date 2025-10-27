@@ -12,10 +12,19 @@ class FVoxelMaterialDiffing
 {
 public:
 	FString Diff;
+	const UMaterial& OldMaterial;
+	const UMaterial& NewMaterial;
 
-	bool Equal(
+	FVoxelMaterialDiffing(
 		const UMaterial& OldMaterial,
-		const UMaterial& NewMaterial);
+		const UMaterial& NewMaterial)
+		: OldMaterial(OldMaterial)
+		, NewMaterial(NewMaterial)
+	{
+	}
+
+public:
+	bool Equal();
 
 private:
 	TVoxelSet<TPair<const UMaterialExpression*, const UMaterialExpression*>> EqualExpressions;

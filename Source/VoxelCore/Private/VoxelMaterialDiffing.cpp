@@ -11,16 +11,14 @@
 	if (Callstack.Num() > 256) \
 	{ \
 		ensureVoxelSlow(false); \
-		VOXEL_MESSAGE(Error, "Infinite recursion when diffing materials. Callstack: {0}", Callstack); \
+		VOXEL_MESSAGE(Error, "Infinite recursion when diffing materials. Callstack: {0} MaterialA: {1} MaterialB: {2}", Callstack, OldMaterial, NewMaterial); \
 		return false; \
 	}
 
 #define SET_DIFF(Format, ...) Diff += FString::Printf(TEXT(Format), ##__VA_ARGS__)
 
 #if WITH_EDITOR
-bool FVoxelMaterialDiffing::Equal(
-	const UMaterial& OldMaterial,
-	const UMaterial& NewMaterial)
+bool FVoxelMaterialDiffing::Equal()
 {
 	VOXEL_FUNCTION_COUNTER();
 	RECURSE_GUARD("FVoxelMaterialDiffing::Equal");
