@@ -521,9 +521,9 @@ bool FVoxelUtilities::AreMaterialsIdentical(
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	FVoxelMaterialDiffing Diffing;
+	FVoxelMaterialDiffing Diffing(OldMaterial, NewMaterial);
 
-	const bool bResult = Diffing.Equal(OldMaterial, NewMaterial);
+	const bool bResult = Diffing.Equal();
 	OutDiff = Diffing.Diff;
 	return bResult;
 }
