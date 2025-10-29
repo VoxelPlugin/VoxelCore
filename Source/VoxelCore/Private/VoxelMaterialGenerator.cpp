@@ -32,9 +32,11 @@ void FVoxelMaterialGenerator::ForeachExpression(TFunctionRef<void(UMaterialExpre
 	}
 }
 
-UMaterialFunction* FVoxelMaterialGenerator::DuplicateFunctionIfNeeded(const UMaterialFunction& OldFunction)
+UMaterialFunction* FVoxelMaterialGenerator::DuplicateFunctionIfNeeded(UMaterialFunction& OldFunction)
 {
 	VOXEL_FUNCTION_COUNTER();
+
+	OnTrackMaterialFunction(OldFunction);
 
 	if (!ShouldDuplicateFunction(OldFunction))
 	{
@@ -477,7 +479,7 @@ bool FVoxelMaterialGenerator::PostCopyExpression(UMaterialExpression& Expression
 		return true;
 	}
 
-	const UMaterialFunction* OldFunction = Cast<UMaterialFunction>(FunctionCall->MaterialFunction);
+	UMaterialFunction* OldFunction = Cast<UMaterialFunction>(FunctionCall->MaterialFunction);
 	if (!ensureVoxelSlow(OldFunction))
 	{
 		VOXEL_MESSAGE(Error, "{0}: {1}: material function instance or material function layers are not supported",
