@@ -137,7 +137,15 @@ void FVoxelBulkPtr::Serialize(FArchive& Ar, const UScriptStruct& Struct)
 
 		FVoxelBulkHash Hash;
 		Ar << Hash;
-		*this = FVoxelBulkPtr(Struct, Hash);
+
+		if (Hash.IsNull())
+		{
+			*this = {};
+		}
+		else
+		{
+			*this = FVoxelBulkPtr(Struct, Hash);
+		}
 		return;
 	}
 
