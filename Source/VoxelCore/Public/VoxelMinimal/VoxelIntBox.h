@@ -5,8 +5,8 @@
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelBox.h"
 #include "VoxelMinimal/VoxelIterate.h"
+#include "VoxelMinimal/VoxelFunctionRef.h"
 #include "VoxelMinimal/VoxelIntInterval.h"
-#include "VoxelMinimal/Containers/VoxelArray.h"
 #include "VoxelMinimal/Utilities/VoxelVectorUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelLambdaUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelIntVectorUtilities.h"
@@ -489,7 +489,7 @@ struct VOXELCORE_API FVoxelIntBox
 		(std::is_void_v<ReturnType> || std::is_same_v<ReturnType, EVoxelIterate>) &&
 		LambdaHasSignature_V<LambdaType, ReturnType(const FIntVector&)>
 	)
-	FORCEINLINE void Iterate(LambdaType&& Lambda) const
+	FORCEINLINE void Iterate(LambdaType Lambda) const
 	{
 		for (int32 Z = Min.Z; Z < Max.Z; Z++)
 		{
@@ -512,6 +512,7 @@ struct VOXELCORE_API FVoxelIntBox
 			}
 		}
 	}
+	void ParallelIterate(TVoxelFunctionRef<void(FIntVector)> Lambda) const;
 
 	FORCEINLINE FVoxelIntBox& operator+=(const FVoxelIntBox& Other)
 	{

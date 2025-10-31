@@ -180,6 +180,141 @@ public:
 		return this->GetRow3D(FIntVector(Size), Y, Z);
 	}
 
+	FORCEINLINE void CopyTo(const TVoxelArrayView<std::remove_const_t<ElementType>> Other) const
+	{
+		checkVoxelSlow(this->Num() == Other.Num());
+		checkStatic(std::is_trivially_destructible_v<ElementType>);
+
+		FMemory::Memcpy(
+			Other.GetData(),
+			GetData(),
+			Num() * sizeof(ElementType));
+	}
+	template<int32 Size>
+	FORCEINLINE void CopyTo(const TVoxelArrayView<std::remove_const_t<ElementType>> Other) const
+	{
+		checkVoxelSlow(this->Num() == Size);
+		checkVoxelSlow(this->Num() == Other.Num());
+		checkStatic(std::is_trivially_destructible_v<ElementType>);
+
+		FMemory::Memcpy(
+			Other.GetData(),
+			GetData(),
+			Size * sizeof(ElementType));
+	}
+
+	void CopyTo3D(
+		const FIntVector& Size,
+		const TVoxelArrayView<std::remove_const_t<ElementType>> Other,
+		const FIntVector& OffsetInOther,
+		const FIntVector& OtherSize) const
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
+		checkVoxelSlow(Num() == Size.X * Size.Y * Size.Z);
+		checkVoxelSlow(Other.Num() == OtherSize.X * OtherSize.Y * OtherSize.Z);
+
+		checkVoxelSlow(0 <= OffsetInOther.X && OffsetInOther.X + Size.X <= OtherSize.X);
+		checkVoxelSlow(0 <= OffsetInOther.Y && OffsetInOther.Y + Size.Y <= OtherSize.Y);
+		checkVoxelSlow(0 <= OffsetInOther.Z && OffsetInOther.Z + Size.Z <= OtherSize.Z);
+
+		for (int32 IndexZ = 0; IndexZ < Size.Z; IndexZ++)
+		{
+			for (int32 IndexY = 0; IndexY < Size.Y; IndexY++)
+			{
+				GetRow3D(Size, IndexY, IndexZ).CopyTo(Other
+					.GetRow3D(
+						OtherSize,
+						OffsetInOther.Y + IndexY,
+						OffsetInOther.Z + IndexZ)
+					.Slice(OffsetInOther.X, Size.X));
+			}
+		}
+	}
+	template<int32 Size>
+	void CopyTo3D(
+		const TVoxelArrayView<std::remove_const_t<ElementType>> Other,
+		const FIntVector& OffsetInOther,
+		const FIntVector& OtherSize) const
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Size * Size * Size, 1024);
+		checkVoxelSlow(Num() == Size * Size * Size);
+		checkVoxelSlow(Other.Num() == OtherSize.X * OtherSize.Y * OtherSize.Z);
+
+		checkVoxelSlow(0 <= OffsetInOther.X && OffsetInOther.X + Size <= OtherSize.X);
+		checkVoxelSlow(0 <= OffsetInOther.Y && OffsetInOther.Y + Size <= OtherSize.Y);
+		checkVoxelSlow(0 <= OffsetInOther.Z && OffsetInOther.Z + Size <= OtherSize.Z);
+
+		for (int32 IndexZ = 0; IndexZ < Size; IndexZ++)
+		{
+			for (int32 IndexY = 0; IndexY < Size; IndexY++)
+			{
+				GetRow3D(Size, IndexY, IndexZ).template CopyTo<Size>(Other
+					.GetRow3D(
+						OtherSize,
+						OffsetInOther.Y + IndexY,
+						OffsetInOther.Z + IndexZ)
+					.Slice(OffsetInOther.X, Size));
+			}
+		}
+	}
+
+	void CopyFrom3D(
+		const FIntVector& Size,
+		const TVoxelArrayView<const ElementType> Other,
+		const FIntVector& OffsetInOther,
+		const FIntVector& OtherSize) const
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
+		checkVoxelSlow(Num() == Size.X * Size.Y * Size.Z);
+		checkVoxelSlow(Other.Num() == OtherSize.X * OtherSize.Y * OtherSize.Z);
+
+		checkVoxelSlow(0 <= OffsetInOther.X && OffsetInOther.X + Size.X <= OtherSize.X);
+		checkVoxelSlow(0 <= OffsetInOther.Y && OffsetInOther.Y + Size.Y <= OtherSize.Y);
+		checkVoxelSlow(0 <= OffsetInOther.Z && OffsetInOther.Z + Size.Z <= OtherSize.Z);
+
+		for (int32 IndexZ = 0; IndexZ < Size.Z; IndexZ++)
+		{
+			for (int32 IndexY = 0; IndexY < Size.Y; IndexY++)
+			{
+				Other
+				.GetRow3D(
+					OtherSize,
+					OffsetInOther.Y + IndexY,
+					OffsetInOther.Z + IndexZ)
+				.Slice(OffsetInOther.X, Size.X)
+				.CopyTo(GetRow3D(Size, IndexY, IndexZ));
+			}
+		}
+	}
+	template<int32 Size>
+	void CopyFrom3D(
+		const TVoxelArrayView<const ElementType> Other,
+		const FIntVector& OffsetInOther,
+		const FIntVector& OtherSize) const
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Size * Size * Size, 1024);
+		checkVoxelSlow(Num() == Size * Size * Size);
+		checkVoxelSlow(Other.Num() == OtherSize.X * OtherSize.Y * OtherSize.Z);
+
+		checkVoxelSlow(0 <= OffsetInOther.X && OffsetInOther.X + Size <= OtherSize.X);
+		checkVoxelSlow(0 <= OffsetInOther.Y && OffsetInOther.Y + Size <= OtherSize.Y);
+		checkVoxelSlow(0 <= OffsetInOther.Z && OffsetInOther.Z + Size <= OtherSize.Z);
+
+		for (int32 IndexZ = 0; IndexZ < Size; IndexZ++)
+		{
+			for (int32 IndexY = 0; IndexY < Size; IndexY++)
+			{
+				Other
+				.GetRow3D(
+					OtherSize,
+					OffsetInOther.Y + IndexY,
+					OffsetInOther.Z + IndexZ)
+				.Slice(OffsetInOther.X, Size)
+				.template CopyTo<Size>(GetRow3D(Size, IndexY, IndexZ));
+			}
+		}
+	}
+
 	FORCEINLINE ElementType& operator[](InSizeType Index) const
 	{
 		RangeCheck(Index);
