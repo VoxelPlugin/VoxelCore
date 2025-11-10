@@ -32,11 +32,9 @@ void FVoxelMaterialGenerator::ForeachExpression(TFunctionRef<void(UMaterialExpre
 	}
 }
 
-UMaterialFunction* FVoxelMaterialGenerator::DuplicateFunctionIfNeeded(UMaterialFunction& OldFunction)
+UMaterialFunction* FVoxelMaterialGenerator::DuplicateFunctionIfNeeded(const UMaterialFunction& OldFunction)
 {
 	VOXEL_FUNCTION_COUNTER();
-
-	OnTrackMaterialFunction(OldFunction);
 
 	if (!ShouldDuplicateFunction(OldFunction))
 	{

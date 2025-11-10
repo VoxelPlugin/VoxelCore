@@ -49,6 +49,8 @@ public:
 	FVoxelInstancedStruct MakeInstancedStruct() const;
 
 	bool Identical(FConstVoxelStructView Other) const;
+	TVoxelArray<FString> GetChanges(FConstVoxelStructView New) const;
+
 	void CopyTo(FVoxelStructView Other) const;
 
 	FORCEINLINE TConstVoxelArrayView<uint8> GetRawView() const

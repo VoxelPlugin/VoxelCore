@@ -17,20 +17,18 @@ public:
 		UMaterial& NewMaterial,
 		const FString& ParameterNamePrefix,
 		const bool bSkipCustomOutputs,
-		const TFunction<bool(const UMaterialExpression&)> ShouldDuplicateFunction_AdditionalHook,
-		const TFunction<void(UMaterialFunction&)> OnTrackMaterialFunction)
+		const TFunction<bool(const UMaterialExpression&)> ShouldDuplicateFunction_AdditionalHook)
 		: ErrorOwner(ErrorOwner)
 		, NewMaterial(NewMaterial)
 		, ParameterNamePrefix(ParameterNamePrefix)
 		, bSkipCustomOutputs(bSkipCustomOutputs)
 		, ShouldDuplicateFunction_AdditionalHook(ShouldDuplicateFunction_AdditionalHook)
-		, OnTrackMaterialFunction(OnTrackMaterialFunction)
 	{
 	}
 
 public:
 	void ForeachExpression(TFunctionRef<void(UMaterialExpression&)> Lambda);
-	UMaterialFunction* DuplicateFunctionIfNeeded(UMaterialFunction& OldFunction);
+	UMaterialFunction* DuplicateFunctionIfNeeded(const UMaterialFunction& OldFunction);
 	TVoxelOptional<FMaterialAttributesInput> CopyExpressions(const UMaterial& OldMaterial);
 
 public:
@@ -57,7 +55,6 @@ private:
 	const FString ParameterNamePrefix;
 	const bool bSkipCustomOutputs;
 	const TFunction<bool(const UMaterialExpression&)> ShouldDuplicateFunction_AdditionalHook;
-	const TFunction<void(UMaterialFunction&)> OnTrackMaterialFunction;
 
 	TVoxelMap<FGuid, FGuid> OldToNewParameterGuid;
 	TVoxelMap<FGuid, FGuid> OldToNewNamedRerouteGuid;

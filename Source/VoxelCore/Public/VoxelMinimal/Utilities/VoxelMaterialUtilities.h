@@ -51,13 +51,21 @@ namespace FVoxelUtilities
 
 	VOXELCORE_API TVoxelArray<UMaterialExpression*> GetMaterialExpressions_Recursive(
 		const UMaterial& Material,
-		TVoxelSet<const UObject*>* Visited = nullptr);
+		TVoxelSet<const UMaterialFunction*>* Visited = nullptr);
 
 	VOXELCORE_API TVoxelArray<UMaterialExpression*> GetMaterialExpressions_Recursive(
 		const UMaterialFunction& MaterialFunction,
-		TVoxelSet<const UObject*>* Visited = nullptr);
+		TVoxelSet<const UMaterialFunction*>* Visited = nullptr);
 
 	VOXELCORE_API void ClearMaterialExpressions(UMaterial& Material);
+
+	VOXELCORE_API void GetMaterialFunctionsUsed(
+		const UMaterial& Material,
+		TVoxelSet<UMaterialFunction*>& Result);
+
+	VOXELCORE_API void GetMaterialFunctionsUsed(
+		const UMaterialFunction& MaterialFunction,
+		TVoxelSet<UMaterialFunction*>& Result);
 
 	VOXELCORE_API bool CopyParameterValues(
 		FMaterialInstanceParameterUpdateContext& UpdateContext,

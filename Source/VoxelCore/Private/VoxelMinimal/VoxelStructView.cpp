@@ -1,8 +1,8 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
+#include "VoxelPropertyDiffing.h"
 #include "UObject/StructOnScope.h"
-#include "VoxelMinimal/VoxelInstancedStruct.h"
 
 FConstVoxelStructView::FConstVoxelStructView(const FStructOnScope& StructOnScope)
 {
@@ -37,6 +37,30 @@ bool FConstVoxelStructView::Identical(const FConstVoxelStructView Other) const
 	checkVoxelSlow(EnumHasAllFlags(GetScriptStruct()->StructFlags, STRUCT_IdenticalNative) || GetScriptStruct()->PropertyLink);
 
 	return GetScriptStruct()->CompareScriptStruct(Other.GetStructMemory(), GetStructMemory(), PPF_None);
+}
+
+TVoxelArray<FString> FConstVoxelStructView::GetChanges(const FConstVoxelStructView New) const
+{
+	VOXEL_FUNCTION_COUNTER();
+	check(IsValid());
+	check(New.IsValid());
+	check(GetScriptStruct() == New.GetScriptStruct());
+	ensure(!(GetScriptStruct()->StructFlags & STRUCT_IdenticalNative));
+
+	TVoxelArray<FString> Result;
+	for (const FProperty& Property : GetStructProperties(GetScriptStruct()))
+	{
+		for (int32 Index = 0; Index < Property.ArrayDim; Index++)
+		{
+			FVoxelPropertyDiffing::Traverse(
+				Property,
+				Property.GetName() + (Property.ArrayDim == 1 ? FString() : FString::Printf(TEXT("[%d]"), Index)),
+				Property.ContainerPtrToValuePtr<void>(GetStructMemory(), Index),
+				Property.ContainerPtrToValuePtr<void>(New.GetStructMemory(), Index),
+				Result);
+		}
+	}
+	return Result;
 }
 
 void FConstVoxelStructView::CopyTo(const FVoxelStructView Other) const
