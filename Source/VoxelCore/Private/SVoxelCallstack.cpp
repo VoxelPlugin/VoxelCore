@@ -32,7 +32,7 @@ public:
 		static constexpr float HalfWireThickness = WireThickness / 2.0f;
 
 		static const FName NAME_VerticalBarBrush = TEXT("WhiteBrush");
-		const float Indent = IndentAmount.Get(10.f);
+		const float Indent = UE_507_SWITCH(IndentAmount, GetIndentAmountAttribute()).Get(10.f);
 		const FSlateBrush* VerticalBarBrush = !StyleSet ? nullptr : StyleSet->GetBrush(NAME_VerticalBarBrush);
 
 		if (!ShouldDrawWires.Get() ||

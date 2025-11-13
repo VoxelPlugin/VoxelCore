@@ -1191,58 +1191,6 @@ FORCEINLINE TSoftObjectPtr<T> MakeSoftObjectPtr(const FString& Path)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename T>
-struct TVoxelUFunctionOverride
-{
-	struct FFrame : T
-	{
-		struct FCode
-		{
-			FORCEINLINE FCode operator+=(FCode) const { return {}; }
-			FORCEINLINE FCode operator!() const { return {}; }
-		};
-		FCode Code;
-	};
-
-	using FNativeFuncPtr = void (*)(UObject* Context, FFrame& Stack, void* Result);
-
-	struct FNameNativePtrPair
-	{
-		const char* NameUTF8;
-		FNativeFuncPtr Pointer;
-	};
-
-	struct FNativeFunctionRegistrar
-	{
-		FNativeFunctionRegistrar(UClass* Class, const ANSICHAR* InName, const FNativeFuncPtr InPointer)
-		{
-			RegisterFunction(Class, InName, InPointer);
-		}
-		static void RegisterFunction(UClass* Class, const ANSICHAR* InName, const FNativeFuncPtr InPointer)
-		{
-			::FNativeFunctionRegistrar::RegisterFunction(Class, InName, reinterpret_cast<::FNativeFuncPtr>(InPointer));
-		}
-		static void RegisterFunction(UClass* Class, const WIDECHAR* InName, const FNativeFuncPtr InPointer)
-		{
-			::FNativeFunctionRegistrar::RegisterFunction(Class, InName, reinterpret_cast<::FNativeFuncPtr>(InPointer));
-		}
-		static void RegisterFunctions(UClass* Class, const FNameNativePtrPair* InArray, const int32 NumFunctions)
-		{
-			::FNativeFunctionRegistrar::RegisterFunctions(Class, reinterpret_cast<const ::FNameNativePtrPair*>(InArray), NumFunctions);
-		}
-	};
-};
-
-#define VOXEL_UFUNCTION_OVERRIDE(NewFrameClass) \
-	using FFrame = TVoxelUFunctionOverride<NewFrameClass>::FFrame; \
-	using FNativeFuncPtr = TVoxelUFunctionOverride<NewFrameClass>::FNativeFuncPtr; \
-	using FNameNativePtrPair = TVoxelUFunctionOverride<NewFrameClass>::FNameNativePtrPair; \
-	using FNativeFunctionRegistrar = TVoxelUFunctionOverride<NewFrameClass>::FNativeFunctionRegistrar;
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
 // Usage: DEFINE_PRIVATE_ACCESS(FMyClass, MyProperty) in global scope, then PrivateAccess::MyProperty(MyObject) from anywhere
 #define DEFINE_PRIVATE_ACCESS(Class, Property) \
 	namespace PrivateAccess \
