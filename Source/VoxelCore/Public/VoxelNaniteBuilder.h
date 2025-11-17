@@ -32,6 +32,7 @@ public:
 	static constexpr int32 NormalBits = 8;
 
 	bool bCompressVertices = false;
+	uint32 UniqueId = -1;
 	int32 ChunkIndex = -1;
 
 	// OutClusteredIndices will be filled only when compressing vertices;

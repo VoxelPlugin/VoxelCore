@@ -595,7 +595,7 @@ TVoxelArray<TUniquePtr<Voxel::Nanite::FCluster>> FVoxelNaniteBuilder::CreateClus
 			FCluster& Cluster = *AllClusters.Add_GetRef(MakeUnique<FCluster>());
 			Cluster.TextureCoordinates.SetNum(Mesh.TextureCoordinates.Num());
 			Cluster.MeshIndexToClusterIndex.Reserve(NANITE_MAX_CLUSTER_TRIANGLES * 3);
-			Cluster.ExtendedData.Append(0x2F66ED8E, 32);
+			Cluster.ExtendedData.Append(UniqueId, 32);
 			Cluster.ExtendedData.Append(ChunkIndex, 32);
 			Cluster.ExtendedData.Append(IndexSize, 6);
 		}
