@@ -2,6 +2,7 @@
 
 #include "VoxelMinimal.h"
 #include "MaterialDomain.h"
+#include "MeshUVChannelInfo.h"
 #include "Materials/Material.h"
 #include "Engine/StreamableRenderAsset.h"
 #include "Materials/MaterialInstanceDynamic.h"
