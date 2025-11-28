@@ -39,6 +39,7 @@ public class VoxelCore : ModuleRules
 				"HTTP",
 				"Slate",
 				"SlateCore",
+				"ChaosCore",
 				"Json",
 				"JsonUtilities",
 				"MoviePlayer",
@@ -65,6 +66,7 @@ public class VoxelCore : ModuleRules
 			new string[]
 			{
 				Path.Combine(EngineDirectory, "Source/Runtime/Engine/Private"),
+				Path.Combine(EngineDirectory, "Source/Runtime/Engine/Internal"),
 				Path.Combine(EngineDirectory, "Source/Runtime/Renderer/Private"),
 				Path.Combine(EngineDirectory, "Source/Runtime/Renderer/Internal")
 			}
