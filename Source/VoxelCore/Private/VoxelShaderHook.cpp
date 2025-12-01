@@ -596,7 +596,8 @@ bool FVoxelShaderHook::Revert(FVoxelShaderFileData& FileData)
 bool FVoxelShaderHook::CreatePatch(FVoxelShaderFileData& FileData, TArray<FString>& OutPatch, int32& OutStartLine)
 {
 	// If state is deprecated, we don't show this hook in patch
-	if (State == EVoxelShaderHookState::Deprecated)
+	if (State == EVoxelShaderHookState::Deprecated ||
+		State == EVoxelShaderHookState::Active)
 	{
 		return false;
 	}
