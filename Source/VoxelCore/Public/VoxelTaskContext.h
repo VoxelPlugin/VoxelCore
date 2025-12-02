@@ -13,6 +13,7 @@ class VOXELCORE_API FVoxelTaskContextStrongRef
 {
 public:
 	FVoxelTaskContext& Context;
+	uint64 DebugId = 0;
 
 	explicit FVoxelTaskContextStrongRef(FVoxelTaskContext& Context);
 	~FVoxelTaskContextStrongRef();
@@ -163,6 +164,14 @@ private:
 
 	void TrackPromise(const FVoxelPromiseState& PromiseState);
 	void UntrackPromise(const FVoxelPromiseState& PromiseState);
+
+private:
+	FVoxelCriticalSection DebugDataCriticalSection;
+	uint64 DebugCounter_RequiresLock = 0;
+	TVoxelMap<uint64, FVoxelStackFrames> IdToStackFrame_RequiresLock;
+
+	uint64 AddDebugFrame();
+	void RemoveDebugFrame(uint64 DebugId);
 
 	friend FVoxelPromiseState;
 	friend FVoxelTaskContextWeakRef;

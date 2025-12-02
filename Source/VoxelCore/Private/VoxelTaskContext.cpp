@@ -13,11 +13,18 @@ VOXEL_CONSOLE_VARIABLE(
 	"voxel.TrackAllPromisesCallstacks",
 	"Enable voxel promise callstack tracking, to debug when promises where created");
 
+bool GVoxelTrackAllTaskCallstacks = false;
+
 VOXEL_RUN_ON_STARTUP_GAME()
 {
 	if (FParse::Param(FCommandLine::Get(), TEXT("NoVoxelAsync")))
 	{
 		GVoxelNoAsync = true;
+	}
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("VoxelTrackTasks")))
+	{
+		GVoxelTrackAllTaskCallstacks = true;
 	}
 }
 
@@ -144,11 +151,19 @@ FVoxelTaskContextStrongRef::FVoxelTaskContextStrongRef(FVoxelTaskContext& Contex
 	: Context(Context)
 {
 	Context.NumStrongRefs.Increment();
+	if (GVoxelTrackAllTaskCallstacks)
+	{
+		DebugId = Context.AddDebugFrame();
+	}
 }
 
 FVoxelTaskContextStrongRef::~FVoxelTaskContextStrongRef()
 {
 	Context.NumStrongRefs.Decrement();
+	if (GVoxelTrackAllTaskCallstacks)
+	{
+		Context.RemoveDebugFrame(DebugId);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -265,6 +280,16 @@ void FVoxelTaskContext::Dispatch(
 		Lambda();
 	};
 #endif
+
+	if (GVoxelTrackAllTaskCallstacks)
+	{
+		const uint64 DebugId = AddDebugFrame();
+		Lambda = [this, DebugId, Lambda = MoveTemp(Lambda)]
+		{
+			RemoveDebugFrame(DebugId);
+			Lambda();
+		};
+	}
 
 	if (ShouldCancelTasks.Get())
 	{
@@ -441,7 +466,9 @@ void FVoxelTaskContext::FlushTasksUntil(const TFunctionRef<bool()> Condition) co
 {
 	VOXEL_FUNCTION_COUNTER();
 
-	double LastLogTime = FPlatformTime::Seconds();
+	const double StartTime = FPlatformTime::Seconds();
+	double LastLogTime = StartTime;
+	bool bPrintStuckCallstacks = true;
 
 	// if NumStrongRefs > 0, we need to wait for the promise who pinned us to complete
 
@@ -453,6 +480,22 @@ void FVoxelTaskContext::FlushTasksUntil(const TFunctionRef<bool()> Condition) co
 
 			// ProcessGameTasks holds a strong ref, if this happens we are stuck
 			checkf(!bIsProcessingGameTasks, TEXT("FVoxelTaskContext deleted during ProcessGameTasks"));
+		}
+
+		if (GVoxelTrackAllTaskCallstacks &&
+			bPrintStuckCallstacks &&
+			FPlatformTime::Seconds() - StartTime > 0.5)
+		{
+			bPrintStuckCallstacks = false;
+
+			VOXEL_SCOPE_LOCK(DebugDataCriticalSection);
+			for (const auto& It : IdToStackFrame_RequiresLock)
+			{
+				for (const FString& Line : FVoxelUtilities::StackFramesToString_WithStats(It.Value))
+				{
+					LOG_VOXEL(Log, "\t%s", *Line);
+				}
+			}
 		}
 
 		if (Condition())
@@ -597,6 +640,24 @@ void FVoxelTaskContext::UntrackPromise(const FVoxelPromiseState& PromiseState)
 {
 	VOXEL_SCOPE_LOCK(CriticalSection);
 	ensure(PromiseStateToStackFrames_RequiresLock.Remove(&PromiseState));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+uint64 FVoxelTaskContext::AddDebugFrame()
+{
+	VOXEL_SCOPE_LOCK(DebugDataCriticalSection);
+	const uint64 Result = DebugCounter_RequiresLock++;
+	IdToStackFrame_RequiresLock.Add_CheckNew(Result, FVoxelUtilities::GetStackFrames_WithStats(1));
+	return Result;
+}
+
+void FVoxelTaskContext::RemoveDebugFrame(const uint64 DebugId)
+{
+	VOXEL_SCOPE_LOCK(DebugDataCriticalSection);
+	IdToStackFrame_RequiresLock.Remove(DebugId);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
