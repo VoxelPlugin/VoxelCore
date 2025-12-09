@@ -74,7 +74,7 @@ TSharedRef<IMessageToken> FVoxelMessageToken_BlueprintCallstack::GetMessageToken
 
 						if (!BlueprintEntry)
 						{
-							BlueprintEntry = MakeShared<FVoxelCallstackEntry>(
+							BlueprintEntry = MakeShared<FVoxelCallstackObjectEntry>(
 								Blueprint,
 								FVoxelUtilities::GetReadableName(Blueprint),
 								"Blueprint: ",
@@ -87,7 +87,7 @@ TSharedRef<IMessageToken> FVoxelMessageToken_BlueprintCallstack::GetMessageToken
 						TSharedPtr<FVoxelCallstackEntry> GraphEntry = ObjectToEntry.FindRef(Graph);
 						if (!GraphEntry)
 						{
-							GraphEntry = MakeShared<FVoxelCallstackEntry>(
+							GraphEntry = MakeShared<FVoxelCallstackObjectEntry>(
 								Graph,
 								Graph->GetName(),
 								"Function: ",
@@ -96,7 +96,7 @@ TSharedRef<IMessageToken> FVoxelMessageToken_BlueprintCallstack::GetMessageToken
 							ObjectToEntry.Add(Graph, GraphEntry);
 						}
 
-						TSharedRef<FVoxelCallstackEntry> NodeEntry = MakeShared<FVoxelCallstackEntry>(
+						TSharedRef<FVoxelCallstackEntry> NodeEntry = MakeShared<FVoxelCallstackObjectEntry>(
 								Node,
 								FVoxelUtilities::GetReadableName(Node),
 								LexToString(Index++) + ". ",

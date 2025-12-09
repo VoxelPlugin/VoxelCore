@@ -17,22 +17,42 @@ struct VOXELCORE_API FVoxelCallstackEntry
 		Marked
 	};
 
-	FVoxelObjectPtr WeakObject;
 	FString Name;
 	FString Prefix;
 	EType Type = EType::Default;
 	TArray<TSharedPtr<FVoxelCallstackEntry>> Children;
 
 	FVoxelCallstackEntry(
+		const FString& Name,
+		const FString& Prefix,
+		const EType Type)
+		: Name(Name)
+		, Prefix(Prefix)
+		, Type(Type)
+	{
+	}
+
+	virtual void OnClick() const {}
+	virtual ~FVoxelCallstackEntry() = default;
+};
+
+struct VOXELCORE_API FVoxelCallstackObjectEntry : public FVoxelCallstackEntry
+{
+	FVoxelObjectPtr WeakObject;
+
+	FVoxelCallstackObjectEntry(
 		const FVoxelObjectPtr& Object,
 		const FString& Name,
 		const FString& Prefix,
 		const EType Type)
-		: WeakObject(Object)
-		, Name(Name)
-		, Prefix(Prefix)
-		, Type(Type)
+		: FVoxelCallstackEntry(Name, Prefix, Type)
+		, WeakObject(Object)
 	{
+	}
+
+	virtual void OnClick() const
+	{
+		FVoxelUtilities::FocusObject(WeakObject.Resolve());
 	}
 };
 
