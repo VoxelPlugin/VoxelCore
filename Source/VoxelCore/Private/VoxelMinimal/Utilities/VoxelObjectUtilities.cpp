@@ -917,6 +917,74 @@ UObject* FVoxelUtilities::NewObject_Safe(UObject* Outer, const UClass* Class, co
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+uint64 FVoxelUtilities::HashStruct(const UScriptStruct* Struct, const void* DataPtr)
+{
+	if (!ensure(Struct))
+	{
+		return 0;
+	}
+
+	if (Struct == StaticStructFast<FVoxelInstancedStruct>())
+	{
+		const FVoxelInstancedStruct& InstancedStruct = *static_cast<const FVoxelInstancedStruct*>(DataPtr);
+		if (!InstancedStruct.IsValid())
+		{
+			return 0;
+		}
+
+		Struct = InstancedStruct.GetScriptStruct();
+		DataPtr = InstancedStruct.GetStructMemory();
+	}
+
+#define CASE(Type) \
+	if (Struct == StaticStructFast<Type>()) \
+	{ \
+		return FVoxelUtilities::MurmurHash(*static_cast<const Type*>(DataPtr)); \
+	}
+
+	CASE(FVector2D);
+	CASE(FVector);
+	CASE(FVector4);
+	CASE(FIntPoint);
+	CASE(FIntVector);
+	CASE(FRotator);
+	CASE(FQuat);
+	CASE(FTransform);
+	CASE(FColor);
+	CASE(FLinearColor);
+	CASE(FMatrix);
+
+#undef CASE
+
+	TVoxelInlineArray<uint64, 64> Hashes;
+	for (FProperty& ChildProperty : GetStructProperties(Struct))
+	{
+		Hashes.Add(HashProperty(ChildProperty, ChildProperty.ContainerPtrToValuePtr<void>(DataPtr)));
+	}
+
+	if (Hashes.Num() > 0)
+	{
+		return MurmurHashView(Hashes);
+	}
+
+	if (Struct->GetPropertiesSize() == 1)
+	{
+		// Empty struct
+		return 0;
+	}
+
+	UScriptStruct::ICppStructOps* CppStructOps = Struct->GetCppStructOps();
+	check(CppStructOps);
+
+	if (!CppStructOps->HasGetTypeHash())
+	{
+		// TODO Serialize instead and compute hash from that?
+		return 0;
+	}
+
+	return CppStructOps->GetStructTypeHash(DataPtr);
+}
+
 uint64 FVoxelUtilities::HashProperty(const FProperty& Property, const void* DataPtr)
 {
 	checkUObjectAccess();
@@ -1040,67 +1108,7 @@ uint64 FVoxelUtilities::HashProperty(const FProperty& Property, const void* Data
 	}
 	case FStructProperty::StaticClassCastFlags():
 	{
-		const UScriptStruct* Struct = CastFieldChecked<FStructProperty>(Property).Struct;
-
-		if (Struct == StaticStructFast<FVoxelInstancedStruct>())
-		{
-			const FVoxelInstancedStruct& InstancedStruct = *static_cast<const FVoxelInstancedStruct*>(DataPtr);
-			if (!InstancedStruct.IsValid())
-			{
-				return 0;
-			}
-
-			Struct = InstancedStruct.GetScriptStruct();
-			DataPtr = InstancedStruct.GetStructMemory();
-		}
-
-#define CASE(Type) \
-		if (Struct == StaticStructFast<Type>()) \
-		{ \
-			return FVoxelUtilities::MurmurHash(*static_cast<const Type*>(DataPtr)); \
-		}
-
-		CASE(FVector2D);
-		CASE(FVector);
-		CASE(FVector4);
-		CASE(FIntPoint);
-		CASE(FIntVector);
-		CASE(FRotator);
-		CASE(FQuat);
-		CASE(FTransform);
-		CASE(FColor);
-		CASE(FLinearColor);
-		CASE(FMatrix);
-
-#undef CASE
-
-		TVoxelInlineArray<uint64, 64> Hashes;
-		for (FProperty& ChildProperty : GetStructProperties(Struct))
-		{
-			Hashes.Add(HashProperty(ChildProperty, ChildProperty.ContainerPtrToValuePtr<void>(DataPtr)));
-		}
-
-		if (Hashes.Num() > 0)
-		{
-			return MurmurHashView(Hashes);
-		}
-
-		if (Struct->GetPropertiesSize() == 1)
-		{
-			// Empty struct
-			return 0;
-		}
-
-		UScriptStruct::ICppStructOps* CppStructOps = Struct->GetCppStructOps();
-		check(CppStructOps);
-
-		if (!CppStructOps->HasGetTypeHash())
-		{
-			// TODO Serialize instead and compute hash from that?
-			return 0;
-		}
-
-		return CppStructOps->GetStructTypeHash(DataPtr);
+		return HashStruct(CastFieldChecked<FStructProperty>(Property).Struct, DataPtr);
 	}
 	default:
 	{
