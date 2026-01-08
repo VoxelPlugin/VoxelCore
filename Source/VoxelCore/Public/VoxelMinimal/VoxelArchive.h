@@ -22,13 +22,21 @@ public:
 	//~ End FMemoryArchive Interface
 };
 
-template<typename T, typename = decltype(std::declval<FArchive&>() << std::declval<T&>())>
+template<typename T, typename = void>
+struct TCanSerializeWithFArchive : std::false_type {};
+
+template<typename T>
+struct TCanSerializeWithFArchive<T, std::void_t<decltype(DeclVal<FArchive&>() << DeclVal<T&>())>> : std::true_type {};
+
+template<typename T>
+requires TCanSerializeWithFArchive<T>::value
 FORCEINLINE FVoxelWriter& operator<<(FVoxelWriter& Ar, T& Value)
 {
 	static_cast<FArchive&>(Ar) << Value;
 	return Ar;
 }
-template<typename T, typename = decltype(std::declval<FArchive&>() << std::declval<T&>())>
+template<typename T>
+requires TCanSerializeWithFArchive<T>::value
 FORCEINLINE FVoxelWriter& operator<<(FVoxelWriter& Ar, const T& Value)
 {
 	static_cast<FArchive&>(Ar) << ConstCast(Value);
