@@ -186,11 +186,14 @@ public:
 
 public:
 	template<typename InType>
-	struct TIterator : TVoxelRangeIterator<TIterator<InType>>
+	struct TIterator : TVoxelIterator<TIterator<InType>>
 	{
 	public:
+		using ArrayType = std::conditional_t<std::is_const_v<InType>, const TVoxelChunkedSparseArray, TVoxelChunkedSparseArray>;
+
 		TIterator() = default;
-		FORCEINLINE explicit TIterator(std::conditional_t<std::is_const_v<InType>, const TVoxelChunkedSparseArray, TVoxelChunkedSparseArray>& Array)
+		FORCEINLINE explicit TIterator(ArrayType& Array)
+			: Array(Array)
 		{
 			if (Array.Num() == 0)
 			{
@@ -202,9 +205,20 @@ public:
 			LoadChunk();
 		}
 
+		FORCEINLINE int32 GetIndex() const
+		{
+			return ChunkIndex * NumPerChunk + Iterator.GetIndex();
+		}
+		FORCEINLINE void RemoveCurrent() const
+		{
+			Array.RemoveAt(GetIndex());
+		}
+
 		FORCEINLINE InType& operator*() const
 		{
-			return ReinterpretCastRef<InType>(Values[Iterator.GetIndex()]);
+			InType& Result = ReinterpretCastRef<InType>(Values[Iterator.GetIndex()]);
+			checkVoxelSlow(&Result == &Array[GetIndex()]);
+			return Result;
 		}
 		FORCEINLINE void operator++()
 		{
@@ -222,6 +236,8 @@ public:
 		}
 
 	private:
+		ArrayType& Array;
+
 		TConstVoxelArrayView<TUniquePtr<FChunk>> Chunks;
 		int32 ChunkIndex = 0;
 
@@ -249,6 +265,15 @@ public:
 	using FIterator = TIterator<Type>;
 	using FConstIterator = TIterator<const Type>;
 
+	FORCEINLINE FIterator CreateIterator()
+	{
+		return FIterator(*this);
+	}
+	FORCEINLINE FConstIterator CreateIterator() const
+	{
+		return FConstIterator(*this);
+	}
+
 	FORCEINLINE FIterator begin()
 	{
 		return FIterator(*this);
@@ -257,7 +282,7 @@ public:
 	{
 		return FConstIterator(*this);
 	}
-	FORCEINLINE FVoxelRangeIteratorEnd end() const
+	FORCEINLINE FVoxelIteratorEnd end() const
 	{
 		return FIterator::end();
 	}

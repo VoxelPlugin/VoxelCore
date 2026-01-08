@@ -82,7 +82,7 @@ private:
 	TVoxelChunkedArray<FChunk> Chunks;
 
 public:
-	struct FIterator : TVoxelRangeIterator<FIterator>
+	struct FIterator : TVoxelIterator<FIterator>
 	{
 	public:
 		FORCEINLINE const Type& operator*() const

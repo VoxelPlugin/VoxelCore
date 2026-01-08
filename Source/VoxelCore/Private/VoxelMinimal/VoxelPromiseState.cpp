@@ -104,6 +104,9 @@ void FVoxelPromiseState::AddContinuation(TUniquePtr<FContinuation> Continuation)
 	const TUniquePtr<FVoxelTaskContextStrongRef> ContextStrongRef = ContextWeakRef.Pin();
 	if (!ContextStrongRef)
 	{
+		// Context was deleted - if no context was cancelled, this is likely due to a future outliving its context
+		// The usual fix for this is wrapping future creation in a global context
+		ensureVoxelSlow(false);
 		return;
 	}
 	FVoxelTaskContext& Context = ContextStrongRef->Context;

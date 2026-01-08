@@ -22,5 +22,7 @@ struct VOXELCORE_API FVoxelBulkData
 public:
 	FVoxelBulkData() = default;
 
+	void SerializeAsBytes(FArchive& Ar);
 	virtual void Serialize(FArchive& Ar) VOXEL_PURE_VIRTUAL();
+	virtual void GatherObjects(TVoxelSet<TVoxelObjectPtr<UObject>>& OutObjects) const VOXEL_PURE_VIRTUAL();
 };

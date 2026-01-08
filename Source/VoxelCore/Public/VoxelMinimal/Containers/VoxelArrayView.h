@@ -334,6 +334,13 @@ public:
 		checkVoxelSlow(NumBytes % sizeof(ToType) == 0);
 		return TVoxelArrayView<ToType, ReturnSizeType>(reinterpret_cast<ToType*>(GetData()), NumBytes / sizeof(T));
 	}
+	template<typename T, typename ToType = std::conditional_t<std::is_const_v<ElementType>, const T, T>>
+	FORCEINLINE ToType& ReinterpretAsSingle() const
+	{
+		const int64 NumBytes = Num() * sizeof(ElementType);
+		checkVoxelSlow(NumBytes == sizeof(ToType));
+		return *reinterpret_cast<ToType*>(GetData());
+	}
 
 	TVoxelArray<std::remove_const_t<InElementType>> Array() const
 	{
@@ -375,10 +382,10 @@ struct TIsContiguousContainer<TVoxelArrayView<T, SizeType>> : TIsContiguousConta
 {
 };
 
-template<typename InElementType, typename InSizeType> struct TIsTArrayView<               TVoxelArrayView<InElementType, InSizeType>> { static constexpr bool Value = true; };
-template<typename InElementType, typename InSizeType> struct TIsTArrayView<      volatile TVoxelArrayView<InElementType, InSizeType>> { static constexpr bool Value = true; };
-template<typename InElementType, typename InSizeType> struct TIsTArrayView<const          TVoxelArrayView<InElementType, InSizeType>> { static constexpr bool Value = true; };
-template<typename InElementType, typename InSizeType> struct TIsTArrayView<const volatile TVoxelArrayView<InElementType, InSizeType>> { static constexpr bool Value = true; };
+template <typename InElementType, typename InSizeType> constexpr bool TIsTArrayView_V<               TVoxelArrayView<InElementType, InSizeType>> = true;
+template <typename InElementType, typename InSizeType> constexpr bool TIsTArrayView_V<      volatile TVoxelArrayView<InElementType, InSizeType>> = true;
+template <typename InElementType, typename InSizeType> constexpr bool TIsTArrayView_V<const          TVoxelArrayView<InElementType, InSizeType>> = true;
+template <typename InElementType, typename InSizeType> constexpr bool TIsTArrayView_V<const volatile TVoxelArrayView<InElementType, InSizeType>> = true;
 
 template<typename T>
 FORCEINLINE auto MakeVoxelArrayView(T&& Other)

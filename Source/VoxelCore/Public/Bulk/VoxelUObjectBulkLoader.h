@@ -8,6 +8,8 @@
 class VOXELCORE_API FVoxelUObjectBulkLoader : public FVoxelBulkArchive
 {
 public:
+	FVoxelUObjectBulkLoader() = default;
+
 	void Serialize(FArchive& Ar, UObject* Owner);
 
 protected:

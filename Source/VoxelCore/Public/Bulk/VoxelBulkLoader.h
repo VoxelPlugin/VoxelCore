@@ -11,6 +11,7 @@ public:
 	IVoxelBulkLoader() = default;
 	virtual ~IVoxelBulkLoader() = default;
 
+public:
 	TVoxelFuture<TSharedPtr<const TVoxelArray64<uint8>>> LoadBulkData(const FVoxelBulkHash& Hash);
 	TSharedPtr<const TVoxelArray64<uint8>> LoadBulkDataSync(const FVoxelBulkHash& Hash);
 

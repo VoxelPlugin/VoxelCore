@@ -453,7 +453,7 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-struct VOXELCORE_API FVoxelSetBitIterator : TVoxelRangeIterator<FVoxelSetBitIterator>
+struct VOXELCORE_API FVoxelSetBitIterator : TVoxelIterator<FVoxelSetBitIterator>
 {
 public:
 	FVoxelSetBitIterator() = default;

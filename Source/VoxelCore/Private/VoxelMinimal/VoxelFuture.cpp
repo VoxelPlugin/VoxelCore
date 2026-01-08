@@ -64,8 +64,6 @@ void IVoxelPromiseState::CheckCanAddContinuation(const FVoxelFuture& Future)
 	}
 
 	const TUniquePtr<FVoxelTaskContextStrongRef> ThisContextPtr = ThisContext.Pin();
-	const TUniquePtr<FVoxelTaskContextStrongRef> OtherContextPtr = OtherContext.Pin();
-
 	if (!ThisContextPtr)
 	{
 		return;

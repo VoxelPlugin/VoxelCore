@@ -2,13 +2,14 @@
 
 #include "VoxelMinimal.h"
 
-FVoxelWriterArchive::FVoxelWriterArchive()
+FVoxelWriter::FVoxelWriter()
 {
 	SetIsSaving(true);
 	SetIsPersistent(true);
+	SetWantBinaryPropertySerialization(true);
 }
 
-void FVoxelWriterArchive::Serialize(void* Data, const int64 NumToSerialize)
+void FVoxelWriter::Serialize(void* Data, const int64 NumToSerialize)
 {
 	VOXEL_FUNCTION_COUNTER_NUM(NumToSerialize, 128);
 
@@ -29,12 +30,12 @@ void FVoxelWriterArchive::Serialize(void* Data, const int64 NumToSerialize)
 	Offset += NumToSerialize;
 }
 
-int64 FVoxelWriterArchive::TotalSize()
+int64 FVoxelWriter::TotalSize()
 {
 	return Bytes.Num();
 }
 
-FString FVoxelWriterArchive::GetArchiveName() const
+FString FVoxelWriter::GetArchiveName() const
 {
 	return "FVoxelArchive";
 }
@@ -43,13 +44,14 @@ FString FVoxelWriterArchive::GetArchiveName() const
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FVoxelReaderArchive::FVoxelReaderArchive(const TConstVoxelArrayView64<uint8>& Bytes): Bytes(Bytes)
+FVoxelReader::FVoxelReader(const TConstVoxelArrayView64<uint8>& Bytes): Bytes(Bytes)
 {
 	SetIsLoading(true);
 	SetIsPersistent(true);
+	SetWantBinaryPropertySerialization(true);
 }
 
-void FVoxelReaderArchive::Serialize(void* Data, const int64 NumToSerialize)
+void FVoxelReader::Serialize(void* Data, const int64 NumToSerialize)
 {
 	VOXEL_FUNCTION_COUNTER_NUM(NumToSerialize, 128);
 
@@ -74,12 +76,12 @@ void FVoxelReaderArchive::Serialize(void* Data, const int64 NumToSerialize)
 	Offset += NumToSerialize;
 }
 
-int64 FVoxelReaderArchive::TotalSize()
+int64 FVoxelReader::TotalSize()
 {
 	return Bytes.Num();
 }
 
-FString FVoxelReaderArchive::GetArchiveName() const
+FString FVoxelReader::GetArchiveName() const
 {
 	return "FVoxelArchive";
 }

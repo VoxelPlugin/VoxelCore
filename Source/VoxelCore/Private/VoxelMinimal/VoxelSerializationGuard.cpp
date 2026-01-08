@@ -59,7 +59,9 @@ FVoxelSerializationGuard::~FVoxelSerializationGuard()
 		Ar.Seek(Offset);
 		check(Ar.Tell() == Offset);
 
-		SerializedSize = NewOffset - Offset;
+		check(NewOffset - Offset <= MAX_int32);
+
+		SerializedSize = int32(NewOffset - Offset);
 		Ar << SerializedSize;
 
 		Ar.Seek(NewOffset);

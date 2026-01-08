@@ -207,6 +207,7 @@ public:
 			return *Context;
 		}
 
+		checkVoxelSlow(GVoxelGlobalTaskContext);
 		return *GVoxelGlobalTaskContext;
 	}
 

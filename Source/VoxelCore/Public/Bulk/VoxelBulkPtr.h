@@ -9,6 +9,9 @@
 class IVoxelBulkLoader;
 class FVoxelBulkDataCollector;
 
+template<typename Type>
+struct TVoxelBulkRef;
+
 struct VOXELCORE_API FVoxelBulkPtr
 {
 public:
@@ -26,8 +29,26 @@ public:
 		const UScriptStruct& Struct,
 		const FVoxelBulkHash& Hash);
 
+public:
+	void FullyLoadSync(IVoxelBulkLoader& Loader) const;
+	TVoxelArray<uint8> WriteToBytes() const;
 	TVoxelArray<FVoxelBulkPtr> GetDependencies() const;
-	void Serialize(FArchive& Ar, const UScriptStruct& Struct);
+
+	static FVoxelBulkPtr LoadFromBytes(
+		const UScriptStruct& Struct,
+		TConstVoxelArrayView<uint8> Bytes);
+
+public:
+	void Serialize(
+		FArchive& Ar,
+		const UScriptStruct& Struct);
+
+	void ShallowSerialize(
+		FArchive& Ar,
+		const UScriptStruct& Struct);
+
+public:
+	void GatherObjects(TVoxelSet<TVoxelObjectPtr<UObject>>& OutObjects) const;
 
 public:
 	FORCEINLINE bool IsSet() const
@@ -56,6 +77,10 @@ public:
 	{
 		return Inner->Hash;
 	}
+	FORCEINLINE FVoxelBulkHash GetHashOrNull() const
+	{
+		return Inner ? Inner->Hash : FVoxelBulkHash();
+	}
 	FORCEINLINE TVoxelFuture<const FVoxelBulkData> Load(IVoxelBulkLoader& Loader) const
 	{
 		return Inner->Load(Loader);
@@ -72,6 +97,10 @@ public:
 	FORCEINLINE const FVoxelBulkData* operator->() const
 	{
 		return &Get();
+	}
+	FORCEINLINE const FVoxelBulkData& operator*() const
+	{
+		return Get();
 	}
 
 	bool operator==(const FVoxelBulkPtr&) const = delete;
@@ -104,7 +133,12 @@ private:
 	TVoxelRefCountPtr<FInner> Inner;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 template<typename Type>
+requires (!std::is_const_v<Type>)
 struct TVoxelBulkPtr : FVoxelBulkPtr
 {
 public:
@@ -124,6 +158,15 @@ public:
 		checkStatic(std::is_final_v<Type>);
 	}
 
+public:
+	static TVoxelBulkPtr<Type> LoadFromBytes(const TConstVoxelArrayView<uint8> Bytes)
+	{
+		return ReinterpretCastRef<TVoxelBulkPtr<Type>>(FVoxelBulkPtr::LoadFromBytes(
+			*StaticStructFast<Type>(),
+			Bytes));
+	}
+
+public:
 	void Serialize(FArchive& Ar)
 	{
 		// Otherwise StaticStructFast might be incorrect
@@ -131,11 +174,28 @@ public:
 
 		FVoxelBulkPtr::Serialize(Ar, *StaticStructFast<Type>());
 	}
+	void ShallowSerialize(FArchive& Ar)
+	{
+		// Otherwise StaticStructFast might be incorrect
+		checkStatic(std::is_final_v<Type>);
+
+		FVoxelBulkPtr::ShallowSerialize(Ar, *StaticStructFast<Type>());
+	}
+
+public:
+	void GatherObjects(TVoxelSet<TVoxelObjectPtr<UObject>>& OutObjects) const
+	{
+		FVoxelBulkPtr::GatherObjects(OutObjects);
+	}
 
 public:
 	FORCEINLINE const Type& Get() const
 	{
-		return static_cast<const Type&>(FVoxelBulkPtr::Get());
+		return CastStructChecked<Type>(FVoxelBulkPtr::Get());
+	}
+	FORCEINLINE TSharedRef<const Type> GetShared() const
+	{
+		return CastStructChecked<Type>(FVoxelBulkPtr::GetShared());
 	}
 	FORCEINLINE TVoxelFuture<const Type> Load(IVoxelBulkLoader& Loader) const
 	{
@@ -150,9 +210,49 @@ public:
 		return &Get();
 	}
 
+	FORCEINLINE const TVoxelBulkRef<Type>& ToBulkRef() const
+	{
+		checkVoxelSlow(IsLoaded());
+		return ReinterpretCastRef<TVoxelBulkRef<Type>>(*this);
+	}
+
 public:
 	friend void operator<<(FArchive& Ar, TVoxelBulkPtr& BulkPtr)
 	{
 		BulkPtr.Serialize(Ar);
 	}
 };
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template<typename Type>
+requires (!std::is_const_v<Type>)
+struct TVoxelBulkRef<Type> : TVoxelBulkPtr<Type>
+{
+public:
+	explicit TVoxelBulkRef(const TSharedRef<const Type>& Data)
+		: TVoxelBulkPtr<Type>(Data)
+	{
+	}
+
+private:
+	using TVoxelBulkPtr<Type>::Load;
+	using TVoxelBulkPtr<Type>::LoadSync;
+	using TVoxelBulkPtr<Type>::IsSet;
+	using TVoxelBulkPtr<Type>::IsLoaded;
+};
+
+template<typename Type>
+requires (!std::is_const_v<Type>)
+FORCEINLINE TVoxelBulkRef<Type> MakeVoxelBulkRef(const TSharedRef<Type>& Data)
+{
+	return TVoxelBulkRef<Type>(Data);
+}
+template<typename Type>
+requires (!std::is_const_v<Type>)
+FORCEINLINE TVoxelBulkRef<Type> MakeVoxelBulkRef(const TSharedRef<const Type>& Data)
+{
+	return TVoxelBulkRef<Type>(Data);
+}

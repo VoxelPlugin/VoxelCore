@@ -57,9 +57,6 @@
 #define INTELLISENSE_SWITCH(True, False) False
 #endif
 
-// This is defined in the generated.h. It lets you use GetOuterASomeOuter. Resharper/intellisense are confused when it's used, so define it for them
-#define INTELLISENSE_DECLARE_WITHIN(Name) INTELLISENSE_ONLY(DECLARE_WITHIN(Name))
-
 #define INTELLISENSE_PRINTF(Format, ...) INTELLISENSE_ONLY((void)FString::Printf(TEXT(Format), __VA_ARGS__);)
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1286,23 +1283,31 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-struct FVoxelRangeIteratorEnd
+struct FVoxelIteratorEnd
 {
 };
 
 template<typename Type>
-struct TVoxelRangeIterator
+struct TVoxelIterator
 {
 	FORCEINLINE Type begin() const
 	{
 		return static_cast<const Type&>(*this);
 	}
-	FORCEINLINE static FVoxelRangeIteratorEnd end()
+	FORCEINLINE static FVoxelIteratorEnd end()
 	{
 		return {};
 	}
-    FORCEINLINE bool operator!=(const FVoxelRangeIteratorEnd&) const
+    FORCEINLINE bool operator!=(const FVoxelIteratorEnd&) const
     {
         return bool(static_cast<const Type&>(*this));
     }
+
+	FORCEINLINE auto operator->() const
+	{
+		if constexpr (std::is_reference_v<decltype(DeclVal<Type>().operator*())>)
+		{
+			return &static_cast<const Type&>(*this).operator*();
+		}
+	}
 };

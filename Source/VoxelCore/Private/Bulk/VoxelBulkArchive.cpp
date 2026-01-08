@@ -253,13 +253,7 @@ bool FVoxelBulkArchive::WriteBulkPtrs_RequiresLock(const TConstVoxelArrayView<FV
 		Voxel::ParallelFor(BulkPtrs, [&](const FVoxelBulkPtr& BulkPtr)
 		{
 			FInfo Info;
-
-			{
-				FVoxelBulkPtrWriter Writer;
-				ConstCast(BulkPtr.Get()).Serialize(Writer);
-				checkVoxelSlow(FVoxelBulkHash::Create(Writer.Bytes) == BulkPtr.GetHash());
-				Info.Data = MoveTemp(Writer.Bytes);
-			}
+			Info.Data = BulkPtr.WriteToBytes();
 
 			{
 				const TVoxelArray<FVoxelBulkPtr> Dependencies = BulkPtr.GetDependencies();

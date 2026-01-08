@@ -4,7 +4,7 @@
 
 #include "VoxelMinimal.h"
 
-class FVoxelBulkPtrWriter : public FVoxelWriterArchive
+class FVoxelBulkPtrWriter : public FVoxelWriter
 {
 public:
 	//~ Begin FArchive Interface
@@ -15,15 +15,28 @@ public:
 	//~ End FArchive Interface
 };
 
-class FVoxelBulkPtrReader : public FVoxelReaderArchive
+class FVoxelBulkPtrReader : public FVoxelReader
 {
 public:
-	using FVoxelReaderArchive::FVoxelReaderArchive;
+	using FVoxelReader::FVoxelReader;
 
 	//~ Begin FArchive Interface
 	virtual FString GetArchiveName() const override
 	{
 		return "FVoxelBulkPtrReader";
+	}
+	//~ End FArchive Interface
+};
+
+class FVoxelBulkPtrShallowArchive : public FArchiveProxy
+{
+public:
+	using FArchiveProxy::FArchiveProxy;
+
+	//~ Begin FArchive Interface
+	virtual FString GetArchiveName() const override
+	{
+		return "FVoxelBulkPtrShallowArchive";
 	}
 	//~ End FArchive Interface
 };
