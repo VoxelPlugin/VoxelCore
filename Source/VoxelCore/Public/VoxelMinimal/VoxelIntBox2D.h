@@ -495,6 +495,7 @@ struct VOXELCORE_API FVoxelIntBox2D
 			}
 		}
 	}
+	void ParallelIterate(TVoxelFunctionRef<void(FIntPoint)> Lambda) const;
 
 	FORCEINLINE FVoxelIntBox2D& operator+=(const FVoxelIntBox2D& Other)
 	{

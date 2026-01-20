@@ -204,3 +204,18 @@ bool FVoxelIntBox2D::Subdivide(
 	}
 	return true;
 }
+
+void FVoxelIntBox2D::ParallelIterate(TVoxelFunctionRef<void(FIntPoint)> Lambda) const
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	FVoxelParallelTaskScope Scope;
+
+	Iterate([&](const FIntPoint& ChunkKey)
+	{
+		Scope.AddTask([&Lambda, ChunkKey]
+		{
+			Lambda(ChunkKey);
+		});
+	});
+}

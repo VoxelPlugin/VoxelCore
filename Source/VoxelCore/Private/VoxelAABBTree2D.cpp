@@ -224,3 +224,41 @@ TSharedRef<FVoxelAABBTree2D> FVoxelAABBTree2D::Create(const TConstVoxelArrayView
 
 	return Create(MoveTemp(Elements));
 }
+
+TSharedRef<FVoxelAABBTree2D> FVoxelAABBTree2D::Create(const TVoxelChunkedArray<FVoxelBox2D>& Bounds)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	TVoxelArray<FElement> Elements;
+	FVoxelUtilities::SetNumFast(Elements, Bounds.Num());
+
+	for (int32 Index = 0; Index < Bounds.Num(); Index++)
+	{
+		Elements[Index] = FElement
+		{
+			Bounds[Index],
+			Index
+		};
+	}
+
+	return Create(MoveTemp(Elements));
+}
+
+TSharedRef<FVoxelAABBTree2D> FVoxelAABBTree2D::Create(const TVoxelChunkedArray<FVoxelIntBox2D>& Bounds)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	TVoxelArray<FElement> Elements;
+	FVoxelUtilities::SetNumFast(Elements, Bounds.Num());
+
+	for (int32 Index = 0; Index < Bounds.Num(); Index++)
+	{
+		Elements[Index] = FElement
+		{
+			FVoxelBox2D(Bounds[Index].Min, Bounds[Index].Max),
+			Index
+		};
+	}
+
+	return Create(MoveTemp(Elements));
+}

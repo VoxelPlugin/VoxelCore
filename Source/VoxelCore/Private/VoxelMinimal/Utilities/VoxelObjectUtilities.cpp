@@ -401,6 +401,25 @@ UObject* FVoxelUtilities::CreateNewAsset_Direct(
 	return Object;
 }
 
+UObject* FVoxelUtilities::CreateNewAsset_Dialog(
+	UClass* Class,
+	const FString& AssetName,
+	const FString& DefaultPath)
+{
+	IVoxelFactory* Factory = IVoxelAutoFactoryInterface::GetInterface().MakeFactory(Class);
+	if (!ensure(Factory))
+	{
+		return nullptr;
+	}
+
+	const FAssetToolsModule& AssetToolsModule = FAssetToolsModule::GetModule();
+	return AssetToolsModule.Get().CreateAssetWithDialog(
+		AssetName,
+		DefaultPath,
+		Class, 
+		Factory->GetUFactory());
+}
+
 void FVoxelUtilities::CreateUniqueAssetName(
 	const FString& BasePackageName,
 	const TArray<FString>& PrefixesToRemove,

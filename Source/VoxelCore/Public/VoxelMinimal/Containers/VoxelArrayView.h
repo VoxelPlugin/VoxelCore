@@ -161,6 +161,22 @@ public:
 		return Slice(Index, Num() - Index);
 	}
 
+	FORCEINLINE TVoxelArrayView GetRow2D(
+		const FIntPoint& Size,
+		const int32 Y) const
+	{
+		checkVoxelSlow(0 <= Y && Y < Size.Y);
+		checkVoxelSlow(this->Num() == Size.X * Size.Y);
+
+		return this->Slice(Y * Size.X, Size.X);
+	}
+	FORCEINLINE TVoxelArrayView GetRow2D(
+		const int32 Size,
+		const int32 Y) const
+	{
+		return this->GetRow2D(FIntPoint(Size), Y);
+	}
+
 	FORCEINLINE TVoxelArrayView GetRow3D(
 		const FIntVector& Size,
 		const int32 Y,
@@ -201,6 +217,75 @@ public:
 			Other.GetData(),
 			GetData(),
 			Size * sizeof(ElementType));
+	}
+
+	void CopyTo2D(
+		const FIntPoint& Size,
+		const TVoxelArrayView<std::remove_const_t<ElementType>> Other,
+		const FIntPoint& OffsetInOther,
+		const FIntPoint& OtherSize) const
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Num(), 1024);
+		checkVoxelSlow(Num() == Size.X * Size.Y);
+		checkVoxelSlow(Other.Num() == OtherSize.X * OtherSize.Y);
+
+		checkVoxelSlow(0 <= OffsetInOther.X && OffsetInOther.X + Size.X <= OtherSize.X);
+		checkVoxelSlow(0 <= OffsetInOther.Y && OffsetInOther.Y + Size.Y <= OtherSize.Y);
+
+		for (int32 IndexY = 0; IndexY < Size.Y; IndexY++)
+		{
+			GetRow2D(Size, IndexY).CopyTo(Other
+				.GetRow2D(
+					OtherSize,
+					OffsetInOther.Y + IndexY)
+				.Slice(OffsetInOther.X, Size.X));
+		}
+	}
+	template<int32 Size>
+	void CopyTo2D(
+		const TVoxelArrayView<std::remove_const_t<ElementType>> Other,
+		const FIntPoint& OffsetInOther,
+		const FIntPoint& OtherSize) const
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Size * Size, 1024);
+		checkVoxelSlow(Num() == Size * Size);
+		checkVoxelSlow(Other.Num() == OtherSize.X * OtherSize.Y);
+
+		checkVoxelSlow(0 <= OffsetInOther.X && OffsetInOther.X + Size <= OtherSize.X);
+		checkVoxelSlow(0 <= OffsetInOther.Y && OffsetInOther.Y + Size <= OtherSize.Y);
+
+		for (int32 IndexY = 0; IndexY < Size; IndexY++)
+		{
+			GetRow2D(Size, IndexY).template CopyTo<Size>(Other
+				.GetRow2D(
+					OtherSize,
+					OffsetInOther.Y + IndexY)
+				.Slice(OffsetInOther.X, Size));
+		}
+	}
+
+	template<int32 Size>
+	void CopyFrom2D(
+		const TVoxelArrayView<const ElementType> Other,
+		const FIntPoint& OffsetInOther,
+		const FIntPoint& OtherSize) const
+	{
+		VOXEL_FUNCTION_COUNTER_NUM(Size * Size, 1024);
+		checkVoxelSlow(Num() == Size * Size);
+		checkVoxelSlow(Other.Num() == OtherSize.X * OtherSize.Y);
+
+		checkVoxelSlow(0 <= OffsetInOther.X && OffsetInOther.X + Size <= OtherSize.X);
+		checkVoxelSlow(0 <= OffsetInOther.Y && OffsetInOther.Y + Size <= OtherSize.Y);
+
+		for (int32 IndexY = 0; IndexY < Size; IndexY++)
+		{
+			Other
+			.GetRow2D(
+				OtherSize,
+				OffsetInOther.Y + IndexY)
+			.Slice(OffsetInOther.X, Size)
+			.template CopyTo<Size>(GetRow2D(Size, IndexY));
+		}
 	}
 
 	void CopyTo3D(

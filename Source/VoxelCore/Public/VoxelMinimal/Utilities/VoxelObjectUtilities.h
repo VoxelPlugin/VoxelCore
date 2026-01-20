@@ -61,6 +61,10 @@ namespace FVoxelUtilities
 		const TArray<FString>& PrefixesToRemove,
 		const FString& NewPrefix,
 		const FString& Suffix);
+	VOXELCORE_API UObject* CreateNewAsset_Dialog(
+		UClass* Class,
+		const FString& AssetName,
+		const FString& DefaultPath);
 
 	template<typename T>
 	void CreateNewAsset_Deferred(
@@ -104,6 +108,16 @@ namespace FVoxelUtilities
 			PrefixesToRemove,
 			NewPrefix,
 			Suffix);
+	}
+	template<typename T>
+	T* CreateNewAsset_Dialog(
+		const FString& AssetName,
+		const FString& DefaultPath)
+	{
+		return Cast<T>(CreateNewAsset_Dialog(
+			T::StaticClass(),
+			AssetName,
+			DefaultPath));
 	}
 
 	VOXELCORE_API void CreateUniqueAssetName(
