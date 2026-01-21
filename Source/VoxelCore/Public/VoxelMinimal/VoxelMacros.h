@@ -1217,6 +1217,30 @@ FORCEINLINE TSoftObjectPtr<T> MakeSoftObjectPtr(const FString& Path)
 		auto& Property(const Class& Object); \
 	}
 
+// Usage: DEFINE_PRIVATE_STATIC_ACCESS(FMyClass, MyProperty) in global scope, then PrivateAccess::MyProperty() from anywhere
+#define DEFINE_PRIVATE_STATIC_ACCESS(Class, Property) \
+	namespace PrivateAccess \
+	{ \
+		template<typename> \
+		struct TClass_ ## Property; \
+		\
+		template<> \
+		struct TClass_ ## Property<Class> \
+		{ \
+			template<auto* PropertyPtr> \
+			struct TProperty_ ## Property \
+			{ \
+				friend auto& Property() \
+				{ \
+					return *PropertyPtr; \
+				} \
+			}; \
+		}; \
+		template struct TClass_ ## Property<Class>::TProperty_ ## Property<&Class::Property>; \
+		\
+		auto& Property(); \
+	}
+
 // Usage: DEFINE_PRIVATE_ACCESS_FUNCTION(FMyClass, MyFunction) in global scope, then PrivateAccess::MyFunction(MyObject)(MyArgs) from anywhere
 #define DEFINE_PRIVATE_ACCESS_FUNCTION(Class, Function) \
 	namespace PrivateAccess \
@@ -1246,6 +1270,32 @@ FORCEINLINE TSoftObjectPtr<T> MakeSoftObjectPtr(const FString& Path)
 		{ \
 			return Function(const_cast<Class&>(Object)); \
 		} \
+	}
+
+// Usage: DEFINE_PRIVATE_STATIC_ACCESS_FUNCTION(FMyClass, MyFunction) in global scope, then PrivateAccess::MyFunction()(MyArgs) from anywhere
+#define DEFINE_PRIVATE_STATIC_ACCESS_FUNCTION(Class, Function) \
+	namespace PrivateAccess \
+	{ \
+		template<typename> \
+		struct TClass_ ## Function; \
+		\
+		template<> \
+		struct TClass_ ## Function<Class> \
+		{ \
+			template<auto FunctionPtr> \
+			struct TFunction_ ## Function \
+			{ \
+				friend auto Function() \
+				{ \
+					return []<typename... ArgTypes>(ArgTypes&&... Args) \
+					{ \
+						return (*FunctionPtr)(Forward<ArgTypes>(Args)...); \
+					}; \
+				} \
+			}; \
+		}; \
+		template struct TClass_ ## Function<Class>::TFunction_ ## Function<&Class::Function>; \
+		auto Function(); \
 	}
 
 ///////////////////////////////////////////////////////////////////////////////
