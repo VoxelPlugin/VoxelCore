@@ -12,15 +12,46 @@ int32 UApplyVoxelShaderHooksCommandlet::Main(const FString& Params)
 	}
 
 	bool bFailed = false;
-	for (const FVoxelShaderHookGroup* Hook : GVoxelShaderHooksManager->Hooks)
+	for (const FVoxelShaderHookGroup* HookGroup : GVoxelShaderHooksManager->Hooks)
 	{
-		if (Hook->GetState() == EVoxelShaderHookState::Active)
+		if (HookGroup->GetState() == EVoxelShaderHookState::Active)
 		{
 			continue;
 		}
 
 		bFailed = true;
-		LOG_VOXEL(Error, "Failed to apply hook %s", *Hook->DisplayName);
+
+		FString FailedGUIDs;
+		for (const FVoxelShaderHook& Hook : HookGroup->Hooks)
+		{
+			if (Hook.GetState() == EVoxelShaderHookState::Active)
+			{
+				continue;
+			}
+
+			const FString StateName = INLINE_LAMBDA -> FString
+			{
+				switch (Hook.GetState())
+				{
+				case EVoxelShaderHookState::NeverApply: return "Disabled";
+				case EVoxelShaderHookState::Active: return "Up to date";
+				case EVoxelShaderHookState::Outdated: return "Outdated";
+				case EVoxelShaderHookState::NotApplied: return "Not Applied";
+				case EVoxelShaderHookState::Invalid: return "Invalid";
+				case EVoxelShaderHookState::Deprecated: return "Deprecated";
+				default: ensure(false); return "None";
+				}
+			};
+
+			if (!FailedGUIDs.IsEmpty())
+			{
+				FailedGUIDs += ", ";
+			}
+
+			FailedGUIDs += Hook.ShaderGuid.ToString() + "[" + StateName + "]";
+		}
+
+		LOG_VOXEL(Error, "Failed to apply hook %s %s", *HookGroup->DisplayName, *FailedGUIDs);
 	}
 
 	if (bFailed)
