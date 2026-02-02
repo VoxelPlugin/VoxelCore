@@ -1739,7 +1739,7 @@ FORCEINLINE generic float4 MakeQuaternionFromBasis(
 		Quat.z = (X.y - Y.x) * S;
 		Quat.w = 0.5f * (1.f / InvS);
 	}
-	else if (X.x > Y.y && X.x > Z.z)
+	else if (X.x >= Y.y && X.x >= Z.z)
 	{
 		const generic float InvS = InvSqrt(X.x - Y.y - Z.z + 1.0f);
 		const generic float S = 0.5f * InvS;
@@ -1749,7 +1749,7 @@ FORCEINLINE generic float4 MakeQuaternionFromBasis(
 		Quat.z = (X.z + Z.x) * S;
 		Quat.w = (Y.z - Z.y) * S;
 	}
-	else if (Y.y > X.x && Y.y > Z.z)
+	else if (Y.y >= Z.z)
 	{
 		const generic float InvS = InvSqrt(Y.y - Z.z - X.x + 1.0f);
 		const generic float S = 0.5f * InvS;
