@@ -47,7 +47,7 @@ bool FVoxelBulkArchive::Save(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TVoxelFuture<TSharedPtr<const TVoxelArray64<uint8>>> FVoxelBulkArchive::LoadBulkDataImpl(const FVoxelBulkHash& Hash)
+TVoxelFuture<TSharedPtr<const TVoxelArray64<uint8>>> FVoxelBulkArchive::LoadBulkDataImpl(const FVoxelBulkHash& Hash, const FVoxelBulkHint& Hint)
 {
 	VOXEL_FUNCTION_COUNTER();
 	VOXEL_SCOPE_READ_LOCK(HashToMetadata_CriticalSection);

@@ -18,7 +18,7 @@ public:
 
 protected:
 	//~ Begin IVoxelBulkLoader Interface
-	virtual TVoxelFuture<TSharedPtr<const TVoxelArray64<uint8>>> LoadBulkDataImpl(const FVoxelBulkHash& Hash) final override;
+	virtual TVoxelFuture<TSharedPtr<const TVoxelArray64<uint8>>> LoadBulkDataImpl(const FVoxelBulkHash& Hash, const FVoxelBulkHint& Hint) final override;
 	virtual TSharedPtr<const TVoxelArray64<uint8>> LoadBulkDataSyncImpl(const FVoxelBulkHash& Hash) final override;
 	//~ End IVoxelBulkLoader Interface
 

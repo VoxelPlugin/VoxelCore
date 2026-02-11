@@ -183,7 +183,7 @@ void FVoxelBulkPtr::Serialize(FArchive& Ar, const UScriptStruct& Struct)
 
 	if (ArchiveName == "FVoxelBulkPtrWriter" ||
 		ArchiveName == "FVoxelBulkHasherArchive" ||
-		ArchiveName == "FVoxelBulkPtrShallowArchive")
+		(ArchiveName == "FVoxelBulkPtrShallowArchive" && Ar.IsSaving()))
 	{
 		FVoxelBulkHash Hash = GetHash();
 		Ar << Hash;
@@ -191,7 +191,7 @@ void FVoxelBulkPtr::Serialize(FArchive& Ar, const UScriptStruct& Struct)
 	}
 
 	if (ArchiveName == "FVoxelBulkPtrReader" ||
-		ArchiveName == "FVoxelBulkPtrShallowArchive")
+		(ArchiveName == "FVoxelBulkPtrShallowArchive" && Ar.IsLoading()))
 	{
 		check(Ar.IsLoading());
 
@@ -278,7 +278,7 @@ int64 FVoxelBulkPtr::GetGlobalTimestamp()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TVoxelFuture<const FVoxelBulkData> FVoxelBulkPtr::FInner::Load(IVoxelBulkLoader& Loader)
+TVoxelFuture<const FVoxelBulkData> FVoxelBulkPtr::FInner::Load(IVoxelBulkLoader& Loader, const FVoxelBulkHint& Hint)
 {
 	FVoxelTaskScope Scope(*GVoxelGlobalTaskContext);
 
@@ -295,7 +295,7 @@ TVoxelFuture<const FVoxelBulkData> FVoxelBulkPtr::FInner::Load(IVoxelBulkLoader&
 	}
 
 	Future =
-		Loader.LoadBulkData(Hash)
+		Loader.LoadBulkData(Hash, Hint)
 		.Then_AsyncThread(MakeStrongPtrLambda(this, [this](const TSharedPtr<const TVoxelArray64<uint8>>& Data)
 		{
 			if (!ensure(Data))

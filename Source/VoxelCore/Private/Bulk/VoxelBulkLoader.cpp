@@ -2,7 +2,7 @@
 
 #include "Bulk/VoxelBulkLoader.h"
 
-TVoxelFuture<TSharedPtr<const TVoxelArray64<uint8>>> IVoxelBulkLoader::LoadBulkData(const FVoxelBulkHash& Hash)
+TVoxelFuture<TSharedPtr<const TVoxelArray64<uint8>>> IVoxelBulkLoader::LoadBulkData(const FVoxelBulkHash& Hash, const FVoxelBulkHint& Hint)
 {
 	VOXEL_FUNCTION_COUNTER();
 
@@ -18,7 +18,7 @@ TVoxelFuture<TSharedPtr<const TVoxelArray64<uint8>>> IVoxelBulkLoader::LoadBulkD
 		HashToFuture_RequiresLock.Add_EnsureNew(Hash, Promise.Emplace());
 	}
 
-	Promise->Set(LoadBulkDataImpl(Hash));
+	Promise->Set(LoadBulkDataImpl(Hash, Hint));
 
 	Promise->Then_AsyncThread(MakeWeakPtrLambda(this, [this, Hash](const TSharedPtr<const TVoxelArray64<uint8>>& Data)
 	{

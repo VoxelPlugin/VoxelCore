@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelMinimal.h"
+#include "VoxelBulkHint.h"
 #include "Bulk/VoxelBulkData.h"
 #include "Bulk/VoxelBulkHash.h"
 
@@ -81,9 +82,9 @@ public:
 	{
 		return Inner ? Inner->Hash : FVoxelBulkHash();
 	}
-	FORCEINLINE TVoxelFuture<const FVoxelBulkData> Load(IVoxelBulkLoader& Loader) const
+	FORCEINLINE TVoxelFuture<const FVoxelBulkData> Load(IVoxelBulkLoader& Loader, const FVoxelBulkHint& Hint) const
 	{
-		return Inner->Load(Loader);
+		return Inner->Load(Loader, Hint);
 	}
 	FORCEINLINE TSharedRef<const FVoxelBulkData> LoadSync(IVoxelBulkLoader& Loader) const
 	{
@@ -125,7 +126,7 @@ private:
 		{
 		}
 
-		TVoxelFuture<const FVoxelBulkData> Load(IVoxelBulkLoader& Loader);
+		TVoxelFuture<const FVoxelBulkData> Load(IVoxelBulkLoader& Loader, const FVoxelBulkHint& Hint);
 		TSharedRef<const FVoxelBulkData> LoadSync(IVoxelBulkLoader& Loader) const;
 	};
 	checkStatic(sizeof(FInner) == 48);
@@ -197,9 +198,9 @@ public:
 	{
 		return CastStructChecked<Type>(FVoxelBulkPtr::GetShared());
 	}
-	FORCEINLINE TVoxelFuture<const Type> Load(IVoxelBulkLoader& Loader) const
+	FORCEINLINE TVoxelFuture<const Type> Load(IVoxelBulkLoader& Loader, const FVoxelBulkHint& Hint) const
 	{
-		return ReinterpretCastRef<TVoxelFuture<const Type>>(FVoxelBulkPtr::Load(Loader));
+		return ReinterpretCastRef<TVoxelFuture<const Type>>(FVoxelBulkPtr::Load(Loader, Hint));
 	}
 	FORCEINLINE TSharedRef<const Type> LoadSync(IVoxelBulkLoader& Loader) const
 	{

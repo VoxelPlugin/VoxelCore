@@ -11,7 +11,7 @@ public:
 	FVoxelDummyBulkLoader() = default;
 
 	//~ Begin IVoxelBulkLoader Interface
-	virtual TVoxelFuture<TSharedPtr<const TVoxelArray64<uint8>>> LoadBulkDataImpl(const FVoxelBulkHash& Hash) override
+	virtual TVoxelFuture<TSharedPtr<const TVoxelArray64<uint8>>> LoadBulkDataImpl(const FVoxelBulkHash& Hash, const FVoxelBulkHint& Hint) override
 	{
 		return {};
 	}
