@@ -111,6 +111,10 @@ bool FVoxelEditorViewportClient::InputAxis(const FInputKeyEventArgs& Args)
 
 UE::Widget::EWidgetMode FVoxelEditorViewportClient::GetWidgetMode() const
 {
+	if (const TSharedPtr<IVoxelViewportInterface> Interface = WeakInterface.Pin())
+	{
+		return Interface->GetWidgetMode();
+	}
 	return UE::Widget::WM_Max;
 }
 

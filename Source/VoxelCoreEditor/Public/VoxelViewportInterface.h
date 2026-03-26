@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelEditorMinimal.h"
+#include "UnrealWidgetFwd.h"
 
 class SViewportToolBar;
 
@@ -20,6 +21,10 @@ public:
 	virtual bool ShowTransformToolbar() const
 	{
 		return false;
+	}
+	virtual UE::Widget::EWidgetMode GetWidgetMode() const
+	{
+		return UE::Widget::WM_Max;
 	}
 	virtual FRotator GetInitialViewRotation() const
 	{
