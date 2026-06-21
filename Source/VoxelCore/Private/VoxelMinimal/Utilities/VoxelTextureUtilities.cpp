@@ -7,11 +7,6 @@
 #include "TextureResource.h"
 #include "Engine/Texture2DArray.h"
 
-THIRD_PARTY_INCLUDES_START
-#include "png.h"
-#include "zlib.h"
-THIRD_PARTY_INCLUDES_END
-
 UTexture2D* FVoxelTextureUtilities::GetDefaultTexture2D()
 {
 	// Loaded by UVoxelTextureUtilitiesHelper
@@ -328,52 +323,6 @@ UTexture2DArray* FVoxelTextureUtilities::CreateTextureArray(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TVoxelArray64<uint8> FVoxelTextureUtilities::CompressPng_RGB(
-	const TConstVoxelArrayView64<FVoxelColor3> ColorData,
-	const int32 Width,
-	const int32 Height)
-{
-	VOXEL_FUNCTION_COUNTER();
-
-	check(ColorData.Num() == int64(Width) * int64(Height));
-
-	TVoxelArray64<uint8> CompressedData;
-
-	png_structp PngStruct = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
-	check(PngStruct);
-
-	png_infop PngInfo = png_create_info_struct(PngStruct);
-	check(PngInfo);
-
-	png_bytep* RowPointers = static_cast<png_bytep*>(png_malloc(PngStruct, Height * sizeof(png_bytep)));
-	ON_SCOPE_EXIT
-	{
-		png_free(PngStruct, RowPointers);
-		png_destroy_write_struct(&PngStruct, &PngInfo);
-	};
-
-	png_set_compression_level(PngStruct, Z_BEST_SPEED);
-	png_set_IHDR(PngStruct, PngInfo, Width, Height, 8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
-	png_set_write_fn(
-		PngStruct,
-		&CompressedData,
-		[](const png_structp PngStruct, const png_bytep Data, const png_size_t Length)
-		{
-			TVoxelArray64<uint8>* CompressedDataPtr = static_cast<TVoxelArray64<uint8>*>(png_get_io_ptr(PngStruct));
-			CompressedDataPtr->Append(Data, Length);
-		},
-		nullptr);
-
-	for (int64 Index = 0; Index < Height; Index++)
-	{
-		RowPointers[Index] = ConstCast(reinterpret_cast<const uint8*>(&ColorData[Index * Width]));
-	}
-	png_set_rows(PngStruct, PngInfo, RowPointers);
-	png_write_png(PngStruct, PngInfo, PNG_TRANSFORM_IDENTITY, nullptr);
-
-	return CompressedData;
-}
-
 TVoxelArray64<uint8> FVoxelTextureUtilities::CompressPng_Grayscale(
 	const TConstVoxelArrayView64<uint16> GrayscaleData,
 	const int32 Width,
@@ -408,84 +357,6 @@ TVoxelArray64<uint8> FVoxelTextureUtilities::CompressPng_Grayscale(
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-bool FVoxelTextureUtilities::UncompressPng_RGB(
-	const TConstVoxelArrayView64<uint8> CompressedData,
-	TVoxelArray64<FVoxelColor3>& OutColorData,
-	int32& OutWidth,
-	int32& OutHeight)
-{
-	return Uncompress_RGB(
-		CompressedData,
-		OutColorData,
-		OutWidth,
-		OutHeight);
-}
-
-bool FVoxelTextureUtilities::Uncompress_RGB(
-	const TConstVoxelArrayView64<uint8> CompressedData,
-	TVoxelArray64<FVoxelColor3>& OutColorData,
-	int32& OutWidth,
-	int32& OutHeight)
-{
-	VOXEL_FUNCTION_COUNTER();
-
-	OutColorData.Reset();
-	OutWidth = 0;
-	OutHeight = 0;
-
-	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
-
-	const EImageFormat ImageFormat = ImageWrapperModule.DetectImageFormat(CompressedData.GetData(), CompressedData.Num());
-	if (!ensure(ImageFormat != EImageFormat::Invalid))
-	{
-		return false;
-	}
-
-	const TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageFormat);
-	if (!ensure(ImageWrapper))
-	{
-		return false;
-	}
-
-	{
-		VOXEL_SCOPE_COUNTER("SetCompressed");
-
-		if (!ImageWrapper->SetCompressed(CompressedData.GetData(), CompressedData.Num()))
-		{
-			ensure(false);
-			return false;
-		}
-	}
-
-	TArray64<uint8> RawData;
-	{
-		VOXEL_SCOPE_COUNTER("GetRaw");
-
-		if (!ImageWrapper->GetRaw(ERGBFormat::RGBA, 8, RawData))
-		{
-			ensure(false);
-			return false;
-		}
-	}
-
-	OutWidth = ImageWrapper->GetWidth();
-	OutHeight = ImageWrapper->GetHeight();
-
-	const int64 Num = int64(OutWidth) * int64(OutHeight);
-	OutColorData.Reserve(Num);
-	OutColorData.SetNumUninitialized(Num);
-	for (int64 Index = 0; Index < Num; Index++)
-	{
-		OutColorData[Index] = FVoxelColor3(
-			RawData[4 * Index + 0],
-			RawData[4 * Index + 1],
-			RawData[4 * Index + 2]);
-		ensureVoxelSlow(RawData[4 * Index + 3] == 255);
-	}
-
-	return true;
-}
 
 bool FVoxelTextureUtilities::UncompressPng_Grayscale(
 	const TConstVoxelArrayView64<uint8> CompressedData,

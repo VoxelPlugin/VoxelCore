@@ -181,6 +181,12 @@ TSharedRef<FVoxelDebugDrawGroup> FVoxelDebugDrawGroup::Create()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+bool FVoxelDebugDrawGroup::IsEmpty_AnyThread()
+{
+	VOXEL_SCOPE_LOCK(CriticalSection);
+	return Draws_RequiresLock.Num() == 0;
+}
+
 void FVoxelDebugDrawGroup::Clear_AnyThread()
 {
 	VOXEL_FUNCTION_COUNTER();

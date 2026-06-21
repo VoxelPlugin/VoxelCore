@@ -180,7 +180,7 @@ TVoxelArray<UMaterialExpression*> FVoxelUtilities::GetMaterialExpressions(const 
 	TArray<UObject*> Objects;
 	Objects.Reserve(256);
 
-	GetObjectsWithOuter(&Material, Objects, false);
+	GetObjectsWithOuter(&Material, Objects, UE_508_SWITCH(false, EGetObjectsFlags::None));
 
 	TVoxelArray<UMaterialExpression*> Expressions;
 	Expressions.Reserve(Objects.Num());
@@ -225,7 +225,7 @@ TVoxelArray<UMaterialExpression*> FVoxelUtilities::GetMaterialExpressions(const 
 	TArray<UObject*> Objects;
 	Objects.Reserve(256);
 
-	GetObjectsWithOuter(&MaterialFunction, Objects, false);
+	GetObjectsWithOuter(&MaterialFunction, Objects, UE_508_SWITCH(false, EGetObjectsFlags::None));
 
 	TVoxelArray<UMaterialExpression*> Expressions;
 	Expressions.Reserve(Objects.Num());
@@ -381,7 +381,7 @@ void FVoxelUtilities::GetMaterialFunctionsUsed(
 			NewFunctions.Add(Function);
 			return true;
 		},
-		false);
+		UE_508_SWITCH(false, EGetObjectsFlags::None));
 
 	for (const UMaterialFunction* Function : NewFunctions)
 	{
@@ -423,7 +423,7 @@ void FVoxelUtilities::GetMaterialFunctionsUsed(
 			NewFunctions.Add(Function);
 			return true;
 		},
-		false);
+		UE_508_SWITCH(false, EGetObjectsFlags::None));
 
 	for (const UMaterialFunction* Function : NewFunctions)
 	{

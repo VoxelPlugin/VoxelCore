@@ -44,6 +44,13 @@ struct VOXELCORE_API FVoxelFastBox
 		return FVoxelBox(GetMin(), GetMax());
 	}
 
+	FORCEINLINE bool Contains(const VectorRegister4f Point) const
+	{
+		const int32 Mask = VectorMaskBits(VectorBitwiseOr(
+			VectorCompareLT(Point, Min),
+			VectorCompareLT(Max, Point)));
+		return (Mask & 0b111) == 0;
+	}
 	FORCEINLINE bool Intersects(const FVoxelFastBox& Other) const
 	{
 		const int32 Mask = VectorMaskBits(VectorBitwiseOr(

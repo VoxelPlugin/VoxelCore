@@ -113,6 +113,7 @@ public:
 	static TSharedRef<FVoxelDebugDrawGroup> Create();
 
 public:
+	bool IsEmpty_AnyThread();
 	void Clear_AnyThread();
 	void AddDraw_AnyThread(
 		bool bIsOneFrame,

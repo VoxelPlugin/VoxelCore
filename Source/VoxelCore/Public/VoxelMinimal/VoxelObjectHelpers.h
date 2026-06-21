@@ -420,7 +420,7 @@ TSharedRef<T> MakeSharedStruct(const UScriptStruct* Struct, const T* StructToCop
 	checkVoxelSlow(Struct->IsChildOf(StaticStructFast<T>()));
 
 	TSharedRef<T> SharedRef = ReinterpretCastRef<TSharedRef<T>>(MakeSharedStruct(Struct, static_cast<const void*>(StructToCopyFrom)));
-	SharedPointerInternals::EnableSharedFromThis(&SharedRef, &SharedRef.Get());
+	VoxelEnableSharedFromThis(SharedRef);
 	return SharedRef;
 }
 

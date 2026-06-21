@@ -14,6 +14,7 @@
 #pragma warning(default : 4305)
 
 void RHIUpdateTexture2D_Safe(
+	FRHICommandList& RHICmdList,
 	FRHITexture* Texture,
 	const uint32 MipIndex,
 	const FUpdateTextureRegion2D& UpdateRegion,
@@ -40,6 +41,7 @@ void RHIUpdateTexture2D_Safe(
 	}
 
 	RHIUpdateTexture2D_Unsafe(
+		RHICmdList,
 		Texture,
 		MipIndex,
 		UpdateRegion,
@@ -161,13 +163,17 @@ FVoxelFuture FVoxelUtilities::AsyncCopyTexture(
 		{
 			VOXEL_FUNCTION_COUNTER();
 
-			const TRefCountPtr<FRHITexture> UploadTextureRHI = RHICreateTexture(
-				FRHITextureCreateDesc::Create2D(TEXT("AsyncCopyTexture"))
+			const FRHITextureCreateDesc UploadTextureDesc = FRHITextureCreateDesc::Create2D(TEXT("AsyncCopyTexture"))
 				.SetExtent(SizeX, SizeY)
 				.SetFormat(Format)
 				.SetNumMips(1)
 				.SetNumSamples(1)
-				.SetFlags(TexCreate_ShaderResource));
+				.SetFlags(TexCreate_ShaderResource);
+#if VOXEL_ENGINE_VERSION >= 508
+			const TRefCountPtr<FRHITexture> UploadTextureRHI = RHICmdList.CreateTexture(UploadTextureDesc);
+#else
+			const TRefCountPtr<FRHITexture> UploadTextureRHI = RHICreateTexture(UploadTextureDesc);
+#endif
 
 			if (!ensure(UploadTextureRHI.IsValid()))
 			{

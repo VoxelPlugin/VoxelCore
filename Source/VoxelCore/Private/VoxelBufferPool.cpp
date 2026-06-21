@@ -697,7 +697,7 @@ void FVoxelTextureBufferPool::Tick()
 		return;
 	}
 
-	Voxel::RenderTask(MakeWeakPtrLambda(this, [this, Resource, Uploads = MoveTemp(Uploads)]
+	Voxel::RenderTask(MakeWeakPtrLambda(this, [this, Resource, Uploads = MoveTemp(Uploads)](FRHICommandList& RHICmdList)
 	{
 		VOXEL_FUNCTION_COUNTER();
 
@@ -737,6 +737,7 @@ void FVoxelTextureBufferPool::Tick()
 					1);
 
 				RHIUpdateTexture2D_Safe(
+					RHICmdList,
 					TextureRHI,
 					0,
 					UpdateRegion,

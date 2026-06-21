@@ -107,6 +107,10 @@ void GatherBlueprintCallstack(const TSharedRef<FVoxelMessage>& Message)
 		for (int32 InnerIndex = 0; InnerIndex < Index; InnerIndex++)
 		{
 			BlueprintNode = GetNode(InnerIndex);
+			if (!BlueprintNode)
+			{
+				continue;
+			}
 			if (BlueprintNode->IsA<UK2Node_Tunnel>())
 			{
 				continue;

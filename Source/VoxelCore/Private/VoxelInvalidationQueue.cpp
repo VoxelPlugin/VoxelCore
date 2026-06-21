@@ -8,12 +8,9 @@ DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelInvalidationQueue);
 
 FTSSimpleMulticastDelegate Voxel::OnDependencyFlush;
 
-TSharedRef<FVoxelInvalidationQueue> FVoxelInvalidationQueue::Create(const bool bFlush)
+TSharedRef<FVoxelInvalidationQueue> FVoxelInvalidationQueue::Create()
 {
-	if (bFlush)
-	{
-		Voxel::OnDependencyFlush.Broadcast();
-	}
+	Voxel::OnDependencyFlush.Broadcast();
 
 	FVoxelInvalidationQueue* InvalidationQueue = new FVoxelInvalidationQueue();
 

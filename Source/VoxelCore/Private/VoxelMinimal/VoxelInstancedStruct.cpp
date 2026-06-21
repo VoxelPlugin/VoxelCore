@@ -390,7 +390,10 @@ void FVoxelInstancedStruct::AddStructReferencedObjects(FReferenceCollector& Coll
 	// See FInstancedStruct::AddStructReferencedObjects
 
 	// Reference collector is used to visit all instances of instanced structs and replace their contents.
-	if (const UUserDefinedStruct* StructureToReinstance = UE::StructUtils::Private::GetStructureToReinstantiate())
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	const UUserDefinedStruct* StructureToReinstance = UE::StructUtils::Private::GetStructureToReinstantiate();
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	if (StructureToReinstance)
 	{
 		check(IsInGameThread());
 
@@ -416,7 +419,10 @@ void FVoxelInstancedStruct::AddStructReferencedObjects(FReferenceCollector& Coll
 
 				if (UserDefinedStruct->PrimaryStruct == StructureToReinstance)
 				{
-					if (UObject* Outer = UE::StructUtils::Private::GetCurrentReinstantiationOuterObject())
+					PRAGMA_DISABLE_DEPRECATION_WARNINGS
+					UObject* Outer = UE::StructUtils::Private::GetCurrentReinstantiationOuterObject();
+					PRAGMA_ENABLE_DEPRECATION_WARNINGS
+					if (Outer)
 					{
 						if (!Outer->IsA<UClass>() && !Outer->HasAnyFlags(RF_ClassDefaultObject))
 						{

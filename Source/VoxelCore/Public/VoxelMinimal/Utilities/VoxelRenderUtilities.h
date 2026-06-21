@@ -17,23 +17,35 @@ class FMeshElementCollector;
 ///////////////////////////////////////////////////////////////////////////////
 
 FORCEINLINE void RHIUpdateTexture2D_Unsafe(
+	FRHICommandList& RHICmdList,
 	FRHITexture* Texture,
 	const uint32 MipIndex,
 	const FUpdateTextureRegion2D& UpdateRegion,
 	const uint32 SourcePitch,
 	const uint8* SourceData)
 {
+#if VOXEL_ENGINE_VERSION >= 508
+	RHICmdList.UpdateTexture2D(
+		Texture,
+		MipIndex,
+		UpdateRegion,
+		SourcePitch,
+		SourceData);
+#else
+	(void)RHICmdList;
 	RHIUpdateTexture2D(
 		Texture,
 		MipIndex,
 		UpdateRegion,
 		SourcePitch,
 		SourceData);
+#endif
 }
 
 #define RHIUpdateTexture2D UE_DEPRECATED_MACRO(5, "RHIUpdateTexture2D is unsafe, use RHIUpdateTexture2D_Safe instead") RHIUpdateTexture2D
 
 VOXELCORE_API void RHIUpdateTexture2D_Safe(
+	FRHICommandList& RHICmdList,
 	FRHITexture* Texture,
 	uint32 MipIndex,
 	const FUpdateTextureRegion2D& UpdateRegion,

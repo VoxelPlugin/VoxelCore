@@ -193,7 +193,7 @@ FORCEINLINE const FName& VoxelStaticName(const T&)
 #define VOXEL_GET_TYPE(Value) std::decay_t<decltype(Value)>
 #define VOXEL_THIS_TYPE VOXEL_GET_TYPE(*this)
 // This is needed in classes, where just doing class Name would fwd declare it in the class scope
-#define VOXEL_FWD_DECLARE_CLASS(Name) void PREPROCESSOR_JOIN(__VoxelDeclareDummy_, __LINE__)(class Name*);
+#define VOXEL_FWD_DECLARE_CLASS(Name) void UE_JOIN(__VoxelDeclareDummy_, __LINE__)(class Name*);
 
 // This makes the macro parameter show up as a class in Resharper
 #if INTELLISENSE_PARSER
@@ -231,7 +231,7 @@ struct VOXELCORE_API FVoxelConsoleVariableHelper
 		Name,  \
 		TEXT(Description)); \
 	\
-	static const FVoxelConsoleVariableHelper PREPROCESSOR_JOIN(VoxelConsoleVariableHelper, __COUNTER__)([] \
+	static const FVoxelConsoleVariableHelper UE_JOIN(VoxelConsoleVariableHelper, __COUNTER__)([] \
 	{ \
 		static Type LastValue = Default; \
 		if (LastValue != Name) \
@@ -247,7 +247,7 @@ struct VOXELCORE_API FVoxelConsoleVariableHelper
 
 #define VOXEL_CONSOLE_COMMAND(Command, Description) \
 	static void VoxelConsoleCommand(TVoxelCounterDummy<__COUNTER__>, const TArray<FString>& Args); \
-	static FAutoConsoleCommand PREPROCESSOR_JOIN(VoxelAutoCmd, __COUNTER__)( \
+	static FAutoConsoleCommand UE_JOIN(VoxelAutoCmd, __COUNTER__)( \
 	    TEXT(Command), \
 	    TEXT(Description), \
 		MakeLambdaDelegate([](const TArray<FString>& Args) \
@@ -261,7 +261,7 @@ struct VOXELCORE_API FVoxelConsoleVariableHelper
 
 #define VOXEL_CONSOLE_WORLD_COMMAND(Command, Description) \
 	static void VoxelConsoleCommand(TVoxelCounterDummy<__COUNTER__>, const TArray<FString>& Args, UWorld* World); \
-	static FAutoConsoleCommand PREPROCESSOR_JOIN(VoxelAutoCmd, __COUNTER__)( \
+	static FAutoConsoleCommand UE_JOIN(VoxelAutoCmd, __COUNTER__)( \
 	    TEXT(Command), \
 	    TEXT(Description), \
 		MakeLambdaDelegate([](const TArray<FString>& Args, UWorld* World, FOutputDevice&) \
@@ -274,9 +274,9 @@ struct VOXELCORE_API FVoxelConsoleVariableHelper
 
 #define VOXEL_EXPAND(X) X
 
-#define VOXEL_APPEND_LINE(X) PREPROCESSOR_JOIN(X, __LINE__)
+#define VOXEL_APPEND_LINE(X) UE_JOIN(X, __LINE__)
 
-#define ON_SCOPE_EXIT_IMPL(Suffix) const auto PREPROCESSOR_JOIN(PREPROCESSOR_JOIN(ScopeGuard_, __LINE__), Suffix) = ::ScopeExitSupport::FScopeGuardSyntaxSupport() + [&]()
+#define ON_SCOPE_EXIT_IMPL(Suffix) const auto UE_JOIN(UE_JOIN(ScopeGuard_, __LINE__), Suffix) = ::ScopeExitSupport::FScopeGuardSyntaxSupport() + [&]()
 
 // Unlike GENERATE_MEMBER_FUNCTION_CHECK, this supports inheritance
 // However, it doesn't do any signature check
@@ -343,7 +343,7 @@ struct TVoxelCounterDummy
 
 #define VOXEL_RUN_ON_STARTUP(Phase, Priority) \
 	static void VoxelStartupFunction(TVoxelCounterDummy<__COUNTER__>); \
-	static const FVoxelRunOnStartupPhaseHelper PREPROCESSOR_JOIN(VoxelRunOnStartupPhaseHelper, __COUNTER__)(EVoxelRunOnStartupPhase::Phase, Priority, [] \
+	static const FVoxelRunOnStartupPhaseHelper UE_JOIN(VoxelRunOnStartupPhaseHelper, __COUNTER__)(EVoxelRunOnStartupPhase::Phase, Priority, [] \
 	{ \
 		VoxelStartupFunction(TVoxelCounterDummy<__COUNTER__ - 2>()); \
 	}); \
@@ -375,7 +375,7 @@ namespace Voxel::Internal
 
 #define VOXEL_ON_CONSTRUCT() Voxel::Internal::FOnConstruct VOXEL_APPEND_LINE(__OnConstruct) = Voxel::Internal::FOnConstruct() + [this]
 
-#define INITIALIZATION_LAMBDA static const Voxel::Internal::FOnConstruct PREPROCESSOR_JOIN(__UniqueId, __COUNTER__) = Voxel::Internal::FOnConstruct() + []
+#define INITIALIZATION_LAMBDA static const Voxel::Internal::FOnConstruct UE_JOIN(__UniqueId, __COUNTER__) = Voxel::Internal::FOnConstruct() + []
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

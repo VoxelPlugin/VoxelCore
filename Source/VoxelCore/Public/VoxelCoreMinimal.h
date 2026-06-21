@@ -47,6 +47,14 @@ VOXELCORE_API DECLARE_LOG_CATEGORY_EXTERN(LogVoxel, Log, All);
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+#if VOXEL_ENGINE_VERSION >= 508
+#define UE_508_SWITCH(Before, AfterOrEqual) AfterOrEqual
+#define UE_508_ONLY(...) __VA_ARGS__
+#else
+#define UE_508_SWITCH(Before, AfterOrEqual) Before
+#define UE_508_ONLY(...)
+#endif
+
 #if VOXEL_ENGINE_VERSION >= 507
 #define UE_507_SWITCH(Before, AfterOrEqual) AfterOrEqual
 #define UE_507_ONLY(...) __VA_ARGS__
@@ -64,7 +72,15 @@ VOXELCORE_API DECLARE_LOG_CATEGORY_EXTERN(LogVoxel, Log, All);
 #endif
 
 #define MIN_VOXEL_ENGINE_VERSION 505
-#define MAX_VOXEL_ENGINE_VERSION 507
+#define MAX_VOXEL_ENGINE_VERSION 508
+
+#ifndef UE_JOIN
+#define UE_JOIN(A, B) PREPROCESSOR_JOIN(A, B)
+#endif
+
+#ifndef UE_VA_ARG_COUNT
+#define UE_VA_ARG_COUNT(...) PREPROCESSOR_VA_ARG_COUNT(__VA_ARGS__)
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -118,7 +134,7 @@ FORCEINLINE void Swap(T* RESTRICT& A, T* RESTRICT& B)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#if PLATFORM_ANDROID || (defined(PLATFORM_PS4) && PLATFORM_PS4) || (defined(PLATFORM_PS5) && PLATFORM_PS5)
+#if (PLATFORM_ANDROID || (defined(PLATFORM_PS4) && PLATFORM_PS4) || (defined(PLATFORM_PS5) && PLATFORM_PS5)) && !defined(_LIBCPP_VERSION)
 namespace std
 {
 	template<typename DerivedType, typename BaseType>

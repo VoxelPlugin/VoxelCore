@@ -17,6 +17,20 @@ DEFINE_VOXEL_INSTANCE_COUNTER(FVoxelDependencyBase);
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+// Coalesces Invalidate calls issued from within InvalidateTrackers to avoid very expensive behavior
+struct FVoxelInvalidationBatch
+{
+	TVoxelMap<TWeakPtr<FVoxelDependency3D>, TVoxelChunkedArray<FVoxelBox>> Dependency3DToBoundsToInvalidate;
+	TVoxelMap<TWeakPtr<FVoxelDependency2D>, TVoxelChunkedArray<FVoxelBox2D>> Dependency2DToBoundsToInvalidate;
+	TVoxelSet<TWeakPtr<FVoxelDependency>> DependencyToInvalidate;
+};
+
+thread_local FVoxelInvalidationBatch* GVoxelInvalidationBatch = nullptr;
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 int64 FVoxelDependencyBase::GetAllocatedSize() const
 {
 	return ReferencingTrackers.GetAllocatedSize();
@@ -156,9 +170,51 @@ void FVoxelDependencyBase::InvalidateTrackers(LambdaType ShouldInvalidate)
 	{
 		VOXEL_SCOPE_COUNTER("OnInvalidatedQueue");
 
+		// Coalesce nested Invalidate calls made by callbacks
+		// Only the outermost InvalidateTrackers drains; nested ones append to the same batch
+		const bool bIsOutermost = GVoxelInvalidationBatch == nullptr;
+		FVoxelInvalidationBatch LocalBatch;
+		if (bIsOutermost)
+		{
+			check(GVoxelInvalidationBatch == nullptr);
+			GVoxelInvalidationBatch = &LocalBatch;
+		}
+
 		for (const FVoxelOnInvalidated& OnInvalidated : OnInvalidatedQueue)
 		{
 			OnInvalidated(*Callstack);
+		}
+
+		if (bIsOutermost)
+		{
+			// Clear TLS during drain so the issued Invalidate calls execute normally
+			// and set up their own batch scope around their own OnInvalidatedQueue
+			check(GVoxelInvalidationBatch == &LocalBatch);
+			GVoxelInvalidationBatch = nullptr;
+
+			VOXEL_SCOPE_COUNTER("InvalidationBatch drain");
+
+			for (auto& It : LocalBatch.Dependency3DToBoundsToInvalidate)
+			{
+				if (const TSharedPtr<FVoxelDependency3D> Dependency = It.Key.Pin())
+				{
+					Dependency->Invalidate(FVoxelAABBTree::Create(It.Value));
+				}
+			}
+			for (auto& It : LocalBatch.Dependency2DToBoundsToInvalidate)
+			{
+				if (const TSharedPtr<FVoxelDependency2D> Dependency = It.Key.Pin())
+				{
+					Dependency->Invalidate(FVoxelAABBTree2D::Create(It.Value));
+				}
+			}
+			for (const TWeakPtr<FVoxelDependency>& WeakDependency : LocalBatch.DependencyToInvalidate)
+			{
+				if (const TSharedPtr<FVoxelDependency> Dependency = WeakDependency.Pin())
+				{
+					Dependency->Invalidate();
+				}
+			}
 		}
 	}
 
@@ -230,6 +286,12 @@ void FVoxelDependency::Invalidate()
 	VOXEL_FUNCTION_COUNTER();
 	VOXEL_SCOPE_COUNTER_FORMAT("Invalidate %s", *Name);
 
+	if (FVoxelInvalidationBatch* Batch = GVoxelInvalidationBatch)
+	{
+		Batch->DependencyToInvalidate.Add(WeakFromThis(*this));
+		return;
+	}
+
 	InvalidateTrackers([&](const FVoxelDependencyTracker& Tracker)
 	{
 		checkVoxelSlow(Tracker.Dependencies.Contains(DependencyRef));
@@ -256,6 +318,12 @@ void FVoxelDependency2D::Invalidate(const FVoxelBox2D& Bounds)
 		return;
 	}
 
+	if (FVoxelInvalidationBatch* Batch = GVoxelInvalidationBatch)
+	{
+		Batch->Dependency2DToBoundsToInvalidate.FindOrAdd(WeakFromThis(*this)).Add(Bounds);
+		return;
+	}
+
 	InvalidateTrackers([=, this](const FVoxelDependencyTracker& Tracker)
 	{
 		const int32 Index = Tracker.Dependencies_2D.Find(DependencyRef);
@@ -273,6 +341,12 @@ void FVoxelDependency2D::Invalidate(const TConstVoxelArrayView<FVoxelBox2D> Boun
 		return;
 	}
 
+	if (FVoxelInvalidationBatch* Batch = GVoxelInvalidationBatch)
+	{
+		Batch->Dependency2DToBoundsToInvalidate.FindOrAdd(WeakFromThis(*this)).Append(BoundsArray);
+		return;
+	}
+
 	Invalidate(FVoxelAABBTree2D::Create(BoundsArray));
 }
 
@@ -283,6 +357,19 @@ void FVoxelDependency2D::Invalidate(const TSharedRef<const FVoxelAABBTree2D>& Tr
 
 	if (Tree->IsEmpty())
 	{
+		return;
+	}
+
+	if (FVoxelInvalidationBatch* Batch = GVoxelInvalidationBatch)
+	{
+		TVoxelChunkedArray<FVoxelBox2D>& Pending = Batch->Dependency2DToBoundsToInvalidate.FindOrAdd(WeakFromThis(*this));
+		for (const FVoxelAABBTree2D::FLeaf& Leaf : Tree->GetLeaves())
+		{
+			for (const FVoxelAABBTree2D::FElement& Element : Leaf.Elements)
+			{
+				Pending.Add(Element.Bounds);
+			}
+		}
 		return;
 	}
 
@@ -313,6 +400,12 @@ void FVoxelDependency3D::Invalidate(const FVoxelBox& Bounds)
 		return;
 	}
 
+	if (FVoxelInvalidationBatch* Batch = GVoxelInvalidationBatch)
+	{
+		Batch->Dependency3DToBoundsToInvalidate.FindOrAdd(WeakFromThis(*this)).Add(Bounds);
+		return;
+	}
+
 	const FVoxelFastBox FastBounds(Bounds);
 
 	InvalidateTrackers([=, this](const FVoxelDependencyTracker& Tracker)
@@ -329,6 +422,12 @@ void FVoxelDependency3D::Invalidate(const TConstVoxelArrayView<FVoxelBox> Bounds
 
 	if (BoundsArray.Num() == 0)
 	{
+		return;
+	}
+
+	if (FVoxelInvalidationBatch* Batch = GVoxelInvalidationBatch)
+	{
+		Batch->Dependency3DToBoundsToInvalidate.FindOrAdd(WeakFromThis(*this)).Append(BoundsArray);
 		return;
 	}
 
@@ -349,6 +448,16 @@ void FVoxelDependency3D::Invalidate(const TSharedRef<const FVoxelAABBTree>& Tree
 	{
 		// Fast path
 		Invalidate(Tree->GetBounds(0).GetBox());
+		return;
+	}
+
+	if (FVoxelInvalidationBatch* Batch = GVoxelInvalidationBatch)
+	{
+		TVoxelChunkedArray<FVoxelBox>& Pending = Batch->Dependency3DToBoundsToInvalidate.FindOrAdd(WeakFromThis(*this));
+		for (int32 Index = 0; Index < Tree->Num(); Index++)
+		{
+			Pending.Add(Tree->GetBounds(Index).GetBox());
+		}
 		return;
 	}
 

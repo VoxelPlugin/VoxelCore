@@ -1215,7 +1215,7 @@ const FBoolProperty& FVoxelUtilities::MakeBoolProperty()
 {
 	static const TUniquePtr<FBoolProperty> Property = INLINE_LAMBDA
 	{
-		TUniquePtr<FBoolProperty> Result = MakeUnique<FBoolProperty>(FFieldVariant(), FName(), EObjectFlags());
+		TUniquePtr<FBoolProperty> Result = UE_508_SWITCH(MakeUnique<FBoolProperty>(FFieldVariant(), FName(), EObjectFlags()), MakeUnique<FBoolProperty>(FFieldVariant(), FName()));
 		Result->SetElementSize(sizeof(bool));
 		return Result;
 	};
@@ -1226,7 +1226,7 @@ const FFloatProperty& FVoxelUtilities::MakeFloatProperty()
 {
 	static const TUniquePtr<FFloatProperty> Property = INLINE_LAMBDA
 	{
-		TUniquePtr<FFloatProperty> Result = MakeUnique<FFloatProperty>(FFieldVariant(), FName(), EObjectFlags());
+		TUniquePtr<FFloatProperty> Result = UE_508_SWITCH(MakeUnique<FFloatProperty>(FFieldVariant(), FName(), EObjectFlags()), MakeUnique<FFloatProperty>(FFieldVariant(), FName()));
 		Result->SetElementSize(sizeof(float));
 		return Result;
 	};
@@ -1237,7 +1237,7 @@ const FIntProperty& FVoxelUtilities::MakeIntProperty()
 {
 	static const TUniquePtr<FIntProperty> Property = INLINE_LAMBDA
 	{
-		TUniquePtr<FIntProperty> Result = MakeUnique<FIntProperty>(FFieldVariant(), FName(), EObjectFlags());
+		TUniquePtr<FIntProperty> Result = UE_508_SWITCH(MakeUnique<FIntProperty>(FFieldVariant(), FName(), EObjectFlags()), MakeUnique<FIntProperty>(FFieldVariant(), FName()));
 		Result->SetElementSize(sizeof(int32));
 		return Result;
 	};
@@ -1248,7 +1248,7 @@ const FNameProperty& FVoxelUtilities::MakeNameProperty()
 {
 	static const TUniquePtr<FNameProperty> Property = INLINE_LAMBDA
 	{
-		TUniquePtr<FNameProperty> Result = MakeUnique<FNameProperty>(FFieldVariant(), FName(), EObjectFlags());
+		TUniquePtr<FNameProperty> Result = UE_508_SWITCH(MakeUnique<FNameProperty>(FFieldVariant(), FName(), EObjectFlags()), MakeUnique<FNameProperty>(FFieldVariant(), FName()));
 		Result->SetElementSize(sizeof(FName));
 		return Result;
 	};
@@ -1257,7 +1257,7 @@ const FNameProperty& FVoxelUtilities::MakeNameProperty()
 
 TUniquePtr<FEnumProperty> FVoxelUtilities::MakeEnumProperty(const UEnum* Enum)
 {
-	TUniquePtr<FEnumProperty> Property = MakeUnique<FEnumProperty>(FFieldVariant(), FName(), EObjectFlags());
+	TUniquePtr<FEnumProperty> Property = UE_508_SWITCH(MakeUnique<FEnumProperty>(FFieldVariant(), FName(), EObjectFlags()), MakeUnique<FEnumProperty>(FFieldVariant(), FName()));
 	Property->SetEnum(ConstCast(Enum));
 	Property->SetElementSize(sizeof(uint8));
 	return Property;
@@ -1267,7 +1267,7 @@ TUniquePtr<FStructProperty> FVoxelUtilities::MakeStructProperty(const UScriptStr
 {
 	check(Struct);
 
-	TUniquePtr<FStructProperty> Property = MakeUnique<FStructProperty>(FFieldVariant(), FName(), EObjectFlags());
+	TUniquePtr<FStructProperty> Property = UE_508_SWITCH(MakeUnique<FStructProperty>(FFieldVariant(), FName(), EObjectFlags()), MakeUnique<FStructProperty>(FFieldVariant(), FName()));
 	Property->Struct = ConstCast(Struct);
 	Property->SetElementSize(Struct->GetStructureSize());
 	return Property;
@@ -1277,7 +1277,7 @@ TUniquePtr<FObjectProperty> FVoxelUtilities::MakeObjectProperty(const UClass* Cl
 {
 	check(Class);
 
-	TUniquePtr<FObjectProperty> Property = MakeUnique<FObjectProperty>(FFieldVariant(), FName(), EObjectFlags());
+	TUniquePtr<FObjectProperty> Property = UE_508_SWITCH(MakeUnique<FObjectProperty>(FFieldVariant(), FName(), EObjectFlags()), MakeUnique<FObjectProperty>(FFieldVariant(), FName()));
 	Property->PropertyClass = ConstCast(Class);
 	Property->SetElementSize(sizeof(UObject*));
 	return Property;
@@ -1287,7 +1287,7 @@ TUniquePtr<FArrayProperty> FVoxelUtilities::MakeArrayProperty(FProperty* InnerPr
 {
 	check(InnerProperty);
 
-	TUniquePtr<FArrayProperty> Property = MakeUnique<FArrayProperty>(FFieldVariant(), FName(), EObjectFlags());
+	TUniquePtr<FArrayProperty> Property = UE_508_SWITCH(MakeUnique<FArrayProperty>(FFieldVariant(), FName(), EObjectFlags()), MakeUnique<FArrayProperty>(FFieldVariant(), FName()));
 	Property->Inner = InnerProperty;
 	return Property;
 }

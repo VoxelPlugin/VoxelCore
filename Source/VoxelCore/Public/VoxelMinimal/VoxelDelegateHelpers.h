@@ -9,6 +9,28 @@
 #include "VoxelMinimal/Utilities/VoxelTypeUtilities.h"
 #include "VoxelMinimal/Utilities/VoxelLambdaUtilities.h"
 
+#if VOXEL_ENGINE_VERSION >= 508
+#define VOXEL_DELEGATE_CREATE_COPY(Type) \
+	void CreateCopy(const FPrivateDelegateAllocation& Target) const final \
+	{ \
+		new (Target) Type(*this); \
+	}
+#else
+#define VOXEL_DELEGATE_CREATE_COPY(Type) \
+	virtual void CreateCopy(TDelegateBase<FThreadSafeDelegateMode>& Base) const override \
+	{ \
+		FVoxelDelegateUtilities::CreateDelegateInstance(Base, *this); \
+	} \
+	virtual void CreateCopy(TDelegateBase<FNotThreadSafeDelegateMode>& Base) const override \
+	{ \
+		FVoxelDelegateUtilities::CreateDelegateInstance(Base, *this); \
+	} \
+	virtual void CreateCopy(TDelegateBase<FNotThreadSafeNotCheckedDelegateMode>& Base) const override \
+	{ \
+		FVoxelDelegateUtilities::CreateDelegateInstance(Base, *this); \
+	}
+#endif
+
 struct FVoxelDelegateUtilities
 	: public TDelegateBase<FThreadSafeDelegateMode>
 	, public TDelegateBase<FNotThreadSafeDelegateMode>
@@ -91,18 +113,7 @@ public:
 
 public:
 	//~ Begin IBaseDelegateInstance Interface
-	virtual void CreateCopy(TDelegateBase<FThreadSafeDelegateMode>& Base) const override
-	{
-		FVoxelDelegateUtilities::CreateDelegateInstance(Base, *this);
-	}
-	virtual void CreateCopy(TDelegateBase<FNotThreadSafeDelegateMode>& Base) const override
-	{
-		FVoxelDelegateUtilities::CreateDelegateInstance(Base, *this);
-	}
-	virtual void CreateCopy(TDelegateBase<FNotThreadSafeNotCheckedDelegateMode>& Base) const override
-	{
-		FVoxelDelegateUtilities::CreateDelegateInstance(Base, *this);
-	}
+	VOXEL_DELEGATE_CREATE_COPY(TSharedPtrLambdaDelegateInstance)
 
 	virtual ReturnType Execute(ArgTypes... Args) const override
 	{
@@ -387,11 +398,11 @@ FORCEINLINE auto MakeStrongPtrLambda(const T& Ptr, LambdaType Lambda)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename, typename, typename>
+template<typename, typename, typename, typename = FDefaultDelegateUserPolicy>
 class TForwardDelegateInstance;
 
-template<typename WeakDelegateBase, typename ReturnType, typename... ArgTypes>
-class TForwardDelegateInstance<WeakDelegateBase, ReturnType, TVoxelTypes<ArgTypes...>> final : public IBaseDelegateInstance<ReturnType(ArgTypes...), FDefaultDelegateUserPolicy>
+template<typename WeakDelegateBase, typename ReturnType, typename... ArgTypes, typename UserPolicy>
+class TForwardDelegateInstance<WeakDelegateBase, ReturnType, TVoxelTypes<ArgTypes...>, UserPolicy> final : public IBaseDelegateInstance<ReturnType(ArgTypes...), UserPolicy>
 {
 public:
 	const FDelegateHandle Handle = FDelegateHandle(FDelegateHandle::GenerateNewHandle);
@@ -451,18 +462,7 @@ public:
 
 public:
 	//~ Begin IBaseDelegateInstance Interface
-	virtual void CreateCopy(TDelegateBase<FThreadSafeDelegateMode>& Base) const override
-	{
-		FVoxelDelegateUtilities::CreateDelegateInstance(Base, *this);
-	}
-	virtual void CreateCopy(TDelegateBase<FNotThreadSafeDelegateMode>& Base) const override
-	{
-		FVoxelDelegateUtilities::CreateDelegateInstance(Base, *this);
-	}
-	virtual void CreateCopy(TDelegateBase<FNotThreadSafeNotCheckedDelegateMode>& Base) const override
-	{
-		FVoxelDelegateUtilities::CreateDelegateInstance(Base, *this);
-	}
+	VOXEL_DELEGATE_CREATE_COPY(TForwardDelegateInstance)
 
 	virtual ReturnType Execute(ArgTypes... Args) const override
 	{
@@ -483,12 +483,12 @@ public:
 };
 
 // Makes a new delegate with the same lifetime as WeakDelegate
-template<typename DelegateType, typename LambdaType>
+template<typename UserPolicy = FDefaultDelegateUserPolicy, typename DelegateType, typename LambdaType>
 FORCEINLINE auto MakeWeakDelegateDelegate(const DelegateType& WeakDelegate, LambdaType Lambda)
 {
-	TDelegate<LambdaSignature_T<LambdaType>> Delegate;
+	TDelegate<LambdaSignature_T<LambdaType>, UserPolicy> Delegate;
 
-	TForwardDelegateInstance<DelegateType, LambdaReturnType_T<LambdaType>, LambdaArgTypes_T<LambdaType>>::Create(
+	TForwardDelegateInstance<DelegateType, LambdaReturnType_T<LambdaType>, LambdaArgTypes_T<LambdaType>, UserPolicy>::Create(
 		Delegate,
 		MakeSharedCopy(WeakDelegate),
 		MoveTemp(Lambda));
@@ -554,18 +554,7 @@ public:
 
 public:
 	//~ Begin IBaseDelegateInstance Interface
-	virtual void CreateCopy(TDelegateBase<FThreadSafeDelegateMode>& Base) const override
-	{
-		FVoxelDelegateUtilities::CreateDelegateInstance(Base, *this);
-	}
-	virtual void CreateCopy(TDelegateBase<FNotThreadSafeDelegateMode>& Base) const override
-	{
-		FVoxelDelegateUtilities::CreateDelegateInstance(Base, *this);
-	}
-	virtual void CreateCopy(TDelegateBase<FNotThreadSafeNotCheckedDelegateMode>& Base) const override
-	{
-		FVoxelDelegateUtilities::CreateDelegateInstance(Base, *this);
-	}
+	VOXEL_DELEGATE_CREATE_COPY(TMulticastForwardDelegateInstance)
 
 	virtual void Execute(ArgTypes... Args) const override
 	{

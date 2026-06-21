@@ -61,6 +61,12 @@ FORCEINLINE FIntPoint operator*(const uint32 Value, const FIntPoint& Vector)
 	return FIntPoint(int32(Value)) * Vector;
 }
 
+FORCEINLINE FIntPoint operator*(const FIntPoint& Vector, const uint32 Value)
+{
+	checkVoxelSlow(Value <= MAX_int32);
+	return Vector * FIntPoint(int32(Value));
+}
+
 FIntPoint operator*(const FIntPoint&, float) = delete;
 FIntPoint operator*(float, const FIntPoint& V) = delete;
 

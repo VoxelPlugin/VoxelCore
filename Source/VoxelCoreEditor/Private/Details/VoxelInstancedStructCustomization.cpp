@@ -18,7 +18,7 @@ void FVoxelInstancedStructCustomization::CustomizeHeader(
 	StructProperty = PropertyHandle;
 	RefreshDelegate = FVoxelEditorUtilities::MakeRefreshDelegate(this, CustomizationUtils);
 
-	FCoreUObjectDelegates::OnObjectsReinstanced.Add(MakeWeakDelegateDelegate(RefreshDelegate, [RefreshDelegate = RefreshDelegate](const FCoreUObjectDelegates::FReplacementObjectMap&)
+	FCoreUObjectDelegates::OnObjectsReinstanced.Add(MakeWeakDelegateDelegate<UE_508_SWITCH(FDefaultDelegateUserPolicy, FDefaultTSDelegateUserPolicy)>(RefreshDelegate, [RefreshDelegate = RefreshDelegate](const FCoreUObjectDelegates::FReplacementObjectMap&)
 	{
 		RefreshDelegate.Execute();
 	}));

@@ -17,13 +17,7 @@ namespace Voxel
 class VOXELCORE_API FVoxelInvalidationQueue
 {
 public:
-	// bFlush: when true (default), broadcasts OnDependencyFlush before creating the queue,
-	// which on the game thread drains pending stamp updates so the queue starts from a
-	// consistent snapshot point. Pass false to skip the broadcast - required when calling
-	// from a worker thread (the flush asserts game-thread). Skipping is safe when the queue
-	// is only used to capture in-window invalidations and replay them into a tracker at
-	// Finalize, since any pending stamp updates flushed later will land in the queue too.
-	static TSharedRef<FVoxelInvalidationQueue> Create(bool bFlush = true);
+	static TSharedRef<FVoxelInvalidationQueue> Create();
 
 	UE_NONCOPYABLE(FVoxelInvalidationQueue);
 	VOXEL_COUNT_INSTANCES();

@@ -1,6 +1,7 @@
 // Copyright Voxel Plugin SAS. All Rights Reserved.
 
 #include "VoxelMinimal.h"
+#include "VoxelAABBTree.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/GameViewportClient.h"
 
@@ -283,6 +284,83 @@ TOptional<FVector> FVoxelUtilities::GetCameraPosition(const UWorld* World)
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+FORCENOINLINE static void IterateInvokerDuplicates(
+	const TConstVoxelArrayView<FSphere> Invokers,
+	const int32 NumLargeInvokers,
+	const FVoxelAABBTree& Tree,
+	TVoxelArrayView<bool> bRemoved)
+{
+	VOXEL_FUNCTION_COUNTER();
+
+	const TConstVoxelArrayView<FVoxelAABBTree::FNode> Nodes = Tree.GetNodes();
+	const TConstVoxelArrayView<FVoxelAABBTree::FLeaf> Leaves = Tree.GetLeaves();
+	if (Nodes.Num() == 0)
+	{
+		return;
+	}
+
+	for (int32 IndexA = 0; IndexA < NumLargeInvokers; IndexA++)
+	{
+		const FSphere InvokerA = Invokers[IndexA];
+
+		const FVector3f PointFloat(InvokerA.Center);
+		const VectorRegister4f Point = VectorLoadFloat3(&PointFloat);
+
+		bRemoved[IndexA] = INLINE_LAMBDA -> bool
+		{
+			TVoxelInlineArray<int32, 64> QueuedNodes;
+			QueuedNodes.Add_EnsureNoGrow(0);
+
+			while (QueuedNodes.Num() > 0)
+			{
+				const int32 NodeIndex = QueuedNodes.Pop();
+
+				const FVoxelAABBTree::FNode& Node = Nodes[NodeIndex];
+				if (Node.bLeaf)
+				{
+					const FVoxelAABBTree::FLeaf& Leaf = Leaves[Node.LeafIndex];
+					for (int32 Index = Leaf.StartIndex; Index < Leaf.EndIndex; Index++)
+					{
+						if (!Tree.GetBounds(Index).Contains(Point))
+						{
+							continue;
+						}
+
+						const int32 IndexB = Tree.GetPayload(Index);
+						if (IndexB >= IndexA ||
+							bRemoved[IndexB])
+						{
+							continue;
+						}
+
+						const FSphere& InvokerB = Invokers[IndexB];
+						const double RadiusDelta = InvokerB.W - InvokerA.W;
+						checkVoxelSlow(RadiusDelta >= 0);
+
+						if (FVector::DistSquared(InvokerA.Center, InvokerB.Center) <= FMath::Square(RadiusDelta))
+						{
+							return true;
+						}
+					}
+				}
+				else
+				{
+					if (Node.ChildBounds0.Contains(Point))
+					{
+						QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex0);
+					}
+					if (Node.ChildBounds1.Contains(Point))
+					{
+						QueuedNodes.Add_EnsureNoGrow(Node.ChildIndex1);
+					}
+				}
+			}
+
+			return false;
+		};
+	}
+}
+
 bool FVoxelUtilities::ComputeInvokerChunks(
 	TVoxelSet<FIntVector>& OutChunks,
 	TVoxelArray<FSphere> Invokers,
@@ -300,25 +378,42 @@ bool FVoxelUtilities::ComputeInvokerChunks(
 	{
 		VOXEL_SCOPE_COUNTER("Remove duplicates");
 
-		for (int32 IndexA = 0; IndexA < Invokers.Num(); IndexA++)
+		const double MinRadiusForDedup = 2 * ChunkSize;
+		int32 NumLargeInvokers = 0;
+		while (NumLargeInvokers < Invokers.Num() &&
+			Invokers[NumLargeInvokers].W > MinRadiusForDedup)
 		{
-			const FSphere InvokerA = Invokers[IndexA];
-			for (int32 IndexB = 0; IndexB < IndexA; IndexB++)
+			NumLargeInvokers++;
+		}
+
+		FVoxelAABBTree::FElementArray Elements;
+		Elements.Reserve(NumLargeInvokers);
+		for (int32 Index = 0; Index < NumLargeInvokers; Index++)
+		{
+			const FSphere& Invoker = Invokers[Index];
+			Elements.Add(FVoxelBox(Invoker.Center).Extend(Invoker.W), Index);
+		}
+
+		TSharedPtr<FVoxelAABBTree> Tree;
+		{
+			VOXEL_SCOPE_COUNTER("Build tree");
+			Tree = FVoxelAABBTree::Create(MoveTemp(Elements));
+		}
+
+		TVoxelArray<bool> bRemoved;
+		bRemoved.SetNumZeroed(NumLargeInvokers);
+
+		IterateInvokerDuplicates(Invokers, NumLargeInvokers, *Tree, bRemoved);
+
+		{
+			VOXEL_SCOPE_COUNTER("Remove");
+
+			for (int32 Index = NumLargeInvokers - 1; Index >= 0; Index--)
 			{
-				const FSphere InvokerB = Invokers[IndexB];
-
-				const double RadiusDelta = InvokerB.W - InvokerA.W;
-				ensureVoxelSlow(RadiusDelta >= 0);
-
-				if (FVector::DistSquared(InvokerA.Center, InvokerB.Center) > FMath::Square(RadiusDelta))
+				if (bRemoved[Index])
 				{
-					continue;
+					Invokers.RemoveAtSwap(Index);
 				}
-
-				// If distance between two centers is less than the difference of radius, then A is fully contained in B
-				Invokers.RemoveAtSwap(IndexA);
-				IndexA--;
-				break;
 			}
 		}
 	}
@@ -361,7 +456,7 @@ bool FVoxelUtilities::ComputeInvokerChunks(
 
 	for (const FChunkedInvoker& Invoker : ChunkedInvokers)
 	{
-		VOXEL_SCOPE_COUNTER_FORMAT("Add invoker Radius=%f chunks", Invoker.RadiusInChunks);
+		VOXEL_SCOPE_COUNTER_FORMAT_COND(Invoker.RadiusInChunks > 2, "Add invoker Radius=%f chunks", Invoker.RadiusInChunks);
 
 		// Offset due to chunk position being the chunk lower corner
 		constexpr double ChunkOffset = 0.5;

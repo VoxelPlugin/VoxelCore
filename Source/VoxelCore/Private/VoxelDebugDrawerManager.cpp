@@ -183,7 +183,11 @@ void FVoxelDebugDrawerWorldManager::RenderPoints_RenderThread(
 	const TShaderMapRef<FVoxelDebugPointVS> VertexShader(ShaderMap);
 	const TShaderMapRef<FVoxelDebugPointPS> PixelShader(ShaderMap);
 
+#if VOXEL_ENGINE_VERSION >= 508
+	RDG_EVENT_SCOPE_STAT(GraphBuilder, VoxelDebugDrawPoints, "VoxelDebugDrawPoints");
+#else
 	RDG_GPU_STAT_SCOPE(GraphBuilder, VoxelDebugDrawPoints);
+#endif
 
 	GraphBuilder.AddPass(
 		RDG_EVENT_NAME("VoxelDebugDraw Points"),
@@ -289,7 +293,7 @@ void FVoxelDebugDrawerWorldManager::RenderLines_RenderThread(
 		return;
 	}
 
-	const FMatrix Matrix = View.ViewMatrices.GetProjectionMatrix();
+	const FMatrix Matrix = UE_508_SWITCH(View.ViewMatrices.GetProjectionMatrix(), View.ViewMatrices.GetViewToClip());
 
 	FPlane LeftPlane(ForceInit);
 	FPlane RightPlane(ForceInit);
@@ -308,7 +312,11 @@ void FVoxelDebugDrawerWorldManager::RenderLines_RenderThread(
 	const TShaderMapRef<FVoxelDebugLineVS> VertexShader(ShaderMap);
 	const TShaderMapRef<FVoxelDebugLinePS> PixelShader(ShaderMap);
 
+#if VOXEL_ENGINE_VERSION >= 508
+	RDG_EVENT_SCOPE_STAT(GraphBuilder, VoxelDebugDrawLines, "VoxelDebugDrawLines");
+#else
 	RDG_GPU_STAT_SCOPE(GraphBuilder, VoxelDebugDrawLines);
+#endif
 
 	GraphBuilder.AddPass(
 		RDG_EVENT_NAME("VoxelDebugDraw Lines"),
