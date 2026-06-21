@@ -230,9 +230,9 @@ bool FVoxelUtilities::GetCameraView(const UWorld* World, FVector& OutPosition, F
 			OutFOV = BestViewportClient->FOVAngle;
 
 			return true;
-	#endif
-
+	#else
 			return false;
+	#endif
 		}
 	};
 
