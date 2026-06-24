@@ -3,6 +3,7 @@
 #include "VoxelMinimal.h"
 #include "AssetRegistry/AssetData.h"
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "StructUtils/UserDefinedStruct.h"
 
 UScriptStruct* FindCoreStruct(const TCHAR* Name)
 {
@@ -252,9 +253,22 @@ FSharedVoidRef MakeShareableStruct(const UScriptStruct* Struct, void* StructMemo
 		return MakeSharedVoidRef(SharedRef);
 	}
 
-	return MakeSharedVoidRef(TSharedPtr<int32>(static_cast<int32*>(StructMemory), [Struct](void* InMemory)
+	return MakeSharedVoidRef(TSharedPtr<int32>(static_cast<int32*>(StructMemory),
+		[
+			Struct,
+			WeakStruct = FWeakObjectPtr(Struct),
+			bIsUserDefinedStruct = Struct->IsA<UUserDefinedStruct>()
+		](void* InMemory)
 	{
-		FVoxelUtilities::DestroyStruct_Safe(Struct, InMemory);
+		if (WeakStruct.IsValid())
+		{
+			FVoxelUtilities::DestroyStruct_Safe(Struct, InMemory);
+		}
+		else
+		{
+			// Struct was garbage collected - leak the struct's inner data rather than crash
+			ensure(bIsUserDefinedStruct || IsEngineExitRequested());
+		}
 		FMemory::Free(InMemory);
 	}).ToSharedRef());
 }
