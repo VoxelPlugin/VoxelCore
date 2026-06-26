@@ -366,12 +366,16 @@ void FVoxelDebugDrawerWorldManager::Tick()
 
 	World_Unsafe = GetWorld().Resolve_Ensured();
 
+	// Read OriginLocation here on the game thread; the async copy below uses the captured value to
+	// bring Absolute draws into the current world (so they stay aligned across world origin rebasing)
+	const FVector OriginOffset = World_Unsafe ? FVector(World_Unsafe->OriginLocation) : FVector::ZeroVector;
+
 	if (!Future.IsComplete())
 	{
 		return;
 	}
 
-	Future = Voxel::AsyncTask(MakeWeakPtrLambda(this, [this]() -> FVoxelFuture
+	Future = Voxel::AsyncTask(MakeWeakPtrLambda(this, [this, OriginOffset]() -> FVoxelFuture
 	{
 		VOXEL_SCOPE_COUNTER_NUM("FVoxelDebugDrawerManager Cleanup", Groups_RequiresLock.Num());
 
@@ -420,15 +424,43 @@ void FVoxelDebugDrawerWorldManager::Tick()
 		int32 LineIndex = 0;
 		for (const TSharedPtr<const FVoxelDebugDraw>& Draw : DrawsToRender)
 		{
+			// Absolute draws are in world-origin independent space; bring them to the current world
+			const FVector3f Offset =
+				Draw->Space == EVoxelWorldSpace::Absolute
+				? -FVector3f(OriginOffset)
+				: FVector3f(ForceInit);
+			const bool bHasOffset = !Offset.IsZero();
+
 			if (Draw->Points.Num() > 0)
 			{
-				Draw->Points.CopyTo(PointsToRender.View().Slice(PointIndex, Draw->Points.Num()));
+				const TVoxelArrayView<FVoxelDebugPoint> Destination = PointsToRender.View().Slice(PointIndex, Draw->Points.Num());
+				Draw->Points.CopyTo(Destination);
+
+				if (bHasOffset)
+				{
+					for (FVoxelDebugPoint& Point : Destination)
+					{
+						Point.Center += Offset;
+					}
+				}
+
 				PointIndex += Draw->Points.Num();
 			}
 
 			if (Draw->Lines.Num() > 0)
 			{
-				Draw->Lines.CopyTo(LinesToRender.View().Slice(LineIndex, Draw->Lines.Num()));
+				const TVoxelArrayView<FVoxelDebugLine> Destination = LinesToRender.View().Slice(LineIndex, Draw->Lines.Num());
+				Draw->Lines.CopyTo(Destination);
+
+				if (bHasOffset)
+				{
+					for (FVoxelDebugLine& Line : Destination)
+					{
+						Line.Start += Offset;
+						Line.End += Offset;
+					}
+				}
+
 				LineIndex += Draw->Lines.Num();
 			}
 		}

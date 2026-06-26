@@ -5,6 +5,7 @@
 #include "VoxelCoreMinimal.h"
 #include "VoxelMinimal/VoxelBox.h"
 #include "VoxelMinimal/VoxelObjectPtr.h"
+#include "VoxelMinimal/VoxelWorldSpace.h"
 #include "VoxelMinimal/VoxelCriticalSection.h"
 
 struct FVoxelDebugDrawGroup;
@@ -33,6 +34,7 @@ checkStatic(sizeof(FVoxelDebugLine) == 2 * sizeof(FVector4f));
 
 struct VOXELCORE_API FVoxelDebugDraw
 {
+	EVoxelWorldSpace Space = EVoxelWorldSpace::CurrentWorld;
 	TVoxelChunkedArray<FVoxelDebugPoint> Points;
 	TVoxelChunkedArray<FVoxelDebugLine> Lines;
 };
@@ -71,6 +73,7 @@ public:
 	FVoxelDebugDrawer& Color(const FLinearColor& NewColor);
 	FVoxelDebugDrawer& OneFrame();
 	FVoxelDebugDrawer& LifeTime(float NewLifeTime);
+	FVoxelDebugDrawer& Space(EVoxelWorldSpace NewSpace);
 
 public:
 	FVoxelDebugDrawer& DrawPoint(

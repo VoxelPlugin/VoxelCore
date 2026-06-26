@@ -85,6 +85,7 @@
 #include "VoxelMinimal/VoxelUniqueFunction.h"
 #include "VoxelMinimal/VoxelVirtualStruct.h"
 #include "VoxelMinimal/VoxelWeakPropertyPtr.h"
+#include "VoxelMinimal/VoxelWorldSpace.h"
 #include "VoxelMinimal/VoxelWorldSubsystem.h"
 
 #include "VoxelMinimal/Containers/VoxelArray.h"
