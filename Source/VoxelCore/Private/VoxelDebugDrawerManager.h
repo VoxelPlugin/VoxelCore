@@ -24,11 +24,13 @@ public:
 public:
 	void RenderPoints_RenderThread(
 		FRDGBuilder& GraphBuilder,
-		FViewInfo& View);
+		FViewInfo& View,
+		bool bAlwaysOnTop);
 
 	void RenderLines_RenderThread(
 		FRDGBuilder& GraphBuilder,
-		FViewInfo& View);
+		FViewInfo& View,
+		bool bAlwaysOnTop);
 
 public:
 	//~ Begin IVoxelWorldSubsystem Interface
@@ -44,13 +46,18 @@ private:
 	TSharedRef<FVoxelDebugDrawGroup> GlobalGroup = MakeShareable<FVoxelDebugDrawGroup>(new FVoxelDebugDrawGroup());
 	TVoxelSet<TWeakPtr<FVoxelDebugDrawGroup>> Groups_RequiresLock = { GlobalGroup };
 
-	TRefCountPtr<FRDGPooledBuffer> PooledPointBuffer;
-	TWeakPtr<const TVoxelArray<FVoxelDebugPoint>> UploadedPointsToRender;
-	TSharedPtr<const TVoxelArray<FVoxelDebugPoint>> PointsToRender_RenderThread;
+	struct FBuffers
+	{
+		TRefCountPtr<FRDGPooledBuffer> PooledPointBuffer;
+		TWeakPtr<const TVoxelArray<FVoxelDebugPoint>> UploadedPointsToRender;
+		TSharedPtr<const TVoxelArray<FVoxelDebugPoint>> PointsToRender_RenderThread;
 
-	TRefCountPtr<FRDGPooledBuffer> PooledLineBuffer;
-	TWeakPtr<const TVoxelArray<FVoxelDebugLine>> UploadedLinesToRender;
-	TSharedPtr<const TVoxelArray<FVoxelDebugLine>> LinesToRender_RenderThread;
+		TRefCountPtr<FRDGPooledBuffer> PooledLineBuffer;
+		TWeakPtr<const TVoxelArray<FVoxelDebugLine>> UploadedLinesToRender;
+		TSharedPtr<const TVoxelArray<FVoxelDebugLine>> LinesToRender_RenderThread;
+	};
+	FBuffers DepthTestedBuffers;
+	FBuffers AlwaysOnTopBuffers;
 
 	friend class FVoxelDebugDrawerManager;
 };

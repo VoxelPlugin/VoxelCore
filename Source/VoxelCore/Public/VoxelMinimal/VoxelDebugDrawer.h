@@ -35,6 +35,7 @@ checkStatic(sizeof(FVoxelDebugLine) == 2 * sizeof(FVector4f));
 struct VOXELCORE_API FVoxelDebugDraw
 {
 	EVoxelWorldSpace Space = EVoxelWorldSpace::CurrentWorld;
+	bool bAlwaysOnTop = false;
 	TVoxelChunkedArray<FVoxelDebugPoint> Points;
 	TVoxelChunkedArray<FVoxelDebugLine> Lines;
 };
@@ -44,6 +45,7 @@ struct VOXELCORE_API FVoxelDebugDraw
 // FVoxelDebugDrawer()
 // .LifeTime(0.5f) // Optional, can also use OneFrame or nothing. If nothing will be permanent until cleared with voxel.ClearDebugDraws
 // .Color(FLinearColor::Red)
+// .AlwaysOnTop() // Optional, disables depth testing
 // .DrawPoint(Position);
 //
 // If you have a lot of points consider batching them in the same drawer.
@@ -74,6 +76,7 @@ public:
 	FVoxelDebugDrawer& OneFrame();
 	FVoxelDebugDrawer& LifeTime(float NewLifeTime);
 	FVoxelDebugDrawer& Space(EVoxelWorldSpace NewSpace);
+	FVoxelDebugDrawer& AlwaysOnTop();
 
 public:
 	FVoxelDebugDrawer& DrawPoint(

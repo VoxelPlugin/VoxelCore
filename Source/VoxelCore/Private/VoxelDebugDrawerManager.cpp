@@ -121,21 +121,24 @@ void FVoxelDebugDrawerWorldManager::AddGroup_EnsureNew_AnyThread(const TSharedRe
 
 void FVoxelDebugDrawerWorldManager::RenderPoints_RenderThread(
 	FRDGBuilder& GraphBuilder,
-	FViewInfo& View)
+	FViewInfo& View,
+	const bool bAlwaysOnTop)
 {
 	ensure(IsInRenderingThread());
 
-	const int32 NumPoints = PointsToRender_RenderThread ? PointsToRender_RenderThread->Num() : 0;
+	FBuffers& Buffers = bAlwaysOnTop ? AlwaysOnTopBuffers : DepthTestedBuffers;
+
+	const int32 NumPoints = Buffers.PointsToRender_RenderThread ? Buffers.PointsToRender_RenderThread->Num() : 0;
 	if (NumPoints == 0)
 	{
-		PooledPointBuffer = {};
+		Buffers.PooledPointBuffer = {};
 		return;
 	}
 
 	VOXEL_FUNCTION_COUNTER_NUM(NumPoints);
 
-	if (!PooledPointBuffer ||
-		int64(PooledPointBuffer->Desc.NumElements) < NumPoints)
+	if (!Buffers.PooledPointBuffer ||
+		int64(Buffers.PooledPointBuffer->Desc.NumElements) < NumPoints)
 	{
 		VOXEL_SCOPE_COUNTER("Create buffer");
 
@@ -144,20 +147,20 @@ void FVoxelDebugDrawerWorldManager::RenderPoints_RenderThread(
 			TEXT("VoxelDebugDraw.Points"));
 
 		// Persistent, so we extract it immediately
-		PooledPointBuffer = GraphBuilder.ConvertToExternalBuffer(Buffer);
+		Buffers.PooledPointBuffer = GraphBuilder.ConvertToExternalBuffer(Buffer);
 	}
 
-	const FRDGBufferRef PointBuffer = GraphBuilder.RegisterExternalBuffer(PooledPointBuffer);
+	const FRDGBufferRef PointBuffer = GraphBuilder.RegisterExternalBuffer(Buffers.PooledPointBuffer);
 
-	if (UploadedPointsToRender != PointsToRender_RenderThread)
+	if (Buffers.UploadedPointsToRender != Buffers.PointsToRender_RenderThread)
 	{
-		UploadedPointsToRender = PointsToRender_RenderThread;
+		Buffers.UploadedPointsToRender = Buffers.PointsToRender_RenderThread;
 
 		FVoxelUtilities::UploadBuffer(
 			GraphBuilder,
 			PointBuffer,
-			PointsToRender_RenderThread->View<uint8>(),
-			MakeSharedVoidPtr(PointsToRender_RenderThread));
+			Buffers.PointsToRender_RenderThread->View<uint8>(),
+			MakeSharedVoidPtr(Buffers.PointsToRender_RenderThread));
 	}
 
 	const FSceneTextures& SceneTextures = View.GetSceneTextures();
@@ -193,7 +196,7 @@ void FVoxelDebugDrawerWorldManager::RenderPoints_RenderThread(
 		RDG_EVENT_NAME("VoxelDebugDraw Points"),
 		Parameters,
 		ERDGPassFlags::Raster,
-		[VertexShader, PixelShader, &View, Parameters, NumPoints](FRDGAsyncTask, FRHICommandList& RHICmdList)
+		[VertexShader, PixelShader, &View, Parameters, NumPoints, bAlwaysOnTop](FRDGAsyncTask, FRHICommandList& RHICmdList)
 		{
 			FGraphicsPipelineStateInitializer GraphicsPSOInit;
 			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
@@ -203,7 +206,9 @@ void FVoxelDebugDrawerWorldManager::RenderPoints_RenderThread(
 				View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
 			GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
-			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI();
+			GraphicsPSOInit.DepthStencilState = bAlwaysOnTop
+				? TStaticDepthStencilState<false, CF_Always>::GetRHI()
+				: TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI();
 			GraphicsPSOInit.BlendState = TStaticBlendStateWriteMask<CW_RGB, CW_RGBA>::GetRHI();
 			GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
@@ -228,21 +233,24 @@ void FVoxelDebugDrawerWorldManager::RenderPoints_RenderThread(
 
 void FVoxelDebugDrawerWorldManager::RenderLines_RenderThread(
 	FRDGBuilder& GraphBuilder,
-	FViewInfo& View)
+	FViewInfo& View,
+	const bool bAlwaysOnTop)
 {
 	ensure(IsInRenderingThread());
 
-	const int32 NumLines = LinesToRender_RenderThread ? LinesToRender_RenderThread->Num() : 0;
+	FBuffers& Buffers = bAlwaysOnTop ? AlwaysOnTopBuffers : DepthTestedBuffers;
+
+	const int32 NumLines = Buffers.LinesToRender_RenderThread ? Buffers.LinesToRender_RenderThread->Num() : 0;
 	if (NumLines == 0)
 	{
-		PooledLineBuffer = {};
+		Buffers.PooledLineBuffer = {};
 		return;
 	}
 
 	VOXEL_FUNCTION_COUNTER_NUM(NumLines);
 
-	if (!PooledLineBuffer ||
-		int64(PooledLineBuffer->Desc.NumElements) < int64(NumLines) * 2) // 2 float4s per line
+	if (!Buffers.PooledLineBuffer ||
+		int64(Buffers.PooledLineBuffer->Desc.NumElements) < int64(NumLines) * 2) // 2 float4s per line
 	{
 		VOXEL_SCOPE_COUNTER("Create buffer");
 
@@ -251,20 +259,20 @@ void FVoxelDebugDrawerWorldManager::RenderLines_RenderThread(
 			TEXT("VoxelDebugDraw.Lines"));
 
 		// Persistent, so we extract it immediately
-		PooledLineBuffer = GraphBuilder.ConvertToExternalBuffer(Buffer);
+		Buffers.PooledLineBuffer = GraphBuilder.ConvertToExternalBuffer(Buffer);
 	}
 
-	const FRDGBufferRef LineBuffer = GraphBuilder.RegisterExternalBuffer(PooledLineBuffer);
+	const FRDGBufferRef LineBuffer = GraphBuilder.RegisterExternalBuffer(Buffers.PooledLineBuffer);
 
-	if (UploadedLinesToRender != LinesToRender_RenderThread)
+	if (Buffers.UploadedLinesToRender != Buffers.LinesToRender_RenderThread)
 	{
-		UploadedLinesToRender = LinesToRender_RenderThread;
+		Buffers.UploadedLinesToRender = Buffers.LinesToRender_RenderThread;
 
 		FVoxelUtilities::UploadBuffer(
 			GraphBuilder,
 			LineBuffer,
-			LinesToRender_RenderThread->View<uint8>(),
-			MakeSharedVoidPtr(LinesToRender_RenderThread));
+			Buffers.LinesToRender_RenderThread->View<uint8>(),
+			MakeSharedVoidPtr(Buffers.LinesToRender_RenderThread));
 	}
 
 	const FSceneTextures& SceneTextures = View.GetSceneTextures();
@@ -322,7 +330,7 @@ void FVoxelDebugDrawerWorldManager::RenderLines_RenderThread(
 		RDG_EVENT_NAME("VoxelDebugDraw Lines"),
 		Parameters,
 		ERDGPassFlags::Raster,
-		[VertexShader, PixelShader, &View, Parameters, NumLines](FRDGAsyncTask, FRHICommandList& RHICmdList)
+		[VertexShader, PixelShader, &View, Parameters, NumLines, bAlwaysOnTop](FRDGAsyncTask, FRHICommandList& RHICmdList)
 		{
 			FGraphicsPipelineStateInitializer GraphicsPSOInit;
 			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
@@ -332,7 +340,9 @@ void FVoxelDebugDrawerWorldManager::RenderLines_RenderThread(
 				View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
 			GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
-			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI();
+			GraphicsPSOInit.DepthStencilState = bAlwaysOnTop
+				? TStaticDepthStencilState<false, CF_Always>::GetRHI()
+				: TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI();
 			GraphicsPSOInit.BlendState = TStaticBlendStateWriteMask<CW_RGB, CW_RGBA>::GetRHI();
 			GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
@@ -400,98 +410,144 @@ void FVoxelDebugDrawerWorldManager::Tick()
 			}
 		}
 
-		int64 NumPoints = 0;
-		int64 NumLines = 0;
+		// Split by bAlwaysOnTop: each bucket is a separate draw call with its own depth state
+		TVoxelArray<TSharedPtr<const FVoxelDebugDraw>> DrawsPerBucket[2];
 		for (const TSharedPtr<const FVoxelDebugDraw>& Draw : DrawsToRender)
 		{
-			NumPoints += Draw->Points.Num();
-			NumLines += Draw->Lines.Num();
+			DrawsPerBucket[Draw->bAlwaysOnTop ? 1 : 0].Add(Draw);
 		}
 
-		if (!ensure(NumPoints < MAX_int32) ||
-			!ensure(NumLines < MAX_int32))
+		struct FBucket
+		{
+			bool bUpdatePoints = false;
+			bool bUpdateLines = false;
+			TSharedPtr<const TVoxelArray<FVoxelDebugPoint>> Points;
+			TSharedPtr<const TVoxelArray<FVoxelDebugLine>> Lines;
+		};
+		FBucket Buckets[2];
+
+		bool bAnyUpdate = false;
+
+		for (int32 BucketIndex = 0; BucketIndex < 2; BucketIndex++)
+		{
+			const TVoxelArray<TSharedPtr<const FVoxelDebugDraw>>& Draws = DrawsPerBucket[BucketIndex];
+
+			int64 NumPoints = 0;
+			int64 NumLines = 0;
+			for (const TSharedPtr<const FVoxelDebugDraw>& Draw : Draws)
+			{
+				NumPoints += Draw->Points.Num();
+				NumLines += Draw->Lines.Num();
+			}
+
+			if (!ensure(NumPoints < MAX_int32) ||
+				!ensure(NumLines < MAX_int32))
+			{
+				return {};
+			}
+
+			TVoxelArray<FVoxelDebugPoint> PointsToRender;
+			TVoxelArray<FVoxelDebugLine> LinesToRender;
+
+			FVoxelUtilities::SetNumFast(PointsToRender, NumPoints);
+			FVoxelUtilities::SetNumFast(LinesToRender, NumLines);
+
+			int32 PointIndex = 0;
+			int32 LineIndex = 0;
+			for (const TSharedPtr<const FVoxelDebugDraw>& Draw : Draws)
+			{
+				// Absolute draws are in world-origin independent space; bring them to the current world
+				const FVector3f Offset =
+					Draw->Space == EVoxelWorldSpace::Absolute
+					? -FVector3f(OriginOffset)
+					: FVector3f(ForceInit);
+				const bool bHasOffset = !Offset.IsZero();
+
+				if (Draw->Points.Num() > 0)
+				{
+					const TVoxelArrayView<FVoxelDebugPoint> Destination = PointsToRender.View().Slice(PointIndex, Draw->Points.Num());
+					Draw->Points.CopyTo(Destination);
+
+					if (bHasOffset)
+					{
+						for (FVoxelDebugPoint& Point : Destination)
+						{
+							Point.Center += Offset;
+						}
+					}
+
+					PointIndex += Draw->Points.Num();
+				}
+
+				if (Draw->Lines.Num() > 0)
+				{
+					const TVoxelArrayView<FVoxelDebugLine> Destination = LinesToRender.View().Slice(LineIndex, Draw->Lines.Num());
+					Draw->Lines.CopyTo(Destination);
+
+					if (bHasOffset)
+					{
+						for (FVoxelDebugLine& Line : Destination)
+						{
+							Line.Start += Offset;
+							Line.End += Offset;
+						}
+					}
+
+					LineIndex += Draw->Lines.Num();
+				}
+			}
+
+			const FBuffers& Buffers = BucketIndex == 1 ? AlwaysOnTopBuffers : DepthTestedBuffers;
+
+			FBucket& Bucket = Buckets[BucketIndex];
+
+			Bucket.bUpdatePoints =
+				!Buffers.PointsToRender_RenderThread ||
+				!FVoxelUtilities::Equal(*Buffers.PointsToRender_RenderThread, PointsToRender);
+
+			Bucket.bUpdateLines =
+				!Buffers.LinesToRender_RenderThread ||
+				!FVoxelUtilities::Equal(*Buffers.LinesToRender_RenderThread, LinesToRender);
+
+			bAnyUpdate |= Bucket.bUpdatePoints || Bucket.bUpdateLines;
+
+			Bucket.Points = MakeSharedCopy(MoveTemp(PointsToRender));
+			Bucket.Lines = MakeSharedCopy(MoveTemp(LinesToRender));
+		}
+
+		if (!bAnyUpdate)
 		{
 			return {};
 		}
 
-		TVoxelArray<FVoxelDebugPoint> PointsToRender;
-		TVoxelArray<FVoxelDebugLine> LinesToRender;
-
-		FVoxelUtilities::SetNumFast(PointsToRender, NumPoints);
-		FVoxelUtilities::SetNumFast(LinesToRender, NumLines);
-
-		int32 PointIndex = 0;
-		int32 LineIndex = 0;
-		for (const TSharedPtr<const FVoxelDebugDraw>& Draw : DrawsToRender)
-		{
-			// Absolute draws are in world-origin independent space; bring them to the current world
-			const FVector3f Offset =
-				Draw->Space == EVoxelWorldSpace::Absolute
-				? -FVector3f(OriginOffset)
-				: FVector3f(ForceInit);
-			const bool bHasOffset = !Offset.IsZero();
-
-			if (Draw->Points.Num() > 0)
-			{
-				const TVoxelArrayView<FVoxelDebugPoint> Destination = PointsToRender.View().Slice(PointIndex, Draw->Points.Num());
-				Draw->Points.CopyTo(Destination);
-
-				if (bHasOffset)
-				{
-					for (FVoxelDebugPoint& Point : Destination)
-					{
-						Point.Center += Offset;
-					}
-				}
-
-				PointIndex += Draw->Points.Num();
-			}
-
-			if (Draw->Lines.Num() > 0)
-			{
-				const TVoxelArrayView<FVoxelDebugLine> Destination = LinesToRender.View().Slice(LineIndex, Draw->Lines.Num());
-				Draw->Lines.CopyTo(Destination);
-
-				if (bHasOffset)
-				{
-					for (FVoxelDebugLine& Line : Destination)
-					{
-						Line.Start += Offset;
-						Line.End += Offset;
-					}
-				}
-
-				LineIndex += Draw->Lines.Num();
-			}
-		}
-
-		const bool bUpdatePoints =
-			!PointsToRender_RenderThread ||
-			!FVoxelUtilities::Equal(*PointsToRender_RenderThread, PointsToRender);
-
-		const bool bUpdateLines =
-			!LinesToRender_RenderThread ||
-			!FVoxelUtilities::Equal(*LinesToRender_RenderThread, LinesToRender);
-
-		if (!bUpdatePoints && !bUpdateLines)
-		{
-			return {};
-		}
-
-		return Voxel::RenderTask(MakeWeakPtrLambda(this, [this, bUpdatePoints, bUpdateLines,
-			PointsToRender = MakeSharedCopy(MoveTemp(PointsToRender)),
-			LinesToRender = MakeSharedCopy(MoveTemp(LinesToRender))]
+		return Voxel::RenderTask(MakeWeakPtrLambda(this, [this,
+			PointsToRender0 = Buckets[0].Points,
+			LinesToRender0 = Buckets[0].Lines,
+			PointsToRender1 = Buckets[1].Points,
+			LinesToRender1 = Buckets[1].Lines,
+			bUpdatePoints0 = Buckets[0].bUpdatePoints,
+			bUpdateLines0 = Buckets[0].bUpdateLines,
+			bUpdatePoints1 = Buckets[1].bUpdatePoints,
+			bUpdateLines1 = Buckets[1].bUpdateLines]
 		{
 			ensure(IsInRenderingThread());
 
-			if (bUpdatePoints)
+			if (bUpdatePoints0)
 			{
-				PointsToRender_RenderThread = PointsToRender;
+				DepthTestedBuffers.PointsToRender_RenderThread = PointsToRender0;
+			}
+			if (bUpdateLines0)
+			{
+				DepthTestedBuffers.LinesToRender_RenderThread = LinesToRender0;
 			}
 
-			if (bUpdateLines)
+			if (bUpdatePoints1)
 			{
-				LinesToRender_RenderThread = LinesToRender;
+				AlwaysOnTopBuffers.PointsToRender_RenderThread = PointsToRender1;
+			}
+			if (bUpdateLines1)
+			{
+				AlwaysOnTopBuffers.LinesToRender_RenderThread = LinesToRender1;
 			}
 		}));
 	}));
@@ -529,8 +585,12 @@ void FVoxelDebugDrawerManager::PostRenderBasePassDeferred_RenderThread(
 	{
 		if (Manager->World_Unsafe == World_Unsafe)
 		{
-			Manager->RenderPoints_RenderThread(GraphBuilder, static_cast<FViewInfo&>(View));
-			Manager->RenderLines_RenderThread(GraphBuilder, static_cast<FViewInfo&>(View));
+			// Depth tested first, so that the always-on-top draws end up on top of them
+			Manager->RenderPoints_RenderThread(GraphBuilder, static_cast<FViewInfo&>(View), false);
+			Manager->RenderLines_RenderThread(GraphBuilder, static_cast<FViewInfo&>(View), false);
+
+			Manager->RenderPoints_RenderThread(GraphBuilder, static_cast<FViewInfo&>(View), true);
+			Manager->RenderLines_RenderThread(GraphBuilder, static_cast<FViewInfo&>(View), true);
 		}
 	}
 }
