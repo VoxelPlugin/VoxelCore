@@ -191,6 +191,12 @@ void FVoxelUtilities::EnsureViewportIsUpToDate()
 {
 	VOXEL_FUNCTION_COUNTER();
 
+	if (!GIsEditor ||
+		!GEditor)
+	{
+		return;
+	}
+
 	if (FSlateThrottleManager::Get().IsAllowingExpensiveTasks())
 	{
 		// No need to do anything, slate is not throttling
